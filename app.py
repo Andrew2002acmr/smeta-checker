@@ -18,16 +18,30 @@ from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls
 from google import genai
 from google.genai import types
-from vor_rules import validate_vor_formatting, get_highlighted_workbook
 import openai
 from dotenv import load_dotenv
-
 load_dotenv()
+from vor_rules import validate_vor_formatting, get_highlighted_workbook, generate_rules_word_report
 
-YANDEX_FOLDER = os.getenv("YANDEX_CLOUD_FOLDER", "")
-YANDEX_API_KEY = os.getenv("YANDEX_CLOUD_API_KEY", "")
-YANDEX_MODEL_NAME = os.getenv("YANDEX_CLOUD_MODEL", "qwen3.6-35b-a3b/latest")
-DEFAULT_GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
+def get_setting(name: str, default: str = "") -> str:
+    """Сначала читаем переменную окружения, затем Streamlit Secrets."""
+    value = os.getenv(name)
+    if value:
+        return value
+
+    try:
+        value = st.secrets.get(name, default)
+        return str(value) if value else default
+    except (FileNotFoundError, KeyError):
+        return default
+
+YANDEX_FOLDER = get_setting("YANDEX_CLOUD_FOLDER")
+YANDEX_API_KEY = get_setting("YANDEX_CLOUD_API_KEY")
+YANDEX_MODEL_NAME = get_setting(
+    "YANDEX_CLOUD_MODEL",
+    "qwen3.6-35b-a3b/latest"
+)
+DEFAULT_GEMINI_KEY = get_setting("GEMINI_API_KEY")
 
 st.set_page_config(page_title="Аудит ВОР и ПД", layout="wide")
 st.title("🏗️ Комплексный аудит ведомостей объемов работ (ВОР)")
@@ -58,7 +72,7 @@ with st.sidebar:
             options=["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"],
             index=0
         )
-        api_key = os.getenv("GEMINI_API_KEY", "")
+        api_key = DEFAULT_GEMINI_KEY
     else:
         model_name = st.selectbox(
             "Модель",
@@ -189,12 +203,20 @@ def load_vor_with_metadata(file_source, filename):
         col_pp = str(row.iloc[0]).strip()
         col_name = str(row.iloc[1]).strip()
         col_type = str(row.get('Тип позиции', '')).strip().lower()
+
+        # 1. Отсекаем техническую строку номеров колонок 1; 2; 3...
         if col_pp == '1' and col_name == '2':
             return False
+        # 2. Основные позиции работ
         if col_type in ['работа', 'материал', 'оборудование']:
             return True
         if re.match(r'^\d+$', col_pp) and len(col_name) > 3 and not col_name.isdigit():
             return True
+        # 3. НЕ ОТСЕКАЕМ строки-продолжения (где указан второй файл .pdf к этой же позиции)
+        row_str = " ".join([str(val) for val in row.values if pd.notna(val)])
+        if '.pdf' in row_str.lower():
+            return True
+
         return False
 
     df_clean = df[df.apply(is_work_row, axis=1)].copy()
@@ -346,6 +368,13 @@ def audit_position_hybrid(provider, client, model_name, doc, target_indices, wor
 2. ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ (КОММЕНТАРИЙ): Обязательно учитывай комментарий из ВОР! Если там указан адрес организации, реквизиты СРО или коэффициенты (например, для районной надбавки), и этот адрес/коэффициент подтверждается в ПД (в титуле, лицензии, тексте) — считай позицию ПОДТВЕРЖДЕННОЙ!
 3. СТРАНИЦА: данные должны находиться строго на указанной в ВОР странице.
 4. ЕДИНИЦА ИЗМЕРЕНИЯ: должна быть логически совместима.
+5. ДОПУСТИМОЕ ОКРУГЛЕНИЕ ОБЪЕМОВ:
+В сметных расчетах разрешено стандартное математическое округление или округление в большую сторону (до целого, до 0.1 или до 0.01).
+Например:
+- В ПД найдено 78.9 (или 78.85), а в ВОР заявлено 79 — это СОВПАДЕНИЕ (ОК)!
+- В ПД найдено 281.85, а в ВОР заявлено 282 — это СОВПАДЕНИЕ (ОК)!
+- В ПД 631.2, а в ВОР 631 или 632 — это СОВПАДЕНИЕ (ОК)!
+Не считай разницу из-за округления ошибкой!
 
 Статус 'ОК' ставится, если объем (с учетом '/') и комментарий подтверждены, и страница совпадает.
 Если есть несоответствие — статус строго 'Ошибка'.
@@ -368,37 +397,30 @@ def audit_position_hybrid(provider, client, model_name, doc, target_indices, wor
 {text_context}"""
 
     for attempt in range(max_retries):
+        raw_text = ""  # 1. ОБЯЗАТЕЛЬНО инициализируем заранее, чтобы не было ошибки UnboundLocalError
         try:
             if provider == "Yandex Cloud (Qwen)":
-                # ВЫЗОВ ПО ВАШЕМУ ШАБЛОНУ YANDEX CLOUD
+                # ВЫЗОВ YANDEX CLOUD
                 ya_client = openai.OpenAI(
                     api_key=YANDEX_API_KEY,
                     base_url="https://ai.api.cloud.yandex.net/v1",
                     project=YANDEX_FOLDER
                 )
-
-                # Ограничиваем длину передаваемого текста PDF (берем первые 4000 символов,
-                # чтобы не перегрузить модель и не получить пустой ответ)
                 trimmed_input = user_input[:4000] if len(user_input) > 4000 else user_input
 
                 response = ya_client.responses.create(
                     model=f"gpt://{YANDEX_FOLDER}/{model_name}",
-                    temperature=0.1,  # Низкая температура для строгого JSON
+                    temperature=0.1,
                     instructions=instructions,
                     input=trimmed_input,
                     max_output_tokens=3500
                 )
 
-                # Надежное извлечение текста из ответа
-                # СТАЛО: правильное извлечение текста, пропуская блок мыслей (Reasoning)
-                raw_text = ""
                 if getattr(response, "output_text", None):
                     raw_text = response.output_text.strip()
 
-                # Если output_text пуст, перебираем элементы output и забираем чистый текст
                 if not raw_text and hasattr(response, "output") and response.output:
                     for item in response.output:
-                        # Игнорируем блок черновика мыслей (reasoning), ищем сообщение
                         if hasattr(item, "content") and item.content:
                             if isinstance(item.content, list):
                                 for part in item.content:
@@ -410,10 +432,22 @@ def audit_position_hybrid(provider, client, model_name, doc, target_indices, wor
                                 raw_text += item.content
                         elif hasattr(item, "text") and item.text:
                             raw_text += item.text
-
                 raw_text = raw_text.strip()
 
-            # Очистка JSON
+            else:
+                # ВЫЗОВ GOOGLE GEMINI
+                # Страховка клиента: если он не был передан, инициализируем из secrets / env
+                gemini_client = client if client is not None else genai.Client(api_key=DEFAULT_GEMINI_KEY)
+
+                gemini_contents_full = gemini_contents + [instructions + "\n\n" + user_input]
+                resp = gemini_client.models.generate_content(
+                    model=model_name,
+                    contents=gemini_contents_full
+                )
+                # Читаем текст ответа Gemini
+                raw_text = resp.text.strip() if getattr(resp, "text", None) else ""
+
+            # 2. Парсим извлеченный JSON
             parsed_data = parse_llm_json(raw_text)
             if parsed_data:
                 return parsed_data
@@ -430,9 +464,11 @@ def audit_position_hybrid(provider, client, model_name, doc, target_indices, wor
             if any(code in err_msg for code in ["503", "429", "UNAVAILABLE"]):
                 time.sleep((attempt + 1) * 3)
                 if attempt == max_retries - 1:
-                    return {"status": "Ошибка", "found_volume": "-", "found_page": "-", "discrepancy_details": f"Лимит API ({model_name})"}
+                    return {"status": "Ошибка", "found_volume": "-", "found_page": "-",
+                            "discrepancy_details": f"Лимит API ({model_name})"}
             else:
-                return {"status": "Ошибка", "found_volume": "-", "found_page": "-", "discrepancy_details": f"Сбой API: {err_msg}"}
+                return {"status": "Ошибка", "found_volume": "-", "found_page": "-",
+                        "discrepancy_details": f"Сбой API: {err_msg}"}
 
 
 def generate_word_report(df_final, meta):
@@ -618,11 +654,28 @@ with main_tab1:
                     })
                     continue
 
-                unique_paths = df_prev[f_cols[0]].dropna().unique()
-                for raw_p in unique_paths:
-                    clean_raw = str(raw_p).strip().strip('"\'«»')
-                    if not clean_raw or clean_raw.lower() == 'nan':
+                all_raw_entries = df_prev[f_cols[0]].dropna().tolist()
+                individual_paths = []
+
+                for entry in all_raw_entries:
+                    text_val = str(entry).strip()
+                    if not text_val or text_val.lower() == 'nan':
                         continue
+                    # Разбиваем по переносам строк, точке с запятой или запятой
+                    lines = re.split(r'[\n\r;]+', text_val)
+                    for line in lines:
+                        c_line = line.strip().strip('"\'«»')
+                        if c_line and c_line not in individual_paths:
+                            individual_paths.append(c_line)
+
+                for clean_raw in individual_paths:
+                    # дальше идет ваша существующая проверка физического пути и имени файла:
+                    direct_path_exists = os.path.exists(clean_raw)
+                    disk_status = "🟢 Файл на месте" if direct_path_exists else "⚠️ Путь не найден на ПК"
+
+                    base_name = os.path.basename(clean_raw.replace('\\', '/')).strip().strip('"\'«»').lower()
+                    matched_pdf = None
+                    bind_status = "🔴 Не найден"
 
                     # 1. Проверка физического пути на диске (для локального режима)
                     direct_path_exists = os.path.exists(clean_raw)
@@ -785,40 +838,20 @@ with main_tab1:
                         # 4. Проверка и анализ
                         if target_pdf_doc is None:
                             audit = {
-                                "status": "Не подтверждено",
+                                "status": "Ошибка",
                                 "found_volume": "-",
-                                "actual_location": "-",
-                                "discrepancy_details": f"Не удалось привязать PDF к строке. Искали: '{target_pdf_name or meta.get('basis_code', '')}' (доступны: {', '.join(pdf_pool.keys())})"
+                                "found_page": "-",
+                                "discrepancy_details": f"Не удалось привязать PDF к строке. Искали: '{target_pdf_name}'"
                             }
                         else:
+                            # Восстановлен поиск страниц:
                             if target_pdf_name not in st.session_state.pdf_page_maps:
                                 st.session_state.pdf_page_maps[target_pdf_name] = build_pdf_page_map(target_pdf_doc)
                             p_map = st.session_state.pdf_page_maps[target_pdf_name]
 
-                            # 1. Берем страницу из ВОР (например, стр. 9)
                             target_indices, loc_desc, primary_phys_pages = get_optimized_page_indices(target_pdf_doc,
                                                                                                       p_map, w_page)
 
-                            # 2. Быстрый локальный поиск: если сметчик ошибся страницей,
-                            # ищем реальную страницу с Таблицей 1 / ключевым словом работы по тексту всего PDF
-                            extra_candidate = None
-                            m_tab = re.search(r'таблиц[аеы]\s*(\d+(\.\d+)?)', w_ref.lower())
-                            tab_search_word = f"таблица {m_tab.group(1)}" if m_tab else ""
-
-                            for p_i, p_obj in enumerate(target_pdf_doc):
-                                p_txt = p_obj.get_text().lower()
-                                if tab_search_word and tab_search_word in p_txt:
-                                    extra_candidate = p_i
-                                    break
-                                elif not tab_search_word and len(w_name) > 4 and w_name[:6].lower() in p_txt:
-                                    extra_candidate = p_i
-                                    break
-
-                            # Добавляем найденную страницу кандидата, если её еще нет в списке
-                            if extra_candidate is not None and extra_candidate not in target_indices:
-                                target_indices.append(extra_candidate)
-
-                            # 3. Вызываем гибридный аудитор
                             if target_indices:
                                 audit = audit_position_hybrid(
                                     provider=provider,
@@ -831,8 +864,8 @@ with main_tab1:
                                     unit=w_unit,
                                     ref_text=w_ref,
                                     page_ref=w_page,
-                                    comment_text = w_comment,  # передаем комментарий
-                                    formula_text = w_formula  # передаем формулу
+                                    comment_text=w_comment,
+                                    formula_text=w_formula
                                 )
                             else:
                                 audit = {
@@ -842,8 +875,7 @@ with main_tab1:
                                     "discrepancy_details": loc_desc
                                 }
 
-                        # 4. ФОРМИРОВАНИЕ ЗНАЧЕНИЯ КОЛОНКИ:
-                        # Если модель нашла — выводим номер (например 'Стр. 14'). Если не нашла — строго '-'
+                        # 5. Сохранение результата (строго для КАЖДОЙ строки)
                         raw_found_p = str(audit.get("found_page", "-")).strip()
                         nums = re.findall(r'\d+', raw_found_p)
                         found_p_num = int(nums[0]) if nums and raw_found_p not in ["-", "None", "", "null"] else None
@@ -852,8 +884,6 @@ with main_tab1:
                         final_status = audit.get("status", "Ошибка")
                         details_text = audit.get("discrepancy_details", "")
 
-                        # ЖЕЛЕЗНАЯ ПРОВЕРКА В PYTHON:
-                        # Если модель нашла данные на другой странице, чем указано в ВОР — принудительно ставим ОШИБКУ
                         vor_pages_int = primary_phys_pages if primary_phys_pages else []
                         if found_p_num and vor_pages_int and (found_p_num not in vor_pages_int):
                             final_status = "Ошибка"
@@ -867,9 +897,10 @@ with main_tab1:
                             "Детали расхождений": details_text
                         })
 
-                        # Сохраняем обе страницы (из ВОР и найденную моделью) для разграниченного просмотра
+                        show_p = [found_p_num] if found_p_num else (vor_pages_int if vor_pages_int else [1])
                         row_page_tracking.append({
                             "pdf_name": target_pdf_name,
+                            "pages_to_show": show_p,
                             "vor_pages": vor_pages_int,
                             "found_page": found_p_num,
                             "work_name": w_name
@@ -877,8 +908,33 @@ with main_tab1:
 
                         time.sleep(1.2)
 
-                    df_audit = pd.DataFrame(results, index=df_works.index)
-                    df_final = pd.concat([df_works, df_audit], axis=1)
+                        # ПОСЛЕ ЗАВЕРШЕНИЯ ЦИКЛА СТРОК: СКЛЕЙКА ТАБЛИЦЫ
+                    cols_to_drop = [c for c in df_works.columns if
+                                    str(c).startswith('Unnamed') or str(c).strip() in ['1', '2', '3', '4', '5', '6',
+                                                                                       '6.1', '6.2', '7', '8', '9']]
+                    df_works_clean = df_works.drop(columns=cols_to_drop, errors='ignore').copy()
+
+                    rename_map = {}
+                    if vol_col in df_works_clean.columns:
+                        rename_map[vol_col] = "[ВОР] Заявленный объем"
+                    if unit_col in df_works_clean.columns:
+                        rename_map[unit_col] = "[ВОР] Ед. изм."
+                    if page_col in df_works_clean.columns:
+                        rename_map[page_col] = "[ВОР] Ссылка на страницу"
+                    df_works_clean.rename(columns=rename_map, inplace=True)
+
+                    df_audit = pd.DataFrame([
+                        {
+                            "Статус аудита": r["Статус аудита"],
+                            "[ПД] Найденный объем (нейросеть)": r["Фактический объем"],
+                            "[ПД] Фактическая страница": r["Фактическая страница в ПД (найдено моделью)"],
+                            "Детали расхождений": r["Детали расхождений"]
+                        }
+                        for r in results
+                    ], index=df_works_clean.index)
+
+                    df_final = pd.concat([df_works_clean, df_audit], axis=1)
+
 
                     excel_out = io.BytesIO()
                     with pd.ExcelWriter(excel_out, engine='openpyxl') as writer:
@@ -982,14 +1038,27 @@ with main_tab2:
         st.dataframe(styled_rules, use_container_width=True)
 
         # Генерация и скачивание размеченного желтым Excel
-        highlighted_excel = get_highlighted_workbook(check_file, rule_results)
-        st.download_button(
-            label="📥 Скачать оригинальный ВОР с подсвеченными ошибками (Excel)",
-            data=highlighted_excel,
-            file_name=f"Ошибки_{check_file.name}",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            type="primary"
-        )
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            highlighted_excel = get_highlighted_workbook(check_file, rule_results)
+            if highlighted_excel:
+                st.download_button(
+                    label="📥 Скачать ВОР с желтыми ячейками (Excel)",
+                    data=highlighted_excel,
+                    file_name=f"Ошибки_{check_file.name}",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
+        with col_btn2:
+            word_rules_doc = generate_rules_word_report(check_file.name, rule_results)
+            st.download_button(
+                label="📄 Скачать ведомость ошибок (Word DOCX)",
+                data=word_rules_doc,
+                file_name=f"Ведомость_ошибок_{check_file.name}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                type="primary",
+                use_container_width=True
+            )
 # ----------------- ОТОБРАЖЕНИЕ РЕЗУЛЬТАТОВ -----------------
 
 if st.session_state.audit_results:

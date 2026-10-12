@@ -3,6 +3,13 @@ import datetime
 import openpyxl
 from openpyxl.utils import get_column_letter
 import io
+import docx
+from docx.shared import Inches, Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.oxml import parse_xml
+from docx.oxml.ns import nsdecls
+import math
 
 def safe_calc_formula(expr_str):
     """Безопасно вычисляет математическую формулу из строки."""
@@ -12,7 +19,7 @@ def safe_calc_formula(expr_str):
         return None, "Формула содержит недопустимые символы или текст"
     try:
         val = eval(clean, {"__builtins__": None}, {})
-        return float(val), None
+        return round(float(val), 6), None  # Возвращает точное число
     except Exception as e:
         return None, f"Ошибка вычисления формулы: {e}"
 
@@ -268,19 +275,63 @@ def validate_vor_formatting(file_source):
                     add_res(f"D{r}", "ROW_POS", "Число > 0", val_d, "Ошибка", "Объем должен быть числом больше 0")
 
             # --- E: ФОРМУЛА И СВЕРКА С ОБЪЕМОМ ---
-            if val_e != "":
+            # Если формула не заполнена, пропускаем без ошибок
+            if val_e != "" and str(val_e).strip() != "":
                 calc_result, calc_err = safe_calc_formula(val_e)
                 if calc_err:
                     add_res(f"E{r}", "ROW_POS", "Математическая формула без текста", val_e, "Ошибка", calc_err)
                 else:
-                    # Сверяем результат формулы с объемом (с учетом слэша / как "или")
-                    match_vol = any(abs(calc_result - vp) < 0.01 for vp in vol_parts)
-                    if match_vol:
-                        add_res(f"E{r}", "ROW_POS", f"Результат формулы = {val_d}", f"{val_e} = {calc_result}", "ОК")
+                    import math
+
+                    def is_volume_match(calc_v, vol_v):
+                        """
+                        Сверяет математический расчет формулы и объем:
+                        - Учитывает эквивалентность 198.36 и 198.360 (микропогрешность float).
+                        - Учитывает стандартное округление и округление вверх (до 3, 2, 1 знака и целых).
+                        """
+                        diff = abs(calc_v - vol_v)
+                        # Точное совпадение (включая 198.36 == 198.360)
+                        if diff < 0.0001:
+                            return True
+                        # Округление до сотых (0.01) или тысячных (0.001)
+                        if abs(round(calc_v, 2) - vol_v) < 0.001 or abs(round(calc_v, 3) - vol_v) < 0.0001:
+                            return True
+                        # Округление вверх до сотых: ceil(X * 100) / 100
+                        if abs(math.ceil(calc_v * 100) / 100 - vol_v) < 0.001:
+                            return True
+                        # Округление до десятых (0.1)
+                        if abs(round(calc_v, 1) - vol_v) < 0.01 or abs(
+                                math.ceil(calc_v * 10) / 10 - vol_v) < 0.01:
+                            return True
+                        # Округление до целого (78.9 -> 79, 281.85 -> 282)
+                        if round(calc_v) == int(round(vol_v)) or math.ceil(calc_v) == int(round(vol_v)):
+                            return True
+                        return False
+
+                    match_vol = any(is_volume_match(calc_result, vp) for vp in vol_parts)
+
+                    # Безопасное формирование отображения объема (без вызова .is_integer(), который ломал код)
+                    if vol_parts:
+                        vp_val = vol_parts[0]
+                        val_d_display = str(int(round(vp_val))) if float(vp_val).is_integer() else str(
+                            round(vp_val, 3))
                     else:
-                        add_res(f"E{r}", "ROW_POS", f"Результат формулы равен объему {val_d}",
-                                f"{val_e} = {calc_result}", "Ошибка",
-                                f"Результат формулы ({calc_result}) не совпадает с объемом в графе D ({val_d})")
+                        val_d_display = str(val_d)
+
+                    calc_display = str(round(calc_result, 3))
+
+                    if match_vol:
+                        add_res(f"E{r}", "ROW_POS", f"Результат формулы = {val_d_display}",
+                                f"{val_e} = {calc_display}", "ОК")
+                    else:
+                        add_res(
+                            f"E{r}",
+                            "ROW_POS",
+                            f"Результат формулы равен объему {val_d_display}",
+                            f"{val_e} = {calc_display}",
+                            "Ошибка",
+                            f"Результат формулы ({calc_display}) не совпадает с объемом в графе D ({val_d_display})"
+                        )
 
             # --- G: ПРОВЕРКА ПУТИ К ФАЙЛУ ---
             if val_g != "":
@@ -291,22 +342,38 @@ def validate_vor_formatting(file_source):
                 else:
                     add_res(f"G{r}", "ROW_POS", "Корректный путь к файлу", val_g, "ОК")
 
-            # --- J: ИДЕНТИФИКАТОР (ОБЯЗАТЕЛЕН И УНИКАЛЕН) ---
-            if val_j == "":
-                add_res(f"J{r}", "ROW_POS", "Идентификатор обязателен (^П\d+$)", "<Пусто>", "Ошибка",
+                    # --- J: ГЛОБАЛЬНЫЙ ЗАПРЕТ ОДИНАКОВЫХ ИДЕНТИФИКАТОРОВ ВО ВСЕМ ДОКУМЕНТЕ ---
+            id_clean = str(val_j).strip()
+            if not id_clean:
+                add_res(f"J{r}", "ROW_POS", "Идентификатор заполнен", "<Пусто>", "Ошибка",
                         "Идентификатор не заполнен (обязателен для каждой позиции)")
+            elif id_clean in seen_identifiers:
+                first_row = seen_identifiers[id_clean]
+                add_res(
+                    f"J{r}",
+                    "ROW_POS",
+                    "Уникальный идентификатор (запрещены повторы во всем документе)",
+                    id_clean,
+                    "Ошибка",
+                    f"Запрещено использовать одинаковые идентификаторы! Значение '{id_clean}' уже было использовано в строке {first_row}"
+                )
             else:
-                id_clean = str(val_j).strip()
-                if not bool(re.match(r'^П\d+$', id_clean)):
-                    add_res(f"J{r}", "ROW_POS", "Формат: П1, П2 (^П\d+$)", id_clean, "Ошибка",
-                            "Идентификатор должен быть в формате П1, П2 (буква П и номер)")
-                elif id_clean in seen_identifiers:
-                    first_r = seen_identifiers[id_clean]
-                    add_res(f"J{r}", "ROW_POS", "Уникальный идентификатор", id_clean, "Ошибка",
-                            f"Дубликат идентификатора: '{id_clean}' уже использован в строке {first_r}")
-                else:
-                    seen_identifiers[id_clean] = r
-                    add_res(f"J{r}", "ROW_POS", "Уникальный идентификатор", id_clean, "ОК")
+                # Регистрируем первое появление идентификатора во всем файле
+                seen_identifiers[id_clean] = r
+                add_res(f"J{r}", "ROW_POS", "Уникальный идентификатор", id_clean, "ОК")
+
+            # --- J: ИДЕНТИФИКАТОР (ТОЛЬКО НЕ ПУСТО И БЕЗ ДУБЛИКАТОВ) ---
+            id_clean = str(val_j).strip()
+            if not id_clean:
+                add_res(f"J{r}", "ROW_POS", "Идентификатор заполнен", "<Пусто>", "Ошибка",
+                                "Идентификатор не заполнен (обязателен для каждой позиции)")
+            elif id_clean in seen_identifiers:
+                first_r = seen_identifiers[id_clean]
+                add_res(f"J{r}", "ROW_POS", "Уникальный идентификатор", id_clean, "Ошибка",
+                                f"Дубликат идентификатора: '{id_clean}' уже использован в строке {first_r}")
+            else:
+                seen_identifiers[id_clean] = r
+                add_res(f"J{r}", "ROW_POS", "Уникальный идентификатор", id_clean, "ОК")
 
             # K: тип позиции (не пусто)
             if val_k == "":
@@ -365,40 +432,125 @@ def validate_fgh(val_f, val_g, val_h, r, add_res):
 
 def get_highlighted_workbook(file_source, rule_results):
     """
-    Загружает исходный файл ВОР и красит ячейки с ошибками/замечаниями в желтый цвет,
-    сохраняя оригинальную структуру, формулы и оформление.
+    Загружает исходный файл ВОР, красит ячейки с ошибками/замечаниями в желтый цвет
+    и гарантированно возвращает байты Excel-файла.
     """
-    if isinstance(file_source, str):
-        wb = openpyxl.load_workbook(file_source)
-    elif hasattr(file_source, 'getvalue'):
-        wb = openpyxl.load_workbook(io.BytesIO(file_source.getvalue()))
+    try:
+        # 1. Загрузка книги
+        if isinstance(file_source, str):
+            wb = openpyxl.load_workbook(file_source)
+        elif hasattr(file_source, 'getvalue'):
+            wb = openpyxl.load_workbook(io.BytesIO(file_source.getvalue()))
+        else:
+            file_source.seek(0)
+            wb = openpyxl.load_workbook(io.BytesIO(file_source.read()))
+            file_source.seek(0)
+
+        ws = wb.active
+        yellow_fill = openpyxl.styles.PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+
+        # 2. Покраска ячеек с ошибками/замечаниями
+        for r in rule_results:
+            if r.get("status") in ["Ошибка", "Внимание"]:
+                coord = r.get("coord", "")
+                if "-" in coord:
+                    m = re.match(r'([A-Z]+)(\d+)-([A-Z]+)(\d+)', coord)
+                    if m:
+                        c_start, r_start, c_end, _ = m.groups()
+                        idx1 = openpyxl.utils.column_index_from_string(c_start)
+                        idx2 = openpyxl.utils.column_index_from_string(c_end)
+                        for col_idx in range(idx1, idx2 + 1):
+                            ws.cell(row=int(r_start), column=col_idx).fill = yellow_fill
+                else:
+                    try:
+                        ws[coord].fill = yellow_fill
+                    except Exception:
+                        pass
+
+        # 3. Сохранение в поток байтов (строго на внешнем уровне отступов)
+        out = io.BytesIO()
+        wb.save(out)
+        result_bytes = out.getvalue()
+        if result_bytes:
+            return result_bytes
+    except Exception:
+        pass
+
+    # Резервный возврат: если покраска не удалась, возвращаем исходный файл без изменений
+    if hasattr(file_source, 'getvalue'):
+        return file_source.getvalue()
+    elif isinstance(file_source, str):
+        with open(file_source, 'rb') as f:
+            return f.read()
+    return b""
+
+def generate_rules_word_report(filename, rule_results):
+    """
+    Генерирует официальный Word-отчет ТОЛЬКО с ошибками и замечаниями.
+    Таблица из 3 колонок: Адрес ячейки, Фактическое значение и широкий Комментарий.
+    """
+    doc = docx.Document()
+    for s in doc.sections:
+        s.top_margin = s.bottom_margin = s.left_margin = s.right_margin = Inches(0.7)
+
+    # Заголовок
+    title = doc.add_paragraph()
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r_t = title.add_run("ВЕДОМОСТЬ ОШИБОК И ЗАМЕЧАНИЙ ОФОРМЛЕНИЯ ВОР")
+    r_t.bold = True
+    r_t.font.size = Pt(14)
+    r_t.font.color.rgb = RGBColor(30, 41, 59)
+
+    sub = doc.add_paragraph()
+    sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r_s = sub.add_run(f"Файл: {filename}")
+    r_s.font.size = Pt(10)
+    r_s.font.color.rgb = RGBColor(100, 116, 139)
+
+    # Фильтруем только ошибки и замечания (без строк ОК)
+    issues = [r for r in rule_results if r.get("status") in ["Ошибка", "Внимание"]]
+
+    p_stat = doc.add_paragraph()
+    p_stat.add_run(f"Всего выявлено несоответствий: {len(issues)}\n").bold = True
+
+    if not issues:
+        p_ok = doc.add_paragraph()
+        p_ok.add_run("Ошибок оформления не обнаружено. Шаблон полностью соответствует регламенту.")
     else:
-        file_source.seek(0)
-        wb = openpyxl.load_workbook(io.BytesIO(file_source.read()))
-        file_source.seek(0)
+        # Таблица из 3 колонок
+        table = doc.add_table(rows=1, cols=3)
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        table.style = 'Table Grid'
 
-    ws = wb.active
-    # Мягкий желтый цвет заливки
-    yellow_fill = openpyxl.styles.PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+        headers = ["Адрес ячейки", "Фактическое значение", "Комментарий / Ошибка"]
+        col_widths = [Inches(1.1), Inches(1.8), Inches(4.0)]
 
-    for r in rule_results:
-        if r.get("status") in ["Ошибка", "Внимание"]:
-            coord = r.get("coord", "")
-            # Если указан диапазон, например B17-K17
-            if "-" in coord:
-                m = re.match(r'([A-Z]+)(\d+)-([A-Z]+)(\d+)', coord)
-                if m:
-                    c_start, r_start, c_end, _ = m.groups()
-                    idx1 = openpyxl.utils.column_index_from_string(c_start)
-                    idx2 = openpyxl.utils.column_index_from_string(c_end)
-                    for col_idx in range(idx1, idx2 + 1):
-                        ws.cell(row=int(r_start), column=col_idx).fill = yellow_fill
-            else:
-                try:
-                    ws[coord].fill = yellow_fill
-                except Exception:
-                    pass
+        hdr_cells = table.rows[0].cells
+        for i, h in enumerate(headers):
+            hdr_cells[i].text = h
+            hdr_cells[i].paragraphs[0].runs[0].bold = True
+            hdr_cells[i].paragraphs[0].runs[0].font.size = Pt(9.5)
+            tcPr = hdr_cells[i]._element.get_or_add_tcPr()
+            tcPr.append(parse_xml(f'<w:shd {nsdecls("w")} w:fill="E2E8F0"/>'))
+            hdr_cells[i].width = col_widths[i]
+
+        for item in issues:
+            row_cells = table.add_row().cells
+            row_cells[0].text = item.get("coord", "-")
+            row_cells[1].text = item.get("actual", "-")
+            row_cells[2].text = item.get("error", "-")
+
+            st_val = item.get("status", "")
+            fill_hex = "FEE2E2" if st_val == "Ошибка" else "FEF3C7"
+            tcPr = row_cells[0]._element.get_or_add_tcPr()
+            tcPr.append(parse_xml(f'<w:shd {nsdecls("w")} w:fill="{fill_hex}"/>'))
+
+            for i, cell in enumerate(row_cells):
+                cell.width = col_widths[i]
+                for p in cell.paragraphs:
+                    for r in p.runs:
+                        r.font.size = Pt(9.0)
 
     out = io.BytesIO()
-    wb.save(out)
+    doc.save(out)
     return out.getvalue()
