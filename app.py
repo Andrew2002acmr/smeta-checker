@@ -22,6 +22,7 @@ import openai
 from dotenv import load_dotenv
 load_dotenv()
 from vor_rules import validate_vor_formatting, get_highlighted_workbook, generate_rules_word_report
+import openpyxl
 
 def get_setting(name: str, default: str = "") -> str:
     """Сначала читаем переменную окружения, затем Streamlit Secrets."""
@@ -56,6 +57,38 @@ if "pdf_local_paths" not in st.session_state:
 if "pdf_page_maps" not in st.session_state:
     st.session_state.pdf_page_maps = {}     # { clean_name: { sheet: phys_idx } }
 
+# =========================================================================
+# МОДАЛЬНОЕ ОКНО: РУКОВОДСТВО ПОЛЬЗОВАТЕЛЯ
+# =========================================================================
+@st.dialog("📖 Краткое руководство пользователя", width="large")
+def show_user_guide():
+    st.markdown("""
+    ### 1. Вкладка «Проверка ПД и ВОР (Комплексный аудит)»
+    * **Загрузка файлов:** Загрузите файлы PDF и сметы (XLSX/CSV) в боковом меню или выберите локальную папку.
+    * **Экспресс-проверка:** До старта система проверяет пути и имена файлов (`🟢` — найден, `🟡` — опечатка в дефисе/подчеркивании, `🔴` — файл отсутствует).
+    * **Запуск аудита:** Нажмите кнопку *«Запустить аудит»*. Нейросеть проверяет соответствие объема, единиц измерения и указанной страницы.
+    * **Инспектор страниц:** Кликните по любой строке в таблице — ниже откроются две вкладки:
+      * 📌 *Страница из ВОР* — лист, куда сослался сметчик (чтобы увидеть, почему там нет данных).
+      * 🎯 *Фактическая страница* — лист, где модель реально обнаружила этот объем.
+    * **Скачивание:** Кнопка *Excel* (таблица с автошириной колонок) и *Word* (официальная ведомость сопоставления).
+
+    ---
+
+    ### 2. Вкладка «Проверка правил оформления ВОР»
+    * **Проверка регламента:** Контроль строк 1–16 (шапка, дата 2000–2100 гг., версия `3_01`, ФИО) и строк 17+ (разделы `Bold`, позиции, запрет столбцов L+).
+    * **Формулы (графа E):** Безопасный математический пересчет и сверка с объемом D. Разрешено округление вверх/математическое (до сотых, десятых и целых).
+    * **Идентификаторы (графа J):** Запрещены пустые ячейки и дубликаты во всем документе.
+    * **Скачивание:** Оригинальный Excel с желтой заливкой ячеек с ошибками или Word-ведомость только замечаний.
+
+    ---
+
+    ### 3. Важные особенности
+    * **Знак `/` в объемах:** Считывается как альтернатива («или»). Если в ПД `9/45`, а в ВОР заявлено `45` — объем подтверждается.
+    * **Критерии ошибки:** Статус `Ошибка` выставляется, если данные на указанной странице отсутствуют, либо не сошелся объем или единица измерения.
+    """)
+    if st.button("Понятно, закрыть", use_container_width=True):
+        st.rerun()
+
 # ----------------- БОКОВАЯ ПАНЕЛЬ -----------------
 with st.sidebar:
     st.header("⚙️ Нейросеть")
@@ -80,6 +113,10 @@ with st.sidebar:
             index=0
         )
         api_key = YANDEX_API_KEY
+
+    # КНОПКА ВЫЗОВА ИНСТРУКЦИИ:
+    if st.button("📖 Инструкция пользователя", use_container_width=True):
+        show_user_guide()
 
     st.markdown("---")
     st.header("📂 Источник данных")
@@ -287,7 +324,8 @@ def get_optimized_page_indices(doc, page_map, page_str):
     return expanded_candidates, desc, [p + 1 for p in phys_indices]
 
 
-def render_page(doc, page_idx, dpi=180):
+def render_page(doc, page_idx, dpi=250):
+    """Рендерит страницу в высоком разрешении (DPI 250) для четкого чтения таблиц."""
     return doc[page_idx].get_pixmap(dpi=dpi).tobytes("png")
 
 
@@ -363,18 +401,12 @@ def audit_position_hybrid(provider, client, model_name, doc, target_indices, wor
 
     # Инструкции и правила аудита
     instructions = """Ты — строгий эксперт-аудитор проектно-сметной документации.
+Твоя задача — проверить, подтверждается ли позиция из ВОР материалами проектной документации (ПД).
 ОБЯЗАТЕЛЬНЫЕ ПРАВИЛА ПРОВЕРКИ:
 1. ОБЪЕМ И СЛЭШ (/): Знак '/' в объеме (например, '9/45' или '3/6') означает АЛЬТЕРНАТИВНЫЕ единицы измерения ('или'). Если в ВОР заявлено хотя бы одно из этих чисел (например, 45 или 9) — объем считается ПОДТВЕРЖДЕННЫМ.
 2. ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ (КОММЕНТАРИЙ): Обязательно учитывай комментарий из ВОР! Если там указан адрес организации, реквизиты СРО или коэффициенты (например, для районной надбавки), и этот адрес/коэффициент подтверждается в ПД (в титуле, лицензии, тексте) — считай позицию ПОДТВЕРЖДЕННОЙ!
 3. СТРАНИЦА: данные должны находиться строго на указанной в ВОР странице.
 4. ЕДИНИЦА ИЗМЕРЕНИЯ: должна быть логически совместима.
-5. ДОПУСТИМОЕ ОКРУГЛЕНИЕ ОБЪЕМОВ:
-В сметных расчетах разрешено стандартное математическое округление или округление в большую сторону (до целого, до 0.1 или до 0.01).
-Например:
-- В ПД найдено 78.9 (или 78.85), а в ВОР заявлено 79 — это СОВПАДЕНИЕ (ОК)!
-- В ПД найдено 281.85, а в ВОР заявлено 282 — это СОВПАДЕНИЕ (ОК)!
-- В ПД 631.2, а в ВОР 631 или 632 — это СОВПАДЕНИЕ (ОК)!
-Не считай разницу из-за округления ошибкой!
 
 Статус 'ОК' ставится, если объем (с учетом '/') и комментарий подтверждены, и страница совпадает.
 Если есть несоответствие — статус строго 'Ошибка'.
@@ -389,9 +421,14 @@ def audit_position_hybrid(provider, client, model_name, doc, target_indices, wor
 
     user_input = f"""Проверяемая работа: "{work_name}"
 Заявленный объем: {volume} {unit}
-Формула расчета (если есть): "{formula_text}"
 Дополнительная информация (комментарий): "{comment_text}"
 Ссылка в ВОР: "{ref_text}" (указана стр. {page_ref})
+
+ВАЖНО: Ищи в тексте/таблицах ПД подтверждение ровно для объема {volume} {unit}. Никаких самостоятельных пересчетов формул делать не нужно!
+
+В поле found_page:
+- Если данные РЕАЛЬНО НАЙДЕНЫ — укажи только номер страницы (число, например "14").
+- Если на странице данных НЕТ — пиши СТРОГО прочерк "-" (никаких цифр и пояснений в этом поле не пиши!).
 
 ТЕКСТ ИЗ ДОКУМЕНТА PDF:
 {text_context}"""
@@ -472,73 +509,79 @@ def audit_position_hybrid(provider, client, model_name, doc, target_indices, wor
 
 
 def generate_word_report(df_final, meta):
+    """
+    Генерирует официальное заключение аудита в Word со всеми данными:
+    включая страницу из ВОР, факт в ПД и найденную страницу.
+    """
     doc = docx.Document()
     for s in doc.sections:
-        s.top_margin = s.bottom_margin = s.left_margin = s.right_margin = Inches(0.7)
+        s.top_margin = s.bottom_margin = s.left_margin = s.right_margin = Inches(0.6)
 
+    # Шапка
     title = doc.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r_t = title.add_run("ВЕДОМОСТЬ ЗАМЕЧАНИЙ ПО РЕЗУЛЬТАТАМ АУДИТА ВОР")
+    r_t = title.add_run("ВЕДОМОСТЬ СОПОСТАВЛЕНИЯ И АУДИТА ВОР С ПД")
     r_t.bold = True
-    r_t.font.size = Pt(14)
-    r_t.font.color.rgb = RGBColor(30, 41, 59)
+    r_t.font.size = Pt(13)
 
     sub = doc.add_paragraph()
     sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r_s = sub.add_run(f"Объект: {meta['object_name']}\nДокумент: {meta['doc_number']} (Основание: {meta['basis_code']})")
-    r_s.font.size = Pt(10)
-    r_s.font.color.rgb = RGBColor(100, 116, 139)
+    sub.add_run(f"Объект: {meta.get('object_name', 'Не указано')}\nОснование: {meta.get('basis_code', 'ПД')}")
 
+    # Сводные цифры
     total = len(df_final)
-    df_disc = df_final[df_final['Статус аудита'].isin(['Замечание', 'Не подтверждено', 'Ошибка'])]
-    ok_items = df_final[df_final['Статус аудита'] == 'ОК']
+    ok_cnt = len(df_final[df_final['Статус аудита'] == 'ОК'])
+    err_cnt = total - ok_cnt
 
     p_stat = doc.add_paragraph()
-    p_stat.add_run("1. Краткие итоги проверки:\n").bold = True
-    p_stat.add_run(f"• Всего проверено позиций: {total}\n")
-    p_stat.add_run(f"• Принято без замечаний (ОК): {len(ok_items)}\n")
-    p_stat.add_run(f"• Выявлено замечаний и расхождений: {len(df_disc)}\n")
+    p_stat.add_run(
+        f"Всего проверено позиций: {total}  |  🟢 Подтверждено: {ok_cnt}  |  🔴 Замечания/Ошибки: {err_cnt}\n").bold = True
 
-    if not ok_items.empty:
-        ok_nums = ", ".join([str(n) for n in ok_items.iloc[:, 0].tolist()])
-        p_stat.add_run(f"• Позиции, подтвержденные без замечаний: № {ok_nums}\n")
+    # Таблица из 8 колонок
+    table = doc.add_table(rows=1, cols=8)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table.style = 'Table Grid'
 
-    h2 = doc.add_paragraph()
-    r_h2 = h2.add_run("2. Перечень выявленных несоответствий:")
-    r_h2.bold = True
-    r_h2.font.size = Pt(12)
+    headers = [
+        "№", "Наименование работ", "[ВОР] Объем", "[ВОР] Стр.",
+        "[ПД] Факт объем", "[ПД] Стр.", "Статус", "Детали расхождений"
+    ]
+    hdr_cells = table.rows[0].cells
+    for i, h in enumerate(headers):
+        hdr_cells[i].text = h
+        hdr_cells[i].paragraphs[0].runs[0].bold = True
+        hdr_cells[i].paragraphs[0].runs[0].font.size = Pt(8.5)
+        tcPr = hdr_cells[i]._element.get_or_add_tcPr()
+        tcPr.append(parse_xml(f'<w:shd {nsdecls("w")} w:fill="E2E8F0"/>'))
 
-    if df_disc.empty:
-        doc.add_paragraph().add_run("Замечаний не выявлено. Все позиции подтверждены.")
-    else:
-        table = doc.add_table(rows=1, cols=6)
-        table.alignment = WD_TABLE_ALIGNMENT.CENTER
-        table.style = 'Table Grid'
-        headers = ["№", "Наименование работы", "ВОР", "Факт ПД", "Статус", "Суть замечания / Рекомендация"]
-        hdr_cells = table.rows[0].cells
-        for i, h in enumerate(headers):
-            hdr_cells[i].text = h
-            hdr_cells[i].paragraphs[0].runs[0].bold = True
-            hdr_cells[i].paragraphs[0].runs[0].font.size = Pt(9)
-            tcPr = hdr_cells[i]._element.get_or_add_tcPr()
-            tcPr.append(parse_xml(f'<w:shd {nsdecls("w")} w:fill="E2E8F0"/>'))
+    # Заполняем строки
+    for _, row in df_final.iterrows():
+        r_cells = table.add_row().cells
+        r_cells[0].text = str(row.iloc[0])
+        r_cells[1].text = str(row.get("Наименование работ, ресурсов, затрат по проекту", row.iloc[1]))[:45]
 
-        for _, row in df_disc.iterrows():
-            row_cells = table.add_row().cells
-            row_cells[0].text = str(row.iloc[0])
-            row_cells[1].text = str(row.get("Наименование работ, ресурсов, затрат по проекту", ""))
-            row_cells[2].text = f"{row.get('Объем работ / Количество', '')} {row.get('Ед. изм.', '')}"
-            row_cells[3].text = f"{row.get('Фактический объем', '-')}\n({row.get('Фактическое место в PDF', '-')})"
-            st_text = str(row.get("Статус аудита", ""))
-            row_cells[4].text = st_text
-            fill_color = "FEF3C7" if st_text == "Замечание" else "FEE2E2"
-            tcPr = row_cells[4]._element.get_or_add_tcPr()
-            tcPr.append(parse_xml(f'<w:shd {nsdecls("w")} w:fill="{fill_color}"/>'))
-            row_cells[5].text = str(row.get("Детали расхождений", ""))
-            for cell in row_cells:
-                for p in cell.paragraphs:
-                    for r in p.runs:
-                        r.font.size = Pt(8.5)
+        # Данные из ВОР
+        vor_vol = str(row.get("[ВОР] Заявленный объем", row.get("Объем работ / Количество", "-")))
+        vor_unit = str(row.get("[ВОР] Ед. изм.", row.get("Ед. изм.", "")))
+        r_cells[2].text = f"{vor_vol} {vor_unit}".strip()
+        r_cells[3].text = str(row.get("[ВОР] Ссылка на страницу", row.get("Номер страниц (через пробел)", "-")))
+
+        # Данные из ПД (нейросеть)
+        r_cells[4].text = str(row.get("[ПД] Найденный объем (нейросеть)", "-"))
+        r_cells[5].text = str(row.get("[ПД] Фактическая страница", "-"))
+
+        st_val = str(row.get("Статус аудита", "Ошибка"))
+        r_cells[6].text = st_val
+        fill_hex = "DCFCE7" if st_val == "ОК" else "FEE2E2"
+        tcPr = r_cells[6]._element.get_or_add_tcPr()
+        tcPr.append(parse_xml(f'<w:shd {nsdecls("w")} w:fill="{fill_hex}"/>'))
+
+        r_cells[7].text = str(row.get("Детали расхождений", "-"))
+
+        for cell in r_cells:
+            for p in cell.paragraphs:
+                for r in p.runs:
+                    r.font.size = Pt(8.0)
 
     out = io.BytesIO()
     doc.save(out)
@@ -877,9 +920,20 @@ with main_tab1:
 
                         # 5. Сохранение результата (строго для КАЖДОЙ строки)
                         raw_found_p = str(audit.get("found_page", "-")).strip()
-                        nums = re.findall(r'\d+', raw_found_p)
-                        found_p_num = int(nums[0]) if nums and raw_found_p not in ["-", "None", "", "null"] else None
-                        display_page = f"Стр. {found_p_num}" if found_p_num else "-"
+                        found_vol = str(audit.get("found_volume", "-")).strip()
+                        details_text = audit.get("discrepancy_details", "")
+
+                        # ЕСЛИ ОБЪЕМ НЕ НАЙДЕН (стоит '-') ИЛИ В КОММЕНТАРИИ СКАЗАНО, ЧТО ДАННЫХ НЕТ:
+                        # В колонке страницы ставим СТРОГО прочерк '-', а не страницу из ВОР!
+                        if found_vol in ["-", "", "None"] or any(
+                                w in details_text.lower() for w in ["не найден", "отсутств", "нет данных"]):
+                            found_p_num = None
+                            display_page = "-"
+                        else:
+                            nums = re.findall(r'\d+', raw_found_p)
+                            found_p_num = int(nums[0]) if nums and raw_found_p not in ["-", "None", "",
+                                                                                       "null"] else None
+                            display_page = f"Стр. {found_p_num}" if found_p_num else "-"
 
                         final_status = audit.get("status", "Ошибка")
                         details_text = audit.get("discrepancy_details", "")
@@ -908,11 +962,21 @@ with main_tab1:
 
                         time.sleep(1.2)
 
-                        # ПОСЛЕ ЗАВЕРШЕНИЯ ЦИКЛА СТРОК: СКЛЕЙКА ТАБЛИЦЫ
+                    # ПОСЛЕ ЗАВЕРШЕНИЯ ЦИКЛА СТРОК: СКЛЕЙКА ТАБЛИЦЫ
                     cols_to_drop = [c for c in df_works.columns if
                                     str(c).startswith('Unnamed') or str(c).strip() in ['1', '2', '3', '4', '5', '6',
                                                                                        '6.1', '6.2', '7', '8', '9']]
                     df_works_clean = df_works.drop(columns=cols_to_drop, errors='ignore').copy()
+
+                    if vol_col in df_works_clean.columns:
+                        def clean_vor_val(v):
+                            s = str(v).strip()
+                            if s.endswith('.0') and s[:-2].replace('-', '').isdigit():
+                                return s[:-2]
+                            return s
+
+
+                        df_works_clean[vol_col] = df_works_clean[vol_col].apply(clean_vor_val)
 
                     rename_map = {}
                     if vol_col in df_works_clean.columns:
@@ -939,6 +1003,38 @@ with main_tab1:
                     excel_out = io.BytesIO()
                     with pd.ExcelWriter(excel_out, engine='openpyxl') as writer:
                         df_final.to_excel(writer, index=False, sheet_name='Аудит')
+                        ws_out = writer.sheets['Аудит']
+
+                        import openpyxl.styles as px_styles
+
+                        header_fill = px_styles.PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+                        header_font = px_styles.Font(color="FFFFFF", bold=True, size=10)
+                        thin_border = px_styles.Border(
+                            left=px_styles.Side(style='thin', color='D3D3D3'),
+                            right=px_styles.Side(style='thin', color='D3D3D3'),
+                            top=px_styles.Side(style='thin', color='D3D3D3'),
+                            bottom=px_styles.Side(style='thin', color='D3D3D3')
+                        )
+
+                        # Оформляем шапку
+                        for cell in ws_out[1]:
+                            cell.fill = header_fill
+                            cell.font = header_font
+                            cell.alignment = px_styles.Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+                        # Автоподбор ширины столбцов и границы
+                        for col in ws_out.columns:
+                            max_len = 0
+                            col_letter = openpyxl.utils.get_column_letter(col[0].column)
+                            for cell in col:
+                                cell.border = thin_border
+                                cell.alignment = px_styles.Alignment(vertical="center", wrap_text=True)
+                                val_s = str(cell.value or "")
+                                if len(val_s) > max_len:
+                                    max_len = len(val_s)
+                            ws_out.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 45)
+
+                    excel_bytes = excel_out.getvalue()
 
                     word_bytes = generate_word_report(df_final, meta)
 
@@ -952,7 +1048,139 @@ with main_tab1:
 
                 # Фиксируем прогресс-бар на 100% (не удаляем его!)
                 progress_bar.progress(1.0, text=f"✅ Аудит успешно завершен! Проверено позиций: {total_items}")
-    pass
+
+    # ----------------- ОТОБРАЖЕНИЕ РЕЗУЛЬТАТОВ -----------------
+
+    if st.session_state.audit_results:
+        st.markdown("---")
+        st.header("📊 Результаты проверки по ведомостям")
+
+
+        def color_status(val):
+            if val == "ОК":
+                return 'background-color: #d4edda; color: #155724;'
+            elif val == "Замечание":
+                return 'background-color: #fff3cd; color: #856404;'
+            else:
+                return 'background-color: #f8d7da; color: #721c24;'
+
+
+        vor_tab_names = list(st.session_state.audit_results.keys())
+        tabs = st.tabs(vor_tab_names)
+
+        for tab, v_name in zip(tabs, vor_tab_names):
+            with tab:
+                data = st.session_state.audit_results[v_name]
+                df_res = data["df"]
+                meta_res = data["meta"]
+                tracking_info = data.get("tracking", [])
+
+                # Метрики
+                tot = len(df_res)
+                ok_c = len(df_res[df_res['Статус аудита'] == 'ОК'])
+                warn_c = len(df_res[df_res['Статус аудита'] == 'Замечание'])
+                err_c = len(df_res[df_res['Статус аудита'].isin(['Не подтверждено', 'Ошибка'])])
+
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("Всего позиций", tot)
+                m2.metric("🟢 Без замечаний (ОК)", ok_c)
+                m3.metric("🟡 С замечаниями", warn_c)
+                m4.metric("🔴 Не подтверждено", err_c)
+
+                st.write(f"**Объект:** {meta_res['object_name']} | **Основание:** {meta_res['basis_code']}")
+
+                st.info(
+                    "💡 **Кликните по любой строке в таблице ниже**, чтобы мгновенно просмотреть этот лист PDF или открыть его в ридере на нужной странице.")
+
+                # Подготовка таблицы без Arrow-ошибок
+                df_display = prepare_df_for_display(df_res)
+                styler = df_display.style
+                if hasattr(styler, 'map'):
+                    styled_df = styler.map(color_status, subset=['Статус аудита'])
+                else:
+                    styled_df = styler.applymap(color_status, subset=['Статус аудита'])
+
+                # Интерактивная таблица с выбором строки
+                event = st.dataframe(
+                    styled_df,
+                    width="stretch",
+                    on_select="rerun",
+                    selection_mode="single-row",
+                    key=f"df_table_{v_name}"
+                )
+
+                # ----------------- ИНСПЕКТОР: РАЗГРАНИЧЕНИЕ СКАНИРОВАНИЯ -----------------
+                if event and event.selection and event.selection.rows:
+                    selected_row_idx = event.selection.rows[0]
+                    if selected_row_idx < len(tracking_info):
+                        t_info = tracking_info[selected_row_idx]
+                        sel_pdf_name = t_info["pdf_name"]
+                        vor_pages = t_info.get("vor_pages", [])
+                        found_p = t_info.get("found_page", None)
+                        sel_work_name = t_info["work_name"]
+
+                        with st.container(border=True):
+                            st.markdown(f"### 🔍 Инспектор: **{sel_work_name[:75]}**")
+                            st.caption(f"Документ: `{sel_pdf_name}`")
+
+                            doc_obj = st.session_state.pdf_pool.get(sel_pdf_name)
+
+                            # Две четко разграниченные вкладки
+                            lbl_vor = f"📌 Страница по ссылке из ВОР (Стр. {', '.join(map(str, vor_pages)) if vor_pages else '-'})"
+                            lbl_found = f"🎯 Фактическая страница с данными ({f'Стр. {found_p}' if found_p else 'Не найдена'})"
+
+                            tab_vor, tab_found = st.tabs([lbl_vor, lbl_found])
+
+                            # Вкладка 1: Что находится на странице, которую указал сметчик
+                            with tab_vor:
+                                st.info(
+                                    "Лист, на который ссылается сметчик в ведомости (проверьте, почему там нет объемов):")
+                                if doc_obj and vor_pages:
+                                    for p_num in vor_pages:
+                                        if 0 <= p_num - 1 < len(doc_obj):
+                                            st.image(
+                                                render_page(doc_obj, p_num - 1, dpi=160),
+                                                caption=f"{sel_pdf_name} — Страница {p_num} (указана в ВОР)",
+                                                width=850
+                                            )
+                                else:
+                                    st.warning("Страница в ВОР не указана или выходит за пределы файла.")
+
+                            # Вкладка 2: Где модель реально нашла эти данные
+                            with tab_found:
+                                if doc_obj and found_p:
+                                    st.success(
+                                        f"Лист в ПД, где фактически обнаружены данные по работе (Стр. {found_p}):")
+                                    if 0 <= found_p - 1 < len(doc_obj):
+                                        st.image(
+                                            render_page(doc_obj, found_p - 1, dpi=160),
+                                            caption=f"{sel_pdf_name} — Страница {found_p} (фактически найдено моделью)",
+                                            width=850
+                                        )
+                                else:
+                                    st.error("Модель не смогла найти эту работу ни на одной странице документа.")
+
+                # Скачивание
+                col_d1, col_d2 = st.columns(2)
+                with col_d1:
+                    st.download_button(
+                        label=f"📊 Скачать Excel ({v_name})",
+                        data=data["excel_bytes"],
+                        file_name=f"Аудит_{v_name}.xlsx" if not v_name.endswith('.xlsx') else f"Аудит_{v_name}",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key=f"dl_xl_{v_name}"
+                    )
+                with col_d2:
+                    st.download_button(
+                        label=f"📄 Скачать замечания Word ({v_name})",
+                        data=data["word_bytes"],
+                        file_name=f"Замечания_{v_name}.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        type="primary",
+                        key=f"dl_doc_{v_name}"
+                    )
+    else:
+        st.info("Укажите папку проекта или загрузите файлы слева для начала аудита.")
 
 # ----------------- ВКЛАДКА 2: ПРОВЕРКА ОФОРМЛЕНИЯ -----------------
 with main_tab2:
@@ -1009,7 +1237,6 @@ with main_tab2:
         df_rules = pd.DataFrame([
             {
                 "Адрес ячейки": r["coord"],
-                "Тип проверки": r["type"],
                 "Ожидаемое значение / Формат": r["expected"],
                 "Фактическое значение": r["actual"],
                 "Статус": r["status"],
@@ -1059,131 +1286,3 @@ with main_tab2:
                 type="primary",
                 use_container_width=True
             )
-# ----------------- ОТОБРАЖЕНИЕ РЕЗУЛЬТАТОВ -----------------
-
-if st.session_state.audit_results:
-    st.markdown("---")
-    st.header("📊 Результаты проверки по ведомостям")
-
-    def color_status(val):
-        if val == "ОК":
-            return 'background-color: #d4edda; color: #155724;'
-        elif val == "Замечание":
-            return 'background-color: #fff3cd; color: #856404;'
-        else:
-            return 'background-color: #f8d7da; color: #721c24;'
-
-    vor_tab_names = list(st.session_state.audit_results.keys())
-    tabs = st.tabs(vor_tab_names)
-
-    for tab, v_name in zip(tabs, vor_tab_names):
-        with tab:
-            data = st.session_state.audit_results[v_name]
-            df_res = data["df"]
-            meta_res = data["meta"]
-            tracking_info = data.get("tracking", [])
-
-            # Метрики
-            tot = len(df_res)
-            ok_c = len(df_res[df_res['Статус аудита'] == 'ОК'])
-            warn_c = len(df_res[df_res['Статус аудита'] == 'Замечание'])
-            err_c = len(df_res[df_res['Статус аудита'].isin(['Не подтверждено', 'Ошибка'])])
-
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Всего позиций", tot)
-            m2.metric("🟢 Без замечаний (ОК)", ok_c)
-            m3.metric("🟡 С замечаниями", warn_c)
-            m4.metric("🔴 Не подтверждено", err_c)
-
-            st.write(f"**Объект:** {meta_res['object_name']} | **Основание:** {meta_res['basis_code']}")
-
-            st.info("💡 **Кликните по любой строке в таблице ниже**, чтобы мгновенно просмотреть этот лист PDF или открыть его в ридере на нужной странице.")
-
-            # Подготовка таблицы без Arrow-ошибок
-            df_display = prepare_df_for_display(df_res)
-            styler = df_display.style
-            if hasattr(styler, 'map'):
-                styled_df = styler.map(color_status, subset=['Статус аудита'])
-            else:
-                styled_df = styler.applymap(color_status, subset=['Статус аудита'])
-
-            # Интерактивная таблица с выбором строки
-            event = st.dataframe(
-                styled_df,
-                width="stretch",
-                on_select="rerun",
-                selection_mode="single-row",
-                key=f"df_table_{v_name}"
-            )
-
-            # ----------------- ИНСПЕКТОР: РАЗГРАНИЧЕНИЕ СКАНИРОВАНИЯ -----------------
-            if event and event.selection and event.selection.rows:
-                selected_row_idx = event.selection.rows[0]
-                if selected_row_idx < len(tracking_info):
-                    t_info = tracking_info[selected_row_idx]
-                    sel_pdf_name = t_info["pdf_name"]
-                    vor_pages = t_info.get("vor_pages", [])
-                    found_p = t_info.get("found_page", None)
-                    sel_work_name = t_info["work_name"]
-
-                    with st.container(border=True):
-                        st.markdown(f"### 🔍 Инспектор: **{sel_work_name[:75]}**")
-                        st.caption(f"Документ: `{sel_pdf_name}`")
-
-                        doc_obj = st.session_state.pdf_pool.get(sel_pdf_name)
-
-                        # Две четко разграниченные вкладки
-                        lbl_vor = f"📌 Страница по ссылке из ВОР (Стр. {', '.join(map(str, vor_pages)) if vor_pages else '-'})"
-                        lbl_found = f"🎯 Фактическая страница с данными ({f'Стр. {found_p}' if found_p else 'Не найдена'})"
-
-                        tab_vor, tab_found = st.tabs([lbl_vor, lbl_found])
-
-                        # Вкладка 1: Что находится на странице, которую указал сметчик
-                        with tab_vor:
-                            st.info(
-                                "Лист, на который ссылается сметчик в ведомости (проверьте, почему там нет объемов):")
-                            if doc_obj and vor_pages:
-                                for p_num in vor_pages:
-                                    if 0 <= p_num - 1 < len(doc_obj):
-                                        st.image(
-                                            render_page(doc_obj, p_num - 1, dpi=160),
-                                            caption=f"{sel_pdf_name} — Страница {p_num} (указана в ВОР)",
-                                            width=850
-                                        )
-                            else:
-                                st.warning("Страница в ВОР не указана или выходит за пределы файла.")
-
-                        # Вкладка 2: Где модель реально нашла эти данные
-                        with tab_found:
-                            if doc_obj and found_p:
-                                st.success(f"Лист в ПД, где фактически обнаружены данные по работе (Стр. {found_p}):")
-                                if 0 <= found_p - 1 < len(doc_obj):
-                                    st.image(
-                                        render_page(doc_obj, found_p - 1, dpi=160),
-                                        caption=f"{sel_pdf_name} — Страница {found_p} (фактически найдено моделью)",
-                                        width=850
-                                    )
-                            else:
-                                st.error("Модель не смогла найти эту работу ни на одной странице документа.")
-
-            # Скачивание
-            col_d1, col_d2 = st.columns(2)
-            with col_d1:
-                st.download_button(
-                    label=f"📊 Скачать Excel ({v_name})",
-                    data=data["excel_bytes"],
-                    file_name=f"Аудит_{v_name}.xlsx" if not v_name.endswith('.xlsx') else f"Аудит_{v_name}",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key=f"dl_xl_{v_name}"
-                )
-            with col_d2:
-                st.download_button(
-                    label=f"📄 Скачать замечания Word ({v_name})",
-                    data=data["word_bytes"],
-                    file_name=f"Замечания_{v_name}.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    type="primary",
-                    key=f"dl_doc_{v_name}"
-                )
-else:
-    st.info("Укажите папку проекта или загрузите файлы слева для начала аудита.")

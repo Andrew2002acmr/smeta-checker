@@ -176,6 +176,17 @@ def validate_vor_formatting(file_source):
     empty_streak = 0
     has_active_position = False
 
+    # Предварительно собираем все идентификаторы из колонки J и считаем их частоту
+    from collections import Counter
+    all_j_ids = []
+    for r_scan in range(18, max_r + 1):
+        val_scan = str(ws.cell(row=r_scan, column=10).value or "").strip()
+        val_a_scan = str(ws.cell(row=r_scan, column=1).value or "").strip()
+        # Учитываем только строки позиций
+        if val_a_scan.isdigit() and val_scan:
+            all_j_ids.append(val_scan)
+    id_frequencies = Counter(all_j_ids)
+
     for r in range(17, max_r + 1):
         seen_identifiers = {}  # { "П1": row_number }
 
@@ -342,42 +353,21 @@ def validate_vor_formatting(file_source):
                 else:
                     add_res(f"G{r}", "ROW_POS", "Корректный путь к файлу", val_g, "ОК")
 
-                    # --- J: ГЛОБАЛЬНЫЙ ЗАПРЕТ ОДИНАКОВЫХ ИДЕНТИФИКАТОРОВ ВО ВСЕМ ДОКУМЕНТЕ ---
+            # --- J: ИДЕНТИФИКАТОР (НЕ ПУСТО И БЕЗ ПОВТОРОВ) ---
             id_clean = str(val_j).strip()
             if not id_clean:
                 add_res(f"J{r}", "ROW_POS", "Идентификатор заполнен", "<Пусто>", "Ошибка",
                         "Идентификатор не заполнен (обязателен для каждой позиции)")
-            elif id_clean in seen_identifiers:
-                first_row = seen_identifiers[id_clean]
-                add_res(
-                    f"J{r}",
-                    "ROW_POS",
-                    "Уникальный идентификатор (запрещены повторы во всем документе)",
-                    id_clean,
-                    "Ошибка",
-                    f"Запрещено использовать одинаковые идентификаторы! Значение '{id_clean}' уже было использовано в строке {first_row}"
-                )
-            else:
-                # Регистрируем первое появление идентификатора во всем файле
-                seen_identifiers[id_clean] = r
-                add_res(f"J{r}", "ROW_POS", "Уникальный идентификатор", id_clean, "ОК")
-
-            # --- J: ИДЕНТИФИКАТОР (ТОЛЬКО НЕ ПУСТО И БЕЗ ДУБЛИКАТОВ) ---
-            id_clean = str(val_j).strip()
-            if not id_clean:
-                add_res(f"J{r}", "ROW_POS", "Идентификатор заполнен", "<Пусто>", "Ошибка",
-                                "Идентификатор не заполнен (обязателен для каждой позиции)")
-            elif id_clean in seen_identifiers:
-                first_r = seen_identifiers[id_clean]
+            elif id_frequencies.get(id_clean, 0) > 1:
                 add_res(f"J{r}", "ROW_POS", "Уникальный идентификатор", id_clean, "Ошибка",
-                                f"Дубликат идентификатора: '{id_clean}' уже использован в строке {first_r}")
+                        f"Дубликат идентификатора: '{id_clean}' встречается {id_frequencies[id_clean]} раз(а) в документе")
             else:
-                seen_identifiers[id_clean] = r
                 add_res(f"J{r}", "ROW_POS", "Уникальный идентификатор", id_clean, "ОК")
 
             # K: тип позиции (не пусто)
             if val_k == "":
-                add_res(f"K{r}", "ROW_POS", "Тип позиции не пусто", val_k, "Ошибка", "Тип позиции не заполнен (ожидается: Работа, Материал и т.д.)")
+                add_res(f"K{r}", "ROW_POS", "Тип позиции не пусто", val_k, "Ошибка",
+                        "Тип позиции не заполнен (ожидается: Работа, Материал и т.д.)")
 
         # --- ТИП 2b: СТРОКА ДОПОЛНИТЕЛЬНОЙ ПРИВЯЗКИ ДОКУМЕНТОВ К ПОЗИЦИИ (F, G, H) ---
         elif val_a == "" and val_b == "" and val_c == "" and val_d == "" and val_k == "" and any(v != "" for v in [val_f, val_g, val_h]):
