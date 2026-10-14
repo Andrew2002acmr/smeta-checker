@@ -1,5 +1,6 @@
 .env
 .env.*
+!.env.example
 
 .venv/
 venv/
@@ -12,3 +13,9 @@ __pycache__/
 activate.txt
 drawing_test.py
 report_drawing.py
+
+# Local source documents and generated audit artifacts
+/ВР-1 ИГДИ/
+/tmp/
+/.audit_cache/
+/test_documents/

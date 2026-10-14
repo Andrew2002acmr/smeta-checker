@@ -1,0 +1,78 @@
+"""Exercise the Streamlit audit and exports with a synthetic project and mocked API."""
+
+import csv
+import io
+import json
+import os
+from pathlib import Path
+import sys
+import tempfile
+from types import SimpleNamespace
+import unittest
+from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import fitz
+import pandas as pd
+import docx
+from streamlit.testing.v1 import AppTest
+
+
+class FakeClient:
+    def __init__(self, **kwargs):
+        self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
+
+    def create(self, **kwargs):
+        prompt = kwargs["messages"][1]["content"]
+        if "Проверяемая работа: Pump station" in prompt:
+            raise RuntimeError("Simulated provider failure")
+        found = "Copper cable 45 m" in prompt
+        data = {"status": "ОК" if found else "Ошибка", "found_volume": "45 m" if found else "-",
+                "found_page": "2" if found else "-", "discrepancy_details": "Confirmed" if found else "Not found"}
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=json.dumps(data)))])
+
+    def close(self):
+        pass
+
+
+class AppFlowTests(unittest.TestCase):
+    def test_audit_continues_after_failed_row_and_exports_actual_page(self):
+        with tempfile.TemporaryDirectory(prefix="smeta-audit-test-") as folder:
+            folder = Path(folder)
+            with fitz.open() as pdf:
+                for content in ("Introduction to the project. " * 20, "Copper cable 45 m. " * 20):
+                    page = pdf.new_page()
+                    page.insert_textbox(fitz.Rect(50, 50, 500, 600), content)
+                pdf.save(folder / "project.pdf")
+            with (folder / "vor.csv").open("w", encoding="utf-8-sig", newline="") as stream:
+                writer = csv.writer(stream, delimiter=";")
+                writer.writerow(["№ п.п.", "Наименование работ, ресурсов, затрат по проекту",
+                                 "Объём работ / Количество", "Ед. изм.", "Ссылка на ПД",
+                                 "Наименование файла", "Номер страниц (через пробел)"])
+                writer.writerows([[1, "Copper cable", 45, "m", "", "project.pdf", 1],
+                                  [2, "Pump station", 1, "шт", "", "project.pdf", 2],
+                                  [3, "Copper cable", 45, "m", "", "project.pdf", 2]])
+            with patch.dict(os.environ, {"AGNES_API_KEY": "test-only"}), patch("openai.OpenAI", FakeClient):
+                at = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app.py"), default_timeout=30)
+                at.run()
+                self.assertEqual(len(at.exception), 0, str(at.exception))
+                folder_input = next(item for item in at.text_input if item.label == "Путь к папке проекта на диске")
+                folder_input.set_value(str(folder)).run()
+                self.assertEqual(len(at.exception), 0, str(at.exception))
+                next(item for item in at.button if item.label == "🚀 Запустить аудит").click().run()
+                self.assertEqual(len(at.exception), 0, str(at.exception))
+                saved = at.session_state["audit_results"]["vor.csv"]
+                table = saved["df"]
+                self.assertEqual(table["Статус аудита"].tolist(), ["Ошибка", "Технический сбой", "ОК"])
+                self.assertEqual(table["[ПД] Фактическая страница"].tolist(), ["Стр. 2", "-", "Стр. 2"])
+                excel = pd.read_excel(io.BytesIO(saved["excel_bytes"]))
+                self.assertEqual(excel["[ПД] Фактическая страница"].tolist(), ["Стр. 2", "-", "Стр. 2"])
+                word = docx.Document(io.BytesIO(saved["word_bytes"]))
+                self.assertEqual(word.tables[0].rows[1].cells[5].text, "Стр. 2")
+                self.assertEqual(word.tables[0].rows[2].cells[6].text, "Технический сбой")
+                for pdf in at.session_state["pdf_pool"].values():
+                    pdf.close()
+
+
+if __name__ == "__main__":
+    unittest.main()
