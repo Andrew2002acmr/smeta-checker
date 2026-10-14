@@ -23,6 +23,10 @@ from dotenv import load_dotenv
 load_dotenv()
 from vor_rules import validate_vor_formatting, get_highlighted_workbook, generate_rules_word_report
 import openpyxl
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
+
+doc_lock = threading.Lock()  # Блокировка для потокобезопасного чтения PDF
 
 def get_setting(name: str, default: str = "") -> str:
     """Сначала читаем переменную окружения, затем Streamlit Secrets."""
@@ -43,6 +47,9 @@ YANDEX_MODEL_NAME = get_setting(
     "qwen3.6-35b-a3b/latest"
 )
 DEFAULT_GEMINI_KEY = get_setting("GEMINI_API_KEY")
+AGNES_API_KEY = get_setting("AGNES_API_KEY")
+AGNES_MODEL = get_setting("AGNES_MODEL", "agnes-combo")
+AGNES_BASE_URL = get_setting("AGNES_BASE_URL", "https://apihub.agnes-ai.com/v1")
 
 st.set_page_config(page_title="Аудит ВОР и ПД", layout="wide")
 st.title("🏗️ Комплексный аудит ведомостей объемов работ (ВОР)")
@@ -56,6 +63,12 @@ if "pdf_local_paths" not in st.session_state:
     st.session_state.pdf_local_paths = {}   # { clean_name: full_path_str }
 if "pdf_page_maps" not in st.session_state:
     st.session_state.pdf_page_maps = {}     # { clean_name: { sheet: phys_idx } }
+    
+# Флаги выполнения фоновых процессов
+if "is_auditing" not in st.session_state:
+    st.session_state.is_auditing = False
+if "is_checking_rules" not in st.session_state:
+    st.session_state.is_checking_rules = False
 
 # =========================================================================
 # МОДАЛЬНОЕ ОКНО: РУКОВОДСТВО ПОЛЬЗОВАТЕЛЯ
@@ -86,8 +99,8 @@ def show_user_guide():
     * **Знак `/` в объемах:** Считывается как альтернатива («или»). Если в ПД `9/45`, а в ВОР заявлено `45` — объем подтверждается.
     * **Критерии ошибки:** Статус `Ошибка` выставляется, если данные на указанной странице отсутствуют, либо не сошелся объем или единица измерения.
     """)
-    if st.button("Понятно, закрыть", use_container_width=True):
-        st.rerun()
+    # Стало (окно закроется без принудительной перезагрузки страницы):
+    st.button("Понятно, закрыть", use_container_width=True)
 
 # ----------------- БОКОВАЯ ПАНЕЛЬ -----------------
 with st.sidebar:
@@ -95,18 +108,19 @@ with st.sidebar:
 
     provider = st.selectbox(
         "Провайдер",
-        options=["Google Gemini", "Yandex Cloud (Qwen)"],
+        options=[
+            "Agnes AI (Agnes 3.0)",
+            "Yandex Cloud (Qwen)",
+            # "Google Gemini",  # Временно отключено
+        ],
         index=0
     )
 
-    if provider == "Google Gemini":
-        model_name = st.selectbox(
-            "Модель",
-            options=["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"],
-            index=0
-        )
-        api_key = DEFAULT_GEMINI_KEY
-    else:
+    if provider == "Agnes AI (Agnes 3.0)":
+        model_name = st.text_input("Модель Agnes", value=AGNES_MODEL)
+        api_key = AGNES_API_KEY
+
+    elif provider == "Yandex Cloud (Qwen)":
         model_name = st.selectbox(
             "Модель",
             options=[YANDEX_MODEL_NAME, "yandexgpt/latest"],
@@ -114,8 +128,17 @@ with st.sidebar:
         )
         api_key = YANDEX_API_KEY
 
+    # elif provider == "Google Gemini":
+    #     model_name = st.selectbox(
+    #         "Модель",
+    #         options=["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"],
+    #         index=0
+    #     )
+    #     api_key = DEFAULT_GEMINI_KEY
+
     # КНОПКА ВЫЗОВА ИНСТРУКЦИИ:
-    if st.button("📖 Инструкция пользователя", use_container_width=True):
+    is_busy = st.session_state.is_auditing or st.session_state.is_checking_rules
+    if st.button("📖 Инструкция пользователя", use_container_width=True, disabled=is_busy):
         show_user_guide()
 
     st.markdown("---")
@@ -434,7 +457,7 @@ def audit_position_hybrid(provider, client, model_name, doc, target_indices, wor
 {text_context}"""
 
     for attempt in range(max_retries):
-        raw_text = ""  # 1. ОБЯЗАТЕЛЬНО инициализируем заранее, чтобы не было ошибки UnboundLocalError
+        raw_text = ""
         try:
             if provider == "Yandex Cloud (Qwen)":
                 # ВЫЗОВ YANDEX CLOUD
@@ -455,8 +478,7 @@ def audit_position_hybrid(provider, client, model_name, doc, target_indices, wor
 
                 if getattr(response, "output_text", None):
                     raw_text = response.output_text.strip()
-
-                if not raw_text and hasattr(response, "output") and response.output:
+                elif hasattr(response, "output") and response.output:
                     for item in response.output:
                         if hasattr(item, "content") and item.content:
                             if isinstance(item.content, list):
@@ -471,18 +493,31 @@ def audit_position_hybrid(provider, client, model_name, doc, target_indices, wor
                             raw_text += item.text
                 raw_text = raw_text.strip()
 
-            else:
-                # ВЫЗОВ GOOGLE GEMINI
-                # Страховка клиента: если он не был передан, инициализируем из secrets / env
-                gemini_client = client if client is not None else genai.Client(api_key=DEFAULT_GEMINI_KEY)
-
-                gemini_contents_full = gemini_contents + [instructions + "\n\n" + user_input]
-                resp = gemini_client.models.generate_content(
-                    model=model_name,
-                    contents=gemini_contents_full
+            elif provider == "Agnes AI (Agnes 3.0)":
+                # ВЫЗОВ AGNES AI (через стандартный OpenAI Chat Completions)
+                agnes_client = openai.OpenAI(
+                    api_key=AGNES_API_KEY,
+                    base_url=AGNES_BASE_URL
                 )
-                # Читаем текст ответа Gemini
-                raw_text = resp.text.strip() if getattr(resp, "text", None) else ""
+                trimmed_input = user_input[:8000] if len(user_input) > 8000 else user_input
+
+                response = agnes_client.chat.completions.create(
+                    model=model_name,
+                    temperature=0.1,
+                    messages=[
+                        {"role": "system", "content": instructions},
+                        {"role": "user", "content": trimmed_input}
+                    ],
+                    max_tokens=3000
+                )
+                raw_text = response.choices[0].message.content.strip() if response.choices else ""
+
+            # else:
+            #     # ВЫЗОВ GOOGLE GEMINI (временно закомментирован)
+            #     gemini_client = client if client is not None else genai.Client(api_key=DEFAULT_GEMINI_KEY)
+            #     gemini_contents_full = gemini_contents + [instructions + "\n\n" + user_input]
+            #     resp = gemini_client.models.generate_content(model=model_name, contents=gemini_contents_full)
+            #     raw_text = resp.text.strip() if getattr(resp, "text", None) else ""
 
             # 2. Парсим извлеченный JSON
             parsed_data = parse_llm_json(raw_text)
@@ -662,8 +697,13 @@ main_tab1, main_tab2 = st.tabs([
 ])
 
 # ----------------- ВКЛАДКА 1: ВЕСЬ СУЩЕСТВУЮЩИЙ КОД -----------------
+# ----------------- ВКЛАДКА 1: АУДИТ ПД И ВОР -----------------
+# ----------------- ВКЛАДКА 1: АУДИТ ПД И ВОР -----------------
 with main_tab1:
-    if loaded_vors:
+    if not loaded_vors:
+        st.info(
+            "📂 Для начала работы загрузите файлы проекта (PDF и XLSX/CSV) в боковой панели слева или выберите локальную папку проекта.")
+    else:
         st.subheader("📋 Выбор ведомостей для проверки")
         target_vor_selection = st.multiselect(
             "Выберите ведомости для аудита:",
@@ -704,7 +744,6 @@ with main_tab1:
                     text_val = str(entry).strip()
                     if not text_val or text_val.lower() == 'nan':
                         continue
-                    # Разбиваем по переносам строк, точке с запятой или запятой
                     lines = re.split(r'[\n\r;]+', text_val)
                     for line in lines:
                         c_line = line.strip().strip('"\'«»')
@@ -712,7 +751,6 @@ with main_tab1:
                             individual_paths.append(c_line)
 
                 for clean_raw in individual_paths:
-                    # дальше идет ваша существующая проверка физического пути и имени файла:
                     direct_path_exists = os.path.exists(clean_raw)
                     disk_status = "🟢 Файл на месте" if direct_path_exists else "⚠️ Путь не найден на ПК"
 
@@ -720,20 +758,10 @@ with main_tab1:
                     matched_pdf = None
                     bind_status = "🔴 Не найден"
 
-                    # 1. Проверка физического пути на диске (для локального режима)
-                    direct_path_exists = os.path.exists(clean_raw)
-                    disk_status = "🟢 Файл на месте" if direct_path_exists else "⚠️ Путь не найден на ПК"
-
-                    # 2. Проверка имени файла и привязки к загруженному пулу
-                    base_name = os.path.basename(clean_raw.replace('\\', '/')).strip().lower()
-                    matched_pdf = None
-                    bind_status = "🔴 Не найден"
-
                     if base_name in pdf_pool:
                         matched_pdf = base_name
                         bind_status = "🟢 Имя совпадает"
                     else:
-                        # Поиск с очисткой дефисов и подчеркиваний
                         c_target = re.sub(r'[^a-zA-Zа-яА-Я0-9]', '', os.path.splitext(base_name)[0]).lower()
                         for p_name in pdf_pool.keys():
                             c_pool = re.sub(r'[^a-zA-Zа-яА-Я0-9]', '', os.path.splitext(p_name)[0]).lower()
@@ -776,281 +804,304 @@ with main_tab1:
                     st.error("❌ Обнаружены отсутствующие файлы PDF! Догрузите их перед запуском аудита.")
                 else:
                     st.success("✅ Все файлы PDF успешно идентифицированы и готовы к проверке.")
+
         # =========================================================================
+        # ЗАПУСК АУДИТА С МГНОВЕННОЙ БЛОКИРОВКОЙ КНОПКИ
+        # =========================================================================
+        if st.session_state.get("is_auditing", False):
+            st.button("⏳ Выполняется аудит (подождите)...", disabled=True, use_container_width=True)
 
-        start_btn = st.button("🚀 Запустить аудит", type="primary", use_container_width=True)
+            try:
+                if not api_key:
+                    st.error("Пожалуйста, укажите API Key в .env!")
+                elif not pdf_pool:
+                    st.error("Не загружено ни одного файла PDF!")
+                else:
+                    #client = genai.Client(api_key=api_key) if provider == "Google Gemini" else None
+                    client = None
 
-        if start_btn:
-            if not api_key:
-                st.error("Пожалуйста, введите Gemini API Key в боковой панели!")
-            elif not pdf_pool:
-                st.error("Не загружено ни одного файла PDF!")
-            else:
-                client = genai.Client(api_key=api_key) if provider == "Google Gemini" else None
+                    vors_parsed = {}
+                    total_items = 0
+                    for v_name in target_vor_selection:
+                        df_w, meta = load_vor_with_metadata(loaded_vors[v_name], v_name)
+                        vors_parsed[v_name] = (df_w, meta)
+                        total_items += len(df_w)
 
-                # Предварительно парсим все выбранные ВОР для точного расчета шкалы
-                vors_parsed = {}
-                total_items = 0
-                for v_name in target_vor_selection:
-                    df_w, meta = load_vor_with_metadata(loaded_vors[v_name], v_name)
-                    vors_parsed[v_name] = (df_w, meta)
-                    total_items += len(df_w)
+                    prog_placeholder = st.empty()
+                    progress_bar = prog_placeholder.progress(0, text="Инициализация многопоточной проверки...")
+                    current_row_idx = 0
 
-                # Создаем постоянный прогресс-бар (он не исчезнет в конце)
-                prog_placeholder = st.empty()
-                progress_bar = prog_placeholder.progress(0, text="Инициализация проверки...")
-                current_row_idx = 0
+                    for v_name, (df_works, meta) in vors_parsed.items():
+                        page_col = [c for c in df_works.columns if 'номер страниц' in c.lower()][0]
+                        name_col = [c for c in df_works.columns if 'наименование' in c.lower()][0]
+                        vol_col = [c for c in df_works.columns if 'объем' in c.lower() or 'количество' in c.lower()][0]
+                        unit_col = [c for c in df_works.columns if 'ед.' in c.lower()][0]
+                        ref_col = [c for c in df_works.columns if 'ссылка' in c.lower()][0]
+                        file_col = [c for c in df_works.columns if 'наименование файла' in c.lower()]
+                        file_col_name = file_col[0] if file_col else None
 
-                for v_name, (df_works, meta) in vors_parsed.items():
-                    page_col = [c for c in df_works.columns if 'номер страниц' in c.lower()][0]
-                    name_col = [c for c in df_works.columns if 'наименование' in c.lower()][0]
-                    vol_col = [c for c in df_works.columns if 'объем' in c.lower() or 'количество' in c.lower()][0]
-                    unit_col = [c for c in df_works.columns if 'ед.' in c.lower()][0]
-                    ref_col = [c for c in df_works.columns if 'ссылка' in c.lower()][0]
-                    file_col = [c for c in df_works.columns if 'наименование файла' in c.lower()]
-                    file_col_name = file_col[0] if file_col else None
-                    # Находим колонку комментария и формулы
-                    comm_cols = [c for c in df_works.columns if
-                                 'дополнительная' in c.lower() or 'комментарий' in c.lower()]
-                    comment_col_name = comm_cols[0] if comm_cols else None
+                        comm_cols = [c for c in df_works.columns if
+                                     'дополнительная' in c.lower() or 'комментарий' in c.lower()]
+                        comment_col_name = comm_cols[0] if comm_cols else None
 
-                    form_cols = [c for c in df_works.columns if 'формула' in c.lower()]
-                    formula_col_name = form_cols[0] if form_cols else None
+                        form_cols = [c for c in df_works.columns if 'формула' in c.lower()]
+                        formula_col_name = form_cols[0] if form_cols else None
 
-                    results = []
-                    row_page_tracking = []
+                        tasks = []
+                        for r_idx, (_, row) in enumerate(df_works.iterrows()):
+                            w_name = str(row[name_col])
+                            w_vol = str(row[vol_col])
+                            w_unit = str(row[unit_col])
+                            w_ref = str(row[ref_col])
+                            w_page = str(row[page_col]) if page_col else ""
+                            w_comment = str(row.get(comment_col_name, "")).strip() if comment_col_name else ""
+                            w_formula = str(row.get(formula_col_name, "")).strip() if formula_col_name else ""
 
-                    for _, row in df_works.iterrows():
-                        current_row_idx += 1
-                        w_name = str(row[name_col])
-                        w_vol = str(row[vol_col])
-                        w_unit = str(row[unit_col])
-                        w_ref = str(row[ref_col])
-                        w_page = str(row[page_col]) if page_col else ""
-                        w_comment = str(row.get(comment_col_name, "")).strip() if comment_col_name else ""
-                        w_formula = str(row.get(formula_col_name, "")).strip() if formula_col_name else ""
+                            target_pdf_doc = None
+                            target_pdf_name = ""
+                            if file_col_name:
+                                raw_pdf_path = str(row.get(file_col_name, '')).strip().strip('"\'«»')
+                                if raw_pdf_path and raw_pdf_path.lower() != 'nan':
+                                    target_pdf_name = os.path.basename(raw_pdf_path.replace('\\', '/')).strip().strip(
+                                        '"\'«»').lower()
 
-                        # Обновляем progress bar на каждой строке
-                        pct = current_row_idx / total_items
-                        progress_bar.progress(
-                            pct,
-                            text=f"Проверка [{current_row_idx}/{total_items}]: {v_name} ➔ {w_name[:38]}..."
-                        )
+                            if target_pdf_name and target_pdf_name in pdf_pool:
+                                target_pdf_doc = pdf_pool[target_pdf_name]
+                            elif target_pdf_name:
+                                target_stem = os.path.splitext(target_pdf_name)[0]
+                                for p_name, doc_obj in pdf_pool.items():
+                                    p_stem = os.path.splitext(p_name)[0]
+                                    if (target_stem in p_name) or (p_stem in target_stem):
+                                        target_pdf_doc = doc_obj
+                                        target_pdf_name = p_name
+                                        break
 
-                        # 1. Защита от NameError (инициализируем заранее)
-                        primary_phys_pages = [1]
-                        target_pdf_doc = None
-                        target_pdf_name = ""
+                            if target_pdf_doc is None and meta.get('basis_code'):
+                                clean_basis = re.sub(r'[^a-zA-Zа-яА-Я0-9]', '', meta['basis_code']).lower()
+                                for p_name, doc_obj in pdf_pool.items():
+                                    clean_p = re.sub(r'[^a-zA-Zа-яА-Я0-9]', '', p_name).lower()
+                                    if clean_basis and (clean_basis in clean_p or clean_p in clean_basis):
+                                        target_pdf_doc = doc_obj
+                                        target_pdf_name = p_name
+                                        break
 
-                        # 2. Извлекаем имя PDF из строки ВОР (если заполнено)
-                        if file_col_name:
-                            raw_pdf_path = str(row.get(file_col_name, '')).strip().strip('"\'«»')
-                            if raw_pdf_path and raw_pdf_path.lower() != 'nan':
-                                target_pdf_name = os.path.basename(raw_pdf_path.replace('\\', '/')).strip().strip(
-                                    '"\'«»').lower()
+                            if target_pdf_doc is None and len(pdf_pool) == 1:
+                                target_pdf_name, target_pdf_doc = list(pdf_pool.items())[0]
 
-                        # 3. УМНЫЙ РОУТИНГ PDF СРЕДИ НЕСКОЛЬКИХ ФАЙЛОВ:
-                        # Вариант А: Прямое точное совпадение имени
-                        if target_pdf_name and target_pdf_name in pdf_pool:
-                            target_pdf_doc = pdf_pool[target_pdf_name]
+                            target_indices = []
+                            loc_desc = "Страница не указана"
+                            primary_phys_pages = [1]
+                            if target_pdf_doc:
+                                if target_pdf_name not in st.session_state.pdf_page_maps:
+                                    st.session_state.pdf_page_maps[target_pdf_name] = build_pdf_page_map(target_pdf_doc)
+                                p_map = st.session_state.pdf_page_maps[target_pdf_name]
+                                target_indices, loc_desc, primary_phys_pages = get_optimized_page_indices(
+                                    target_pdf_doc, p_map, w_page)
 
-                        # Вариант Б: Нечеткое совпадение по имени (если имя файла чуть отличается)
-                        elif target_pdf_name:
-                            target_stem = os.path.splitext(target_pdf_name)[0]
-                            for p_name, doc_obj in pdf_pool.items():
-                                p_stem = os.path.splitext(p_name)[0]
-                                if (target_stem in p_name) or (p_stem in target_stem):
-                                    target_pdf_doc = doc_obj
-                                    target_pdf_name = p_name
-                                    break
+                            tasks.append({
+                                "idx": r_idx,
+                                "w_name": w_name,
+                                "w_vol": w_vol,
+                                "w_unit": w_unit,
+                                "w_ref": w_ref,
+                                "w_page": w_page,
+                                "w_comment": w_comment,
+                                "w_formula": w_formula,
+                                "target_pdf_doc": target_pdf_doc,
+                                "target_pdf_name": target_pdf_name,
+                                "target_indices": target_indices,
+                                "loc_desc": loc_desc,
+                                "primary_phys_pages": primary_phys_pages
+                            })
 
-                        # Вариант В: Если в ячейке не было пути к файлу, ищем по шифру ВОР (Основанию)
-                        if target_pdf_doc is None and meta.get('basis_code'):
-                            clean_basis = re.sub(r'[^a-zA-Zа-яА-Я0-9]', '', meta['basis_code']).lower()
-                            for p_name, doc_obj in pdf_pool.items():
-                                clean_p = re.sub(r'[^a-zA-Zа-яА-Я0-9]', '', p_name).lower()
-                                if clean_basis and (clean_basis in clean_p or clean_p in clean_basis):
-                                    target_pdf_doc = doc_obj
-                                    target_pdf_name = p_name
-                                    break
 
-                        # Вариант Г: Если в папке всего 1 PDF — берем его как единственный вариант
-                        if target_pdf_doc is None and len(pdf_pool) == 1:
-                            target_pdf_name, target_pdf_doc = list(pdf_pool.items())[0]
-
-                        # 4. Проверка и анализ
-                        if target_pdf_doc is None:
-                            audit = {
-                                "status": "Ошибка",
-                                "found_volume": "-",
-                                "found_page": "-",
-                                "discrepancy_details": f"Не удалось привязать PDF к строке. Искали: '{target_pdf_name}'"
-                            }
-                        else:
-                            # Восстановлен поиск страниц:
-                            if target_pdf_name not in st.session_state.pdf_page_maps:
-                                st.session_state.pdf_page_maps[target_pdf_name] = build_pdf_page_map(target_pdf_doc)
-                            p_map = st.session_state.pdf_page_maps[target_pdf_name]
-
-                            target_indices, loc_desc, primary_phys_pages = get_optimized_page_indices(target_pdf_doc,
-                                                                                                      p_map, w_page)
-
-                            if target_indices:
-                                audit = audit_position_hybrid(
-                                    provider=provider,
-                                    client=client,
-                                    model_name=model_name,
-                                    doc=target_pdf_doc,
-                                    target_indices=target_indices,
-                                    work_name=w_name,
-                                    volume=w_vol,
-                                    unit=w_unit,
-                                    ref_text=w_ref,
-                                    page_ref=w_page,
-                                    comment_text=w_comment,
-                                    formula_text=w_formula
-                                )
-                            else:
+                        def worker_check_row(task):
+                            if task["target_pdf_doc"] is None:
                                 audit = {
                                     "status": "Ошибка",
                                     "found_volume": "-",
                                     "found_page": "-",
-                                    "discrepancy_details": loc_desc
+                                    "discrepancy_details": f"Не удалось привязать PDF к строке. Искали: '{task['target_pdf_name']}'"
                                 }
+                            elif not task["target_indices"]:
+                                audit = {
+                                    "status": "Ошибка",
+                                    "found_volume": "-",
+                                    "found_page": "-",
+                                    "discrepancy_details": task["loc_desc"]
+                                }
+                            else:
+                                audit = audit_position_hybrid(
+                                    provider=provider,
+                                    client=client,
+                                    model_name=model_name,
+                                    doc=task["target_pdf_doc"],
+                                    target_indices=task["target_indices"],
+                                    work_name=task["w_name"],
+                                    volume=task["w_vol"],
+                                    unit=task["w_unit"],
+                                    ref_text=task["w_ref"],
+                                    page_ref=task["w_page"],
+                                    comment_text=task["w_comment"],
+                                    formula_text=task["w_formula"]
+                                )
 
-                        # 5. Сохранение результата (строго для КАЖДОЙ строки)
-                        raw_found_p = str(audit.get("found_page", "-")).strip()
-                        found_vol = str(audit.get("found_volume", "-")).strip()
-                        details_text = audit.get("discrepancy_details", "")
+                            raw_found_p = str(audit.get("found_page", "-")).strip()
+                            found_vol = str(audit.get("found_volume", "-")).strip()
+                            details_text = audit.get("discrepancy_details", "")
 
-                        # ЕСЛИ ОБЪЕМ НЕ НАЙДЕН (стоит '-') ИЛИ В КОММЕНТАРИИ СКАЗАНО, ЧТО ДАННЫХ НЕТ:
-                        # В колонке страницы ставим СТРОГО прочерк '-', а не страницу из ВОР!
-                        if found_vol in ["-", "", "None"] or any(
-                                w in details_text.lower() for w in ["не найден", "отсутств", "нет данных"]):
-                            found_p_num = None
-                            display_page = "-"
-                        else:
-                            nums = re.findall(r'\d+', raw_found_p)
-                            found_p_num = int(nums[0]) if nums and raw_found_p not in ["-", "None", "",
-                                                                                       "null"] else None
-                            display_page = f"Стр. {found_p_num}" if found_p_num else "-"
+                            if found_vol in ["-", "", "None"] or any(
+                                    w in details_text.lower() for w in ["не найден", "отсутств", "нет данных"]):
+                                found_p_num = None
+                                display_page = "-"
+                            else:
+                                nums = re.findall(r'\d+', raw_found_p)
+                                found_p_num = int(nums[0]) if nums and raw_found_p not in ["-", "None", "",
+                                                                                           "null"] else None
+                                display_page = f"Стр. {found_p_num}" if found_p_num else "-"
 
-                        final_status = audit.get("status", "Ошибка")
-                        details_text = audit.get("discrepancy_details", "")
+                            final_status = audit.get("status", "Ошибка")
+                            vor_pages_int = task["primary_phys_pages"] if task["primary_phys_pages"] else []
+                            if found_p_num and vor_pages_int and (found_p_num not in vor_pages_int):
+                                final_status = "Ошибка"
+                                if "страниц" not in details_text.lower():
+                                    details_text = f"Не совпадает страница: в ВОР указана стр. {', '.join(map(str, vor_pages_int))}, фактически данные на стр. {found_p_num}. " + details_text
 
-                        vor_pages_int = primary_phys_pages if primary_phys_pages else []
-                        if found_p_num and vor_pages_int and (found_p_num not in vor_pages_int):
-                            final_status = "Ошибка"
-                            if "страниц" not in details_text.lower():
-                                details_text = f"Не совпадает страница: в ВОР указана стр. {', '.join(map(str, vor_pages_int))}, фактически данные на стр. {found_p_num}. " + details_text
+                            res_item = {
+                                "Статус аудита": final_status,
+                                "Фактический объем": audit.get("found_volume", "-"),
+                                "Фактическая страница в ПД (найдено моделью)": display_page,
+                                "Детали расхождений": details_text
+                            }
 
-                        results.append({
-                            "Статус аудита": final_status,
-                            "Фактический объем": audit.get("found_volume", "-"),
-                            "Фактическая страница в ПД (найдено моделью)": display_page,
-                            "Детали расхождений": details_text
-                        })
+                            show_p = [found_p_num] if found_p_num else (vor_pages_int if vor_pages_int else [1])
+                            track_item = {
+                                "pdf_name": task["target_pdf_name"],
+                                "pages_to_show": show_p,
+                                "vor_pages": vor_pages_int,
+                                "found_page": found_p_num,
+                                "work_name": task["w_name"]
+                            }
 
-                        show_p = [found_p_num] if found_p_num else (vor_pages_int if vor_pages_int else [1])
-                        row_page_tracking.append({
-                            "pdf_name": target_pdf_name,
-                            "pages_to_show": show_p,
-                            "vor_pages": vor_pages_int,
-                            "found_page": found_p_num,
-                            "work_name": w_name
-                        })
-
-                        time.sleep(1.2)
-
-                    # ПОСЛЕ ЗАВЕРШЕНИЯ ЦИКЛА СТРОК: СКЛЕЙКА ТАБЛИЦЫ
-                    cols_to_drop = [c for c in df_works.columns if
-                                    str(c).startswith('Unnamed') or str(c).strip() in ['1', '2', '3', '4', '5', '6',
-                                                                                       '6.1', '6.2', '7', '8', '9']]
-                    df_works_clean = df_works.drop(columns=cols_to_drop, errors='ignore').copy()
-
-                    if vol_col in df_works_clean.columns:
-                        def clean_vor_val(v):
-                            s = str(v).strip()
-                            if s.endswith('.0') and s[:-2].replace('-', '').isdigit():
-                                return s[:-2]
-                            return s
+                            return task["idx"], res_item, track_item
 
 
-                        df_works_clean[vol_col] = df_works_clean[vol_col].apply(clean_vor_val)
+                        results = [None] * len(tasks)
+                        row_page_tracking = [None] * len(tasks)
 
-                    rename_map = {}
-                    if vol_col in df_works_clean.columns:
-                        rename_map[vol_col] = "[ВОР] Заявленный объем"
-                    if unit_col in df_works_clean.columns:
-                        rename_map[unit_col] = "[ВОР] Ед. изм."
-                    if page_col in df_works_clean.columns:
-                        rename_map[page_col] = "[ВОР] Ссылка на страницу"
-                    df_works_clean.rename(columns=rename_map, inplace=True)
+                        with ThreadPoolExecutor(max_workers=5) as executor:
+                            future_to_task = {executor.submit(worker_check_row, t): t for t in tasks}
 
-                    df_audit = pd.DataFrame([
-                        {
-                            "Статус аудита": r["Статус аудита"],
-                            "[ПД] Найденный объем (нейросеть)": r["Фактический объем"],
-                            "[ПД] Фактическая страница": r["Фактическая страница в ПД (найдено моделью)"],
-                            "Детали расхождений": r["Детали расхождений"]
+                            for future in as_completed(future_to_task):
+                                r_idx, res_item, track_item = future.result()
+                                results[r_idx] = res_item
+                                row_page_tracking[r_idx] = track_item
+
+                                current_row_idx += 1
+                                pct = current_row_idx / total_items
+                                progress_bar.progress(
+                                    pct,
+                                    text=f"Многопоточная проверка [{current_row_idx}/{total_items}]: {v_name} (5 потоков)..."
+                                )
+
+                        cols_to_drop = [c for c in df_works.columns if
+                                        str(c).startswith('Unnamed') or str(c).strip() in ['1', '2', '3', '4', '5', '6',
+                                                                                           '6.1', '6.2', '7', '8', '9']]
+                        df_works_clean = df_works.drop(columns=cols_to_drop, errors='ignore').copy()
+
+                        if vol_col in df_works_clean.columns:
+                            def clean_vor_val(v):
+                                s = str(v).strip()
+                                if s.endswith('.0') and s[:-2].replace('-', '').isdigit():
+                                    return s[:-2]
+                                return s
+
+
+                            df_works_clean[vol_col] = df_works_clean[vol_col].apply(clean_vor_val)
+
+                        rename_map = {}
+                        if vol_col in df_works_clean.columns:
+                            rename_map[vol_col] = "[ВОР] Заявленный объем"
+                        if unit_col in df_works_clean.columns:
+                            rename_map[unit_col] = "[ВОР] Ед. изм."
+                        if page_col in df_works_clean.columns:
+                            rename_map[page_col] = "[ВОР] Ссылка на страницу"
+                        df_works_clean.rename(columns=rename_map, inplace=True)
+
+                        df_audit = pd.DataFrame([
+                            {
+                                "Статус аудита": r["Статус аудита"],
+                                "[ПД] Найденный объем (нейросеть)": r["Фактический объем"],
+                                "[ПД] Фактическая страница": r["Фактическая страница в ПД (найдено моделью)"],
+                                "Детали расхождений": r["Детали расхождений"]
+                            }
+                            for r in results
+                        ], index=df_works_clean.index)
+
+                        df_final = pd.concat([df_works_clean, df_audit], axis=1)
+
+                        excel_out = io.BytesIO()
+                        with pd.ExcelWriter(excel_out, engine='openpyxl') as writer:
+                            df_final.to_excel(writer, index=False, sheet_name='Аудит')
+                            ws_out = writer.sheets['Аудит']
+
+                            import openpyxl.styles as px_styles
+
+                            header_fill = px_styles.PatternFill(start_color="1F4E78", end_color="1F4E78",
+                                                                fill_type="solid")
+                            header_font = px_styles.Font(color="FFFFFF", bold=True, size=10)
+                            thin_border = px_styles.Border(
+                                left=px_styles.Side(style='thin', color='D3D3D3'),
+                                right=px_styles.Side(style='thin', color='D3D3D3'),
+                                top=px_styles.Side(style='thin', color='D3D3D3'),
+                                bottom=px_styles.Side(style='thin', color='D3D3D3')
+                            )
+
+                            for cell in ws_out[1]:
+                                cell.fill = header_fill
+                                cell.font = header_font
+                                cell.alignment = px_styles.Alignment(horizontal="center", vertical="center",
+                                                                     wrap_text=True)
+
+                            for col in ws_out.columns:
+                                max_len = 0
+                                col_letter = openpyxl.utils.get_column_letter(col[0].column)
+                                for cell in col:
+                                    cell.border = thin_border
+                                    cell.alignment = px_styles.Alignment(vertical="center", wrap_text=True)
+                                    val_s = str(cell.value or "")
+                                    if len(val_s) > max_len:
+                                        max_len = len(val_s)
+                                ws_out.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 45)
+
+                        excel_bytes = excel_out.getvalue()
+                        word_bytes = generate_word_report(df_final, meta)
+
+                        st.session_state.audit_results[v_name] = {
+                            "df": df_final,
+                            "meta": meta,
+                            "tracking": row_page_tracking,
+                            "excel_bytes": excel_bytes,
+                            "word_bytes": word_bytes
                         }
-                        for r in results
-                    ], index=df_works_clean.index)
 
-                    df_final = pd.concat([df_works_clean, df_audit], axis=1)
+                    progress_bar.progress(1.0, text=f"✅ Аудит завершен! Проверено позиций: {total_items}")
+                    time.sleep(0.8)
+                    prog_placeholder.empty()
 
+            finally:
+                st.session_state.is_auditing = False
 
-                    excel_out = io.BytesIO()
-                    with pd.ExcelWriter(excel_out, engine='openpyxl') as writer:
-                        df_final.to_excel(writer, index=False, sheet_name='Аудит')
-                        ws_out = writer.sheets['Аудит']
+            st.rerun()
 
-                        import openpyxl.styles as px_styles
+        else:
+            if st.button("🚀 Запустить аудит", type="primary", use_container_width=True):
+                st.session_state.is_auditing = True
+                st.rerun()
 
-                        header_fill = px_styles.PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
-                        header_font = px_styles.Font(color="FFFFFF", bold=True, size=10)
-                        thin_border = px_styles.Border(
-                            left=px_styles.Side(style='thin', color='D3D3D3'),
-                            right=px_styles.Side(style='thin', color='D3D3D3'),
-                            top=px_styles.Side(style='thin', color='D3D3D3'),
-                            bottom=px_styles.Side(style='thin', color='D3D3D3')
-                        )
-
-                        # Оформляем шапку
-                        for cell in ws_out[1]:
-                            cell.fill = header_fill
-                            cell.font = header_font
-                            cell.alignment = px_styles.Alignment(horizontal="center", vertical="center", wrap_text=True)
-
-                        # Автоподбор ширины столбцов и границы
-                        for col in ws_out.columns:
-                            max_len = 0
-                            col_letter = openpyxl.utils.get_column_letter(col[0].column)
-                            for cell in col:
-                                cell.border = thin_border
-                                cell.alignment = px_styles.Alignment(vertical="center", wrap_text=True)
-                                val_s = str(cell.value or "")
-                                if len(val_s) > max_len:
-                                    max_len = len(val_s)
-                            ws_out.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 45)
-
-                    excel_bytes = excel_out.getvalue()
-
-                    word_bytes = generate_word_report(df_final, meta)
-
-                    st.session_state.audit_results[v_name] = {
-                        "df": df_final,
-                        "meta": meta,
-                        "tracking": row_page_tracking,
-                        "excel_bytes": excel_out.getvalue(),
-                        "word_bytes": word_bytes
-                    }
-
-                # Фиксируем прогресс-бар на 100% (не удаляем его!)
-                progress_bar.progress(1.0, text=f"✅ Аудит успешно завершен! Проверено позиций: {total_items}")
-
-    # ----------------- ОТОБРАЖЕНИЕ РЕЗУЛЬТАТОВ -----------------
-
+    # =========================================================================
+    # РЕЗУЛЬТАТЫ ПРОВЕРКИ (ОТОБРАЖАЮТСЯ, ЕСЛИ АУДИТ УЖЕ ПРОВЕДЕН)
+    # =========================================================================
     if st.session_state.audit_results:
         st.markdown("---")
         st.header("📊 Результаты проверки по ведомостям")
@@ -1075,7 +1126,6 @@ with main_tab1:
                 meta_res = data["meta"]
                 tracking_info = data.get("tracking", [])
 
-                # Метрики
                 tot = len(df_res)
                 ok_c = len(df_res[df_res['Статус аудита'] == 'ОК'])
                 warn_c = len(df_res[df_res['Статус аудита'] == 'Замечание'])
@@ -1088,11 +1138,8 @@ with main_tab1:
                 m4.metric("🔴 Не подтверждено", err_c)
 
                 st.write(f"**Объект:** {meta_res['object_name']} | **Основание:** {meta_res['basis_code']}")
+                st.info("💡 **Кликните по любой строке в таблице ниже**, чтобы мгновенно просмотреть этот лист PDF.")
 
-                st.info(
-                    "💡 **Кликните по любой строке в таблице ниже**, чтобы мгновенно просмотреть этот лист PDF или открыть его в ридере на нужной странице.")
-
-                # Подготовка таблицы без Arrow-ошибок
                 df_display = prepare_df_for_display(df_res)
                 styler = df_display.style
                 if hasattr(styler, 'map'):
@@ -1100,7 +1147,6 @@ with main_tab1:
                 else:
                     styled_df = styler.applymap(color_status, subset=['Статус аудита'])
 
-                # Интерактивная таблица с выбором строки
                 event = st.dataframe(
                     styled_df,
                     width="stretch",
@@ -1109,7 +1155,6 @@ with main_tab1:
                     key=f"df_table_{v_name}"
                 )
 
-                # ----------------- ИНСПЕКТОР: РАЗГРАНИЧЕНИЕ СКАНИРОВАНИЯ -----------------
                 if event and event.selection and event.selection.rows:
                     selected_row_idx = event.selection.rows[0]
                     if selected_row_idx < len(tracking_info):
@@ -1125,13 +1170,11 @@ with main_tab1:
 
                             doc_obj = st.session_state.pdf_pool.get(sel_pdf_name)
 
-                            # Две четко разграниченные вкладки
                             lbl_vor = f"📌 Страница по ссылке из ВОР (Стр. {', '.join(map(str, vor_pages)) if vor_pages else '-'})"
                             lbl_found = f"🎯 Фактическая страница с данными ({f'Стр. {found_p}' if found_p else 'Не найдена'})"
 
                             tab_vor, tab_found = st.tabs([lbl_vor, lbl_found])
 
-                            # Вкладка 1: Что находится на странице, которую указал сметчик
                             with tab_vor:
                                 st.info(
                                     "Лист, на который ссылается сметчик в ведомости (проверьте, почему там нет объемов):")
@@ -1139,28 +1182,25 @@ with main_tab1:
                                     for p_num in vor_pages:
                                         if 0 <= p_num - 1 < len(doc_obj):
                                             st.image(
-                                                render_page(doc_obj, p_num - 1, dpi=160),
+                                                render_page(doc_obj, p_num - 1, dpi=250),
                                                 caption=f"{sel_pdf_name} — Страница {p_num} (указана в ВОР)",
                                                 width=850
                                             )
                                 else:
                                     st.warning("Страница в ВОР не указана или выходит за пределы файла.")
 
-                            # Вкладка 2: Где модель реально нашла эти данные
                             with tab_found:
                                 if doc_obj and found_p:
-                                    st.success(
-                                        f"Лист в ПД, где фактически обнаружены данные по работе (Стр. {found_p}):")
+                                    st.success(f"Лист в ПД, где фактически обнаружены данные (Стр. {found_p}):")
                                     if 0 <= found_p - 1 < len(doc_obj):
                                         st.image(
-                                            render_page(doc_obj, found_p - 1, dpi=160),
-                                            caption=f"{sel_pdf_name} — Страница {found_p} (фактически найдено моделью)",
+                                            render_page(doc_obj, found_p - 1, dpi=250),
+                                            caption=f"{sel_pdf_name} — Страница {found_p} (найдено моделью)",
                                             width=850
                                         )
                                 else:
                                     st.error("Модель не смогла найти эту работу ни на одной странице документа.")
 
-                # Скачивание
                 col_d1, col_d2 = st.columns(2)
                 with col_d1:
                     st.download_button(
@@ -1179,8 +1219,6 @@ with main_tab1:
                         type="primary",
                         key=f"dl_doc_{v_name}"
                     )
-    else:
-        st.info("Укажите папку проекта или загрузите файлы слева для начала аудита.")
 
 # ----------------- ВКЛАДКА 2: ПРОВЕРКА ОФОРМЛЕНИЯ -----------------
 with main_tab2:
@@ -1204,20 +1242,34 @@ with main_tab2:
         st.session_state.rules_results = None
         st.session_state.rules_file_name = check_file.name
 
-    if check_file:
-        if st.button("🚀 Проверить оформление", type="primary", key="btn_check_rules"):
-            prog_bar = st.progress(0, text="Инициализация проверки правил...")
+    if st.session_state.get("is_checking_rules", False):
+        st.button("⏳ Выполняется проверка правил...", disabled=True, use_container_width=True)
 
-            # Запуск валидатора и сохранение в память сессии
+        try:
+            prog_placeholder = st.empty()
+            prog_bar = prog_placeholder.progress(0, text="Инициализация проверки правил...")
+
             rule_results = validate_vor_formatting(check_file)
             total_rules = len(rule_results)
 
             for i, res in enumerate(rule_results):
                 prog_bar.progress((i + 1) / total_rules, text=f"Проверка ячейки {res['coord']}...")
-                time.sleep(0.02)
+                time.sleep(0.01)
 
             prog_bar.progress(1.0, text="✅ Валидация оформления завершена!")
+            time.sleep(0.8)
+            prog_placeholder.empty()
+
             st.session_state.rules_results = rule_results
+        finally:
+            st.session_state.is_checking_rules = False
+
+        st.rerun()
+
+    else:
+        if st.button("🚀 Проверить оформление", type="primary", key="btn_check_rules", use_container_width=True):
+            st.session_state.is_checking_rules = True
+            st.rerun()
 
     # Вывод результатов (вынесен ИЗ-ПОД кнопки, поэтому чекбокс больше ничего не сбрасывает)
     if st.session_state.rules_results is not None:
