@@ -79,12 +79,10 @@ def run_branch(label, app_path, output):
         app.run()
         if app.exception:
             raise RuntimeError(f"{label}: исключение при запуске приложения")
-        next(item for item in app.selectbox if item.label == "Провайдер").select("Yandex Cloud (Qwen)")
         next(item for item in app.text_input if item.label == "Путь к папке проекта на диске").set_value(str(INPUTS))
         app.run()
         if app.exception:
             raise RuntimeError(f"{label}: исключение при загрузке документов")
-        next(item for item in app.selectbox if item.label == "Модель").select(model)
         next(item for item in app.button if item.label == "🚀 Запустить аудит").click().run()
     elapsed = time.monotonic() - started
     if app.exception:
