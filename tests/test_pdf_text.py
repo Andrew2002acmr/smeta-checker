@@ -20,7 +20,8 @@ class FakeRect:
 
 class FakePage:
     def __init__(self, native, ocr_text="", fail=None, rect=(595, 842),
-                 calls=None, idx=0, images=True, drawings=0):
+                 calls=None, idx=0, images=True, drawings=0,
+                 tables=(), table_calls=None):
         self._native = native
         self._ocr_text = ocr_text
         self._fail = fail
@@ -29,6 +30,8 @@ class FakePage:
         self._idx = idx
         self._images = images
         self._drawings = drawings
+        self._tables = tables
+        self._table_calls = table_calls if table_calls is not None else []
 
     def get_text(self, sort=True, textpage=None):
         if textpage is not None:
@@ -49,6 +52,11 @@ class FakePage:
         if self._fail is not None:
             raise self._fail
         return self._ocr_text
+    def find_tables(self):
+        from types import SimpleNamespace
+        self._table_calls.append(self._idx)
+        tables = [SimpleNamespace(extract=lambda rows=rows: rows) for rows in self._tables]
+        return SimpleNamespace(tables=tables)
 
 
 class FakeDoc:
@@ -72,11 +80,17 @@ def make_doc(native_texts, ocr_texts=None, **kwargs):
     calls = kwargs.pop("calls", None)
     if calls is None:
         calls = []
+    table_calls = kwargs.pop("table_calls", None)
+    if table_calls is None:
+        table_calls = []
+    table_pages = kwargs.pop("table_pages", None)
     payload = kwargs.pop("payload", b"fake-pdf-bytes")
     pages = []
     for idx, native in enumerate(native_texts):
         ocr = (ocr_texts[idx] if ocr_texts is not None else "распознанный текст %d" % idx)
-        pages.append(FakePage(native, ocr_text=ocr, calls=calls, idx=idx, **kwargs))
+        tables = table_pages.get(idx, ()) if table_pages else ()
+        pages.append(FakePage(native, ocr_text=ocr, calls=calls, idx=idx,
+                              tables=tables, table_calls=table_calls, **kwargs))
     return FakeDoc(pages, payload=payload), calls
 
 
@@ -162,6 +176,33 @@ class DiscoveryTests(unittest.TestCase):
         self.assertEqual(len(pending_of(snapshot)), 6)
         self.assertNotIn(9, [c["idx"] for c in calls])
 
+
+
+class TableTests(unittest.TestCase):
+    def test_related_native_pages_keep_flattened_table_rows(self):
+        natives = [("Кабель медный в смете. " * 20),
+                   ("Насосная станция общие данные. " * 20)]
+        table_calls = []
+        doc, _ = make_doc(natives, table_calls=table_calls,
+                           table_pages={0: [[[ "Кабель медный", "45", "м"]]]})
+        with TemporaryDirectory() as cache:
+            snapshot = PDFTextSource(doc, cache_dir=cache).for_position([0], "Кабель", "45")
+        self.assertEqual(snapshot.table_rows[0], ("Кабель медный | 45 | м",))
+        self.assertEqual(snapshot.table_rows[1], ())
+        self.assertIn(0, table_calls)
+
+    def test_table_extraction_is_bounded_and_reused(self):
+        natives = ["Кабель медный позиция %d. " % idx * 20 for idx in range(12)]
+        table_calls = []
+        doc, _ = make_doc(natives, table_calls=table_calls,
+                           table_pages={idx: [[[ "Кабель медный", "45", "м"]]] for idx in range(12)})
+        with TemporaryDirectory() as cache:
+            source = PDFTextSource(doc, cache_dir=cache)
+            source.for_position([0], "Кабель", "45")
+            first_pass = list(table_calls)
+            source.for_position([0], "Кабель", "45")
+        self.assertLessEqual(len(first_pass), 8)
+        self.assertEqual(table_calls, first_pass)
 
 
 class CacheTests(unittest.TestCase):

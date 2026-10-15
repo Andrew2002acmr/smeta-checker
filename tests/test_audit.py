@@ -248,6 +248,15 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(result["status"], "ОК")
         self.assertEqual(result["found_pages"], [1, 2])
 
+    def test_same_row_table_volume_ranks_first_for_confirmation(self):
+        texts = ["Cable 45 m unrelated appendix", "Cable description and quantity 45 m"]
+        plain = PageTextIndex(texts).support_candidates("Cable", "45", "m")
+        rows = PageTextIndex(texts, table_rows=[
+            ("Cable specification | different item", "Another position | 45 | m"),
+            ("Cable description | 45 | m",)]).support_candidates("Cable", "45", "m")
+        self.assertEqual(rows[0], 1)
+        self.assertNotEqual(plain[0], rows[0])
+
     def test_far_location_preserved_on_wrong_reference(self):
         index = PageTextIndex(["Title", "Contents"] + ["Introduction"] * 20 + ["Copper cable 45 m"])
         def ask(context):

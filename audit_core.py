@@ -123,10 +123,11 @@ _TABLE_MARKERS = re.compile(r"объем|объём|количеств|ед\.\s*
 
 
 class PageTextIndex:
-    def __init__(self, texts, errors=None, pending_ocr=()):
+    def __init__(self, texts, errors=None, pending_ocr=(), table_rows=None):
         self.texts = tuple(texts)
         self.errors = dict(errors or {})
         self.pending_ocr = tuple(sorted(set(pending_ocr)))
+        self.table_rows = tuple(tuple(row) for row in table_rows) if table_rows is not None else None
         self.terms = tuple(_terms(text) for text in self.texts)
         frequency = Counter(term for terms in self.terms for term in terms)
         self.weights = {term: math.log(1 + len(self.texts) / count) for term, count in frequency.items()}
@@ -175,6 +176,13 @@ class PageTextIndex:
                 score += 5
             if numbers & expected:
                 score += 2
+            if self.table_rows is not None and idx < len(self.table_rows):
+                for row in self.table_rows[idx]:
+                    row_terms = _terms(row)
+                    row_numbers = _numbers(row)
+                    if query & row_terms and expected & row_numbers:
+                        score += 10
+                        break
             if unit and (_terms(unit) & self.terms[idx]
                          or re.search(r"(?<!\w)" + re.escape(unit) + r"(?!\w)", text, re.IGNORECASE)):
                 score += 3
