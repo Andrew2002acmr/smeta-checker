@@ -115,7 +115,6 @@ def main():
         app.run()
         if app.exception:
             raise RuntimeError("Приложение не запустилось")
-        next(item for item in app.selectbox if item.label == "Провайдер").select("Yandex Cloud (Qwen)")
         next(item for item in app.text_input if item.label == "Путь к папке проекта на диске").set_value(str(inputs))
         app.run()
         if app.exception:
