@@ -16,6 +16,10 @@ from audit_tracing import span
 NATIVE_MIN_CHARS = 150
 # Locally ranked candidates (plus neighbours) eligible for OCR per position.
 TOP_CANDIDATES_PER_POSITION = 5
+# Structurally scanned pages per position, bounded like OCR allowances.
+MAX_TABLE_PAGES_PER_POSITION = 8
+# Cell text kept per row; long descriptions do not need full text for row matching.
+MAX_TABLE_CELL_CHARS = 200
 
 
 
@@ -69,6 +73,7 @@ class PDFTextSource:
         self.cache_hits = 0
         self._ocr_texts = {}
         self._ocr_errors = {}
+        self._table_rows = {}
         self._native_texts, self._native_errors, pending = self._read_native(doc)
         self._pdf_hash = self._pdf_sha256(doc)
         self._settings_key = self._settings_key_for(
@@ -180,13 +185,38 @@ class PDFTextSource:
             return ocr
         return native + "\n" + ocr
 
+    def _table_rows_for(self, idx):
+        """Extract flattened table rows once; vectors keep row-level matches."""
+        if idx in self._table_rows:
+            return self._table_rows[idx]
+        rows = []
+        try:
+            finder = self._doc[idx].find_tables()
+        except Exception:
+            finder = None
+        tables = getattr(finder, "tables", None) or []
+        for table in tables:
+            try:
+                extracted = table.extract()
+            except Exception:
+                continue
+            for cells in extracted or []:
+                row = " | ".join(str(cell).strip()[:MAX_TABLE_CELL_CHARS]
+                                for cell in cells if str(cell).strip())
+                if row:
+                    rows.append(row)
+        self._table_rows[idx] = tuple(rows)
+        return self._table_rows[idx]
+
     def for_position(self, target_indices, work_name, volume, reference="",
                      comment="", max_ocr_pages=4):
         """OCR at most max_ocr_pages related scans; return immutable snapshot.
 
         Only scans among the referenced pages, their neighbours and the
         neighbours of the locally ranked top candidates are eligible. Native
-        pages are always fully present in the snapshot.
+        pages are always fully present in the snapshot. Flattened table rows
+        are extracted only for related native pages, at most
+        MAX_TABLE_PAGES_PER_POSITION per position.
         """
         self._require_owner_thread("OCR сканов PDF")
         page_count = len(self._native_texts)
@@ -239,4 +269,12 @@ class PDFTextSource:
                  for idx, native in enumerate(self._native_texts)]
         errors = dict(self._native_errors)
         errors.update(self._ocr_errors)
-        return PageTextIndex(tuple(texts), errors, tuple(sorted(self._pending)))
+        table_pages = [idx for idx in targets + top if self._native_texts[idx].strip()]
+        table_pages += [idx for idx in sorted(pool) if idx not in table_pages
+                        and self._native_texts[idx].strip()]
+        table_pages = table_pages[:MAX_TABLE_PAGES_PER_POSITION]
+        flattened = [() for _ in texts]
+        for idx in table_pages:
+            flattened[idx] = self._table_rows_for(idx)
+        return PageTextIndex(tuple(texts), errors, tuple(sorted(self._pending)),
+                             tuple(flattened))
