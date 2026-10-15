@@ -109,9 +109,6 @@ def show_user_guide():
 
 # ----------------- БОКОВАЯ ПАНЕЛЬ -----------------
 with st.sidebar:
-    api_workers = st.number_input("Одновременных запросов к модели", min_value=1,
-                                  max_value=5, value=2)
-
     # КНОПКА ВЫЗОВА ИНСТРУКЦИИ:
     is_busy = st.session_state.is_auditing or st.session_state.is_checking_rules
     if st.button("📖 Инструкция пользователя", use_container_width=True, disabled=is_busy):
@@ -853,7 +850,7 @@ with main_tab1:
                         results = [None] * len(tasks)
                         row_page_tracking = [None] * len(tasks)
 
-                        with ThreadPoolExecutor(max_workers=int(api_workers)) as executor:
+                        with ThreadPoolExecutor(max_workers=5) as executor:
                             future_to_task = {executor.submit(worker_check_row, t): t for t in tasks}
 
                             for future in as_completed(future_to_task):
@@ -897,7 +894,7 @@ with main_tab1:
                                 pct = current_row_idx / total_items
                                 progress_bar.progress(
                                     pct,
-                                    text=f"Многопоточная проверка [{current_row_idx}/{total_items}]: {v_name} ({int(api_workers)} потоков)..."
+                                    text=f"Многопоточная проверка [{current_row_idx}/{total_items}]: {v_name} (5 потоков)..."
                                 )
 
                         cols_to_drop = [c for c in df_works.columns if
