@@ -16,6 +16,39 @@ _logger = logging.getLogger(__name__)
 _client = ContextVar("audit_langfuse_client", default=None)
 _position = ContextVar("audit_langfuse_position", default=None)
 
+STAGE_DESCRIPTIONS = {
+    "audit-vor-position": "Позиция ВОР: вход — строка ведомости, выход — итог после сверки ссылки",
+    "prepare-position": "Привязка PDF и подготовка текстового снимка для позиции",
+    "parse-page-reference": "Разбор ссылки ВОР в порядковые страницы PDF (счёт с 1)",
+    "index-native-pdf": "Однократное чтение нативного текста PDF (спан первой позиции)",
+    "prepare-ocr-snapshot": "Точечный OCR сканов для позиции; неизменяемый снимок текстов",
+    "read-ocr-page": "OCR одной страницы: кеш, параметры, текст или ошибка",
+    "audit-position": "Проверка позиции в worker-потоке: поиск работы и подтверждение",
+    "rank-candidate-pages": "Ранжирование страниц-кандидатов по словам работы и объёму",
+    "select-context": "Нарезка фрагментов ≤4 стр./10000 симв. для одного запроса",
+    "locate-work": "Поиск работы по наименованию; объём/единица не влияют",
+    "confirm-quantities": "Один ограниченный добор объёма/единицы по найденной работе",
+    "rank-quantity-pages": "Ранжирование страниц поддержки объёма/единицы",
+    "confirm-quantity-context": "Единственный подтверждающий запрос количества",
+    "check-request-budget": "Проверка лимитов ≤6 запросов/60000 токенов до HTTP",
+    "generate-audit": "Один HTTP-запрос к Qwen: контекст, сырой ответ, usage",
+    "validate-audit-response": "Guardrail: JSON и дословность цитат по фрагментам",
+    "wait-before-retry": "Пауза перед ретраем: причина и тип ошибки",
+}
+
+
+def _describe(name, kwargs):
+    """Default Russian stage caption; explicit metadata always wins."""
+    description = STAGE_DESCRIPTIONS.get(name)
+    if description is None:
+        return kwargs
+    metadata = kwargs.get("metadata")
+    if metadata is None:
+        kwargs["metadata"] = {"description_ru": description}
+    elif isinstance(metadata, dict):
+        kwargs["metadata"] = {"description_ru": description, **metadata}
+    return kwargs
+
 
 class Observation:
     def __init__(self, observation=None):
@@ -32,6 +65,7 @@ class Observation:
 @contextmanager
 def span(name, *, client=None, trace_context=None, **kwargs):
     """Instrumentation failures must not swallow or replace audit failures."""
+    kwargs = _describe(name, kwargs)
     client = client if client is not None else _client.get()
     manager = None
     observation = Observation()
@@ -115,6 +149,8 @@ class PositionTrace:
                 # invents a phantom parent span id for it.
                 with propagate_attributes(session_id=run.session_id, tags=["vor-audit"],
                                           trace_name="audit-vor-position"):
+                    if isinstance(metadata, dict):
+                        metadata = {"description_ru": STAGE_DESCRIPTIONS["audit-vor-position"], **metadata}
                     self.root = run.client.start_observation(
                         name="audit-vor-position", input=input, metadata=metadata)
                 self.trace_id = self.root.trace_id

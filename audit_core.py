@@ -11,6 +11,14 @@ from audit_tracing import span
 TECHNICAL_ERROR = "Технический сбой"
 INCOMPLETE = "Неполная проверка"
 
+def result_level(status):
+    """Map an audit outcome to an observation level without touching the result."""
+    if status == TECHNICAL_ERROR:
+        return "ERROR"
+    if status == INCOMPLETE:
+        return "WARNING"
+    return "DEFAULT"
+
 
 def empty_result(status, message):
     return {"status": status, "work_found": False, "volume_confirmed": False,
@@ -291,10 +299,14 @@ def audit_text_pages(index, target_indices, ask, work_name, volume, reference=""
     with span("rank-candidate-pages", as_type="retriever", input={
             "work": work_name, "volume": volume, "comment": comment, "reference": reference}) as observation:
         candidates = index.candidates(work_name, comment, reference, volume, primary)
+        degraded = [i for i in primary if i in index.errors or i in index.pending_ocr]
         observation.update(output={"primary_pages": [i + 1 for i in primary],
                                    "ranked_pages": [i + 1 for i in candidates],
                                    "pending_ocr": [i + 1 for i in index.pending_ocr],
-                                   "reading_errors": {i + 1: e for i, e in index.errors.items()}})
+                                   "reading_errors": {i + 1: e for i, e in index.errors.items()}},
+                           status_message=(f"Ссылка: {[i + 1 for i in primary]}; кандидатов: {len(candidates)}; "
+                                           f"pending OCR: {len(index.pending_ocr)}; сбоев: {len(index.errors)}"),
+                           level="WARNING" if degraded else "DEFAULT")
     visited, requests, characters = set(), 0, 0
     failures = {i: error for i, error in index.errors.items() if i in primary}
 
@@ -325,7 +337,8 @@ def audit_text_pages(index, target_indices, ask, work_name, volume, reference=""
         with span("rank-quantity-pages", as_type="retriever",
                   input={"work": work_name, "volume": volume, "unit": unit}) as observation:
             quantity_pages = index.support_candidates(work_name, volume, unit)
-            observation.update(output={"ranked_pages": [i + 1 for i in quantity_pages]})
+            observation.update(output={"ranked_pages": [i + 1 for i in quantity_pages]},
+                               status_message=f"Кандидатов: {len(quantity_pages)}")
         support = [i for i in quantity_pages if i not in work_pages]
         pages = work_pages + support[:max_pages - len(work_pages)]
         if len(pages) == len(work_pages) and not any(i in quantity_pages for i in work_pages):
@@ -354,7 +367,10 @@ def audit_text_pages(index, target_indices, ask, work_name, volume, reference=""
         requests += 1
         with span("confirm-quantity-context", as_type="chain", input=context) as observation:
             verified = ask(context)  # exactly one bounded confirmation, never a page/chunk loop
-            observation.update(output=verified)
+            found = "да" if verified.get("work_found") else "нет"
+            observation.update(output=verified,
+                               status_message=f"{verified['status']}; работа: {found}",
+                               level=result_level(verified["status"]))
         if verified["status"] in {TECHNICAL_ERROR, INCOMPLETE} or not verified.get("work_found"):
             result = dict(located)
             result.update(status=verified["status"] if verified["status"] == TECHNICAL_ERROR else INCOMPLETE,
@@ -397,19 +413,26 @@ def audit_text_pages(index, target_indices, ask, work_name, volume, reference=""
                   input={"pages": [i + 1 for i in readable], "per_page_chars": per_page}) as observation:
             context = {i + 1: index.fragment(i, work_name, comment, reference, volume, per_page)
                        for i in readable}
-            observation.update(output=context, metadata={"context_chars": sum(map(len, context.values()))})
+            context_chars = sum(map(len, context.values()))
+            observation.update(output=context, metadata={"context_chars": context_chars},
+                               status_message=f"Фрагментов: {len(context)}; символов: {context_chars}")
         visited.update(readable)
         characters += sum(len(text) for text in context.values())
         requests += 1
         with span("locate-work", as_type="chain", input=context) as observation:
             result = ask(context)
-            observation.update(output=result)
+            found = "да" if result.get("work_found") else "нет"
+            observation.update(output=result,
+                               status_message=f"{result['status']}; работа: {found}",
+                               level=result_level(result["status"]))
         if result["status"] in {TECHNICAL_ERROR, INCOMPLETE}:
             return finish(result)
         if result["work_found"]:
             with span("confirm-quantities", as_type="chain", input=result) as observation:
                 confirmed = confirm_quantities(result)
-                observation.update(output=confirmed)
+                observation.update(output=confirmed, status_message=(
+                    f"{confirmed['status']}; объём: {confirmed['found_volume']}; ед.: {confirmed['found_unit']}"),
+                    level=result_level(confirmed["status"]))
             return finish(confirmed)
     reason = "Работа не найдена в отобранных фрагментах; это не доказывает ее отсутствие в PDF."
     if requests >= max_requests or characters >= max_total_chars:
