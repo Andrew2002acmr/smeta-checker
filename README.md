@@ -54,6 +54,10 @@ SDK `langfuse==5.0.1` входит в `requirements.txt`. В `.env` задайт
 - `validate-audit-response` — отдельный guardrail: видно, какая цитата или
   JSON-поле не прошли проверку. Ошибка остается в trace, даже если повтор успешен.
   `check-request-budget` и `wait-before-retry` показывают лимиты и причину повтора.
+Каждый этап несёт `metadata.description_ru` — короткое русское описание шага,
+и `status_message` с итогом: разобранные страницы, счётчики OCR и кеша,
+usage попытки, причина ретрая. `level` отражает исход: `ERROR` — сбой или
+ошибка чтения, `WARNING` — неполная проверка, ретрай или обрезанный ответ.
 
 В инспекторе выбранной строки есть кнопка **«Открыть trace позиции в Langfuse»**.
 В Langfuse фильтруйте по тегу `vor-audit`, session ID и environment деплоя.

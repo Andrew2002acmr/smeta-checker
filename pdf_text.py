@@ -245,11 +245,22 @@ class PDFTextSource:
                              "max_pixels": self.max_pixels, "max_side": self.max_side}) as observation:
                 text = self._get_ocr_text(idx, allow_ocr=remaining > 0)
                 error = self._ocr_errors.get(idx)
+                cache_hit = self.cache_hits > before
+                deferred = not text and not error and remaining <= 0
+                if error:
+                    outcome = error
+                elif cache_hit:
+                    outcome = f"Кеш: {len(text)} симв."
+                elif deferred:
+                    outcome = "Отложен: исчерпан лимит новых OCR"
+                elif text:
+                    outcome = f"Новый OCR: {len(text)} симв."
+                else:
+                    outcome = "OCR вернул пустой текст"
                 observation.update(output={"text": text, "error": error,
-                                           "cache_hit": self.cache_hits > before,
-                                           "deferred": not text and not error and remaining <= 0},
+                                           "cache_hit": cache_hit, "deferred": deferred},
                                    level="ERROR" if error else "DEFAULT",
-                                   status_message=error)
+                                   status_message=outcome)
             if self.cache_hits == before and remaining > 0:
                 remaining -= 1
             if self._ocr_texts.get(idx, "").strip():
