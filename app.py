@@ -27,7 +27,7 @@ import openpyxl
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from audit_core import (INCOMPLETE, TECHNICAL_ERROR, BudgetExceeded, RequestBudget,
                         audit_text_pages, empty_result, parse_audit_response,
-                        parse_page_reference, technical_error)
+                        parse_page_reference, result_level, technical_error)
 from pdf_text import PDFTextSource, bounded_page_dpi
 from audit_tracing import TracingRun
 
@@ -315,8 +315,17 @@ def audit_position_hybrid(text_index, target_indices, work_name, volume, unit, r
                 with span("check-request-budget", input={
                         "requests_used": budget.requests, "charged_tokens": budget.tokens,
                         "max_requests": budget.max_requests, "max_total_tokens": budget.max_total_tokens}) as observation:
-                    budget.reserve(instructions + attempt_input + " " * 512)
-                    observation.update(output={"attempt": budget.requests, "charged_tokens": budget.tokens})
+                    try:
+                        budget.reserve(instructions + attempt_input + " " * 512)
+                    except BudgetExceeded:
+                        observation.update(status_message=(
+                            f"Исчерпан бюджет: {budget.requests}/{budget.max_requests} запросов, "
+                            f"{budget.tokens}/{budget.max_total_tokens} токенов"), level="WARNING")
+                        raise
+                    observation.update(output={"attempt": budget.requests, "charged_tokens": budget.tokens},
+                                       status_message=(
+                                           f"Попытка {budget.requests}/{budget.max_requests}; "
+                                           f"токенов {budget.tokens}/{budget.max_total_tokens}"))
                 with span("generate-audit", as_type="generation", model=YANDEX_MODEL_NAME,
                           model_parameters={"temperature": 0.1, "max_output_tokens": budget.max_output_tokens},
                           input=[{"role": "system", "content": instructions},
@@ -324,10 +333,15 @@ def audit_position_hybrid(text_index, target_indices, work_name, volume, unit, r
                           metadata={"provider": "Yandex Cloud (Qwen)", "attempt": budget.requests,
                                     "retry_index": attempt, "pages": list(context),
                                     "context_chars": sum(map(len, context.values()))}) as generation:
-                    response = api_client.responses.create(
-                        model=f"gpt://{YANDEX_FOLDER}/{YANDEX_MODEL_NAME}", temperature=0.1,
-                        instructions=instructions, input=attempt_input,
-                        max_output_tokens=budget.max_output_tokens)
+                    try:
+                        response = api_client.responses.create(
+                            model=f"gpt://{YANDEX_FOLDER}/{YANDEX_MODEL_NAME}", temperature=0.1,
+                            instructions=instructions, input=attempt_input,
+                            max_output_tokens=budget.max_output_tokens)
+                    except Exception as exc:
+                        generation.update(status_message=f"{type(exc).__name__}: {str(exc)[:200]}",
+                                          level="ERROR")
+                        raise
                     last_status = getattr(response, "status", "") or ""
                     last_incomplete = getattr(
                         getattr(response, "incomplete_details", None), "reason", "") or ""
@@ -343,8 +357,18 @@ def audit_position_hybrid(text_index, target_indices, work_name, volume, unit, r
                     last_raw = raw
                     usage = getattr(response, "usage", None)
                     budget.record(usage)
+                    usage_details = token_usage(usage)
+                    total_tokens = usage_details.get("total")
+                    truncated = any(marker in last_incomplete.lower()
+                                    for marker in ("max_output_tokens", "length"))
+                    outcome = [last_status or "без статуса"]
+                    if last_incomplete:
+                        outcome.append(last_incomplete)
+                    outcome.append(f"токенов: {total_tokens}" if total_tokens is not None else "без usage")
                     generation.update(output=[{"role": "assistant", "content": raw}],
-                                      usage_details=token_usage(usage),
+                                      usage_details=usage_details,
+                                      status_message="; ".join(outcome),
+                                      level="WARNING" if truncated else "DEFAULT",
                                       metadata={"response_id": getattr(response, "id", None),
                                                 "response_status": last_status,
                                                 "incomplete_reason": last_incomplete,
@@ -352,8 +376,16 @@ def audit_position_hybrid(text_index, target_indices, work_name, volume, unit, r
                                                 if hasattr(response, "model_dump") else None})
                 with span("validate-audit-response", as_type="guardrail",
                           input={"response": raw, "context": context}) as observation:
-                    parsed = parse_audit_response(raw, context, comment_required=bool(comment_text.strip()))
-                    observation.update(output=parsed)
+                    try:
+                        parsed = parse_audit_response(raw, context, comment_required=bool(comment_text.strip()))
+                    except ValueError as exc:
+                        observation.update(output={"error": f"{type(exc).__name__}: {str(exc)[:300]}",
+                                                   "response": raw},
+                                           status_message=f"Отклонён: {str(exc)[:200]}", level="WARNING")
+                        raise
+                    found = "да" if parsed["work_found"] else "нет"
+                    observation.update(output=parsed, status_message=(
+                        f"{parsed['status']}; работа: {found}; цитат: {len(parsed['evidence'])}"))
                     return parsed
             except BudgetExceeded as exc:
                 return empty_result(INCOMPLETE, f"Неполная проверка: {exc}. Отсутствие работы не установлено.")
@@ -363,7 +395,9 @@ def audit_position_hybrid(text_index, target_indices, work_name, volume, unit, r
                 retryable = (code in {429, 500, 502, 503, 504}
                              or isinstance(exc, (ValueError, TimeoutError, openai.APIConnectionError)))
                 if retryable and attempt + 1 < max_retries:
-                    with span("wait-before-retry", input={
+                    with span("wait-before-retry", level="WARNING",
+                              status_message=f"Ретрай через {attempt + 1} c: {type(exc).__name__}",
+                              input={
                             "attempt": budget.requests, "delay_seconds": attempt + 1,
                             "error_type": type(exc).__name__, "reason": str(exc)[:500],
                             "http_status": code}):
@@ -795,7 +829,9 @@ with main_tab1:
                                         target_indices, loc_desc, primary_phys_pages = get_optimized_page_indices(
                                             target_pdf_doc, w_page)
                                         observation.update(output={"pages": primary_phys_pages,
-                                                                   "description": loc_desc})
+                                                                   "description": loc_desc},
+                                                           status_message=loc_desc[:200],
+                                                           level="DEFAULT" if target_indices else "WARNING")
                                     if target_pdf_name not in pdf_text_sources:
                                         progress_bar.progress(current_row_idx / max(total_items, 1),
                                                               text=f"Подготовка текстового индекса PDF: {target_pdf_name}")
@@ -806,21 +842,35 @@ with main_tab1:
                                             observation.update(output={"pages": source.page_count,
                                                 "page_chars": [len(t) for t in source.native_index.texts],
                                                 "pending_ocr": [i + 1 for i in source.pending_ocr],
-                                                "errors": source.native_index.errors})
+                                                "errors": source.native_index.errors},
+                                                status_message=(
+                                                    f"Страниц: {source.page_count}; "
+                                                    f"сканов: {len(source.pending_ocr)}; "
+                                                    f"сбоев чтения: {len(source.native_index.errors)}"),
+                                                level="ERROR" if source.native_index.errors else "DEFAULT")
                                     source = pdf_text_sources[target_pdf_name]
                                     before_ocr, before_hits = source.ocr_count, source.cache_hits
                                     with position_trace.stage("prepare-ocr-snapshot",
                                                               input={"pages": primary_phys_pages, "work": w_name}) as observation:
                                         text_index = source.for_position(
                                             target_indices, w_name, w_vol, w_ref, w_comment)
+                                        new_ocr = source.ocr_count - before_ocr
+                                        ocr_hits = source.cache_hits - before_hits
                                         observation.update(output={
-                                            "new_ocr_pages": source.ocr_count - before_ocr,
-                                            "cache_hits": source.cache_hits - before_hits,
+                                            "new_ocr_pages": new_ocr,
+                                            "cache_hits": ocr_hits,
                                             "pending_ocr": [i + 1 for i in text_index.pending_ocr],
-                                            "errors": {i + 1: e for i, e in text_index.errors.items()}})
+                                            "errors": {i + 1: e for i, e in text_index.errors.items()}},
+                                            status_message=(
+                                                f"Новых OCR: {new_ocr}; из кеша: {ocr_hits}; "
+                                                f"отложено: {len(text_index.pending_ocr)}; "
+                                                f"ошибок: {len(text_index.errors)}"),
+                                            level="ERROR" if text_index.errors else "DEFAULT")
                                 preparation.update(output={"pdf_bound": target_pdf_doc is not None,
                                                            "pages": primary_phys_pages,
-                                                           "reference_description": loc_desc})
+                                                           "reference_description": loc_desc},
+                                                   status_message=f"{target_pdf_name or 'PDF не привязан'}; {loc_desc[:200]}",
+                                                   level="DEFAULT" if target_pdf_doc is not None else "WARNING")
 
                             tasks.append({
                                 "idx": r_idx,
@@ -940,7 +990,10 @@ with main_tab1:
                         def traced_worker_check_row(task):
                             with task["position_trace"].stage("audit-position") as observation:
                                 result = worker_check_row(task)
-                                observation.update(output=result[1])
+                                final = result[1]["Статус аудита"]
+                                observation.update(output=result[1], status_message=(
+                                    f"{final}; {result[1]['Фактическая страница в ПД (найдено моделью)']}"),
+                                    level=result_level(final))
                                 return result
 
 

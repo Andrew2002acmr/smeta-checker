@@ -9,7 +9,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from audit_tracing import span
+from audit_tracing import STAGE_DESCRIPTIONS, span
+from audit_core import INCOMPLETE, TECHNICAL_ERROR, result_level
 import test_audit
 
 
@@ -44,6 +45,40 @@ class TracingIsolationTests(unittest.TestCase):
                     raise original
         self.assertIs(raised.exception, original)
 
+
+class CaptureClient:
+    def __init__(self):
+        self.kwargs = None
+
+    @contextmanager
+    def start_as_current_observation(self, **kwargs):
+        self.kwargs = kwargs
+        yield SimpleNamespace(update=lambda **kw: None)
+
+
+class StageDescriptionTests(unittest.TestCase):
+    def test_description_injected_and_explicit_metadata_preserved(self):
+        client = CaptureClient()
+        active = ContextVar("test_tracing_descriptions", default=client)
+        with patch("audit_tracing._client", active):
+            with span("locate-work", metadata={"stage": "search"}):
+                pass
+        self.assertEqual(client.kwargs["metadata"],
+                         {"description_ru": STAGE_DESCRIPTIONS["locate-work"], "stage": "search"})
+
+    def test_unknown_stage_leaves_metadata_untouched(self):
+        client = CaptureClient()
+        active = ContextVar("test_tracing_unknown", default=client)
+        with patch("audit_tracing._client", active):
+            with span("mystery-stage"):
+                pass
+        self.assertNotIn("metadata", client.kwargs)
+
+    def test_result_level_maps_audit_outcomes(self):
+        self.assertEqual(result_level(TECHNICAL_ERROR), "ERROR")
+        self.assertEqual(result_level(INCOMPLETE), "WARNING")
+        self.assertEqual(result_level("ОК"), "DEFAULT")
+        self.assertEqual(result_level("Ошибка"), "DEFAULT")
 
 if __name__ == "__main__":
     unittest.main()
