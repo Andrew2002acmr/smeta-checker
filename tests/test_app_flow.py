@@ -26,9 +26,22 @@ class FakeClient:
         prompt = kwargs["messages"][1]["content"]
         if "Проверяемая работа: Pump station" in prompt:
             raise RuntimeError("Simulated provider failure")
-        found = "Copper cable 45 m" in prompt
-        data = {"status": "ОК" if found else "Ошибка", "found_volume": "45 m" if found else "-",
-                "found_page": "2" if found else "-", "discrepancy_details": "Confirmed" if found else "Not found"}
+        data = {
+            "status": "Ошибка",
+            "work_found": True,
+            "volume_confirmed": True,
+            "unit_confirmed": True,
+            "comment_confirmed": True,
+            "found_volume": "45 m",
+            "found_unit": "m",
+            "found_page": "1",
+            "evidence": [
+                {"page": 1, "quote": "Copper cable specification", "kind": "work"},
+                {"page": 2, "quote": "Copper cable 45 m", "kind": "volume"},
+                {"page": 2, "quote": "Copper cable 45 m", "kind": "unit"},
+            ],
+            "discrepancy_details": "Confirmed with multi-page evidence",
+        }
         return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=json.dumps(data)))])
 
     def close(self):
@@ -40,7 +53,7 @@ class AppFlowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="smeta-audit-test-") as folder:
             folder = Path(folder)
             with fitz.open() as pdf:
-                for content in ("Introduction to the project. " * 20, "Copper cable 45 m. " * 20):
+                for content in ("Copper cable specification. " * 20, "Copper cable 45 m. " * 20):
                     page = pdf.new_page()
                     page.insert_textbox(fitz.Rect(50, 50, 500, 600), content)
                 pdf.save(folder / "project.pdf")
@@ -63,13 +76,29 @@ class AppFlowTests(unittest.TestCase):
                 self.assertEqual(len(at.exception), 0, str(at.exception))
                 saved = at.session_state["audit_results"]["vor.csv"]
                 table = saved["df"]
-                self.assertEqual(table["Статус аудита"].tolist(), ["Ошибка", "Технический сбой", "ОК"])
-                self.assertEqual(table["[ПД] Фактическая страница"].tolist(), ["Стр. 2", "-", "Стр. 2"])
+                self.assertEqual(table["Статус аудита"].tolist(), ["ОК", "Технический сбой", "Ошибка"])
+                self.assertEqual(table["[ПД] Фактическая страница"].tolist(), ["Стр. 1, 2", "-", "Стр. 1, 2"])
+                self.assertEqual(table["[ПД] Найденная единица"].tolist(), ["m", "-", "m"])
+                self.assertEqual(table["[ПД] Найденные страницы"].tolist(), ["1, 2", "-", "1, 2"])
+                self.assertTrue(all("Работа: да" in v for v in table["[ПД] Подтверждения (работа/объём/ед./прим.)"].tolist()[:1] + table["[ПД] Подтверждения (работа/объём/ед./прим.)"].tolist()[2:]))
+                self.assertIn("Copper cable 45 m", table["[ПД] Доказательства (цитаты со страницами)"].iloc[0])
+                self.assertIn("Copper cable 45 m", table["[ПД] Доказательства (цитаты со страницами)"].iloc[2])
+                self.assertEqual(table["[ПД] Поиск завершён"].tolist(), ["да", "нет", "да"])
+                tracking = saved["tracking"]
+                self.assertEqual(tracking[0]["found_pages"], [1, 2])
+                self.assertEqual(tracking[2]["found_pages"], [1, 2])
+                self.assertEqual(tracking[0]["found_page"], 1)
+                self.assertEqual(len(tracking[0]["evidence"]), 3)
+                self.assertEqual(len(tracking[2]["evidence"]), 3)
                 excel = pd.read_excel(io.BytesIO(saved["excel_bytes"]))
-                self.assertEqual(excel["[ПД] Фактическая страница"].tolist(), ["Стр. 2", "-", "Стр. 2"])
+                self.assertEqual(excel["[ПД] Фактическая страница"].tolist(), ["Стр. 1, 2", "-", "Стр. 1, 2"])
+                self.assertEqual(excel["[ПД] Найденные страницы"].tolist(), ["1, 2", "-", "1, 2"])
+                self.assertIn("Copper cable 45 m", str(excel["[ПД] Доказательства (цитаты со страницами)"].iloc[0]))
                 word = docx.Document(io.BytesIO(saved["word_bytes"]))
-                self.assertEqual(word.tables[0].rows[1].cells[5].text, "Стр. 2")
+                self.assertEqual(word.tables[0].rows[1].cells[5].text, "Стр. 1, 2")
                 self.assertEqual(word.tables[0].rows[2].cells[6].text, "Технический сбой")
+                self.assertIn("1, 2", word.tables[0].rows[3].cells[7].text)
+                self.assertIn("Copper cable 45 m", word.tables[0].rows[3].cells[7].text)
                 for pdf in at.session_state["pdf_pool"].values():
                     pdf.close()
 

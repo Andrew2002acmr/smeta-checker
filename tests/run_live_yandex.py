@@ -72,7 +72,7 @@ def main():
         {"name": "Верная ссылка", "work": "Прокладка медного кабеля ВВГнг 3х2,5", "volume": 45, "unit": "м", "page": 2, "expected_status": "ОК", "expected_page": "Стр. 2"},
         {"name": "Неверная ссылка — автоматический поиск", "work": "Прокладка медного кабеля ВВГнг 3х2,5", "volume": 45, "unit": "м", "page": 1, "expected_status": "Ошибка", "expected_page": "Стр. 2"},
         {"name": "Несовпадение объема", "work": "Монтаж циркуляционного насоса", "volume": 3, "unit": "шт", "page": 3, "expected_status": "Ошибка", "expected_page": "Стр. 3"},
-        {"name": "Работа отсутствует во всем PDF", "work": "Установка металлического ограждения", "volume": 10, "unit": "м", "page": 1, "expected_status": "Ошибка", "expected_page": "-"},
+        {"name": "Работа не найдена в ограниченном контексте", "work": "Установка металлического ограждения", "volume": 10, "unit": "м", "page": 1, "expected_status": "Неполная проверка", "expected_page": "-"},
     ]
     rows = [{"№ п.п.": idx + 1, "Наименование работ, ресурсов, затрат по проекту": case["work"],
              "Объем работ / Количество": case["volume"], "Ед. изм.": case["unit"],
@@ -87,10 +87,10 @@ def main():
 
     def traced_create(client, *args, **kwargs):
         start = time.monotonic()
-        page = re.search(r"\[СТРАНИЦА (\d+)", str(kwargs.get("input", "")))
-        record = {"page": int(page.group(1)) if page else None,
+        pages = re.findall(r"\[СТРАНИЦА (\d+)", str(kwargs.get("input", "")))
+        record = {"pages": list(dict.fromkeys(map(int, pages))),
                   "model": settings.get("YANDEX_CLOUD_MODEL") or "qwen3.6-35b-a3b/latest"}
-        print(f"Запрос Qwen: страница {record['page']}", flush=True)
+        print(f"Запрос Qwen: страницы {record['pages']}", flush=True)
         try:
             result = original_create(client, *args, **kwargs)
             record.update(http_status=200, response_text=getattr(result, "output_text", ""))

@@ -106,10 +106,11 @@ def run(label, app_path, inputs, output):
         "label": label, "model": model, "input_hashes": hashes_before,
         "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=app_path.parent, text=True).strip(),
         "started_at": time.time()}, ensure_ascii=False, indent=2), encoding="utf-8")
-    app = AppTest.from_file(str(app_path), default_timeout=36000)
+    app = AppTest.from_file(str(app_path), default_timeout=3600)
     error = None
     try:
-        with patch.object(Responses, "create", trace_create), patch.object(Future, "result", trace_result), patch.object(pymupdf.Page, "get_textpage_ocr", trace_ocr):
+        with patch.object(Responses, "create", trace_create), patch.object(Future, "result", trace_result), \
+             patch.object(pymupdf.Page, "get_textpage_ocr", trace_ocr):
             app.run()
             if app.exception:
                 raise RuntimeError("Исключение запуска приложения")
@@ -148,6 +149,21 @@ def run(label, app_path, inputs, output):
                       "details": details, "technical_failure": is_technical(status, details),
                       "exports_match": str(excel.iloc[idx]["[ПД] Фактическая страница"]) == page
                                        and word.tables[0].rows[idx + 1].cells[5].text == page}
+            tracking = saved["tracking"][idx]
+            record.update(
+                evidence=tracking.get("evidence", []),
+                found_pages=tracking.get("found_pages", []),
+                work_found=tracking.get("work_found"),
+                volume_confirmed=tracking.get("volume_confirmed"),
+                unit_confirmed=tracking.get("unit_confirmed"),
+                comment_confirmed=tracking.get("comment_confirmed"),
+                search_complete=tracking.get("search_complete"),
+                requests=tracking.get("requests", 0))
+            if "[ПД] Доказательства (цитаты со страницами)" in table.columns:
+                evidence_text = str(row["[ПД] Доказательства (цитаты со страницами)"])
+                record["exports_match"] &= (
+                    str(excel.iloc[idx]["[ПД] Доказательства (цитаты со страницами)"]) == evidence_text
+                    and evidence_text in word.tables[0].rows[idx + 1].cells[7].text)
             rows.append(record)
     try:
         run_issues = app.session_state["audit_run_issues"]
@@ -162,6 +178,9 @@ def run(label, app_path, inputs, output):
                "status_counts": dict(Counter(row["status"] for row in rows)),
                "technical_failures": sum(row["technical_failure"] for row in rows),
                "found_page_count": sum(row["page"] != "-" for row in rows),
+               "incomplete_checks": sum(row.get("search_complete") is False for row in rows),
+               "max_requests_per_position": max((row["requests"] for row in rows), default=0),
+               "verified_evidence_count": sum(len(row["evidence"]) for row in rows),
                "rows": rows, "reports": report_files,
                "run_issues": run_issues}
     (output / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -176,6 +195,8 @@ def compare(output):
     main = json.loads((output / "main" / "summary.json").read_text(encoding="utf-8"))
     current = json.loads((output / "current" / "summary.json").read_text(encoding="utf-8"))
     identical = main["input_hashes"] == current["input_hashes"] and main["inputs_unchanged"] and current["inputs_unchanged"]
+    if not identical or len(main["rows"]) != len(current["rows"]) or current["application_error"]:
+        raise RuntimeError("Сравнение требует завершенных отчетов по всем позициям на одинаковых исходниках")
     rows = []
     for old, new in zip(main["rows"], current["rows"]):
         if old["position"] != new["position"] or old["work"] != new["work"]:
