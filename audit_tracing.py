@@ -61,21 +61,23 @@ def span(name, *, client=None, trace_context=None, **kwargs):
 
 
 @lru_cache(maxsize=4)
-def _configured_client(public_key, secret_key, base_url):
+def _configured_client(public_key, secret_key, base_url, environment):
     from langfuse import Langfuse
     return Langfuse(public_key=public_key, secret_key=secret_key,
-                    base_url=base_url, timeout=10, environment="development")
+                    base_url=base_url, timeout=10, environment=environment or "development")
 
 
 class TracingRun:
-    def __init__(self, public_key="", secret_key="", base_url="https://cloud.langfuse.com"):
+    def __init__(self, public_key="", secret_key="", base_url="https://cloud.langfuse.com",
+                 environment="development"):
         self.session_id = "audit-" + uuid4().hex
         self.client = None
         self.error = ""
         self.positions = []
+        self.environment = environment or "development"
         if public_key and secret_key:
             try:
-                self.client = _configured_client(public_key, secret_key, base_url)
+                self.client = _configured_client(public_key, secret_key, base_url, self.environment)
             except Exception as exc:
                 self.error = f"Langfuse initialization failed: {type(exc).__name__}"
                 _logger.warning(self.error, exc_info=True)
@@ -109,12 +111,13 @@ class PositionTrace:
         if run.client is not None:
             try:
                 from langfuse import propagate_attributes
-                self.trace_id = run.client.create_trace_id()
+                # The root owns its trace: no remote trace_context, or the SDK
+                # invents a phantom parent span id for it.
                 with propagate_attributes(session_id=run.session_id, tags=["vor-audit"],
                                           trace_name="audit-vor-position"):
                     self.root = run.client.start_observation(
-                        name="audit-vor-position", input=input, metadata=metadata,
-                        trace_context={"trace_id": self.trace_id})
+                        name="audit-vor-position", input=input, metadata=metadata)
+                self.trace_id = self.root.trace_id
                 self.context = {"trace_id": self.trace_id, "parent_span_id": self.root.id}
             except Exception:
                 self.trace_id = None

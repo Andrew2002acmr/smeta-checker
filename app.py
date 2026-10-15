@@ -680,7 +680,8 @@ with main_tab1:
                     st.session_state.audit_run_issues = []
                     trace_run = TracingRun(
                         get_setting("LANGFUSE_PUBLIC_KEY"), get_setting("LANGFUSE_SECRET_KEY"),
-                        get_setting("LANGFUSE_BASE_URL", "https://cloud.langfuse.com"))
+                        get_setting("LANGFUSE_BASE_URL", "https://cloud.langfuse.com"),
+                        get_setting("LANGFUSE_ENVIRONMENT", "development"))
                     if trace_run.error:
                         st.warning(trace_run.error)
                     for v_name in target_vor_selection:

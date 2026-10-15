@@ -27,8 +27,11 @@ SDK `langfuse==5.0.1` входит в `requirements.txt`. В `.env` задайт
 `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` и
 `LANGFUSE_BASE_URL=https://cloud.langfuse.com`. Настоящие ключи храните только
 в `.env`, который исключен из Git. Пустые оба ключа отключают трейсинг;
-неполная конфигурация показывает предупреждение. Настройки читаются через
-тот же `get_setting`, что и ключи моделей: `.env` → окружение → Streamlit Secrets.
+неполная конфигурация показывает предупреждение. `LANGFUSE_ENVIRONMENT`
+(по умолчанию `development`) подписывает окружение деплоя: задайте
+`production` на main и `development` на dev, чтобы трейсы не смешивались.
+Настройки читаются через тот же `get_setting`, что и ключи моделей:
+`.env` → окружение → Streamlit Secrets.
 
 После обычного запуска аудита:
 
@@ -53,7 +56,7 @@ SDK `langfuse==5.0.1` входит в `requirements.txt`. В `.env` задайт
   `check-request-budget` и `wait-before-retry` показывают лимиты и причину повтора.
 
 В инспекторе выбранной строки есть кнопка **«Открыть trace позиции в Langfuse»**.
-В Langfuse фильтруйте по тегу `vor-audit`, session ID и environment `development`.
+В Langfuse фильтруйте по тегу `vor-audit`, session ID и environment деплоя.
 Контекст явно восстанавливается в API-потоках: параллельные позиции не смешиваются.
 В конце запуска выполняется `flush()`. Ошибки доставки телеметрии не меняют
 результат аудита и журналируются отдельно.
