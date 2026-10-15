@@ -1021,6 +1021,12 @@ with main_tab1:
                         if page_col in df_works_clean.columns:
                             rename_map[page_col] = "[ВОР] Ссылка на страницу"
                         df_works_clean.rename(columns=rename_map, inplace=True)
+                        # Повторный прогон файла с результатами: старые итоги
+                        # перезаписываются свежими, а не дублируются в concat.
+                        stale = [c for c in df_works_clean.columns
+                                 if c in ("Статус аудита", "Детали расхождений")
+                                 or str(c).startswith("[ПД]")]
+                        df_works_clean.drop(columns=stale, inplace=True, errors="ignore")
 
                         df_audit = pd.DataFrame([
                             {

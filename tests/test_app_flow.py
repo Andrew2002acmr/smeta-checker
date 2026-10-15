@@ -129,6 +129,25 @@ class AppFlowTests(unittest.TestCase):
             for pdf in at.session_state["pdf_pool"].values():
                 pdf.close()
 
+    def test_audit_rerun_overwrites_stale_results(self):
+        with tempfile.TemporaryDirectory(prefix="smeta-audit-test-") as folder:
+            folder = Path(folder)
+            at = self._run_audit(
+                folder,
+                ["№ п.п.", "Наименование работ, ресурсов, затрат по проекту",
+                 "Объём работ / Количество", "Ед. изм.", "Ссылка на чертежи",
+                 "Наименование файла", "[ВОР] Ссылка на страницу",
+                 "Статус аудита", "Детали расхождений",
+                 "[ПД] Найденный объем (нейросеть)", "[ПД] Фактическая страница"],
+                [[1, "Copper cable", 45, "m", "", "project.pdf", 1,
+                  "Технический сбой", "stale", "-", "-"]])
+            saved = at.session_state["audit_results"]["vor.csv"]
+            table = saved["df"]
+            self.assertEqual(list(table.columns).count("Статус аудита"), 1)
+            self.assertEqual(table["Статус аудита"].tolist(), ["ОК"])
+            for pdf in at.session_state["pdf_pool"].values():
+                pdf.close()
+
 
 
 if __name__ == "__main__":
