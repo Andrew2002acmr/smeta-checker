@@ -180,6 +180,11 @@ def _quote_text(text):
     return re.sub(r"\s+", " ", text.replace("\u00ad", "")).strip().casefold().replace("ё", "е")
 
 
+_MODEL_STATUS_ERROR_ALIASES = frozenset({
+    "частичное совпадение", "расхождение", "частичное расхождение",
+})
+
+
 def parse_audit_response(raw, context, comment_required=True):
     """Accept only evidence from the exact page fragments supplied to the model."""
     if not isinstance(raw, str) or not raw.strip():
@@ -199,6 +204,8 @@ def parse_audit_response(raw, context, comment_required=True):
     if not isinstance(status, str):
         raise ValueError("Некорректный тип статуса в ответе модели")
     status = status.strip()
+    if status.casefold() in _MODEL_STATUS_ERROR_ALIASES:
+        status = "Ошибка"
     if status.upper().translate(str.maketrans({"O": "О", "K": "К"})) != "ОК" and status.lower() != "ошибка":
         raise ValueError("Неизвестный статус в ответе модели")
     for field in ("work_found", "volume_confirmed", "unit_confirmed", "comment_confirmed"):

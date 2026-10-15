@@ -299,24 +299,38 @@ def audit_position_hybrid(text_index, target_indices, work_name, volume, unit, r
 Ссылка ВОР: {ref_text}; номера страниц в PDF: {page_ref}
 ТЕКСТ ПД:
 {fragments}"""
+        last_error = last_raw = last_status = last_incomplete = ""
         for attempt in range(max_retries):
             try:
+                attempt_input = user_input
+                if attempt:
+                    attempt_input += (
+                        f"\n\nПредыдущий ответ отклонен: {last_error[:300]}. "
+                        "Верни только исправленный JSON, цитаты копируй дословно из текста выше.")
+                    if "Цитата не найдена" in last_error:
+                        quote = re.search(r'"quote"\s*:\s*"((?:[^"\\]|\\.)*)"', last_raw)
+                        if quote:
+                            attempt_input += f" Отклонённая цитата: {quote.group(1)[:300]}."
+                last_raw = last_status = last_incomplete = ""
                 with span("check-request-budget", input={
                         "requests_used": budget.requests, "charged_tokens": budget.tokens,
                         "max_requests": budget.max_requests, "max_total_tokens": budget.max_total_tokens}) as observation:
-                    budget.reserve(instructions + user_input + " " * 512)
+                    budget.reserve(instructions + attempt_input + " " * 512)
                     observation.update(output={"attempt": budget.requests, "charged_tokens": budget.tokens})
                 with span("generate-audit", as_type="generation", model=YANDEX_MODEL_NAME,
                           model_parameters={"temperature": 0.1, "max_output_tokens": budget.max_output_tokens},
                           input=[{"role": "system", "content": instructions},
-                                 {"role": "user", "content": user_input}],
+                                 {"role": "user", "content": attempt_input}],
                           metadata={"provider": "Yandex Cloud (Qwen)", "attempt": budget.requests,
                                     "retry_index": attempt, "pages": list(context),
                                     "context_chars": sum(map(len, context.values()))}) as generation:
                     response = api_client.responses.create(
                         model=f"gpt://{YANDEX_FOLDER}/{YANDEX_MODEL_NAME}", temperature=0.1,
-                        instructions=instructions, input=user_input,
+                        instructions=instructions, input=attempt_input,
                         max_output_tokens=budget.max_output_tokens)
+                    last_status = getattr(response, "status", "") or ""
+                    last_incomplete = getattr(
+                        getattr(response, "incomplete_details", None), "reason", "") or ""
                     raw = getattr(response, "output_text", None)
                     if not raw:
                         pieces = []
@@ -326,11 +340,14 @@ def audit_position_hybrid(text_index, target_indices, work_name, volume, unit, r
                                 if text:
                                     pieces.append(text)
                         raw = "".join(pieces)
+                    last_raw = raw
                     usage = getattr(response, "usage", None)
                     budget.record(usage)
                     generation.update(output=[{"role": "assistant", "content": raw}],
                                       usage_details=token_usage(usage),
                                       metadata={"response_id": getattr(response, "id", None),
+                                                "response_status": last_status,
+                                                "incomplete_reason": last_incomplete,
                                                 "provider_response": response.model_dump()
                                                 if hasattr(response, "model_dump") else None})
                 with span("validate-audit-response", as_type="guardrail",
@@ -341,6 +358,7 @@ def audit_position_hybrid(text_index, target_indices, work_name, volume, unit, r
             except BudgetExceeded as exc:
                 return empty_result(INCOMPLETE, f"Неполная проверка: {exc}. Отсутствие работы не установлено.")
             except Exception as exc:
+                last_error = f"{type(exc).__name__}: {str(exc)[:300]}"
                 code = getattr(exc, "status_code", None)
                 retryable = (code in {429, 500, 502, 503, 504}
                              or isinstance(exc, (ValueError, TimeoutError, openai.APIConnectionError)))
@@ -351,7 +369,14 @@ def audit_position_hybrid(text_index, target_indices, work_name, volume, unit, r
                             "http_status": code}):
                         time.sleep(attempt + 1)
                     continue
-                return technical_error(f"{YANDEX_MODEL_NAME}: {type(exc).__name__}: {str(exc)[:500]}")
+                if any(marker in last_incomplete.lower() for marker in ("max_output_tokens", "length")):
+                    return empty_result(
+                        INCOMPLETE,
+                        "Неполная проверка: ответ модели обрезан лимитом вывода "
+                        f"({last_incomplete}); доказательства отсутствуют, отсутствие работы не установлено.")
+                return technical_error(
+                    f"{YANDEX_MODEL_NAME}: {last_error}; response_status={last_status or '?'}; "
+                    f"ответ модели: {(last_raw or '<пусто>')[:500]}")
         return technical_error("Не удалось получить ответ модели")
 
     try:

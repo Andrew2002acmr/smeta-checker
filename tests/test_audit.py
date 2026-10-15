@@ -3,6 +3,7 @@
 import ast
 import json
 from pathlib import Path
+import re
 import sys
 import unittest
 from types import SimpleNamespace
@@ -43,7 +44,7 @@ def app_functions(**extra):
                  "BudgetExceeded": BudgetExceeded, "RequestBudget": RequestBudget,
                  "audit_text_pages": audit_text_pages, "parse_audit_response": parse_audit_response,
                  "empty_result": empty_result, "technical_error": technical_error,
-                 "time": SimpleNamespace(sleep=lambda _: None),
+                 "time": SimpleNamespace(sleep=lambda _: None), "re": re,
                  "YANDEX_API_KEY": "test", "YANDEX_FOLDER": "test", "YANDEX_MODEL_NAME": "test-model", **extra}
     exec(compile(ast.Module(body=nodes, type_ignores=[]), "app.py", "exec"), namespace)
     return namespace
@@ -88,6 +89,18 @@ class ResponseTests(unittest.TestCase):
     def test_latin_and_cyrillic_statuses(self):
         for status in ("OK", "ОК", "OК", "ОK", " ok "):
             self.assertEqual(self.parse({**self.data, "status": status})["status"], "ОК")
+
+    def test_mismatch_status_aliases_retain_only_validated_evidence(self):
+        for status in ("Частичное совпадение", "Расхождение", "Частичное расхождение"):
+            with self.subTest(status=status):
+                data = {**self.data, "status": status, "volume_confirmed": False}
+                result = self.parse(data)
+                self.assertEqual(result["status"], "Ошибка")
+                self.assertTrue(result["work_found"])
+                self.assertEqual(result["found_page"], "3")
+                self.assertEqual(result["evidence"], self.data["evidence"])
+                with self.assertRaises(ValueError):
+                    self.parse({**data, "evidence": [proof(3, "Steel cable")]})
 
     def test_unverified_ok_is_a_mismatch(self):
         result = self.parse({**self.data, "status": "ОК", "volume_confirmed": False})
@@ -347,6 +360,8 @@ class AdapterTests(unittest.TestCase):
                 output = outputs.pop(0)
                 if isinstance(output, Exception):
                     raise output
+                if isinstance(output, SimpleNamespace):
+                    return output
                 return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=output))],
                                        output_text=output, usage=SimpleNamespace(total_tokens=100))
             def close(self):
@@ -366,6 +381,27 @@ class AdapterTests(unittest.TestCase):
         result, calls = self.run_adapter([forged, self.valid()])
         self.assertEqual(result["status"], "ОК")
         self.assertEqual(result["requests"], 2)
+        self.assertIn("Предыдущий ответ отклонен:", calls[1]["input"])
+        self.assertIn("Цитата не найдена", calls[1]["input"])
+
+    def test_quote_correction_feedback_is_bounded(self):
+        quote = "Steel cable " * 30
+        forged = json.dumps(response("1", evidence=[proof(1, quote)]))
+        result, calls = self.run_adapter([forged, self.valid()])
+        self.assertEqual(result["status"], "ОК")
+        self.assertEqual(result["requests"], 2)
+        self.assertIn("Цитата не найдена", calls[1]["input"])
+        feedback = calls[1]["input"].split("Отклонённая цитата: ", 1)[1]
+        self.assertEqual(feedback, quote[:300] + ".")
+
+    def test_unknown_mismatch_status_remains_a_technical_failure(self):
+        data = json.loads(self.valid())
+        data["status"] = "Частично верно"
+        result, calls = self.run_adapter([json.dumps(data)] * 3)
+        self.assertEqual(result["status"], TECHNICAL_ERROR)
+        self.assertFalse(result["work_found"])
+        self.assertEqual(result["requests"], 3)
+        self.assertIn("Неизвестный статус", result["discrepancy_details"])
 
     def test_retry_consumes_position_budget(self):
         result, calls = self.run_adapter([FakeAPIError("quota"), self.valid()])
@@ -385,6 +421,48 @@ class AdapterTests(unittest.TestCase):
         result, calls = self.run_adapter([], budget=RequestBudget(max_total_tokens=1))
         self.assertEqual(result["status"], INCOMPLETE)
         self.assertEqual(calls, [])
+
+    def test_completed_empty_response_retains_provider_diagnostics(self):
+        output = SimpleNamespace(output_text="", status="completed",
+                                 usage=SimpleNamespace(total_tokens=100))
+        result, calls = self.run_adapter([output] * 3)
+        self.assertEqual(result["status"], TECHNICAL_ERROR)
+        self.assertEqual(result["requests"], 3)
+        self.assertIn("response_status=completed", result["discrepancy_details"])
+        self.assertIn("ответ модели: <пусто>", result["discrepancy_details"])
+
+    def test_failed_empty_response_is_not_output_budget_exhaustion(self):
+        output = SimpleNamespace(output_text="", status="failed",
+                                 usage=SimpleNamespace(total_tokens=0))
+        result, calls = self.run_adapter([output] * 3)
+        self.assertEqual(result["status"], TECHNICAL_ERROR)
+        self.assertFalse(result["work_found"])
+        self.assertEqual(result["requests"], 3)
+        self.assertIn("response_status=failed", result["discrepancy_details"])
+        self.assertIn("ответ модели: <пусто>", result["discrepancy_details"])
+
+    def test_output_token_exhaustion_is_incomplete_not_technical_failure(self):
+        output = SimpleNamespace(
+            output_text="", status="incomplete",
+            incomplete_details=SimpleNamespace(reason="max_output_tokens"),
+            usage=SimpleNamespace(total_tokens=6000))
+        result, calls = self.run_adapter([output] * 3)
+        self.assertEqual(result["status"], INCOMPLETE)
+        self.assertFalse(result["work_found"])
+        self.assertEqual(result["requests"], 3)
+        self.assertIn("обрезан лимитом вывода", result["discrepancy_details"])
+
+    def test_transport_failure_does_not_reuse_previous_truncation(self):
+        truncated = SimpleNamespace(
+            output_text="", status="incomplete",
+            incomplete_details=SimpleNamespace(reason="max_output_tokens"),
+            usage=SimpleNamespace(total_tokens=6000))
+        result, calls = self.run_adapter(
+            [truncated, FakeAPIError("quota"), FakeAPIError("quota")])
+        self.assertEqual(result["status"], TECHNICAL_ERROR)
+        self.assertEqual(result["requests"], 3)
+        self.assertIn("FakeAPIError: quota", result["discrepancy_details"])
+        self.assertIn("response_status=?", result["discrepancy_details"])
 
     def test_malformed_exhausted_response_is_technical_failure(self):
         result, calls = self.run_adapter(["broken"] * 3)
