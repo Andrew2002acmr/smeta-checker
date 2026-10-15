@@ -44,8 +44,7 @@ def app_functions(**extra):
                  "audit_text_pages": audit_text_pages, "parse_audit_response": parse_audit_response,
                  "empty_result": empty_result, "technical_error": technical_error,
                  "time": SimpleNamespace(sleep=lambda _: None),
-                 "YANDEX_API_KEY": "test", "YANDEX_FOLDER": "test", "AGNES_API_KEY": "test",
-                 "AGNES_BASE_URL": "https://example.invalid", **extra}
+                 "YANDEX_API_KEY": "test", "YANDEX_FOLDER": "test", "YANDEX_MODEL_NAME": "test-model", **extra}
     exec(compile(ast.Module(body=nodes, type_ignores=[]), "app.py", "exec"), namespace)
     return namespace
 
@@ -338,12 +337,11 @@ class FakeAPIError(Exception):
 
 
 class AdapterTests(unittest.TestCase):
-    def run_adapter(self, outputs, provider="Agnes AI (Agnes 3.0)", budget=None, texts=None):
+    def run_adapter(self, outputs, budget=None, texts=None):
         calls = []
         class FakeClient:
             def __init__(self, **kwargs):
                 self.responses = SimpleNamespace(create=self.create)
-                self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
             def create(self, **kwargs):
                 calls.append(kwargs)
                 output = outputs.pop(0)
@@ -354,7 +352,7 @@ class AdapterTests(unittest.TestCase):
             def close(self):
                 pass
         namespace = app_functions(openai=SimpleNamespace(OpenAI=FakeClient, APIConnectionError=ConnectionError))
-        result = namespace["audit_position_hybrid"](provider, "test-model", PageTextIndex(texts or ["Cable 45 m"]), [0],
+        result = namespace["audit_position_hybrid"](PageTextIndex(texts or ["Cable 45 m"]), [0],
             "Cable", "45", "m", "", "1", budget=budget)
         return result, calls
 
@@ -369,11 +367,10 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result["status"], "ОК")
         self.assertEqual(result["requests"], 2)
 
-    def test_retry_consumes_position_budget_for_both_providers(self):
-        for provider in ("Agnes AI (Agnes 3.0)", "Yandex Cloud (Qwen)"):
-            result, calls = self.run_adapter([FakeAPIError("quota"), self.valid()], provider)
-            self.assertEqual(result["found_page"], "1")
-            self.assertEqual(result["requests"], 2)
+    def test_retry_consumes_position_budget(self):
+        result, calls = self.run_adapter([FakeAPIError("quota"), self.valid()])
+        self.assertEqual(result["found_page"], "1")
+        self.assertEqual(result["requests"], 2)
 
     def test_retry_budget_does_not_reset_for_next_context(self):
         negative = json.dumps(response())

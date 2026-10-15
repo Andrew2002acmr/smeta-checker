@@ -20,10 +20,10 @@ from streamlit.testing.v1 import AppTest
 
 class FakeClient:
     def __init__(self, **kwargs):
-        self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
+        self.responses = SimpleNamespace(create=self.create)
 
-    def create(self, **kwargs):
-        prompt = kwargs["messages"][1]["content"]
+    def create(self, *, model, instructions, input, max_output_tokens, **_):
+        prompt = input
         if "Проверяемая работа: Pump station" in prompt:
             raise RuntimeError("Simulated provider failure")
         data = {
@@ -42,7 +42,7 @@ class FakeClient:
             ],
             "discrepancy_details": "Confirmed with multi-page evidence",
         }
-        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=json.dumps(data)))])
+        return SimpleNamespace(output_text=json.dumps(data), usage=SimpleNamespace(total_tokens=100))
 
     def close(self):
         pass
@@ -65,10 +65,11 @@ class AppFlowTests(unittest.TestCase):
                 writer.writerows([[1, "Copper cable", 45, "m", "", "project.pdf", 1],
                                   [2, "Pump station", 1, "шт", "", "project.pdf", 2],
                                   [3, "Copper cable", 45, "m", "", "project.pdf", 2]])
-            with patch.dict(os.environ, {"AGNES_API_KEY": "test-only"}), patch("openai.OpenAI", FakeClient):
+            with patch.dict(os.environ, {"YANDEX_CLOUD_API_KEY": "test-only", "YANDEX_CLOUD_FOLDER": "test-folder"}), patch("openai.OpenAI", FakeClient):
                 at = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app.py"), default_timeout=30)
                 at.run()
                 self.assertEqual(len(at.exception), 0, str(at.exception))
+                self.assertEqual([i for i in at.selectbox if i.label in ("Провайдер", "Модель")], [])
                 folder_input = next(item for item in at.text_input if item.label == "Путь к папке проекта на диске")
                 folder_input.set_value(str(folder)).run()
                 self.assertEqual(len(at.exception), 0, str(at.exception))

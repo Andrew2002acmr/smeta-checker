@@ -8,8 +8,8 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Перед запуском заполните `.env`. Для выбранного провайдера нужны `AGNES_API_KEY` либо
-`YANDEX_CLOUD_API_KEY` и `YANDEX_CLOUD_FOLDER`. Модель выбирается в боковой панели.
+Перед запуском заполните `.env`. Нужны `YANDEX_CLOUD_API_KEY` и `YANDEX_CLOUD_FOLDER`.
+Модель задается только настройкой `YANDEX_CLOUD_MODEL` (по умолчанию `qwen3.6-35b-a3b/latest`), выбора модели в приложении нет.
 В `YANDEX_CLOUD_API_KEY` требуется секретное значение API-ключа, а не его
 идентификатор. `YANDEX_CLOUD_FOLDER` — идентификатор каталога.
 Приложение перечитывает `.env` из папки проекта при каждом запуске проверки
