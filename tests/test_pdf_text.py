@@ -20,13 +20,15 @@ class FakeRect:
 
 class FakePage:
     def __init__(self, native, ocr_text="", fail=None, rect=(595, 842),
-                 calls=None, idx=0):
+                 calls=None, idx=0, images=True, drawings=0):
         self._native = native
         self._ocr_text = ocr_text
         self._fail = fail
         self.rect = FakeRect(*rect)
         self._calls = calls if calls is not None else []
         self._idx = idx
+        self._images = images
+        self._drawings = drawings
 
     def get_text(self, sort=True, textpage=None):
         if textpage is not None:
@@ -35,9 +37,12 @@ class FakePage:
             raise self._native
         return self._native
 
-
     def get_images(self):
-        return [("scan-image",)]
+        return [("scan-image",)] if self._images else []
+
+    def get_drawings(self):
+        return [{}] * self._drawings
+
     def get_textpage_ocr(self, language="rus+eng", dpi=200, full=False):
         self._calls.append({"idx": self._idx, "language": language,
                             "dpi": dpi, "full": full})
@@ -124,6 +129,39 @@ class SelectionTests(unittest.TestCase):
         for idx in remaining:
             self.assertEqual(snapshot.texts[idx], "")
             self.assertNotIn(idx, snapshot.errors)
+
+class CachedRankingTests(unittest.TestCase):
+    def test_cached_scan_ranks_without_current_reference(self):
+        natives = [""] * 6
+        station = "Насосная станция кабельный ввод 45 метров. " * 10
+        cached_ocrs = ["распознанный текст %d" % i for i in range(6)]
+        cached_ocrs[5] = station
+        with TemporaryDirectory() as cache:
+            doc1, _ = make_doc(natives, ocr_texts=cached_ocrs)
+            PDFTextSource(doc1, cache_dir=cache).for_position(
+                [5], "Насосная станция", "2", max_ocr_pages=4)
+            doc2, _ = make_doc(natives, ocr_texts=[""] * 6)
+            second = PDFTextSource(doc2, cache_dir=cache)
+            snapshot = second.for_position(
+                [0], "Насосная станция", "2", max_ocr_pages=4)
+            self.assertIn("Насосная", snapshot.texts[5])
+            self.assertIn(
+                5, snapshot.candidates("Насосная станция", "", "", "2"))
+            self.assertLessEqual(second.ocr_count, 4)
+
+
+class DiscoveryTests(unittest.TestCase):
+    def test_wrong_reference_uses_spare_allowance_in_page_order(self):
+        natives = [""] * 10
+        doc, calls = make_doc(natives)
+        with TemporaryDirectory() as cache:
+            source = PDFTextSource(doc, cache_dir=cache)
+            snapshot = source.for_position([0], "Кабель", "45", max_ocr_pages=4)
+        self.assertEqual(source.ocr_count, 4)
+        self.assertEqual([c["idx"] for c in calls], [0, 1, 2, 3])
+        self.assertEqual(len(pending_of(snapshot)), 6)
+        self.assertNotIn(9, [c["idx"] for c in calls])
+
 
 
 class CacheTests(unittest.TestCase):
@@ -213,6 +251,32 @@ class BoundsTests(unittest.TestCase):
             height_px = 100000 * used / 72.0
             self.assertLessEqual(width_px * height_px, max_pixels)
             self.assertLessEqual(max(width_px, height_px), max_side)
+
+class NativeDetectionTests(unittest.TestCase):
+    def test_good_short_native_page_not_forced_ocr(self):
+        doc, calls = make_doc(["Кабель медный 45 метров. Коротко, но ясно."],
+                              images=False)
+        with TemporaryDirectory() as cache:
+            source = PDFTextSource(doc, cache_dir=cache)
+            snapshot = source.for_position([0], "Кабель", "45", max_ocr_pages=4)
+        self.assertEqual(pending_of(source.native_index), ())
+        self.assertEqual(snapshot.pending_ocr, ())
+        self.assertEqual(calls, [])
+        self.assertEqual(source.ocr_count, 0)
+
+    def test_outlined_drawings_page_needs_ocr_but_blank_stays_skipped(self):
+        calls = []
+        pages = [FakePage("", ocr_text="распознанный чертеж", calls=calls,
+                          idx=0, images=False, drawings=120),
+                 FakePage("", ocr_text="не должен распознаваться", calls=calls,
+                          idx=1, images=False, drawings=0)]
+        doc = FakeDoc(pages)
+        with TemporaryDirectory() as cache:
+            source = PDFTextSource(doc, cache_dir=cache)
+            self.assertEqual(pending_of(source.native_index), (0,))
+            snapshot = source.for_position([0], "Кабель", "45", max_ocr_pages=4)
+        self.assertEqual([c["idx"] for c in calls], [0])
+        self.assertEqual(snapshot.pending_ocr, ())
 
 
 class RealPDFTests(unittest.TestCase):
