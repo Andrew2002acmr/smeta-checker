@@ -10,6 +10,7 @@ import threading
 from pathlib import Path
 
 from audit_core import PageTextIndex
+from audit_tracing import span
 
 # Short text with raster content needs OCR; short native-only pages do not.
 NATIVE_MIN_CHARS = 150
@@ -208,7 +209,17 @@ class PDFTextSource:
             if idx in self._ocr_errors:
                 continue
             before = self.cache_hits
-            self._get_ocr_text(idx, allow_ocr=remaining > 0)
+            with span("read-ocr-page", as_type="tool",
+                      input={"page": idx + 1, "allow_new_ocr": remaining > 0,
+                             "language": self.language, "requested_dpi": self.dpi,
+                             "max_pixels": self.max_pixels, "max_side": self.max_side}) as observation:
+                text = self._get_ocr_text(idx, allow_ocr=remaining > 0)
+                error = self._ocr_errors.get(idx)
+                observation.update(output={"text": text, "error": error,
+                                           "cache_hit": self.cache_hits > before,
+                                           "deferred": not text and not error and remaining <= 0},
+                                   level="ERROR" if error else "DEFAULT",
+                                   status_message=error)
             if self.cache_hits == before and remaining > 0:
                 remaining -= 1
             if self._ocr_texts.get(idx, "").strip():

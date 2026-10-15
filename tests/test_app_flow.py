@@ -65,7 +65,9 @@ class AppFlowTests(unittest.TestCase):
                 writer.writerows([[1, "Copper cable", 45, "m", "", "project.pdf", 1],
                                   [2, "Pump station", 1, "шт", "", "project.pdf", 2],
                                   [3, "Copper cable", 45, "m", "", "project.pdf", 2]])
-            with patch.dict(os.environ, {"AGNES_API_KEY": "test-only"}), patch("openai.OpenAI", FakeClient):
+            with patch.dict(os.environ, {"AGNES_API_KEY": "test-only"}), \
+                    patch("openai.OpenAI", FakeClient), \
+                    patch("audit_tracing._configured_client", return_value=None):
                 at = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app.py"), default_timeout=30)
                 at.run()
                 self.assertEqual(len(at.exception), 0, str(at.exception))

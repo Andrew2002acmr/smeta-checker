@@ -5,6 +5,8 @@ import math
 import re
 from collections import Counter
 
+from audit_tracing import span
+
 
 TECHNICAL_ERROR = "Технический сбой"
 INCOMPLETE = "Неполная проверка"
@@ -279,7 +281,13 @@ def audit_text_pages(index, target_indices, ask, work_name, volume, reference=""
     if min(max_requests, max_context_chars, max_total_chars, max_pages) <= 0:
         raise ValueError("Лимиты поиска должны быть положительными")
     primary = list(dict.fromkeys(i for i in target_indices if 0 <= i < len(index.texts)))
-    candidates = index.candidates(work_name, comment, reference, volume, primary)
+    with span("rank-candidate-pages", as_type="retriever", input={
+            "work": work_name, "volume": volume, "comment": comment, "reference": reference}) as observation:
+        candidates = index.candidates(work_name, comment, reference, volume, primary)
+        observation.update(output={"primary_pages": [i + 1 for i in primary],
+                                   "ranked_pages": [i + 1 for i in candidates],
+                                   "pending_ocr": [i + 1 for i in index.pending_ocr],
+                                   "reading_errors": {i + 1: e for i, e in index.errors.items()}})
     visited, requests, characters = set(), 0, 0
     failures = {i: error for i, error in index.errors.items() if i in primary}
 
@@ -307,7 +315,10 @@ def audit_text_pages(index, target_indices, ask, work_name, volume, reference=""
         work_pages = list(dict.fromkeys(
             [int(located["found_page"]) - 1]
             + [e["page"] - 1 for e in located["evidence"] if e["kind"] == "work"]))[:min(2, max_pages)]
-        quantity_pages = index.support_candidates(work_name, volume, unit)
+        with span("rank-quantity-pages", as_type="retriever",
+                  input={"work": work_name, "volume": volume, "unit": unit}) as observation:
+            quantity_pages = index.support_candidates(work_name, volume, unit)
+            observation.update(output={"ranked_pages": [i + 1 for i in quantity_pages]})
         support = [i for i in quantity_pages if i not in work_pages]
         pages = work_pages + support[:max_pages - len(work_pages)]
         if len(pages) == len(work_pages) and not any(i in quantity_pages for i in work_pages):
@@ -334,7 +345,9 @@ def audit_text_pages(index, target_indices, ask, work_name, volume, reference=""
         characters += sum(len(text) for text in context.values())
         visited.update(pages)
         requests += 1
-        verified = ask(context)  # exactly one bounded confirmation, never a page/chunk loop
+        with span("confirm-quantity-context", as_type="chain", input=context) as observation:
+            verified = ask(context)  # exactly one bounded confirmation, never a page/chunk loop
+            observation.update(output=verified)
         if verified["status"] in {TECHNICAL_ERROR, INCOMPLETE} or not verified.get("work_found"):
             result = dict(located)
             result.update(status=verified["status"] if verified["status"] == TECHNICAL_ERROR else INCOMPLETE,
@@ -373,16 +386,24 @@ def audit_text_pages(index, target_indices, ask, work_name, volume, reference=""
         per_page = limit // len(readable)
         if per_page < 1:
             break
-        context = {i + 1: index.fragment(i, work_name, comment, reference, volume, per_page)
-                   for i in readable}
+        with span("select-context", as_type="retriever",
+                  input={"pages": [i + 1 for i in readable], "per_page_chars": per_page}) as observation:
+            context = {i + 1: index.fragment(i, work_name, comment, reference, volume, per_page)
+                       for i in readable}
+            observation.update(output=context, metadata={"context_chars": sum(map(len, context.values()))})
         visited.update(readable)
         characters += sum(len(text) for text in context.values())
         requests += 1
-        result = ask(context)
+        with span("locate-work", as_type="chain", input=context) as observation:
+            result = ask(context)
+            observation.update(output=result)
         if result["status"] in {TECHNICAL_ERROR, INCOMPLETE}:
             return finish(result)
         if result["work_found"]:
-            return finish(confirm_quantities(result))
+            with span("confirm-quantities", as_type="chain", input=result) as observation:
+                confirmed = confirm_quantities(result)
+                observation.update(output=confirmed)
+            return finish(confirmed)
     reason = "Работа не найдена в отобранных фрагментах; это не доказывает ее отсутствие в PDF."
     if requests >= max_requests or characters >= max_total_chars:
         reason += " Исчерпан бюджет поиска на позицию."

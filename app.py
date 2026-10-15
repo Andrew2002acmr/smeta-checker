@@ -29,6 +29,7 @@ from audit_core import (INCOMPLETE, TECHNICAL_ERROR, BudgetExceeded, RequestBudg
                         audit_text_pages, empty_result, parse_audit_response,
                         parse_page_reference, technical_error)
 from pdf_text import PDFTextSource, bounded_page_dpi
+from audit_tracing import TracingRun
 
 def get_setting(name: str, default: str = "") -> str:
     """Настройки: .env этого проекта, окружение процесса, Streamlit Secrets."""
@@ -308,6 +309,7 @@ def render_page(doc, page_idx, dpi=250):
 
 def audit_position_hybrid(provider, model_name, text_index, target_indices, work_name, volume, unit, ref_text, page_ref, comment_text="", formula_text="", max_retries=3, budget=None):
     """Ограниченная проверка связанных страниц с проверяемыми доказательствами."""
+    from audit_tracing import span, token_usage
     budget = budget or RequestBudget()
     instructions = """Ты — эксперт-аудитор проектно-сметной документации.
 Проверь позицию ВОР по нескольким фрагментам ПД как единому контексту.
@@ -344,30 +346,51 @@ def audit_position_hybrid(provider, model_name, text_index, target_indices, work
 {fragments}"""
         for attempt in range(max_retries):
             try:
-                budget.reserve(instructions + user_input + " " * 512)
-                if provider == "Yandex Cloud (Qwen)":
-                    response = api_client.responses.create(
-                        model=f"gpt://{YANDEX_FOLDER}/{model_name}", temperature=0.1,
-                        instructions=instructions, input=user_input,
-                        max_output_tokens=budget.max_output_tokens)
-                    raw = getattr(response, "output_text", None)
-                    if not raw:
-                        pieces = []
-                        for item in getattr(response, "output", []) or []:
-                            for part in getattr(item, "content", []) or []:
-                                text = getattr(part, "text", None)
-                                if text:
-                                    pieces.append(text)
-                        raw = "".join(pieces)
-                else:
-                    response = api_client.chat.completions.create(
-                        model=model_name, temperature=0.1,
-                        messages=[{"role": "system", "content": instructions},
-                                  {"role": "user", "content": user_input}],
-                        max_tokens=budget.max_output_tokens)
-                    raw = response.choices[0].message.content if response.choices else ""
-                budget.record(getattr(response, "usage", None))
-                return parse_audit_response(raw, context, comment_required=bool(comment_text.strip()))
+                with span("check-request-budget", input={
+                        "requests_used": budget.requests, "charged_tokens": budget.tokens,
+                        "max_requests": budget.max_requests, "max_total_tokens": budget.max_total_tokens}) as observation:
+                    budget.reserve(instructions + user_input + " " * 512)
+                    observation.update(output={"attempt": budget.requests, "charged_tokens": budget.tokens})
+                with span("generate-audit", as_type="generation", model=model_name,
+                          model_parameters={"temperature": 0.1, "max_output_tokens": budget.max_output_tokens},
+                          input=[{"role": "system", "content": instructions},
+                                 {"role": "user", "content": user_input}],
+                          metadata={"provider": provider, "attempt": budget.requests,
+                                    "retry_index": attempt, "pages": list(context),
+                                    "context_chars": sum(map(len, context.values()))}) as generation:
+                    if provider == "Yandex Cloud (Qwen)":
+                        response = api_client.responses.create(
+                            model=f"gpt://{YANDEX_FOLDER}/{model_name}", temperature=0.1,
+                            instructions=instructions, input=user_input,
+                            max_output_tokens=budget.max_output_tokens)
+                        raw = getattr(response, "output_text", None)
+                        if not raw:
+                            pieces = []
+                            for item in getattr(response, "output", []) or []:
+                                for part in getattr(item, "content", []) or []:
+                                    text = getattr(part, "text", None)
+                                    if text:
+                                        pieces.append(text)
+                            raw = "".join(pieces)
+                    else:
+                        response = api_client.chat.completions.create(
+                            model=model_name, temperature=0.1,
+                            messages=[{"role": "system", "content": instructions},
+                                      {"role": "user", "content": user_input}],
+                            max_tokens=budget.max_output_tokens)
+                        raw = response.choices[0].message.content if response.choices else ""
+                    usage = getattr(response, "usage", None)
+                    budget.record(usage)
+                    generation.update(output=[{"role": "assistant", "content": raw}],
+                                      usage_details=token_usage(usage),
+                                      metadata={"response_id": getattr(response, "id", None),
+                                                "provider_response": response.model_dump()
+                                                if hasattr(response, "model_dump") else None})
+                with span("validate-audit-response", as_type="guardrail",
+                          input={"response": raw, "context": context}) as observation:
+                    parsed = parse_audit_response(raw, context, comment_required=bool(comment_text.strip()))
+                    observation.update(output=parsed)
+                    return parsed
             except BudgetExceeded as exc:
                 return empty_result(INCOMPLETE, f"Неполная проверка: {exc}. Отсутствие работы не установлено.")
             except Exception as exc:
@@ -375,7 +398,11 @@ def audit_position_hybrid(provider, model_name, text_index, target_indices, work
                 retryable = (code in {429, 500, 502, 503, 504}
                              or isinstance(exc, (ValueError, TimeoutError, openai.APIConnectionError)))
                 if retryable and attempt + 1 < max_retries:
-                    time.sleep(attempt + 1)
+                    with span("wait-before-retry", input={
+                            "attempt": budget.requests, "delay_seconds": attempt + 1,
+                            "error_type": type(exc).__name__, "reason": str(exc)[:500],
+                            "http_status": code}):
+                        time.sleep(attempt + 1)
                     continue
                 return technical_error(f"{model_name}: {type(exc).__name__}: {str(exc)[:500]}")
         return technical_error("Не удалось получить ответ модели")
@@ -669,6 +696,7 @@ with main_tab1:
         if st.session_state.get("is_auditing", False):
             st.button("⏳ Выполняется аудит (подождите)...", disabled=True, use_container_width=True)
 
+            trace_run = None
             try:
                 if not api_key:
                     st.error("Пожалуйста, укажите API Key в .env!")
@@ -678,6 +706,11 @@ with main_tab1:
                     # Нативный индекс общий, OCR-снимки готовятся до API-потоков.
                     pdf_text_sources = {}
                     st.session_state.audit_run_issues = []
+                    trace_run = TracingRun(
+                        get_setting("LANGFUSE_PUBLIC_KEY"), get_setting("LANGFUSE_SECRET_KEY"),
+                        get_setting("LANGFUSE_BASE_URL", "https://cloud.langfuse.com"))
+                    if trace_run.error:
+                        st.warning(trace_run.error)
                     for v_name in target_vor_selection:
                         st.session_state.audit_results.pop(v_name, None)
                     vors_parsed = {}
@@ -739,6 +772,12 @@ with main_tab1:
                                 w_comment = ""
                             if w_formula.lower() == "nan":
                                 w_formula = ""
+                            position_trace = trace_run.position(
+                                input={"work": w_name, "volume": w_vol, "unit": w_unit,
+                                       "reference": w_ref, "pages": w_page,
+                                       "comment": w_comment, "formula": w_formula},
+                                metadata={"vor_file": v_name, "position_index": r_idx,
+                                          "provider": provider, "model": model_name})
 
                             target_pdf_doc = None
                             target_pdf_name = ""
@@ -775,18 +814,44 @@ with main_tab1:
                             loc_desc = "Страница не указана"
                             primary_phys_pages = []
                             text_index = None
-                            if target_pdf_doc is not None:
-                                target_indices, loc_desc, primary_phys_pages = get_optimized_page_indices(
-                                    target_pdf_doc, w_page)
-                                if target_pdf_name not in pdf_text_sources:
-                                    progress_bar.progress(current_row_idx / max(total_items, 1),
-                                                          text=f"Подготовка текстового индекса PDF: {target_pdf_name}")
-                                    pdf_text_sources[target_pdf_name] = PDFTextSource(target_pdf_doc)
-                                text_index = pdf_text_sources[target_pdf_name].for_position(
-                                    target_indices, w_name, w_vol, w_ref, w_comment)
+                            with position_trace.stage("prepare-position", input={"pages": w_page}) as preparation:
+                                preparation.update(metadata={"pdf_name": target_pdf_name,
+                                                             "pdf_bound": target_pdf_doc is not None})
+                                if target_pdf_doc is not None:
+                                    with position_trace.stage("parse-page-reference", input=w_page) as observation:
+                                        target_indices, loc_desc, primary_phys_pages = get_optimized_page_indices(
+                                            target_pdf_doc, w_page)
+                                        observation.update(output={"pages": primary_phys_pages,
+                                                                   "description": loc_desc})
+                                    if target_pdf_name not in pdf_text_sources:
+                                        progress_bar.progress(current_row_idx / max(total_items, 1),
+                                                              text=f"Подготовка текстового индекса PDF: {target_pdf_name}")
+                                        with position_trace.stage("index-native-pdf",
+                                                                  input={"pdf_name": target_pdf_name}) as observation:
+                                            source = PDFTextSource(target_pdf_doc)
+                                            pdf_text_sources[target_pdf_name] = source
+                                            observation.update(output={"pages": source.page_count,
+                                                "page_chars": [len(t) for t in source.native_index.texts],
+                                                "pending_ocr": [i + 1 for i in source.pending_ocr],
+                                                "errors": source.native_index.errors})
+                                    source = pdf_text_sources[target_pdf_name]
+                                    before_ocr, before_hits = source.ocr_count, source.cache_hits
+                                    with position_trace.stage("prepare-ocr-snapshot",
+                                                              input={"pages": primary_phys_pages, "work": w_name}) as observation:
+                                        text_index = source.for_position(
+                                            target_indices, w_name, w_vol, w_ref, w_comment)
+                                        observation.update(output={
+                                            "new_ocr_pages": source.ocr_count - before_ocr,
+                                            "cache_hits": source.cache_hits - before_hits,
+                                            "pending_ocr": [i + 1 for i in text_index.pending_ocr],
+                                            "errors": {i + 1: e for i, e in text_index.errors.items()}})
+                                preparation.update(output={"pdf_bound": target_pdf_doc is not None,
+                                                           "pages": primary_phys_pages,
+                                                           "reference_description": loc_desc})
 
                             tasks.append({
                                 "idx": r_idx,
+                                "position_trace": position_trace,
                                 "w_name": w_name,
                                 "w_vol": w_vol,
                                 "w_unit": w_unit,
@@ -901,12 +966,18 @@ with main_tab1:
                             }
                             return task["idx"], res_item, track_item
 
+                        def traced_worker_check_row(task):
+                            with task["position_trace"].stage("audit-position") as observation:
+                                result = worker_check_row(task)
+                                observation.update(output=result[1])
+                                return result
+
 
                         results = [None] * len(tasks)
                         row_page_tracking = [None] * len(tasks)
 
                         with ThreadPoolExecutor(max_workers=int(api_workers)) as executor:
-                            future_to_task = {executor.submit(worker_check_row, t): t for t in tasks}
+                            future_to_task = {executor.submit(traced_worker_check_row, t): t for t in tasks}
 
                             for future in as_completed(future_to_task):
                                 try:
@@ -942,6 +1013,10 @@ with main_tab1:
                                                   "comment_confirmed": False, "found_unit": "-",
                                                   "found_volume": "-", "search_complete": False,
                                                   "requests": 0, "work_name": task["w_name"]}
+                                position_trace = future_to_task[future]["position_trace"]
+                                position_trace.finish(res_item)
+                                track_item["trace_id"] = position_trace.trace_id
+                                track_item["trace_url"] = position_trace.url()
                                 results[r_idx] = res_item
                                 row_page_tracking[r_idx] = track_item
 
@@ -1044,6 +1119,8 @@ with main_tab1:
                     prog_placeholder.empty()
 
             finally:
+                if trace_run is not None:
+                    trace_run.close()
                 st.session_state.is_auditing = False
 
             st.rerun()
@@ -1141,6 +1218,10 @@ with main_tab1:
                                     f"поиск: {'завершён' if t_info.get('search_complete') else 'неполный'}, "
                                     f"запросов: {t_info.get('requests', 0)}")
                             st.caption(conf)
+                            if t_info.get("trace_url"):
+                                st.link_button("Открыть trace позиции в Langfuse", t_info["trace_url"])
+                            elif t_info.get("trace_id"):
+                                st.caption(f"Langfuse trace: {t_info['trace_id']}")
                             kind_ru = {"work": "работа", "volume": "объём", "unit": "ед.", "comment": "прим."}
                             for item in evidence:
                                 quote = str(item.get("quote", ""))
