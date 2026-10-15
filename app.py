@@ -710,7 +710,7 @@ with main_tab1:
                             return next((c for c in df_works.columns
                                          if any(marker in c.lower().replace('ё', 'е') for marker in markers)), None)
 
-                        page_col = find_column('номер страниц', 'номера страниц')
+                        page_col = find_column('номер страниц', 'номера страниц', 'ссылка на страницу')
                         name_col = find_column('наименование работ', 'наименование')
                         vol_col = find_column('объем', 'количество')
                         unit_col = find_column('ед.', 'единица измерения', 'единицы измерения')
