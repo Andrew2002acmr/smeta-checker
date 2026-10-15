@@ -27,7 +27,6 @@ class FakeClient:
         if "Проверяемая работа: Pump station" in prompt:
             raise RuntimeError("Simulated provider failure")
         data = {
-            "status": "Ошибка",
             "work_found": True,
             "volume_confirmed": True,
             "unit_confirmed": True,
@@ -112,6 +111,79 @@ class AppFlowTests(unittest.TestCase):
             for pdf in at.session_state["pdf_pool"].values():
                 pdf.close()
 
+    def test_missing_explicit_pdf_never_binds_sole_file(self):
+        with tempfile.TemporaryDirectory(prefix="smeta-audit-test-") as folder:
+            folder = Path(folder)
+            at = self._run_audit(
+                folder,
+                ["№ п.п.", "Наименование работ, ресурсов, затрат по проекту",
+                 "Объём работ / Количество", "Ед. изм.", "Ссылка на ПД",
+                 "Наименование файла", "Номер страниц (через пробел)"],
+                [[1, "Copper cable", 45, "m", "", "ghost.pdf", 1]])
+            saved = at.session_state["audit_results"]["vor.csv"]
+            table = saved["df"]
+            self.assertEqual(table["Статус аудита"].tolist(), ["Ошибка"])
+            self.assertIn("ghost.pdf", table["Детали расхождений"].iloc[0])
+            for pdf in at.session_state["pdf_pool"].values():
+                pdf.close()
+
+    def test_continuation_row_folds_refs_into_owner(self):
+        with tempfile.TemporaryDirectory(prefix="smeta-audit-test-") as folder:
+            folder = Path(folder)
+            at = self._run_audit(
+                folder,
+                ["№ п.п.", "Наименование работ, ресурсов, затрат по проекту",
+                 "Объём работ / Количество", "Ед. изм.", "Ссылка на ПД",
+                 "Наименование файла", "Номер страниц (через пробел)"],
+                [[1, "Copper cable", 45, "m", "", "project.pdf", 1],
+                 ["", "", "", "", "", "project.pdf", 2]])
+            saved = at.session_state["audit_results"]["vor.csv"]
+            table = saved["df"]
+            self.assertEqual(len(table), 1)
+            self.assertEqual(table["Статус аудита"].tolist(), ["ОК"])
+            for pdf in at.session_state["pdf_pool"].values():
+                pdf.close()
+
+    def test_distinct_documents_are_not_shown_ready_then_silently_partially_audited(self):
+        with tempfile.TemporaryDirectory(prefix="smeta-audit-test-") as folder:
+            folder = Path(folder)
+            with fitz.open() as pdf:
+                pdf.new_page()
+                pdf.save(folder / "second.pdf")
+            at = self._run_audit(
+                folder,
+                ["№ п.п.", "Наименование работ, ресурсов, затрат по проекту",
+                 "Объём работ / Количество", "Ед. изм.", "Ссылка на ПД",
+                 "Наименование файла", "Номер страниц (через пробел)"],
+                [[1, "Copper cable", 45, "m", "", "project.pdf;second.pdf", 1]])
+            try:
+                table = at.session_state["audit_results"]["vor.csv"]["df"]
+                self.assertEqual(table["Статус аудита"].tolist(), ["Ошибка"])
+                self.assertIn("несколько PDF", table["Детали расхождений"].iloc[0])
+                preflight = next(frame.value for frame in at.dataframe
+                                 if "Статус привязки" in frame.value.columns)
+                self.assertTrue(preflight["Статус привязки"].iloc[0].startswith("🔴"))
+            finally:
+                for pdf in at.session_state["pdf_pool"].values():
+                    pdf.close()
+
+    def test_partly_invalid_page_list_cannot_be_ok(self):
+        with tempfile.TemporaryDirectory(prefix="smeta-audit-test-") as folder:
+            at = self._run_audit(
+                Path(folder),
+                ["№ п.п.", "Наименование работ, ресурсов, затрат по проекту",
+                 "Объём работ / Количество", "Ед. изм.", "Ссылка на ПД",
+                 "Наименование файла", "Номер страниц (через пробел)"],
+                [[1, "Copper cable", 45, "m", "", "project.pdf", "1 999"]])
+            try:
+                table = at.session_state["audit_results"]["vor.csv"]["df"]
+                self.assertEqual(table["Статус аудита"].tolist(), ["Ошибка"])
+                self.assertIn("999", table["Детали расхождений"].iloc[0])
+                self.assertEqual(table["[ПД] Найденные страницы"].tolist(), ["1, 2"])
+            finally:
+                for pdf in at.session_state["pdf_pool"].values():
+                    pdf.close()
+
     def test_audit_reads_vor_page_link_column(self):
         with tempfile.TemporaryDirectory(prefix="smeta-audit-test-") as folder:
             folder = Path(folder)
@@ -147,7 +219,6 @@ class AppFlowTests(unittest.TestCase):
             self.assertEqual(table["Статус аудита"].tolist(), ["ОК"])
             for pdf in at.session_state["pdf_pool"].values():
                 pdf.close()
-
 
 
 if __name__ == "__main__":

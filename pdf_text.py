@@ -7,6 +7,7 @@ import os
 import math
 import pymupdf
 import threading
+import shutil
 from pathlib import Path
 
 from audit_core import PageTextIndex
@@ -23,10 +24,12 @@ TOP_CANDIDATES_PER_POSITION = 5
 def _engine_fingerprint():
     """Practical OCR engine version / tessdata fingerprint for the cache key."""
     engine = pymupdf.VersionBind
-    try:
-        tessdata_dir = pymupdf.get_tessdata()
-    except RuntimeError:
-        tessdata_dir = os.environ.get("TESSDATA_PREFIX", "")
+    tessdata_dir = os.environ.get("TESSDATA_PREFIX", "")
+    if not tessdata_dir and shutil.which("tesseract"):
+        try:
+            tessdata_dir = pymupdf.get_tessdata()
+        except RuntimeError:
+            tessdata_dir = ""
     entries = []
     if tessdata_dir:
         for path in sorted(Path(tessdata_dir).glob("*.traineddata")):
@@ -93,6 +96,20 @@ class PDFTextSource:
                 "PageTextIndex и строки." % what)
 
     @staticmethod
+    def _has_vector_drawings(page):
+        # Outlined (curve-converted) text has no images and almost no
+        # extractable text, but hundreds of vector paths. A handful of paths
+        # is just borders/rules, so require a bulk of drawings before
+        # treating the page as a scan candidate.
+        drawings_fn = getattr(page, "get_drawings", None)
+        if not callable(drawings_fn):
+            return False
+        try:
+            return len(drawings_fn()) >= 50
+        except Exception:
+            return False
+
+    @staticmethod
     def _read_native(doc):
         texts, errors, scans = [], {}, []
         for idx in range(len(doc)):
@@ -100,7 +117,11 @@ class PDFTextSource:
                 page = doc[idx]
                 text = page.get_text(sort=True).strip()
                 texts.append(text)
-                if len(text) < NATIVE_MIN_CHARS and page.get_images():
+                if len(text) >= NATIVE_MIN_CHARS:
+                    continue
+                if page.get_images():
+                    scans.append(idx)
+                elif PDFTextSource._has_vector_drawings(page):
                     scans.append(idx)
             except Exception as exc:
                 if len(texts) <= idx:
@@ -134,21 +155,43 @@ class PDFTextSource:
             dpi=bounded_page_dpi(page, self.dpi, self.max_pixels, self.max_side))
         return page.get_text(textpage=textpage, sort=True).strip()
 
+    def _read_cached_ocr(self, idx):
+        """Read reusable disk OCR; failures are ignored and never persisted."""
+        try:
+            path = self._cache_path(idx)
+            if path.is_file():
+                text = path.read_text(encoding="utf-8")
+                if text.strip():
+                    return text
+        except Exception:
+            pass
+        return ""
+
+    def _peek_cached_ocr(self, idx):
+        """Populate memory from reusable cache without new OCR or hit accounting.
+
+        Hit counting and pending resolution stay in the per-position OCR loop
+        so a preloaded page is counted exactly once when the position uses it.
+        Cache read failures are ignored and never persisted.
+        """
+        if idx in self._ocr_texts:
+            return self._ocr_texts[idx]
+        text = self._read_cached_ocr(idx)
+        if text.strip():
+            self._ocr_texts[idx] = text
+            return text
+        return ""
+
     def _get_ocr_text(self, idx, allow_ocr=True):
         """Return OCR text, using memory/disk cache or real OCR."""
         if idx in self._ocr_texts:
             self.cache_hits += 1
             return self._ocr_texts[idx]
-        path = self._cache_path(idx)
-        try:
-            if path.is_file():
-                text = path.read_text(encoding="utf-8")
-                if text.strip():
-                    self._ocr_texts[idx] = text
-                    self.cache_hits += 1
-                    return text
-        except Exception:
-            pass
+        text = self._read_cached_ocr(idx)
+        if text.strip():
+            self._ocr_texts[idx] = text
+            self.cache_hits += 1
+            return text
         if not allow_ocr:
             return ""
         try:
@@ -162,6 +205,7 @@ class PDFTextSource:
         self._ocr_texts[idx] = text
         if text:
             try:
+                path = self._cache_path(idx)
                 path.parent.mkdir(parents=True, exist_ok=True)
                 tmp = path.with_name(
                     "%s.tmp-%d-%d" % (path.name, os.getpid(),
@@ -184,16 +228,28 @@ class PDFTextSource:
                      comment="", max_ocr_pages=4):
         """OCR at most max_ocr_pages related scans; return immutable snapshot.
 
-        Only scans among the referenced pages, their neighbours and the
-        neighbours of the locally ranked top candidates are eligible. Native
-        pages are always fully present in the snapshot.
+        Reusable memory/disk OCR for all pending scans is preloaded before
+        ranking (no new OCR charge) and ranking uses the merged current text,
+        so a cached scan unrelated to the current reference can still rank.
+        New OCR prioritizes referenced scans, then ranked/neighbour scans,
+        then bounded discovery of remaining pending scans in page order while
+        spare allowance remains. Native pages are always fully present.
         """
         self._require_owner_thread("OCR сканов PDF")
         page_count = len(self._native_texts)
         targets = [i for i in dict.fromkeys(target_indices)
                    if isinstance(i, int) and 0 <= i < page_count]
-        ranked = self.native_index.candidates(
-            work_name, comment, reference, volume)
+        for idx in sorted(self._pending):
+            if idx not in self._ocr_errors:
+                self._peek_cached_ocr(idx)
+        merged = [self._merge_text(native, self._ocr_texts.get(idx, ""))
+                  for idx, native in enumerate(self._native_texts)]
+        current_errors = dict(self._native_errors)
+        current_errors.update(self._ocr_errors)
+        ranked = PageTextIndex(
+            tuple(merged), current_errors,
+            tuple(sorted(self._pending))).candidates(
+                work_name, comment, reference, volume)
         top = ranked[:TOP_CANDIDATES_PER_POSITION]
         pool = set(targets) | set(top)
         for idx in list(targets) + list(top):
@@ -203,40 +259,57 @@ class PDFTextSource:
                 pool.add(idx + 1)
         eligible = [idx for idx in targets if idx in self._pending]
         eligible += [idx for idx in sorted(pool) if idx in self._pending and idx not in eligible]
+        discovery = [idx for idx in sorted(self._pending) if idx not in eligible]
         # Cached related pages do not consume the new-recognition allowance.
         remaining = max(0, max_ocr_pages)
+        started_remaining = remaining
         for idx in eligible:
-            if idx in self._ocr_errors:
-                continue
-            before = self.cache_hits
-            with span("read-ocr-page", as_type="tool",
-                      input={"page": idx + 1, "allow_new_ocr": remaining > 0,
-                             "language": self.language, "requested_dpi": self.dpi,
-                             "max_pixels": self.max_pixels, "max_side": self.max_side}) as observation:
-                text = self._get_ocr_text(idx, allow_ocr=remaining > 0)
-                error = self._ocr_errors.get(idx)
-                cache_hit = self.cache_hits > before
-                deferred = not text and not error and remaining <= 0
-                if error:
-                    outcome = error
-                elif cache_hit:
-                    outcome = f"Кеш: {len(text)} симв."
-                elif deferred:
-                    outcome = "Отложен: исчерпан лимит новых OCR"
-                elif text:
-                    outcome = f"Новый OCR: {len(text)} симв."
-                else:
-                    outcome = "OCR вернул пустой текст"
-                observation.update(output={"text": text, "error": error,
-                                           "cache_hit": cache_hit, "deferred": deferred},
-                                   level="ERROR" if error else "DEFAULT",
-                                   status_message=outcome)
-            if self.cache_hits == before and remaining > 0:
-                remaining -= 1
-            if self._ocr_texts.get(idx, "").strip():
-                self._pending.discard(idx)
+            remaining = self._ocr_one(idx, remaining)
+        if not eligible or remaining < started_remaining:
+            # Nothing related to try (missing reference), or the related area
+            # was fresh territory: spend spare allowance on remaining pending
+            # scans in page order. A fully cached related area means the
+            # neighbourhood is already known, so do not burn more budget.
+            for idx in discovery:
+                remaining = self._ocr_one(idx, remaining, allow_deferred_skip=True)
+        self._pending.difference_update(idx for idx, text in self._ocr_texts.items() if text.strip())
         texts = [self._merge_text(native, self._ocr_texts.get(idx, ""))
                  for idx, native in enumerate(self._native_texts)]
         errors = dict(self._native_errors)
         errors.update(self._ocr_errors)
         return PageTextIndex(tuple(texts), errors, tuple(sorted(self._pending)))
+
+    def _ocr_one(self, idx, remaining, allow_deferred_skip=False):
+        """OCR one pending scan; return the remaining new-OCR allowance."""
+        if idx in self._ocr_errors:
+            return remaining
+        if allow_deferred_skip and idx not in self._ocr_texts and remaining <= 0:
+            return remaining
+        before = self.cache_hits
+        with span("read-ocr-page", as_type="tool",
+                  input={"page": idx + 1, "allow_new_ocr": remaining > 0,
+                         "language": self.language, "requested_dpi": self.dpi,
+                         "max_pixels": self.max_pixels, "max_side": self.max_side}) as observation:
+            text = self._get_ocr_text(idx, allow_ocr=remaining > 0)
+            error = self._ocr_errors.get(idx)
+            cache_hit = self.cache_hits > before
+            deferred = not text and not error and remaining <= 0
+            if error:
+                outcome = error
+            elif cache_hit:
+                outcome = f"Кеш: {len(text)} симв."
+            elif deferred:
+                outcome = "Отложен: исчерпан лимит новых OCR"
+            elif text:
+                outcome = f"Новый OCR: {len(text)} симв."
+            else:
+                outcome = "OCR вернул пустой текст"
+            observation.update(output={"text": text, "error": error,
+                                       "cache_hit": cache_hit, "deferred": deferred},
+                               level="ERROR" if error else "DEFAULT",
+                               status_message=outcome)
+        if self.cache_hits == before and remaining > 0:
+            remaining -= 1
+        if self._ocr_texts.get(idx, "").strip():
+            self._pending.discard(idx)
+        return remaining

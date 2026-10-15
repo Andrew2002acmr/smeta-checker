@@ -26,7 +26,7 @@ from streamlit.testing.v1 import AppTest
 
 
 def main():
-    settings = dotenv_values(ROOT / ".env", encoding="utf-8-sig")
+    settings = {**os.environ, **dotenv_values(ROOT / ".env", encoding="utf-8-sig")}
     if not settings.get("YANDEX_CLOUD_API_KEY") or not settings.get("YANDEX_CLOUD_FOLDER"):
         raise RuntimeError("Заполните YANDEX_CLOUD_API_KEY и YANDEX_CLOUD_FOLDER в .env")
     folder = ROOT / "test_documents" / "yandex_qwen"
