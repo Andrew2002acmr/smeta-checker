@@ -141,6 +141,63 @@ class ResponseTests(unittest.TestCase):
                 parse_audit_response(raw, self.context)
 
 
+class CalculatedVolumeTests(unittest.TestCase):
+    def setUp(self):
+        self.context = {84: "Крепление плитами. Площадь крепления - 526м² (площадка КНС).",
+                        85: "Плиты толщиной 0,15 м на геотекстиле"}
+        self.data = response("84", evidence=[proof(84, "Крепление плитами.")], details="")
+        self.data["volume_calculation"] = {
+            "area": {"value": "526", "unit": "м2", "page": 84,
+                     "quote": "Площадь крепления - 526м² (площадка КНС)."},
+            "thickness": {"value": "0,15", "unit": "м", "page": 85,
+                          "quote": "Плиты толщиной 0,15 м на геотекстиле"}}
+
+    def parse(self, expected="78.89999999999999", unit="м3", formula="526*0,15"):
+        return parse_audit_response(json.dumps(self.data), self.context, False,
+                                    expected_volume=expected, expected_unit=unit, formula=formula)
+
+    def test_area_times_thickness_keeps_both_sources_without_fabricated_result_quote(self):
+        result = self.parse()
+        self.assertEqual(result["status"], "ОК")
+        self.assertEqual(result["found_volume"], "78.9")
+        self.assertEqual(result["found_unit"], "м3")
+        self.assertEqual(result["found_pages"], [84, 85])
+        self.assertEqual([e["quote"] for e in result["evidence"] if e["kind"] == "volume"],
+                         [self.data["volume_calculation"][k]["quote"] for k in ("area", "thickness")])
+
+    def test_millimetres_are_converted_before_comparison(self):
+        self.context[85] = "Плиты толщиной 150 мм"
+        self.data["volume_calculation"]["thickness"].update(value="150", unit="мм", quote=self.context[85])
+        self.assertEqual(self.parse()["found_volume"], "78.9")
+
+    def test_mismatching_volume_remains_a_finding(self):
+        result = self.parse(expected="79")
+        self.assertEqual(result["status"], "Ошибка")
+        self.assertTrue(result["work_found"])
+        self.assertFalse(result["volume_confirmed"])
+        self.assertEqual(result["found_volume"], "78.9")
+
+    def test_operand_missing_from_pdf_is_rejected_even_if_it_is_in_vor_formula(self):
+        self.data["volume_calculation"]["area"]["value"] = "527"
+        with self.assertRaises(ValueError):
+            self.parse(formula="527*0,15")
+
+    def test_forged_quote_unsent_page_and_wrong_dimension_are_rejected(self):
+        for patch in ({"quote": "Плиты толщиной 0,20 м"}, {"page": 86},
+                      {"unit": "м2"}, {"value": "0"}, {"value": True}):
+            with self.subTest(patch=patch):
+                original = self.data["volume_calculation"]["thickness"].copy()
+                self.data["volume_calculation"]["thickness"].update(patch)
+                with self.assertRaises(ValueError):
+                    self.parse()
+                self.data["volume_calculation"]["thickness"] = original
+
+    def test_unsupported_formula_or_output_unit_is_not_silently_calculated(self):
+        for unit, formula in (("м2", "526*0,15"), ("м3", ""), ("м3", "526*0,15*1,1")):
+            with self.subTest(unit=unit, formula=formula), self.assertRaises(ValueError):
+                self.parse(unit=unit, formula=formula)
+
+
 class SearchTests(unittest.TestCase):
     def test_found_volume_mismatch_stops_location_search(self):
         calls = []
@@ -387,19 +444,20 @@ class EvidenceAndRetrievalTests(unittest.TestCase):
         self.assertEqual(result["contexts"], 2)
         self.assertEqual(result["status"], "Ошибка")
 
-    def test_second_location_can_complete_unresolved_first_location(self):
-        index = PageTextIndex(["Copper cable installation", "Title", "Title", "Copper cable 45 m"])
+    def test_first_complete_find_stops_search_without_second_location(self):
+        index = PageTextIndex(["Cable 40 m", "Cable 45 m"])
         calls = []
         def ask(context):
-            calls.append(context)
-            if 4 in context:
-                return found(context, 4)
-            return parse_audit_response(json.dumps(response("1", evidence=[
-                proof(1, "Copper cable installation")])), context, False)
-        result = audit_text_pages(index, [], ask, "Copper cable installation", "45", max_pages=1)
-        self.assertEqual(result["found_page"], "4")
-        self.assertEqual(result["found_volume"], "45")
-        self.assertLessEqual(len(calls), 3)
+            calls.append(dict(context))
+            page = next(iter(context))
+            quote = context[page]
+            volume = "40" if "40" in quote else "45"
+            return found(context, page, volume)
+        result = audit_text_pages(index, [], ask, "Cable", "45", max_pages=1)
+        self.assertEqual(len(calls), 1)
+        self.assertTrue(result["work_found"])
+        self.assertEqual(result["found_page"], str(next(iter(calls[0]))))
+        self.assertEqual(result["found_pages"], [next(iter(calls[0]))])
 
     def test_unreadable_unreferenced_neighbor_does_not_invalidate_proven_reference(self):
         index = PageTextIndex(["Cable 45 m", ""], {1: "OCR unavailable"}, pending_ocr=[1])
@@ -554,23 +612,13 @@ class AdapterTests(unittest.TestCase):
     @staticmethod
     def valid():
         return json.dumps(response("1", "45", "m", True, True,
-            evidence=[proof(1, "Cable 45 m", kind) for kind in ("work", "volume", "unit")]))
+            evidence=[{"source_id": "p1q1", "kind": kind} for kind in ("work", "volume", "unit")]))
 
     def test_invalid_evidence_retry_then_success(self):
-        forged = json.dumps(response("1", evidence=[proof(1, "Steel cable")]))
+        forged = json.dumps(response("1", evidence=[{"source_id": "p99q1", "kind": "work"}]))
         result, calls = self.run_adapter([forged, self.valid()])
         self.assertEqual(result["status"], "ОК")
         self.assertEqual(result["requests"], 2)
-        self.assertIn("Предыдущий ответ отклонен:", calls[1]["input"])
-        self.assertIn("Цитата не найдена", calls[1]["input"])
-
-    def test_retry_feedback_identifies_failed_quote_not_first_valid_quote(self):
-        forged = json.loads(self.valid())
-        forged["evidence"][1]["quote"] = "Steel wire 45 m"
-        result, calls = self.run_adapter([json.dumps(forged), self.valid()])
-        self.assertEqual(result["status"], "ОК")
-        self.assertIn("Steel wire 45 m", calls[1]["input"])
-        self.assertNotIn("Отклонённая цитата: Cable", calls[1]["input"])
 
     def test_retry_consumes_position_budget(self):
         result, calls = self.run_adapter([FakeAPIError("quota"), self.valid()])

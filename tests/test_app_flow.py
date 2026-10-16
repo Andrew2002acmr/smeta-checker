@@ -35,9 +35,9 @@ class FakeClient:
             "found_unit": "m",
             "found_page": "1",
             "evidence": [
-                {"page": 1, "quote": "Copper cable specification", "kind": "work"},
-                {"page": 2, "quote": "Copper cable 45 m", "kind": "volume"},
-                {"page": 2, "quote": "Copper cable 45 m", "kind": "unit"},
+                {"source_id": "p1q1", "kind": "work"},
+                {"source_id": "p2q1", "kind": "volume"},
+                {"source_id": "p2q1", "kind": "unit"},
             ],
             "discrepancy_details": "Confirmed with multi-page evidence",
         }
