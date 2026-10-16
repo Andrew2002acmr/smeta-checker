@@ -124,11 +124,14 @@ def main():
     started = time.monotonic()
     with pymupdf.open(args.pdf) as doc:
         source = PDFTextSource(doc)
-        new_texts = list(source.native_index.texts)
-        new_errors = dict(source.native_index.errors)
-        pending_ocr = list(source.pending_ocr)
-        ocr_count = source.ocr_count
-        cache_hits = source.cache_hits
+        try:
+            new_texts = list(source.native_index.texts)
+            new_errors = dict(source.native_index.errors)
+            pending_ocr = list(source.pending_ocr)
+            ocr_count = source.ocr_count
+            cache_hits = source.cache_hits
+        finally:
+            source.close()
     new_seconds = round(time.monotonic() - started, 3)
     if len(new_texts) != len(old_texts):
         raise SystemExit(

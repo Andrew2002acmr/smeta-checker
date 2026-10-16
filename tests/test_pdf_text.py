@@ -540,5 +540,44 @@ class RealPDFTests(unittest.TestCase):
                 self.assertEqual(cached.pending_ocr, ())
 
 
+class ClosedDocumentTests(FakeSourceTests):
+    def test_closed_document_is_rejected_before_indexing(self):
+        doc, _ = make_doc(["Copper cable 45 m. " * 20])
+        doc.is_closed = True
+        with TemporaryDirectory() as cache:
+            with self.assertRaisesRegex(ValueError, "закрыт"):
+                PDFTextSource(doc, cache_dir=cache)
+
+
+class PrivateOwnershipTests(unittest.TestCase):
+    def test_snapshot_and_tables_survive_original_document_close(self):
+        import pymupdf
+        with TemporaryDirectory() as cache:
+            doc = pymupdf.open()
+            source = None
+            try:
+                page = doc.new_page()
+                page.insert_textbox(pymupdf.Rect(40, 40, 550, 300),
+                                    "Copper cable installation. " * 10)
+                page = doc.new_page()
+                _insert_ruled_table(page, [["Work", "Quantity", "Unit"],
+                                           ["Cable", "45", "m"]])
+                source = PDFTextSource(doc, cache_dir=cache)
+                self.assertIsNot(source._doc, doc)
+                doc.close()
+                snapshot = source.for_position([0, 1], "Copper cable", "45")
+                self.assertIn("Copper cable installation", snapshot.texts[0])
+                self.assertIn("Cable | 45 | m", snapshot.table_rows[1])
+                source.close()
+                source.close()
+                self.assertTrue(source._doc.is_closed)
+                self.assertIn("Copper cable installation", snapshot.texts[0])
+            finally:
+                if source is not None:
+                    source.close()
+                if not doc.is_closed:
+                    doc.close()
+
+
 if __name__ == "__main__":
     unittest.main()
