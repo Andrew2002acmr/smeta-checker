@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import os
 import math
+import re
 import pymupdf
 import pymupdf4llm
 import threading
@@ -23,8 +24,10 @@ MAX_TABLE_PAGES_PER_POSITION = 8
 # Cell text kept per row; long descriptions do not need full text for row matching.
 MAX_TABLE_CELL_CHARS = 200
 
-
-
+def _compact_text(text):
+    """Drop layout padding before character budgets, preserving source line order."""
+    lines = (re.sub(r"[^\S\n]+", " ", line).strip() for line in text.splitlines())
+    return "\n".join(line for line in lines if line)
 
 def _engine_fingerprint():
     """Practical OCR engine version / tessdata fingerprint for the cache key."""
@@ -129,8 +132,8 @@ class PDFTextSource:
             for idx in range(len(doc)):
                 try:
                     page = markdown_doc[idx]
-                    # Scan eligibility uses source text, not Markdown markup.
-                    native = page.get_text(sort=True).strip()
+                    # Scan eligibility uses compacted source text, not Markdown markup.
+                    native = _compact_text(page.get_text(sort=True))
                     if len(native) < NATIVE_MIN_CHARS:
                         if page.get_images() or PDFTextSource._has_vector_drawings(page):
                             scans.append(idx)
@@ -138,7 +141,7 @@ class PDFTextSource:
                         markdown_doc, pages=[idx], page_chunks=True,
                         table_output="html", use_ocr=False, write_images=False,
                         embed_images=False, show_progress=False)
-                    texts.append(chunks[0]["text"].strip())
+                    texts.append(_compact_text(chunks[0]["text"]))
                 except Exception as exc:
                     texts.append("")
                     errors[idx] = "Сбой чтения PDF (PyMuPDF4LLM): %s" % str(exc)[:200]
@@ -168,14 +171,14 @@ class PDFTextSource:
         textpage = page.get_textpage_ocr(
             language=self.language, full=True,
             dpi=bounded_page_dpi(page, self.dpi, self.max_pixels, self.max_side))
-        return page.get_text(textpage=textpage, sort=True).strip()
+        return _compact_text(page.get_text(textpage=textpage, sort=True))
 
     def _read_cached_ocr(self, idx):
         """Read reusable disk OCR; failures are ignored and never persisted."""
         try:
             path = self._cache_path(idx)
             if path.is_file():
-                text = path.read_text(encoding="utf-8")
+                text = _compact_text(path.read_text(encoding="utf-8"))
                 if text.strip():
                     return text
         except Exception:

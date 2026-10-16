@@ -255,7 +255,48 @@ def _quote_text(text):
     return re.sub(r"\s+", " ", text).strip().casefold().replace("ё", "е")
 
 
-def parse_audit_response(raw, context, comment_required=True):
+def _area_thickness_volume(calculation, evidence, expected_volume, expected_unit, formula):
+    """Compute S × t only from dimensioned, verbatim PDF evidence, never VOR operands."""
+    if (_quote_text(str(expected_unit)).replace(" ", "") != "м3"
+            or not re.fullmatch(r"\s*\d+(?:[.,]\d+)?\s*\*\s*\d+(?:[.,]\d+)?\s*", str(formula))):
+        raise ValueError("Расчет площадь × толщина требует формулу произведения и единицу м3 в ВОР")
+    if not isinstance(calculation, dict) or set(calculation) != {"area", "thickness"}:
+        raise ValueError("Для расчета нужны площадь и толщина с доказательствами")
+    values = {}
+    factors = {"м2": Decimal(1), "м": Decimal(1), "см": Decimal("0.01"), "мм": Decimal("0.001")}
+    for name, allowed in (("area", {"м2"}), ("thickness", {"м", "см", "мм"})):
+        operand = calculation[name]
+        if not isinstance(operand, dict):
+            raise ValueError("Некорректный операнд расчета")
+        value = str(operand.get("value", "")).strip()
+        unit = _quote_text(str(operand.get("unit", ""))).replace(" ", "")
+        if len(value) > 32 or not re.fullmatch(r"\d+(?:[.,]\d+)?", value) or unit not in allowed:
+            raise ValueError("Некорректное значение или размерность операнда")
+        number = Decimal(value.replace(",", "."))
+        if number <= 0:
+            raise ValueError("Площадь и толщина должны быть положительными")
+        quote = operand["quote"].strip()
+        if not any(e["kind"] == "volume" and e["page"] == operand.get("page")
+                   and e["quote"] == quote for e in evidence):
+            raise ValueError("Операнд расчета не подкреплен проверенной цитатой объема")
+        # Bind number and unit in the same source phrase, not elsewhere in the quote.
+        measurements = re.findall(r"(?<![\w.,])(\d+(?:[.,]\d+)?)\s*(м2|мм|см|м)(?!\w)", _quote_text(quote))
+        if not any(Decimal(n.replace(",", ".")) == number and u == unit for n, u in measurements):
+            raise ValueError("Число с единицей операнда отсутствует в цитате")
+        values[name] = number * factors[unit]
+    actual = values["area"] * values["thickness"]
+    expected = str(expected_volume).strip().replace(",", ".")
+    if not re.fullmatch(r"\d+(?:\.\d+)?", expected):
+        raise ValueError("Некорректный заявленный объем для сравнения с расчетом")
+    expected = Decimal(expected)
+    # Excel cached doubles can contain a binary tail; this is not a rounding allowance.
+    matches = abs(actual - expected) <= max(abs(actual), abs(expected)) * Decimal("1e-12")
+    text = format(actual, "f")
+    return (text.rstrip("0").rstrip(".") if "." in text else text), matches
+
+
+def parse_audit_response(raw, context, comment_required=True, *, expected_volume=None,
+                         expected_unit="", formula="", quote_sources=None):
     """Accept only evidence from the exact page fragments supplied to the model."""
     if not isinstance(raw, str) or not raw.strip():
         raise ValueError("Модель вернула пустой ответ")
@@ -282,8 +323,31 @@ def parse_audit_response(raw, context, comment_required=True):
     data["found_unit"] = data["found_unit"] or "-"
     if not isinstance(data["evidence"], list):
         raise ValueError("Доказательства должны быть списком цитат")
+    if quote_sources is not None:
+        def resolve_source(item):
+            source_id = item.get("source_id") if isinstance(item, dict) else None
+            if not isinstance(source_id, str) or source_id not in quote_sources:
+                raise ValueError(f"Неизвестный идентификатор цитаты: {source_id}")
+            return quote_sources[source_id]
+        data["evidence"] = [
+            {**resolve_source(item), "kind": item.get("kind")} for item in data["evidence"]]
+        calculation = data.get("volume_calculation")
+        if isinstance(calculation, dict):
+            for operand in calculation.values():
+                source = resolve_source(operand)
+                operand.update(source)
     evidence = []
-    for item in data["evidence"]:
+    calculation = data.get("volume_calculation")
+    source_evidence = list(data["evidence"])
+    if calculation is not None:
+        if not isinstance(calculation, dict) or set(calculation) != {"area", "thickness"}:
+            raise ValueError("Некорректный расчет объема")
+        for operand in calculation.values():
+            if not isinstance(operand, dict):
+                raise ValueError("Некорректный операнд расчета")
+            operand["page"] = int(operand["page"]) if isinstance(operand.get("page"), str) and operand["page"].isdigit() else operand.get("page")
+            source_evidence.append({"page": operand.get("page"), "quote": operand.get("quote"), "kind": "volume"})
+    for item in source_evidence:
         if not isinstance(item, dict):
             raise ValueError("Некорректное доказательство")
         page, quote, kind = item.get("page"), item.get("quote"), item.get("kind")
@@ -299,8 +363,22 @@ def parse_audit_response(raw, context, comment_required=True):
         if not normalized_quote or not any(normalized_quote in _quote_text(piece)
                                            for piece in context[page].split("\n[...]\n")):
             raise QuoteValidationError(page, quote)
-        evidence.append({"page": page, "quote": quote.strip(), "kind": kind})
+        entry = {"page": page, "quote": quote.strip(), "kind": kind}
+        if entry not in evidence:
+            evidence.append(entry)
     data["evidence"] = evidence
+    if calculation is not None:
+        if not data["work_found"]:
+            raise ValueError("Расчет объема невозможен без найденной работы")
+        actual, matches = _area_thickness_volume(
+            calculation, evidence, expected_volume, expected_unit, formula)
+        data.update(found_volume=actual, found_unit="м3",
+                    volume_confirmed=matches, unit_confirmed=True)
+        area, thickness = calculation["area"], calculation["thickness"]
+        detail = f"Расчет по ПД: {area['value']} {area['unit']} × {thickness['value']} {thickness['unit']} = {actual} м3."
+        if not matches:
+            detail += f" Заявлено в ВОР: {expected_volume} {expected_unit}; объем не совпадает."
+        data["discrepancy_details"] = detail + " " + data["discrepancy_details"]
     page = data["found_page"]
     if not data["work_found"]:
         if page not in (None, "", "-") or evidence or any(data[f] for f in ("volume_confirmed", "unit_confirmed")):
@@ -317,6 +395,8 @@ def parse_audit_response(raw, context, comment_required=True):
         data["found_page"] = str(page)
         for flag, kind, field in (("volume_confirmed", "volume", "found_volume"),
                                   ("unit_confirmed", "unit", "found_unit")):
+            if calculation is not None:
+                continue  # Derived volume/unit are proved by both dimensioned operands above.
             quotes = [e["quote"] for e in evidence if e["kind"] == kind]
             if kind == "unit" and not quotes and data[field] != "-":
                 # A volume quote can also prove its unit; no second copy is needed.
@@ -352,7 +432,7 @@ def parse_audit_response(raw, context, comment_required=True):
 
 def audit_text_pages(index, target_indices, ask, work_name, volume, reference="", comment="",
                      max_contexts=6, max_context_chars=10000, max_total_chars=60000, max_pages=4, unit=""):
-    """Check references first; preserve mismatches and bound alternative locations."""
+    """Check references first; the first located work stops the search."""
     if min(max_contexts, max_context_chars, max_total_chars, max_pages) <= 0:
         raise ValueError("Лимиты поиска должны быть положительными")
     primary = list(dict.fromkeys(i for i in target_indices if 0 <= i < len(index.texts)))
@@ -369,17 +449,7 @@ def audit_text_pages(index, target_indices, ask, work_name, volume, reference=""
                            level="WARNING" if degraded else "DEFAULT")
     visited, contexts, characters = set(), 0, 0
     failures = {i: error for i, error in index.errors.items() if i in primary}
-    best, last_failure, locations = None, None, 0
-    confirmation_used = False
-
-    def quality(result):
-        # A complete finding outranks an unresolved description. A concrete
-        # mismatch on a referenced page already terminates before this choice.
-        on_reference = int(result["found_page"]) - 1 in primary
-        actual_known = result["found_volume"] != "-" and result["found_unit"] != "-"
-        return (on_reference and actual_known, actual_known, on_reference,
-                sum(bool(result.get(flag)) for flag in
-                    ("volume_confirmed", "unit_confirmed", "comment_confirmed")))
+    last_failure, confirmation_used = None, False
 
     def finish(result):
         result = dict(result)
@@ -517,14 +587,11 @@ def audit_text_pages(index, target_indices, ask, work_name, volume, reference=""
             last_failure = result
             if result.get("recoverable"):
                 continue
-            if best is not None:
-                retained = dict(best)
-                retained.update(status=result["status"], search_complete=False)
-                retained["discrepancy_details"] += " Проверка следующего контекста не завершена: " + result["discrepancy_details"]
-                return finish(retained)
             return finish(result)
         if result["work_found"]:
-            locations += 1
+            # First confirmed work stops the search: one bounded confirmation
+            # at most; a mismatched quantity/unit is a finding, never a
+            # reason to look for another work.
             with span("confirm-quantities", as_type="chain", input=result) as observation:
                 confirmed = confirm_quantities(result)
                 observation.update(output=confirmed, status_message=(
@@ -532,18 +599,11 @@ def audit_text_pages(index, target_indices, ask, work_name, volume, reference=""
                     level=result_level(confirmed["status"]))
             if confirmed["status"] == TECHNICAL_ERROR:
                 return finish(confirmed)
-            if best is None or quality(confirmed) > quality(best):
-                best = confirmed
-            on_reference = int(confirmed["found_page"]) - 1 in primary
-            actual_known = confirmed["found_volume"] != "-" and confirmed["found_unit"] != "-"
-            if (on_reference and actual_known) or locations >= 2:
-                return finish(best)
-    if best is not None:
-        if best["found_volume"] == "-" or best["found_unit"] == "-":
-            best = dict(best)
-            best.update(status=INCOMPLETE, search_complete=False)
-            best["discrepancy_details"] += " Найденная работа сохранена; количество или единица не установлены."
-        return finish(best)
+            if confirmed["found_volume"] == "-" or confirmed["found_unit"] == "-":
+                confirmed = dict(confirmed)
+                confirmed.update(status=INCOMPLETE, search_complete=False)
+                confirmed["discrepancy_details"] += " Найденная работа сохранена; количество или единица не установлены."
+            return finish(confirmed)
     if last_failure is not None:
         return finish(last_failure)
     reason = "Работа не найдена в отобранных фрагментах; это не доказывает ее отсутствие в PDF."
