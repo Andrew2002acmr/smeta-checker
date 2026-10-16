@@ -70,7 +70,15 @@ class PDFTextSource:
         self._owner_thread = threading.get_ident()
         if min(dpi, max_pixels, max_side) <= 0:
             raise ValueError("Параметры OCR должны быть положительными")
-        self._doc = doc
+        if getattr(doc, "is_closed", False):
+            raise ValueError(
+                "PDF-документ закрыт: переоткройте файл и повторите подготовку позиции")
+        self._pdf_bytes = b""
+        if getattr(doc, "name", "") and not getattr(doc, "is_dirty", False):
+            self._doc = pymupdf.open(doc.name)
+        else:
+            self._pdf_bytes = doc.tobytes(no_new_id=True)
+            self._doc = pymupdf.open(stream=self._pdf_bytes, filetype="pdf")
         self._cache_dir = Path(cache_dir)
         self.language = language
         self.dpi = dpi
@@ -81,8 +89,12 @@ class PDFTextSource:
         self._ocr_texts = {}
         self._ocr_errors = {}
         self._table_rows = {}
-        self._native_texts, self._native_errors, pending = self._read_native(doc)
-        self._pdf_hash = self._pdf_sha256(doc)
+        try:
+            self._native_texts, self._native_errors, pending = self._read_native(self._doc)
+            self._pdf_hash = self._pdf_sha256(self._doc)
+        except BaseException:
+            self.close()
+            raise
         self._settings_key = self._settings_key_for(
             language, dpi, max_pixels, max_side)
         self._pending = set(pending)
@@ -96,6 +108,14 @@ class PDFTextSource:
     @property
     def pending_ocr(self):
         return tuple(sorted(self._pending))
+
+    def close(self):
+        """Закрыть приватный документ; общий документ пула не трогает."""
+        try:
+            if self._doc is not None and not getattr(self._doc, "is_closed", False):
+                self._doc.close()
+        except Exception:
+            pass
 
     def _require_owner_thread(self, what):
         if threading.get_ident() != self._owner_thread:

@@ -48,7 +48,7 @@ class FakeClient:
 
 
 class AppFlowTests(unittest.TestCase):
-    def _run_audit(self, folder, header, rows):
+    def _run_audit(self, folder, header, rows, preparation_fault_on_call=None):
         with fitz.open() as pdf:
             for content in ("Copper cable specification. " * 20, "Copper cable 45 m. " * 20):
                 page = pdf.new_page()
@@ -58,9 +58,20 @@ class AppFlowTests(unittest.TestCase):
             writer = csv.writer(stream, delimiter=";")
             writer.writerow(header)
             writer.writerows(rows)
+        from pdf_text import PDFTextSource
+        real_for_position = PDFTextSource.for_position
+        state = {"calls": 0}
+
+        def _maybe_flaky(source, *args, **kwargs):
+            state["calls"] += 1
+            if preparation_fault_on_call == state["calls"]:
+                raise RuntimeError("Simulated preparation failure")
+            return real_for_position(source, *args, **kwargs)
+
         with patch.dict(os.environ, {"YANDEX_CLOUD_API_KEY": "test-only", "YANDEX_CLOUD_FOLDER": "test-folder"}), \
                 patch("openai.OpenAI", FakeClient), \
-                patch("audit_tracing._configured_client", return_value=None):
+                patch("audit_tracing._configured_client", return_value=None), \
+                patch("pdf_text.PDFTextSource.for_position", _maybe_flaky):
             at = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app.py"), default_timeout=30)
             at.run()
             self.assertEqual(len(at.exception), 0, str(at.exception))
@@ -222,6 +233,37 @@ class AppFlowTests(unittest.TestCase):
             self.assertEqual(table["Статус аудита"].tolist(), ["ОК"])
             for pdf in at.session_state["pdf_pool"].values():
                 pdf.close()
+
+
+    def test_broken_preparation_does_not_abort_other_positions(self):
+        with tempfile.TemporaryDirectory(prefix="smeta-audit-test-") as folder:
+            at = self._run_audit(
+                Path(folder),
+                ["№ п.п.", "Наименование работ, ресурсов, затрат по проекту",
+                 "Объём работ / Количество", "Ед. изм.", "Ссылка на ПД",
+                 "Наименование файла", "Номер страниц (через пробел)"],
+                [[1, "Copper cable", 45, "m", "", "project.pdf", 1],
+                 [2, "Pump station", 1, "шт", "", "project.pdf", 2],
+                 [3, "Copper cable", 45, "m", "", "project.pdf", 2]],
+                preparation_fault_on_call=2)
+            try:
+                saved = at.session_state["audit_results"]["vor.csv"]
+                table = saved["df"]
+                self.assertEqual(table["Статус аудита"].tolist(),
+                                 ["ОК", "Технический сбой", "Ошибка"])
+                self.assertIn("Simulated preparation failure",
+                              table["Детали расхождений"].iloc[1])
+                self.assertEqual(table["[ПД] Запросов"].iloc[1], 0)
+                self.assertEqual(table["[ПД] Поиск завершён"].iloc[1], "нет")
+                self.assertEqual(saved["tracking"][1]["work_name"], "Pump station")
+                self.assertIn("trace_id", saved["tracking"][1])
+                excel = pd.read_excel(io.BytesIO(saved["excel_bytes"]))
+                statuses = dict(zip(excel["№"], excel["Статус аудита"]))
+                self.assertEqual(statuses, {1: "ОК", 2: "Проверка не выполнена",
+                                            3: "Обнаружено расхождение"})
+            finally:
+                for pdf in at.session_state["pdf_pool"].values():
+                    pdf.close()
 
 
 if __name__ == "__main__":

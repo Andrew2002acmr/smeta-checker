@@ -491,6 +491,12 @@ else:
     # Растянутая кнопка на всю ширину боковой панели
     if st.sidebar.button("🗑️ Очистить все файлы", use_container_width=True):
         st.session_state.uploader_key += 1
+        for stale_doc in st.session_state.pdf_pool.values():
+            try:
+                if not stale_doc.is_closed:
+                    stale_doc.close()
+            except Exception:
+                pass
         st.session_state.pdf_pool = {}
         st.session_state.audit_results = {}
         st.session_state.audit_run_issues = []
@@ -612,6 +618,7 @@ with main_tab1:
             st.button("⏳ Выполняется аудит (подождите)...", disabled=True, use_container_width=True)
 
             trace_run = None
+            pdf_text_sources = {}
             try:
                 if not YANDEX_API_KEY:
                     st.error("Пожалуйста, укажите API Key в .env!")
@@ -711,57 +718,65 @@ with main_tab1:
                             loc_desc = "Страница не указана"
                             primary_phys_pages = []
                             text_index = None
+                            prep_error = None
                             with position_trace.stage("prepare-position", input={"pages": w_page}) as preparation:
                                 preparation.update(metadata={"pdf_name": target_pdf_name,
                                                              "pdf_bound": target_pdf_doc is not None})
-                                if target_pdf_doc is not None:
-                                    with position_trace.stage("parse-page-reference", input=w_page) as observation:
-                                        target_indices, loc_desc, primary_phys_pages = get_optimized_page_indices(
-                                            target_pdf_doc, w_page)
-                                        observation.update(output={"pages": primary_phys_pages,
-                                                                   "description": loc_desc},
-                                                           status_message=loc_desc[:200],
-                                                           level="DEFAULT" if target_indices else "WARNING")
-                                    if target_pdf_name not in pdf_text_sources:
-                                        progress_bar.progress(current_row_idx / max(total_items, 1),
-                                                              text=f"Подготовка Markdown и таблиц PDF: {target_pdf_name}")
-                                        with position_trace.stage("index-native-pdf",
-                                                                  input={"pdf_name": target_pdf_name,
-                                                                         "extractor": "pymupdf4llm"}) as observation:
-                                            source = PDFTextSource(target_pdf_doc)
-                                            pdf_text_sources[target_pdf_name] = source
-                                            observation.update(output={"pages": source.page_count,
-                                                "page_chars": [len(t) for t in source.native_index.texts],
-                                                "pending_ocr": [i + 1 for i in source.pending_ocr],
-                                                "errors": source.native_index.errors},
+                                try:
+                                    if target_pdf_doc is not None:
+                                        with position_trace.stage("parse-page-reference", input=w_page) as observation:
+                                            target_indices, loc_desc, primary_phys_pages = get_optimized_page_indices(
+                                                target_pdf_doc, w_page)
+                                            observation.update(output={"pages": primary_phys_pages,
+                                                                       "description": loc_desc},
+                                                               status_message=loc_desc[:200],
+                                                               level="DEFAULT" if target_indices else "WARNING")
+                                        if target_pdf_name not in pdf_text_sources:
+                                            progress_bar.progress(current_row_idx / max(total_items, 1),
+                                                                  text=f"Подготовка Markdown и таблиц PDF: {target_pdf_name}")
+                                            with position_trace.stage("index-native-pdf",
+                                                                      input={"pdf_name": target_pdf_name,
+                                                                             "extractor": "pymupdf4llm"}) as observation:
+                                                source = PDFTextSource(target_pdf_doc)
+                                                pdf_text_sources[target_pdf_name] = source
+                                                observation.update(output={"pages": source.page_count,
+                                                    "page_chars": [len(t) for t in source.native_index.texts],
+                                                    "pending_ocr": [i + 1 for i in source.pending_ocr],
+                                                    "errors": source.native_index.errors},
+                                                    status_message=(
+                                                        f"Страниц: {source.page_count}; "
+                                                        f"сканов: {len(source.pending_ocr)}; "
+                                                        f"сбоев чтения: {len(source.native_index.errors)}"),
+                                                    level="ERROR" if source.native_index.errors else "DEFAULT")
+                                        source = pdf_text_sources[target_pdf_name]
+                                        before_ocr, before_hits = source.ocr_count, source.cache_hits
+                                        with position_trace.stage("prepare-ocr-snapshot",
+                                                                  input={"pages": primary_phys_pages, "work": w_name}) as observation:
+                                            text_index = source.for_position(
+                                                target_indices, w_name, w_vol, w_ref, w_comment)
+                                            new_ocr = source.ocr_count - before_ocr
+                                            ocr_hits = source.cache_hits - before_hits
+                                            observation.update(output={
+                                                "new_ocr_pages": new_ocr,
+                                                "cache_hits": ocr_hits,
+                                                "pending_ocr": [i + 1 for i in text_index.pending_ocr],
+                                                "errors": {i + 1: e for i, e in text_index.errors.items()}},
                                                 status_message=(
-                                                    f"Страниц: {source.page_count}; "
-                                                    f"сканов: {len(source.pending_ocr)}; "
-                                                    f"сбоев чтения: {len(source.native_index.errors)}"),
-                                                level="ERROR" if source.native_index.errors else "DEFAULT")
-                                    source = pdf_text_sources[target_pdf_name]
-                                    before_ocr, before_hits = source.ocr_count, source.cache_hits
-                                    with position_trace.stage("prepare-ocr-snapshot",
-                                                              input={"pages": primary_phys_pages, "work": w_name}) as observation:
-                                        text_index = source.for_position(
-                                            target_indices, w_name, w_vol, w_ref, w_comment)
-                                        new_ocr = source.ocr_count - before_ocr
-                                        ocr_hits = source.cache_hits - before_hits
-                                        observation.update(output={
-                                            "new_ocr_pages": new_ocr,
-                                            "cache_hits": ocr_hits,
-                                            "pending_ocr": [i + 1 for i in text_index.pending_ocr],
-                                            "errors": {i + 1: e for i, e in text_index.errors.items()}},
-                                            status_message=(
-                                                f"Новых OCR: {new_ocr}; из кеша: {ocr_hits}; "
-                                                f"отложено: {len(text_index.pending_ocr)}; "
-                                                f"ошибок: {len(text_index.errors)}"),
-                                            level="ERROR" if text_index.errors else "DEFAULT")
+                                                    f"Новых OCR: {new_ocr}; из кеша: {ocr_hits}; "
+                                                    f"отложено: {len(text_index.pending_ocr)}; "
+                                                    f"ошибок: {len(text_index.errors)}"),
+                                                level="ERROR" if text_index.errors else "DEFAULT")
+                                except Exception as exc:
+                                    prep_error = f"Подготовка позиции не выполнена: {type(exc).__name__}: {str(exc)[:300]}"
+                                    preparation.update(level="ERROR", status_message=prep_error[:200],
+                                                       output={"prep_error": prep_error})
                                 preparation.update(output={"pdf_bound": target_pdf_doc is not None,
                                                            "pages": primary_phys_pages,
-                                                           "reference_description": loc_desc},
+                                                           "reference_description": loc_desc,
+                                                           "prep_error": prep_error},
                                                    status_message=f"{target_pdf_name or 'PDF не привязан'}; {loc_desc[:200]}",
-                                                   level="DEFAULT" if target_pdf_doc is not None else "WARNING")
+                                                   level="ERROR" if prep_error else (
+                                                       "DEFAULT" if target_pdf_doc is not None else "WARNING"))
 
                             tasks.append({
                                 "idx": r_idx,
@@ -777,6 +792,7 @@ with main_tab1:
                                 "target_pdf_name": target_pdf_name,
                                 "explicit_refs": list(explicit_refs),
                                 "bind_error": bind_error,
+                                "prep_error": prep_error,
                                 "target_indices": target_indices,
                                 "loc_desc": loc_desc,
                                 "primary_phys_pages": primary_phys_pages
@@ -784,7 +800,9 @@ with main_tab1:
 
 
                         def worker_check_row(task):
-                            if task.get("bind_error"):
+                            if task.get("prep_error"):
+                                audit = technical_error(task["prep_error"])
+                            elif task.get("bind_error"):
                                 audit = empty_result("Ошибка", task["bind_error"])
                             elif task["text_index"] is None:
                                 wanted = "; ".join(task.get("explicit_refs") or []) or task["target_pdf_name"]
@@ -1019,6 +1037,11 @@ with main_tab1:
                     prog_placeholder.empty()
 
             finally:
+                for source in list((pdf_text_sources or {}).values()):
+                    try:
+                        source.close()
+                    except Exception:
+                        pass
                 if trace_run is not None:
                     trace_run.close()
                 st.session_state.is_auditing = False

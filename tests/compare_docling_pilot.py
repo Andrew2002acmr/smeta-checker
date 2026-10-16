@@ -210,9 +210,12 @@ def main():
     started = time.monotonic()
     with pymupdf.open(args.pdf) as native_doc:
         source = PDFTextSource(native_doc)
-        baseline_texts = list(source.native_index.texts)
-        baseline_rows = [source._table_rows_for(idx) if text.strip() else ()
-                         for idx, text in enumerate(baseline_texts)]
+        try:
+            baseline_texts = list(source.native_index.texts)
+            baseline_rows = [source._table_rows_for(idx) if text.strip() else ()
+                             for idx, text in enumerate(baseline_texts)]
+        finally:
+            source.close()
     baseline_seconds = round(time.monotonic() - started, 3)
     baseline = PageTextIndex(tuple(baseline_texts), table_rows=tuple(baseline_rows))
 
