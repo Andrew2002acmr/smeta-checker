@@ -118,6 +118,16 @@ class NativeIndexTests(unittest.TestCase):
             snapshot = source.for_position([0], "Кабель", "45")
         self.assertEqual(snapshot.candidates("Насосная станция", "", "", "2"), [1])
 
+    def test_drawing_padding_does_not_displace_area_from_bounded_context(self):
+        native = "\n".join(" " * 300 + line for line in (
+            ["Укладка экрана Дорнит"] * 30 + ["Площадь крепления - 526м² (площадка КНС)."]))
+        doc, _ = make_doc([native], images=False)
+        with TemporaryDirectory() as cache:
+            snapshot = PDFTextSource(doc, cache_dir=cache).for_position([0], "Укладка экрана Дорнит", "526")
+        fragment = snapshot.fragment(0, "Укладка экрана Дорнит", "", "", "526", 1500)
+        self.assertIn("Площадь крепления - 526м² (площадка КНС).", fragment)
+        self.assertIn("Укладка экрана Дорнит", fragment)
+
 
 class SelectionTests(unittest.TestCase):
     def test_selected_scans_max_4_per_position(self):
