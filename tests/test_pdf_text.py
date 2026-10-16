@@ -1,14 +1,19 @@
-"""Tests for pdf_text.PDFTextSource: selective bounded OCR with cache."""
+"""Tests for pdf_text.PDFTextSource: structured Markdown index, bounded OCR."""
 
-import sys
+import json
 import os
+import re
+import sys
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from audit_core import QuoteValidationError, parse_audit_response
+from lxml import html
 from pdf_text import PDFTextSource
 
 
@@ -52,11 +57,15 @@ class FakePage:
         if self._fail is not None:
             raise self._fail
         return self._ocr_text
+
     def find_tables(self):
         from types import SimpleNamespace
         self._table_calls.append(self._idx)
         tables = [SimpleNamespace(extract=lambda rows=rows: rows) for rows in self._tables]
         return SimpleNamespace(tables=tables)
+
+
+_CLONE_ORIGINS = {}
 
 
 class FakeDoc:
@@ -65,6 +74,17 @@ class FakeDoc:
         self.name = ""
         self.is_dirty = False
         self._payload = payload
+        # Private-clone lookup for the patched pymupdf.open: the last doc
+        # registered under a payload wins. Every test below constructs its
+        # PDFTextSource before creating the next doc, so the lookup always
+        # resolves to the doc under test.
+        _CLONE_ORIGINS[payload] = self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
 
     def __len__(self):
         return len(self._pages)
@@ -94,11 +114,69 @@ def make_doc(native_texts, ocr_texts=None, **kwargs):
     return FakeDoc(pages, payload=payload), calls
 
 
+def _fake_to_markdown(doc, pages=None, **kwargs):
+    """Per-page Markdown chunk derived from the FakeDoc native text."""
+    idx = list(pages or [0])[0]
+    return [{"text": doc[idx].get_text(sort=True),
+             "metadata": {"page": idx},
+             "toc_items": [],
+             "page_boxes": []}]
+
+
+def _fake_open_pdf(*args, **kwargs):
+    """Yield the FakeDoc itself as the private Markdown clone."""
+    stream = kwargs.get("stream", args[0] if args else None)
+    try:
+        return _CLONE_ORIGINS[stream]
+    except KeyError:
+        raise AssertionError("FakeSourceTests: unknown PDF stream for pymupdf.open")
+
+
+class FakeSourceTests(unittest.TestCase):
+    """Fake-document tests: clone opening and Markdown extraction are faked.
+
+    Production Markdown calls the private clone, never the source doc, so the
+    clone opening is faked here as well. Real-PDF tests do not inherit this
+    base and exercise PyMuPDF4LLM directly.
+    """
+
+    def setUp(self):
+        markdown = patch("pdf_text.pymupdf4llm.to_markdown",
+                         side_effect=_fake_to_markdown)
+        markdown.start()
+        self.addCleanup(markdown.stop)
+        reopen = patch("pdf_text.pymupdf.open", side_effect=_fake_open_pdf)
+        reopen.start()
+        self.addCleanup(reopen.stop)
+
+
+def _insert_ruled_table(page, rows):
+    """Draw a ruled grid with one text cell per column for real-PDF tests."""
+    column_widths = [260, 80, 90]
+    xs = [40]
+    for width in column_widths:
+        xs.append(xs[-1] + width)
+    top, row_height = 50, 42
+    bottom = top + row_height * len(rows)
+    for x in xs:
+        page.draw_line((x, top), (x, bottom))
+    for row in range(len(rows) + 1):
+        y = top + row * row_height
+        page.draw_line((xs[0], y), (xs[-1], y))
+    for r, cells in enumerate(rows):
+        for c, value in enumerate(cells):
+            # Match specification tables: short cells are centred alongside
+            # wrapped descriptions, not aligned with only their first line.
+            baseline = top + r * row_height + row_height / 2 + 3.5
+            baseline -= (len(value.splitlines()) - 1) * 6.875
+            page.insert_text((xs[c] + 10, baseline), value, fontsize=10)
+
+
 def pending_of(index):
     return index.pending_ocr
 
 
-class NativeIndexTests(unittest.TestCase):
+class NativeIndexTests(FakeSourceTests):
     def test_no_eager_ocr_on_init(self):
         natives = ["настоящий текстовый слой страницы. " * 20 for _ in range(3)]
         natives[1] = "короткий скан"
@@ -129,7 +207,7 @@ class NativeIndexTests(unittest.TestCase):
         self.assertIn("Укладка экрана Дорнит", fragment)
 
 
-class SelectionTests(unittest.TestCase):
+class SelectionTests(FakeSourceTests):
     def test_selected_scans_max_4_per_position(self):
         natives = [""] * 10
         doc, calls = make_doc(natives)
@@ -154,7 +232,8 @@ class SelectionTests(unittest.TestCase):
             self.assertEqual(snapshot.texts[idx], "")
             self.assertNotIn(idx, snapshot.errors)
 
-class CachedRankingTests(unittest.TestCase):
+
+class CachedRankingTests(FakeSourceTests):
     def test_cached_scan_ranks_without_current_reference(self):
         natives = [""] * 6
         station = "Насосная станция кабельный ввод 45 метров. " * 10
@@ -174,7 +253,7 @@ class CachedRankingTests(unittest.TestCase):
             self.assertLessEqual(second.ocr_count, 4)
 
 
-class DiscoveryTests(unittest.TestCase):
+class DiscoveryTests(FakeSourceTests):
     def test_wrong_reference_uses_spare_allowance_in_page_order(self):
         natives = [""] * 10
         doc, calls = make_doc(natives)
@@ -187,14 +266,13 @@ class DiscoveryTests(unittest.TestCase):
         self.assertNotIn(9, [c["idx"] for c in calls])
 
 
-
-class TableTests(unittest.TestCase):
+class TableTests(FakeSourceTests):
     def test_related_native_pages_keep_flattened_table_rows(self):
         natives = [("Кабель медный в смете. " * 20),
                    ("Насосная станция общие данные. " * 20)]
         table_calls = []
         doc, _ = make_doc(natives, table_calls=table_calls,
-                           table_pages={0: [[[ "Кабель медный", "45", "м"]]]})
+                           table_pages={0: [[["Кабель медный", "45", "м"]]]})
         with TemporaryDirectory() as cache:
             snapshot = PDFTextSource(doc, cache_dir=cache).for_position([0], "Кабель", "45")
         self.assertEqual(snapshot.table_rows[0], ("Кабель медный | 45 | м",))
@@ -205,7 +283,7 @@ class TableTests(unittest.TestCase):
         natives = ["Кабель медный позиция %d. " % idx * 20 for idx in range(12)]
         table_calls = []
         doc, _ = make_doc(natives, table_calls=table_calls,
-                           table_pages={idx: [[[ "Кабель медный", "45", "м"]]] for idx in range(12)})
+                           table_pages={idx: [[["Кабель медный", "45", "м"]]] for idx in range(12)})
         with TemporaryDirectory() as cache:
             source = PDFTextSource(doc, cache_dir=cache)
             source.for_position([0], "Кабель", "45")
@@ -215,7 +293,7 @@ class TableTests(unittest.TestCase):
         self.assertEqual(table_calls, first_pass)
 
 
-class CacheTests(unittest.TestCase):
+class CacheTests(FakeSourceTests):
     def test_cached_ocr_reused_across_source_instances(self):
         natives = [""] * 6
         with TemporaryDirectory() as cache:
@@ -271,7 +349,7 @@ class CacheTests(unittest.TestCase):
             self.assertIn("ok-", snapshot.texts[0] + snapshot.texts[2])
 
 
-class ThreadingTests(unittest.TestCase):
+class ThreadingTests(FakeSourceTests):
     def test_native_and_ocr_access_main_thread_only(self):
         natives = ["текст. " * 60]
         doc, _ = make_doc(natives)
@@ -284,7 +362,7 @@ class ThreadingTests(unittest.TestCase):
                                 "Кабель", "45").result)
 
 
-class BoundsTests(unittest.TestCase):
+class BoundsTests(FakeSourceTests):
     def test_huge_drawing_never_renders_above_limits(self):
         max_pixels, max_side, dpi = 12000000, 4096, 200
         natives = [""] * 2
@@ -303,7 +381,8 @@ class BoundsTests(unittest.TestCase):
             self.assertLessEqual(width_px * height_px, max_pixels)
             self.assertLessEqual(max(width_px, height_px), max_side)
 
-class NativeDetectionTests(unittest.TestCase):
+
+class NativeDetectionTests(FakeSourceTests):
     def test_good_short_native_page_not_forced_ocr(self):
         doc, calls = make_doc(["Кабель медный 45 метров. Коротко, но ясно."],
                               images=False)
@@ -341,6 +420,99 @@ class RealPDFTests(unittest.TestCase):
             self.assertEqual(index.pending_ocr, ())
             self.assertEqual(source.ocr_count, 0)
             self.assertIn("Cable 45 m", index.texts[0])
+
+    def test_html_table_preserves_multiline_work_quantity_and_unit(self):
+        import pymupdf
+        with pymupdf.open() as doc:
+            page = doc.new_page()
+            _insert_ruled_table(page, [["Work", "Quantity", "Unit"],
+                                       ["Copper cable\ninstallation", "45", "m"],
+                                       ["Steel pipe", "10", "pcs"]])
+            with TemporaryDirectory() as cache:
+                snapshot = PDFTextSource(doc, cache_dir=cache).for_position(
+                    [0], "Copper cable", "45")
+
+        def has_work_row(text):
+            for row in html.fromstring(text).xpath(".//tr"):
+                cells = [" ".join(cell.itertext()).strip() for cell in row]
+                if cells == ["Copper cable installation", "45", "m"]:
+                    return True
+            return False
+
+        self.assertTrue(has_work_row(snapshot.texts[0]), snapshot.texts[0])
+        fragment = snapshot.fragment(0, "Copper cable", "", "", "45", 2500)
+        self.assertTrue(has_work_row(fragment), fragment)
+
+    def test_two_page_fragments_validate_exact_quotes_and_reject_fabrication(self):
+        import pymupdf
+        with pymupdf.open() as doc:
+            first = doc.new_page()
+            first.insert_textbox(pymupdf.Rect(40, 40, 550, 300),
+                                 "Copper cable installation scope of work. " * 8,
+                                 fontsize=11)
+            second = doc.new_page()
+            _insert_ruled_table(second, [["Work", "Quantity", "Unit"],
+                                         ["Copper cable", "45", "m"],
+                                         ["Steel pipe", "10", "pcs"]])
+            with TemporaryDirectory() as cache:
+                snapshot = PDFTextSource(doc, cache_dir=cache).for_position(
+                    [0], "Copper cable", "45")
+                context = {
+                    1: snapshot.fragment(0, "Copper cable", "", "", "45", 2500),
+                    2: snapshot.fragment(1, "Copper cable", "", "", "45", 2500),
+                }
+        work_line = next(line for line in context[1].splitlines()
+                         if "Copper cable" in line)
+        row_line = next(row for row in re.findall(r"<tr\b[^>]*>.*?</tr>", context[2], re.DOTALL)
+                        if "Copper cable" in row and ">45<" in row)
+        data = {
+            "work_found": True,
+            "volume_confirmed": True,
+            "unit_confirmed": True,
+            "comment_confirmed": False,
+            "found_volume": "45",
+            "found_unit": "m",
+            "found_page": "2",
+            "evidence": [
+                {"page": 1, "quote": work_line, "kind": "work"},
+                {"page": 2, "quote": row_line, "kind": "work"},
+                {"page": 2, "quote": row_line, "kind": "volume"},
+                {"page": 2, "quote": row_line, "kind": "unit"},
+            ],
+            "discrepancy_details": "Confirmed",
+        }
+        result = parse_audit_response(json.dumps(data), context,
+                                      comment_required=False)
+        self.assertEqual(result["status"], "ОК")
+        self.assertEqual(result["found_page"], "2")
+        self.assertEqual(result["found_pages"], [1, 2])
+        fabricated = json.loads(json.dumps(data))
+        fabricated["found_volume"] = "999"
+        fabricated["evidence"][2] = {"page": 2, "quote": "Copper cable 999 m",
+                                     "kind": "volume"}
+        with self.assertRaises(QuoteValidationError):
+            parse_audit_response(json.dumps(fabricated), context,
+                                 comment_required=False)
+
+    def test_rotated_source_document_is_never_mutated(self):
+        import pymupdf
+        with pymupdf.open() as build:
+            page = build.new_page()
+            page.insert_text((50, 50), "Cable 45 m")
+            page.set_rotation(90)
+            pdf_bytes = build.tobytes()
+        with pymupdf.open(stream=pdf_bytes, filetype="pdf") as doc:
+            pristine = doc.tobytes(no_new_id=True)
+            self.assertEqual(doc[0].rotation, 90)
+            self.assertFalse(doc.is_dirty)
+            with TemporaryDirectory() as cache:
+                source = PDFTextSource(doc, cache_dir=cache)
+                self.assertEqual(doc[0].rotation, 90)
+                self.assertFalse(doc.is_dirty)
+                self.assertEqual(doc.tobytes(no_new_id=True), pristine)
+                source.for_position([0], "Cable", "45")
+            self.assertEqual(doc[0].rotation, 90)
+            self.assertEqual(doc.tobytes(no_new_id=True), pristine)
 
     @unittest.skipUnless(os.environ.get("TESSDATA_PREFIX"), "Set TESSDATA_PREFIX for real OCR")
     def test_real_scan_cache_survives_pdf_reopen(self):

@@ -1,4 +1,4 @@
-"""Compare PyMuPDF and Docling page extraction without live LLM requests.
+"""Compare PyMuPDF4LLM and Docling page extraction without live LLM requests.
 
 Run: python tests/compare_docling_pilot.py --pdf <path.pdf> --expected <path.json> --output <dir>
 Optional: --vor <path.xlsx> to read positions from a real VOR workbook.
@@ -223,7 +223,7 @@ def main():
         "page_count": page_count,
         "docling_ocr": args.docling_ocr,
         "positions_source": str((args.expected or args.vor).resolve()),
-        "baseline": {"engine": "pymupdf-native+find_tables", "seconds": baseline_seconds,
+        "baseline": {"engine": "pymupdf4llm-html-tables+find_tables", "seconds": baseline_seconds,
                      "nonempty_pages": sum(bool(t.strip()) for t in baseline_texts),
                      "table_rows": sum(len(rows) for rows in baseline_rows),
                      **rank_metrics(baseline, cases)},

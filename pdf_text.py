@@ -1,4 +1,4 @@
-"""Native PDF indexing and bounded OCR of scans related to a VOR position."""
+"""Structured PDF Markdown indexing and bounded OCR of related scans."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import os
 import math
 import re
 import pymupdf
+import pymupdf4llm
 import threading
 import shutil
 from pathlib import Path
@@ -62,7 +63,7 @@ def bounded_page_dpi(page, dpi=200, max_pixels=12000000, max_side=4096):
 
 
 class PDFTextSource:
-    """Native text index plus bounded, cached OCR for selected scans."""
+    """PyMuPDF4LLM Markdown index plus bounded, cached OCR for selected scans."""
 
     def __init__(self, doc, cache_dir=".audit_cache/ocr", language="rus+eng",
                  dpi=200, max_pixels=12000000, max_side=4096):
@@ -120,21 +121,30 @@ class PDFTextSource:
     @staticmethod
     def _read_native(doc):
         texts, errors, scans = [], {}, []
-        for idx in range(len(doc)):
-            try:
-                page = doc[idx]
-                text = _compact_text(page.get_text(sort=True))
-                texts.append(text)
-                if len(text) >= NATIVE_MIN_CHARS:
-                    continue
-                if page.get_images():
-                    scans.append(idx)
-                elif PDFTextSource._has_vector_drawings(page):
-                    scans.append(idx)
-            except Exception as exc:
-                if len(texts) <= idx:
+        # PyMuPDF4LLM removes page rotation in-place. Keep the source used by
+        # the inspector, OCR and document hash unchanged.
+        if doc.name and not doc.is_dirty:
+            markdown_doc = pymupdf.open(doc.name)
+        else:
+            markdown_doc = pymupdf.open(
+                stream=doc.tobytes(no_new_id=True), filetype="pdf")
+        with markdown_doc:
+            for idx in range(len(doc)):
+                try:
+                    page = markdown_doc[idx]
+                    # Scan eligibility uses compacted source text, not Markdown markup.
+                    native = _compact_text(page.get_text(sort=True))
+                    if len(native) < NATIVE_MIN_CHARS:
+                        if page.get_images() or PDFTextSource._has_vector_drawings(page):
+                            scans.append(idx)
+                    chunks = pymupdf4llm.to_markdown(
+                        markdown_doc, pages=[idx], page_chunks=True,
+                        table_output="html", use_ocr=False, write_images=False,
+                        embed_images=False, show_progress=False)
+                    texts.append(_compact_text(chunks[0]["text"]))
+                except Exception as exc:
                     texts.append("")
-                errors[idx] = "Сбой чтения PDF: %s" % str(exc)[:200]
+                    errors[idx] = "Сбой чтения PDF (PyMuPDF4LLM): %s" % str(exc)[:200]
         return tuple(texts), errors, scans
 
     @staticmethod
