@@ -21,6 +21,7 @@ import pandas as pd
 from dotenv import dotenv_values
 from openai.resources.responses import Responses
 from streamlit.testing.v1 import AppTest
+from export_checks import exports_match
 
 INPUTS = ROOT / "test_documents" / "yandex_qwen" / "input"
 
@@ -98,8 +99,7 @@ def run_branch(label, app_path, output):
         volume = str(row["[ПД] Найденный объем (нейросеть)"])
         expected_volume = "45" if idx < 2 else "2" if idx == 2 else "-"
         volume_ok = (expected_volume in re.findall(r"\d+", volume)) if expected_volume != "-" else volume == "-"
-        exports_ok = (str(excel.iloc[idx]["[ПД] Фактическая страница"]) == page
-                      and word.tables[0].rows[idx + 1].cells[5].text == page)
+        exports_ok = exports_match(excel, word, row, saved["tracking"][idx])
         check = {"case": case["name"], "status": status, "page": page, "found_volume": volume,
                        "details": str(row["Детали расхождений"]), "expected_status": case["expected_status"],
                        "expected_page": case["expected_page"], "expected_volume": expected_volume,

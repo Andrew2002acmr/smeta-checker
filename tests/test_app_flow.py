@@ -100,14 +100,17 @@ class AppFlowTests(unittest.TestCase):
             self.assertEqual(len(tracking[0]["evidence"]), 3)
             self.assertEqual(len(tracking[2]["evidence"]), 3)
             excel = pd.read_excel(io.BytesIO(saved["excel_bytes"]))
-            self.assertEqual(excel["[ПД] Фактическая страница"].tolist(), ["Стр. 1, 2", "-", "Стр. 1, 2"])
-            self.assertEqual(excel["[ПД] Найденные страницы"].tolist(), ["1, 2", "-", "1, 2"])
-            self.assertIn("Copper cable 45 m", str(excel["[ПД] Доказательства (цитаты со страницами)"].iloc[0]))
+            self.assertEqual(excel["№"].tolist(), [3, 2, 1])
+            self.assertEqual(excel["Статус аудита"].tolist(),
+                             ["Обнаружено расхождение", "Проверка не выполнена", "ОК"])
+            self.assertEqual(excel["Где проверить"].tolist(),
+                             ["стр. 1, 2", "Место не установлено; ссылка ВОР: стр. 2", "стр. 1, 2"])
+            self.assertFalse(any(str(col).startswith("[ПД]") for col in excel.columns))
             word = docx.Document(io.BytesIO(saved["word_bytes"]))
-            self.assertEqual(word.tables[0].rows[1].cells[5].text, "Стр. 1, 2")
-            self.assertEqual(word.tables[0].rows[2].cells[6].text, "Технический сбой")
-            self.assertIn("1, 2", word.tables[0].rows[3].cells[7].text)
-            self.assertIn("Copper cable 45 m", word.tables[0].rows[3].cells[7].text)
+            self.assertEqual([r.cells[0].text for r in word.tables[0].rows[1:]], ["3", "2", "1"])
+            self.assertIn("стр. 1, 2", word.tables[0].rows[1].cells[3].text)
+            self.assertNotIn("Simulated provider failure", str(excel.values))
+            self.assertNotIn("Simulated provider failure", word.tables[0].rows[2].cells[3].text)
             for pdf in at.session_state["pdf_pool"].values():
                 pdf.close()
 

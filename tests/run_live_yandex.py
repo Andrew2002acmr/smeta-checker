@@ -23,6 +23,7 @@ import pymupdf
 from dotenv import dotenv_values
 from openai.resources.responses import Responses
 from streamlit.testing.v1 import AppTest
+from export_checks import exports_match
 
 
 def main():
@@ -136,8 +137,7 @@ def main():
                   "found_volume": str(row["[ПД] Найденный объем (нейросеть)"]),
                   "details": str(row["Детали расхождений"]),
                   "passed": status == case["expected_status"] and page == case["expected_page"],
-                  "exports_match": str(excel.iloc[idx]["[ПД] Фактическая страница"]) == page
-                                   and word.tables[0].rows[idx + 1].cells[5].text == page}
+                  "exports_match": exports_match(excel, word, row, saved["tracking"][idx])}
         checks.append(actual)
     summary = {"model": settings.get("YANDEX_CLOUD_MODEL") or "qwen3.6-35b-a3b/latest",
                "api_calls": len(records), "cases": checks,

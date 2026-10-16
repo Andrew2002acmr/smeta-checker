@@ -7,12 +7,6 @@ from pathlib import Path
 import fitz  # PyMuPDF
 import pandas as pd
 import streamlit as st
-import docx
-from docx.shared import Inches, Pt, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.oxml import parse_xml
-from docx.oxml.ns import nsdecls
 import openai
 from dotenv import dotenv_values
 
@@ -20,7 +14,6 @@ from dotenv import dotenv_values
 # Не копируем его в os.environ: иначе старые значения переживают изменение .env.
 project_env = dotenv_values(Path(__file__).resolve().with_name(".env"), encoding="utf-8-sig")
 from vor_rules import validate_vor_formatting, get_highlighted_workbook, generate_rules_word_report
-import openpyxl
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from audit_core import (INCOMPLETE, TECHNICAL_ERROR, BudgetExceeded, RequestBudget,
                         audit_text_pages, empty_result, parse_audit_response,
@@ -28,6 +21,7 @@ from audit_core import (INCOMPLETE, TECHNICAL_ERROR, BudgetExceeded, RequestBudg
 from pdf_text import PDFTextSource, bounded_page_dpi
 from pdf_binding import resolve_pdf_name, resolve_position_pdfs, split_pdf_refs
 from audit_tracing import TracingRun
+from audit_reports import build_user_report, generate_excel_report, generate_word_report
 
 def get_setting(name: str, default: str = "") -> str:
     """Настройки: .env этого проекта, окружение процесса, Streamlit Secrets."""
@@ -84,7 +78,7 @@ def show_user_guide():
     * **Инспектор страниц:** Кликните по любой строке в таблице — ниже откроются две вкладки:
       * *Страница из ВОР* — лист, куда сослался сметчик (чтобы увидеть, почему там нет данных).
       * *Фактические страницы* — все листы с проверенными доказательствами работы, объема, единицы и примечания.
-    * **Скачивание:** Кнопка *Excel* (более подробный отчет с автошириной колонок) и *Word* (официальная ведомость сопоставления).
+    * **Скачивание:** Кнопки *Excel* и *Word* — краткие отчёты с проблемными позициями в начале, источниками и рекомендуемыми действиями. Ссылки на PDF работают, если положить отчёт рядом с исходным файлом; переход на страницу зависит от просмотрщика.
 
     ---
 
@@ -450,93 +444,6 @@ def audit_position_hybrid(text_index, target_indices, work_name, volume, unit, r
         api_client.close()
 
 
-def generate_word_report(df_final, meta):
-    """
-    Генерирует официальное заключение аудита в Word со всеми данными:
-    включая страницу из ВОР, факт в ПД и найденную страницу.
-    """
-    doc = docx.Document()
-    for s in doc.sections:
-        s.top_margin = s.bottom_margin = s.left_margin = s.right_margin = Inches(0.6)
-
-    # Шапка
-    title = doc.add_paragraph()
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r_t = title.add_run("ВЕДОМОСТЬ СОПОСТАВЛЕНИЯ И АУДИТА ВОР С ПД")
-    r_t.bold = True
-    r_t.font.size = Pt(13)
-
-    sub = doc.add_paragraph()
-    sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    sub.add_run(f"Объект: {meta.get('object_name', 'Не указано')}\nОснование: {meta.get('basis_code', 'ПД')}")
-
-    # Сводные цифры
-    total = len(df_final)
-    ok_cnt = len(df_final[df_final['Статус аудита'] == 'ОК'])
-    technical_cnt = len(df_final[df_final['Статус аудита'] == TECHNICAL_ERROR])
-    incomplete_cnt = len(df_final[df_final['Статус аудита'] == INCOMPLETE])
-    err_cnt = total - ok_cnt - technical_cnt - incomplete_cnt
-
-    p_stat = doc.add_paragraph()
-    p_stat.add_run(
-        f"Всего позиций: {total}  |  Подтверждено: {ok_cnt}  |  Ошибки: {err_cnt}  |  "
-        f"Неполные проверки: {incomplete_cnt}  |  Технические сбои: {technical_cnt}\n").bold = True
-
-    # Таблица из 8 колонок
-    table = doc.add_table(rows=1, cols=8)
-    table.alignment = WD_TABLE_ALIGNMENT.CENTER
-    table.style = 'Table Grid'
-
-    headers = [
-        "№", "Наименование работ", "[ВОР] Объем", "[ВОР] Стр.",
-        "[ПД] Факт объем", "[ПД] Стр.", "Статус", "Детали расхождений"
-    ]
-    hdr_cells = table.rows[0].cells
-    for i, h in enumerate(headers):
-        hdr_cells[i].text = h
-        hdr_cells[i].paragraphs[0].runs[0].bold = True
-        hdr_cells[i].paragraphs[0].runs[0].font.size = Pt(8.5)
-        tcPr = hdr_cells[i]._element.get_or_add_tcPr()
-        tcPr.append(parse_xml(f'<w:shd {nsdecls("w")} w:fill="E2E8F0"/>'))
-
-    # Заполняем строки
-    for _, row in df_final.iterrows():
-        r_cells = table.add_row().cells
-        r_cells[0].text = str(row.iloc[0])
-        r_cells[1].text = str(row.get("Наименование работ, ресурсов, затрат по проекту", row.iloc[1]))[:45]
-
-        # Данные из ВОР
-        vor_vol = str(row.get("[ВОР] Заявленный объем", row.get("Объем работ / Количество", "-")))
-        vor_unit = str(row.get("[ВОР] Ед. изм.", row.get("Ед. изм.", "")))
-        r_cells[2].text = f"{vor_vol} {vor_unit}".strip()
-        r_cells[3].text = str(row.get("[ВОР] Ссылка на страницу", row.get("Номер страниц (через пробел)", "-")))
-
-        # Данные из ПД (нейросеть)
-        r_cells[4].text = str(row.get("[ПД] Найденный объем (нейросеть)", "-"))
-        r_cells[5].text = str(row.get("[ПД] Фактическая страница", "-"))
-
-        st_val = str(row.get("Статус аудита", "Ошибка"))
-        r_cells[6].text = st_val
-        fill_hex = "DCFCE7" if st_val == "ОК" else "FEE2E2"
-        tcPr = r_cells[6]._element.get_or_add_tcPr()
-        tcPr.append(parse_xml(f'<w:shd {nsdecls("w")} w:fill="{fill_hex}"/>'))
-
-        details_parts = [str(row.get("Детали расхождений", "-"))]
-        for col in ("[ПД] Найденная единица", "[ПД] Подтверждения (работа/объём/ед./прим.)",
-                    "[ПД] Доказательства (цитаты со страницами)", "[ПД] Найденные страницы",
-                    "[ПД] Поиск завершён", "[ПД] Запросов"):
-            if col in df_final.columns:
-                details_parts.append(f"{col}: {row.get(col, '-')}")
-        r_cells[7].text = "\n".join(details_parts)
-
-        for cell in r_cells:
-            for p in cell.paragraphs:
-                for r in p.runs:
-                    r.font.size = Pt(8.0)
-
-    out = io.BytesIO()
-    doc.save(out)
-    return out.getvalue()
 
 # ----------------- СКАНИРОВАНИЕ ДОКУМЕНТОВ -----------------
 
@@ -968,6 +875,7 @@ with main_tab1:
                                 "comment_confirmed": comm_ok,
                                 "found_unit": audit.get("found_unit", "-"),
                                 "found_volume": audit.get("found_volume", "-"),
+                                "volume_calculation": audit.get("volume_calculation"),
                                 "search_complete": bool(audit.get("search_complete")),
                                 "requests": audit.get("requests", 0),
                                 "contexts": audit.get("contexts", 0),
@@ -1090,42 +998,13 @@ with main_tab1:
 
                         df_final = pd.concat([df_works_clean, df_audit], axis=1)
 
-                        excel_out = io.BytesIO()
-                        with pd.ExcelWriter(excel_out, engine='openpyxl') as writer:
-                            df_final.to_excel(writer, index=False, sheet_name='Аудит')
-                            ws_out = writer.sheets['Аудит']
-
-                            import openpyxl.styles as px_styles
-
-                            header_fill = px_styles.PatternFill(start_color="1F4E78", end_color="1F4E78",
-                                                                fill_type="solid")
-                            header_font = px_styles.Font(color="FFFFFF", bold=True, size=10)
-                            thin_border = px_styles.Border(
-                                left=px_styles.Side(style='thin', color='D3D3D3'),
-                                right=px_styles.Side(style='thin', color='D3D3D3'),
-                                top=px_styles.Side(style='thin', color='D3D3D3'),
-                                bottom=px_styles.Side(style='thin', color='D3D3D3')
-                            )
-
-                            for cell in ws_out[1]:
-                                cell.fill = header_fill
-                                cell.font = header_font
-                                cell.alignment = px_styles.Alignment(horizontal="center", vertical="center",
-                                                                     wrap_text=True)
-
-                            for col in ws_out.columns:
-                                max_len = 0
-                                col_letter = openpyxl.utils.get_column_letter(col[0].column)
-                                for cell in col:
-                                    cell.border = thin_border
-                                    cell.alignment = px_styles.Alignment(vertical="center", wrap_text=True)
-                                    val_s = str(cell.value or "")
-                                    if len(val_s) > max_len:
-                                        max_len = len(val_s)
-                                ws_out.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 45)
-
-                        excel_bytes = excel_out.getvalue()
-                        word_bytes = generate_word_report(df_final, meta)
+                        report_tasks = [
+                            {**task, "file_refs": df_works.iloc[i].get(file_col_name, "")}
+                            for i, task in enumerate(tasks)
+                        ]
+                        user_report = build_user_report(df_final, row_page_tracking, report_tasks)
+                        excel_bytes = generate_excel_report(user_report)
+                        word_bytes = generate_word_report(user_report, meta)
 
                         st.session_state.audit_results[v_name] = {
                             "df": df_final,

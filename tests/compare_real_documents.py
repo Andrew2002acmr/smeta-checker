@@ -24,6 +24,7 @@ import pymupdf
 from dotenv import dotenv_values
 from openai.resources.responses import Responses
 from streamlit.testing.v1 import AppTest
+from export_checks import exports_match
 
 
 def file_hashes(folder):
@@ -134,6 +135,9 @@ def run(label, app_path, inputs, output):
         excel = pd.read_excel(io.BytesIO(saved["excel_bytes"]))
         word = docx.Document(io.BytesIO(saved["word_bytes"]))
         table = saved["df"]
+        table.to_json(output / f"{stem}-internal.json", orient="table", force_ascii=False)
+        (output / f"{stem}-tracking.json").write_text(
+            json.dumps(saved["tracking"], ensure_ascii=False), encoding="utf-8")
         name_col = next(c for c in table.columns if "наименование работ" in c.lower())
         for idx, (_, row) in enumerate(table.iterrows()):
             status = str(row["Статус аудита"])
@@ -145,8 +149,7 @@ def run(label, app_path, inputs, output):
                       "vor_unit": str(row.get("[ВОР] Ед. изм.", "-")),
                       "status": status, "page": page, "found_volume": str(row["[ПД] Найденный объем (нейросеть)"]),
                       "details": details, "technical_failure": is_technical(status, details),
-                      "exports_match": str(excel.iloc[idx]["[ПД] Фактическая страница"]) == page
-                                       and word.tables[0].rows[idx + 1].cells[5].text == page}
+                      "exports_match": exports_match(excel, word, row, saved["tracking"][idx])}
             tracking = saved["tracking"][idx]
             record.update(
                 evidence=tracking.get("evidence", []),
@@ -157,11 +160,6 @@ def run(label, app_path, inputs, output):
                 comment_confirmed=tracking.get("comment_confirmed"),
                 search_complete=tracking.get("search_complete"),
                 requests=tracking.get("requests", 0))
-            if "[ПД] Доказательства (цитаты со страницами)" in table.columns:
-                evidence_text = str(row["[ПД] Доказательства (цитаты со страницами)"])
-                record["exports_match"] &= (
-                    str(excel.iloc[idx]["[ПД] Доказательства (цитаты со страницами)"]) == evidence_text
-                    and evidence_text in word.tables[0].rows[idx + 1].cells[7].text)
             rows.append(record)
     try:
         run_issues = app.session_state["audit_run_issues"]
@@ -231,7 +229,13 @@ def recover(label, app_path, inputs, output):
     reports, rows = [], []
     for excel_path in output.glob("*-audit.xlsx"):
         word_path = excel_path.with_suffix(".docx")
-        table = pd.read_excel(excel_path)
+        excel = pd.read_excel(excel_path)
+        internal_path = excel_path.with_name(excel_path.name.replace("-audit.xlsx", "-internal.json"))
+        tracking_path = excel_path.with_name(excel_path.name.replace("-audit.xlsx", "-tracking.json"))
+        table = pd.read_json(internal_path, orient="table") if internal_path.exists() else excel
+        tracking = json.loads(tracking_path.read_text(encoding="utf-8")) if tracking_path.exists() else [{} for _ in range(len(table))]
+        if "[ПД] Фактическая страница" not in table:
+            raise RuntimeError(f"{excel_path.name}: для восстановления нужен внутренний JSON аудита")
         word = docx.Document(word_path)
         name_col = next(c for c in table.columns if "наименование работ" in c.lower())
         reports.append({"source": excel_path.name.removesuffix("-audit.xlsx") + ".xlsx",
@@ -244,7 +248,7 @@ def recover(label, app_path, inputs, output):
                          "vor_unit": str(row.get("[ВОР] Ед. изм.", "-")),
                          "status": status, "page": page, "found_volume": str(row["[ПД] Найденный объем (нейросеть)"]),
                          "details": details, "technical_failure": is_technical(status, details),
-                         "exports_match": word.tables[0].rows[idx + 1].cells[5].text == page})
+                         "exports_match": exports_match(excel, word, row, tracking[idx])})
     if not rows:
         raise RuntimeError("Завершенных отчетов для восстановления нет")
     records = [json.loads(line) for line in (output / "api_calls.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
