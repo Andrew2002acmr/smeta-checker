@@ -100,23 +100,37 @@ def parse_page_reference(value, page_count):
 
 
 _STOP_WORDS = set("для при или как под над без работы работ объем объема количество проект документация лист страница согласно устройство выполнение установка монтаж демонтаж категория категории сложности условия условиях полевых выполненная выполненных применением".split())
+_CODE_RE = re.compile(r"(?<!\w)(?=[a-zа-яё0-9-]*[0-9])[a-zа-яё0-9]+(?:-[a-zа-яё0-9]+)*(?!\w)")
+_UNIT_RE = re.compile(r"[a-zа-яё]+/[a-zа-яё]+")
 
 
 def _terms(text):
-    words = re.findall(r"[a-zа-яё]{3,}", str(text).lower().replace("ё", "е"))
+    text = unicodedata.normalize("NFKC", str(text)).lower().replace("ё", "е")
     result = set()
-    for word in words:
+    for word in re.findall(r"[a-zа-яё]{3,}", text):
         if word in _STOP_WORDS:
             continue
         stem = re.sub(r"(иями|ами|ого|ему|ыми|ими|ий|ый|ой|ая|яя|ое|ее|ые|ие|ых|их|ов|ев|ам|ям|ах|ях|ом|ем|ы|и|а|я|у|ю|е|ь)$", "", word)
         result.add((stem if len(stem) >= 3 else word)[:6])
+    for code in _CODE_RE.findall(text):
+        if len(code) >= 2 and any(c.isalpha() or c == "-" for c in code):
+            result.add(code)
+    result.update(_UNIT_RE.findall(text))
     return result
+
+
+def _has_digit(token):
+    return any(c.isdigit() for c in token)
+
+
+_THOUSANDS_RE = re.compile(r"(?<=\d)[ \u00a0\u2009](?=\d{3}\b)")
 
 
 def _numbers(text):
     """Comparable decimal tokens without losing significant fractional digits."""
+    text = _THOUSANDS_RE.sub("", unicodedata.normalize("NFKC", str(text)))
     return {Decimal(token.replace(",", "."))
-            for token in re.findall(r"(?<!\w)[+-]?\d+(?:[.,]\d+)?", str(text))}
+            for token in re.findall(r"(?<!\w)[+-]?\d+(?:[.,]\d+)?", text)}
 
 
 _TABLE_MARKERS = re.compile(r"объем|объём|количеств|ед\.\s*изм|таблиц|спецификац", re.IGNORECASE)
@@ -132,10 +146,22 @@ class PageTextIndex:
         frequency = Counter(term for terms in self.terms for term in terms)
         self.weights = {term: math.log(1 + len(self.texts) / count) for term, count in frequency.items()}
 
-    def _score(self, text, work_name, comment, reference, volume, prefer_volume=False):
+    def _score(self, text, work_name, comment, reference, volume, prefer_volume=False,
+               *, quantity_search=False):
         terms = _terms(text)
-        score = sum(4 * self.weights.get(t, 1) for t in terms & _terms(work_name))
-        score += sum(self.weights.get(t, 1) for t in terms & _terms(comment))
+        qwork, qcomm = _terms(work_name), _terms(comment)
+        if quantity_search or prefer_volume:
+            # Once work is located, its exact material code must not crowd
+            # out quantity-bearing pages using another spelling of that code.
+            qwork = {term for term in qwork if not _has_digit(term)} or qwork
+        inter = terms & qwork
+        score = sum((8 if _has_digit(t) else 4) * self.weights.get(t, 1) for t in inter)
+        if qwork:
+            score += 8 * len(inter) / len(qwork)
+        cinter = terms & qcomm
+        score += sum(self.weights.get(t, 1) for t in cinter)
+        if qcomm:
+            score += 4 * len(cinter) / len(qcomm)
         numbers = _numbers(text)
         if numbers & _numbers(volume):
             score += 1000 if prefer_volume else 4
@@ -171,7 +197,7 @@ class PageTextIndex:
             # rather than repeating the work name in every row.
             if not numbers or not (self.terms[idx] & query or _TABLE_MARKERS.search(text)):
                 continue
-            score = self._score(text, work_name, "", "", volume)
+            score = self._score(text, work_name, "", "", volume, quantity_search=True)
             if _TABLE_MARKERS.search(text):
                 score += 5
             if numbers & expected:
@@ -191,7 +217,7 @@ class PageTextIndex:
         return [idx for _, idx in ranked]
 
     def fragment(self, idx, work_name, comment, reference, volume, limit, prefer_volume=False):
-        """Keep source-order, non-overlapping intervals and a small page header."""
+        """Keep source-order intervals, preferring line boundaries and relevant headers."""
         if limit <= 0:
             return ""
         text = self.texts[idx]
@@ -202,14 +228,27 @@ class PageTextIndex:
         newline = text.rfind("\n", 0, header_end)
         if newline > 0:
             header_end = newline + 1
+        if not self._score(text[:header_end], work_name, comment, reference, volume, prefer_volume):
+            header_end = 0
         intervals = [(0, header_end)] if header_end else []
         separator = "\n[...]\n"
         # A highest-scoring window must fit in full, even with a distant header.
-        size = min(1400, max(1, limit - header_end - (len(separator) if header_end else 0)))
+        capacity = max(1, limit - header_end - (len(separator) if header_end else 0))
+        size = min(1400, capacity)
         step = max(1, size - min(200, size // 4))
         starts = range(0, len(text), step)
-        windows = [(self._score(text[start:start + size], work_name, comment, reference, volume, prefer_volume),
-                    start, min(start + size, len(text))) for start in starts]
+        windows = []
+        for start in starts:
+            end = min(start + size, len(text))
+            line_start = text.rfind("\n", 0, start) + 1
+            line_end = text.find("\n", end)
+            if line_end < 0:
+                line_end = len(text)
+            # An oversized line must keep local windows, including its tail.
+            if line_end - line_start <= capacity:
+                start, end = line_start, line_end
+            windows.append((self._score(text[start:end], work_name, comment, reference,
+                                        volume, prefer_volume), start, end))
         windows.sort(key=lambda item: (-item[0], item[1]))
 
         def merged(parts):
@@ -221,7 +260,9 @@ class PageTextIndex:
                     result.append((start, end))
             return result
 
-        for _, start, end in windows:
+        for score, start, end in windows:
+            if score <= 0 and windows[0][0] > 0:
+                break
             # Subtract already selected text before charging the context budget.
             uncovered = [(start, end)]
             for left, right in intervals:
@@ -237,6 +278,7 @@ class PageTextIndex:
                         break
                     # Trimming a bridge can separate intervals again, adding
                     # another separator. Recompute the actual merged cost.
+                    # Best effort: the hard context budget may cut a line here.
                     right -= used - limit
         return separator.join(text[start:end] for start, end in intervals)
 

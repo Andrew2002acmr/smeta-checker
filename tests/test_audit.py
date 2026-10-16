@@ -2,6 +2,7 @@
 
 import ast
 import json
+from decimal import Decimal
 from pathlib import Path
 import re
 import random
@@ -12,7 +13,8 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from audit_core import (BudgetExceeded, INCOMPLETE, PageTextIndex, RequestBudget,
                         TECHNICAL_ERROR, audit_text_pages, empty_result,
-                        parse_audit_response, parse_page_reference, technical_error)
+                        parse_audit_response, parse_page_reference, technical_error,
+                        _numbers, _terms)
 
 
 def response(page="-", volume="-", unit="-", volume_ok=False, unit_ok=False,
@@ -368,6 +370,68 @@ class SearchTests(unittest.TestCase):
         result = audit_text_pages(PageTextIndex(["Cable"] * 100), [0], ask, "Cable", "45")
         self.assertEqual(result["status"], TECHNICAL_ERROR)
         self.assertEqual(len(calls), 1)
+
+
+class TextRankingTests(unittest.TestCase):
+    def test_nfkc_material_codes_and_units_remain_searchable(self):
+        self.assertIn("lcf", _terms("𝛾𝑙𝑐𝐹≤(𝛾𝑐/𝛾𝑛)𝑅"))
+        self.assertTrue({"гбп-1-150", "в30"} <= _terms("Плиты ГБП-1-150 бетон В30"))
+        self.assertIn("3-20", _terms("фракции 3-20 мм"))
+        self.assertIn("м/с", _terms("скорость 18,7 м/с"))
+        for query, pages in (
+                ("В30", ["В20", "В30"]),
+                ("м2", ["м3", "м²"]),
+                ("л/с", ["м/с", "л/с"])):
+            with self.subTest(query=query):
+                self.assertEqual(PageTextIndex(pages).candidates(query, "", "", ""), [1])
+
+    def test_digit_codes_outweigh_generic_work_words(self):
+        index = PageTextIndex(["бетон", "В30"])
+        self.assertEqual(index.candidates("бетон В30", "", "", ""), [1, 0])
+
+    def test_quantity_search_does_not_repeat_exact_material_location_ranking(self):
+        query = "Укладка гибких бетонных плит ПБЗГУ-405 на геотекстиль"
+        quantity = "Укладка гибких бетонных плит на геотекстиль. Площадь 526 м2"
+        section = "Гибкие бетонные плиты ПБЗГУ-405 на геотекстиле. Толщина 0,15 м"
+        index = PageTextIndex([quantity, section, section, section])
+        self.assertEqual(index.candidates(query, "", "", "")[0], 1)
+        self.assertEqual(index.support_candidates(query, "", "м3")[0], 0)
+        codes = PageTextIndex(["В20 40", "В30 45"])
+        self.assertEqual(codes.support_candidates("В30", "", ""), [1])
+
+    def test_work_coverage_ranks_complete_description_first(self):
+        index = PageTextIndex(["укладка труб", "укладка гибких бетонных плит"])
+        self.assertEqual(index.candidates("укладка гибких бетонных плит", "", "", ""), [1, 0])
+
+    def test_grouped_quantity_retrieves_and_validates_without_changing_source(self):
+        for space in (" ", "\u00a0", "\u2009"):
+            with self.subTest(space=repr(space)):
+                text = f"Расход {1}{space}974,71 л/с"
+                self.assertEqual(_numbers(text), {Decimal("1974.71")})
+                index = PageTextIndex(["Расход 974,71 л/с", text])
+                self.assertEqual(index.support_candidates("Расход", "1974.71", "л/с")[0], 1)
+                data = response("2", "1974.71", "л/с", True, True, evidence=[
+                    proof(2, "Расход"), proof(2, text, "volume"), proof(2, "л/с", "unit")])
+                result = parse_audit_response(json.dumps(data), {2: text}, False)
+                self.assertEqual(result["status"], "ОК")
+                self.assertEqual(result["evidence"][1]["quote"], text)
+        self.assertEqual(_numbers("45,00 46.25"), {Decimal("45.00"), Decimal("46.25")})
+
+    def test_irrelevant_header_does_not_consume_fragment_budget(self):
+        text = "Unrelated cover sheet\n" + "appendix\n" * 300 + "Copper cable 45 m\n"
+        fragment = PageTextIndex([text]).fragment(0, "Copper cable", "", "", "", 200)
+        self.assertIn("Copper cable 45 m", fragment)
+        self.assertNotIn("Unrelated cover sheet", fragment)
+        self.assertLessEqual(len(fragment), 200)
+
+    def test_line_alignment_preserves_quote_without_rewriting_it(self):
+        quote = "Copper cable, rated voltage 660 V, quantity 45 m."
+        text = "Unrelated cover\n" + "appendix\n" * 200 + quote + "\n" + "appendix\n" * 200
+        fragment = PageTextIndex([text]).fragment(0, "Copper cable", "", "", "45", 2000)
+        self.assertIn(quote, fragment)
+        self.assertLessEqual(len(fragment), 2000)
+        data = response("1", evidence=[proof(1, quote)])
+        self.assertTrue(parse_audit_response(json.dumps(data), {1: fragment}, False)["work_found"])
 
 
 class EvidenceAndRetrievalTests(unittest.TestCase):
