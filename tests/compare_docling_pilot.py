@@ -5,7 +5,7 @@ Optional: --vor <path.xlsx> to read positions from a real VOR workbook.
 
 The script intentionally has no test runner assertions: it is an offline
 measurement harness. Docling is an optional pilot-only dependency and must
-not be added to requirements.txt. All output goes under the chosen output
+not be added to pyproject.toml. All output goes under the chosen output
 directory; inputs are never modified.
 """
 
@@ -199,7 +199,7 @@ def main():
             from docling.document_converter import PdfFormatOption as _PdfFormatOption
             docling = (_InputFormat, _PdfPipelineOptions, _TessOptions, _Converter, _PdfFormatOption)
         except ImportError:
-            raise SystemExit("pip install docling  # pilot-only, do NOT add to requirements.txt")
+            raise SystemExit("pip install docling  # pilot-only, do NOT add to pyproject.toml")
 
     from pdf_text import PDFTextSource
 

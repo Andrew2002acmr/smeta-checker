@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [dev]
+  push:
+    branches: [dev]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+
+      - name: Install tesseract
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-rus tesseract-ocr-eng
+
+      - name: Sync environment
+        run: uv sync --frozen
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Format (new files only)
+        run: |
+          files=$(git diff --name-only --diff-filter=A origin/${{ github.base_ref || 'dev' }}...HEAD -- '*.py')
+          if [ -n "$files" ]; then
+            # shellcheck disable=SC2086
+            uv run ruff format --check $files
+          else
+            echo "No new Python files."
+          fi
+
+      - name: Type-check
+        run: uv run pyright
+
+      - name: Tests
+        run: uv run pytest
