@@ -1,24 +1,20 @@
 """Settings must use the current project .env rather than a stale process value."""
 
-import ast
 import os
 from pathlib import Path
 import sys
 import tempfile
-from types import SimpleNamespace
 import unittest
+from functools import partial
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from dotenv import dotenv_values
+from audit_settings import get_setting as _resolve_setting
 
 
 def read_setting(values, secrets=None):
-    tree = ast.parse((Path(__file__).resolve().parents[1] / "app.py").read_text(encoding="utf-8"))
-    function = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "get_setting")
-    namespace = {"os": os, "project_env": values, "st": SimpleNamespace(secrets=secrets or {})}
-    exec(compile(ast.Module(body=[function], type_ignores=[]), "app.py", "exec"), namespace)
-    return namespace["get_setting"]
+    return partial(_resolve_setting, file_values=values, secrets=secrets or {})
 
 
 class SettingsTests(unittest.TestCase):

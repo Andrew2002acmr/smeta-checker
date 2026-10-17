@@ -1,0 +1,153 @@
+"""VOR workbook parsing: header metadata, work rows, continuation refs.
+
+Pure pandas/io/re; no Streamlit dependency.
+"""
+
+from __future__ import annotations
+
+import io
+import re
+
+import pandas as pd
+
+
+def load_vor_with_metadata(file_source, filename):
+    meta = {
+        "object_name": "Не указано",
+        "doc_number": filename,
+        "basis_code": "Проектная документация",
+    }
+
+    # 1. Безопасное чтение файла в байты (защита от блокировок и смещения потока)
+    if isinstance(file_source, str):
+        with open(file_source, "rb") as f:
+            content = f.read()
+    elif hasattr(file_source, "getvalue"):
+        content = file_source.getvalue()
+    else:
+        file_source.seek(0)
+        content = file_source.read()
+        file_source.seek(0)
+
+    # 2. Извлечение строк для чтения шапки
+    if filename.endswith(".csv"):
+        try:
+            text = content.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            text = content.decode("cp1251", errors="ignore")
+        lines = text.splitlines()
+    else:
+        # Передаем BytesIO, чтобы Excel-файл можно было перечитывать многократно
+        df_raw = pd.read_excel(io.BytesIO(content), header=None)
+        lines = [
+            "\t".join([str(v) for v in row if pd.notna(v)])
+            for _, row in df_raw.iterrows()
+        ]
+
+    # Чтение метаданных из шапки
+    for line in lines[:20]:
+        line_clean = line.replace('"', "").replace(";", "  ")
+        if "наименование стройки" in line_clean.lower():
+            parts = [p.strip() for p in line_clean.split("  ") if p.strip()]
+            if len(parts) > 1:
+                meta["object_name"] = parts[-1]
+        elif "ведомость объемов работ №" in line_clean.lower():
+            parts = [p.strip() for p in line_clean.split("  ") if p.strip()]
+            if len(parts) > 1:
+                meta["doc_number"] = parts[-1]
+        elif "основание" in line_clean.lower():
+            parts = [p.strip() for p in line_clean.split("  ") if p.strip()]
+            if len(parts) > 1:
+                meta["basis_code"] = parts[-1]
+
+    header_idx = -1
+    for idx, line in enumerate(lines):
+        ll = line.lower()
+        if "№ п.п." in ll or "наименование работ" in ll:
+            header_idx = idx
+            break
+
+    if header_idx == -1:
+        header_idx = 0
+
+    # 3. Чтение итоговой таблицы
+    if filename.endswith(".csv"):
+        delimiter = ";" if ";" in lines[header_idx] else ","
+        df = pd.read_csv(
+            io.StringIO("\n".join(lines)), skiprows=header_idx, sep=delimiter
+        )
+    else:
+        df = pd.read_excel(io.BytesIO(content), skiprows=header_idx)
+
+    df.columns = [re.sub(r"\s+", " ", str(c)).strip() for c in df.columns]
+
+    def is_work_row(row):
+        col_pp = re.sub(r"\.0+$", "", str(row.iloc[0]).strip())
+        col_name = str(row.iloc[1]).strip()
+        col_type = str(row.get("Тип позиции", "")).strip().lower()
+
+        # 1. Отсекаем техническую строку номеров колонок 1; 2; 3...
+        if col_pp == "1" and col_name == "2":
+            return False
+        # 2. Основные позиции работ
+        if col_type in ["работа", "материал", "оборудование"]:
+            return True
+        if re.match(r"^\d+$", col_pp) and len(col_name) > 3 and not col_name.isdigit():
+            return True
+        return False
+
+    def is_continuation_row(row):
+        # Строка-продолжение: нет номера и имени работы, но есть ссылка на PDF.
+        col_pp = str(row.iloc[0]).strip()
+        col_name = str(row.iloc[1]).strip()
+        if col_pp.lower() in {"", "nan", "-", "none"} and col_name.lower() in {
+            "",
+            "nan",
+            "-",
+            "none",
+        }:
+            row_str = " ".join([str(val) for val in row.values if pd.notna(val)])
+            return ".pdf" in row_str.lower()
+        return False
+
+    keep = df.apply(is_work_row, axis=1)
+    df_clean = df[keep].copy()
+    # Присоединяем ссылки строк-продолжений к предыдущей позиции-владельцу:
+    # сами строки-продолжения никогда не идут в модель как позиции с nan-именем.
+    file_col_guess = next(
+        (c for c in df.columns if "наименование файла" in str(c).lower()), None
+    )
+    page_col_guess = next(
+        (
+            c
+            for c in df.columns
+            if any(
+                m in str(c).lower().replace("ё", "е")
+                for m in ("номер страниц", "номера страниц", "ссылка на страницу")
+            )
+        ),
+        None,
+    )
+    if file_col_guess is not None or page_col_guess is not None:
+        for col in (file_col_guess, page_col_guess):
+            if col is not None:
+                df_clean[col] = df_clean[col].astype(object)
+        owner_idx = None
+        for idx, row in df.iterrows():
+            if bool(keep.get(idx, False)) and idx in df_clean.index:
+                owner_idx = idx
+            elif owner_idx is not None and is_continuation_row(row):
+                for col in (file_col_guess, page_col_guess):
+                    if col is None:
+                        continue
+                    extra = str(row.get(col, "")).strip()
+                    if not extra or extra.lower() == "nan":
+                        continue
+                    current = str(df_clean.at[owner_idx, col])
+                    if current.lower() in {"nan", "", "-", "none"}:
+                        df_clean.at[owner_idx, col] = extra
+                    elif extra not in current.splitlines():
+                        df_clean.at[owner_idx, col] = current + "\n" + extra
+            elif pd.notna(row.iloc[0]) or pd.notna(row.iloc[1]):
+                owner_idx = None
+    return df_clean, meta

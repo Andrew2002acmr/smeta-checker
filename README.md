@@ -23,6 +23,33 @@ uv run streamlit run app.py
 или обновлении страницы. Значения из этого файла имеют приоритет над окружением
 процесса и Streamlit Secrets; если файла нет, используются окружение и Secrets.
 
+## Структура
+
+* `app.py` — только Streamlit: ввод файлов, прогресс, результаты, инспектор.
+* `audit_service.py` — оркестрация без UI: префлайт привязки PDF
+  (`preflight_bindings`), подготовка позиций, пул потоков, `run_audit`.
+* `audit_llm.py` — LLM-адаптер: `audit_position_hybrid` (промпт, бюджеты,
+  ретраи, guardrail цитат). Клиент, ключи и модель передаются явно.
+* `vor_parse.py` — парсер ВОР (`load_vor_with_metadata`).
+* `audit_settings.py` — настройки `.env` → окружение → переданные secrets.
+* `audit_core.py`, `pdf_text.py`, `pdf_binding.py`, `audit_reports.py`,
+  `audit_tracing.py`, `vor_rules.py` — предметное ядро и отчёты.
+
+Предметные модули не импортируют `streamlit`. Аудит вызывается обычным
+Python-кодом без запуска UI:
+
+```python
+import fitz
+from audit_service import run_audit
+
+pdf_pool = {"project.pdf": fitz.open("project.pdf")}
+outcome = run_audit(
+    {"vor.xlsx": "vor.xlsx"}, ["vor.xlsx"], pdf_pool,
+    api_key="...", folder="...", model_name="qwen3.6-35b-a3b/latest")
+print(outcome["results"]["vor.xlsx"]["df"]["Статус аудита"].tolist())
+print(outcome["issues"])
+```
+
 ## Трейсинг в Langfuse Cloud
 
 SDK `langfuse==5.0.1` входит в зависимости проекта. В `.env` задайте
