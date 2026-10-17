@@ -1,10 +1,8 @@
 """Consumer-visible audit/search boundaries; no live credentials."""
 
-import ast
 import json
 from decimal import Decimal
 from pathlib import Path
-import re
 import random
 import sys
 import unittest
@@ -15,6 +13,7 @@ from audit_core import (BudgetExceeded, INCOMPLETE, PageTextIndex, RequestBudget
                         TECHNICAL_ERROR, audit_text_pages, empty_result,
                         parse_audit_response, parse_page_reference, technical_error,
                         _numbers, _terms)
+from audit_llm import audit_position_hybrid
 
 
 def response(page="-", volume="-", unit="-", volume_ok=False, unit_ok=False,
@@ -38,19 +37,6 @@ def found(context, page, volume="45", matching=True):
     return parse_audit_response(json.dumps(data), context, comment_required=False)
 
 
-def app_functions(**extra):
-    """Load adapter/worker without starting Streamlit."""
-    tree = ast.parse((Path(__file__).resolve().parents[1] / "app.py").read_text(encoding="utf-8"))
-    names = {"audit_position_hybrid", "worker_check_row"}
-    nodes = [node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name in names]
-    namespace = {"INCOMPLETE": INCOMPLETE, "TECHNICAL_ERROR": TECHNICAL_ERROR,
-                 "BudgetExceeded": BudgetExceeded, "RequestBudget": RequestBudget,
-                 "audit_text_pages": audit_text_pages, "parse_audit_response": parse_audit_response,
-                 "empty_result": empty_result, "technical_error": technical_error,
-                 "time": SimpleNamespace(sleep=lambda _: None), "re": re,
-                 "YANDEX_API_KEY": "test", "YANDEX_FOLDER": "test", "YANDEX_MODEL_NAME": "test-model", **extra}
-    exec(compile(ast.Module(body=nodes, type_ignores=[]), "app.py", "exec"), namespace)
-    return namespace
 
 
 class PageReferenceTests(unittest.TestCase):
@@ -668,9 +654,10 @@ class AdapterTests(unittest.TestCase):
                                        output_text=output, usage=SimpleNamespace(total_tokens=100))
             def close(self):
                 pass
-        namespace = app_functions(openai=SimpleNamespace(OpenAI=FakeClient, APIConnectionError=ConnectionError))
-        result = namespace["audit_position_hybrid"](PageTextIndex(texts or ["Cable 45 m"]), [0],
-            "Cable", "45", "m", "", "1", budget=budget)
+        result = audit_position_hybrid(PageTextIndex(texts or ["Cable 45 m"]), [0],
+            "Cable", "45", "m", "", "1", budget=budget,
+            api_key="test", folder="test", model_name="test-model",
+            client_factory=FakeClient, sleeper=lambda _: None)
         return result, calls
 
     @staticmethod
