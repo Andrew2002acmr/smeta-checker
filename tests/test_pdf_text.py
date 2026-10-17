@@ -337,7 +337,6 @@ class CacheTests(FakeSourceTests):
         pages = [FakePage("", ocr_text="ok-%d" % i, calls=[]) for i in range(3)]
         pages[1] = FakePage("", fail=RuntimeError("Tesseract unavailable"),
                             calls=pages[0]._calls, idx=1)
-        calls = pages[0]._calls
         doc = FakeDoc(pages)
         with TemporaryDirectory() as cache:
             source = PDFTextSource(doc, cache_dir=cache)

@@ -4,14 +4,16 @@
 
 ```powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-pip install -r requirements.txt
-streamlit run app.py
+uv sync --frozen
+uv run streamlit run app.py
 ```
 
-Зависимости и трейсинг проверены на Python 3.12.15. Для запуска из локального
-окружения используйте `.\.venv\Scripts\python.exe -m streamlit run app.py`.
-Установка зафиксированных зависимостей на Python 3.15 без Build Tools может
-остановиться на сборке пакетов; используйте отдельное окружение Python 3.12.
+Зависимости описаны в `pyproject.toml` и зафиксированы в `uv.lock`
+(Python 3.12 из `.python-version`). `requirements.txt` — экспорт из лока
+для Streamlit Community Cloud; после изменения зависимостей обновляйте его:
+`uv export --frozen --no-dev --format requirements.txt -o requirements.txt`.
+Проверки: `uv run ruff check .`, `uv run pyright`, `uv run pytest`.
+Новые `.py`-файлы должны проходить `ruff format --check`.
 
 Перед запуском заполните `.env`. Нужны `YANDEX_CLOUD_API_KEY` и `YANDEX_CLOUD_FOLDER`.
 Модель задается только настройкой `YANDEX_CLOUD_MODEL` (по умолчанию `qwen3.6-35b-a3b/latest`), выбора модели в приложении нет.
@@ -23,7 +25,7 @@ streamlit run app.py
 
 ## Трейсинг в Langfuse Cloud
 
-SDK `langfuse==5.0.1` входит в `requirements.txt`. В `.env` задайте
+SDK `langfuse==5.0.1` входит в зависимости проекта. В `.env` задайте
 `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` и
 `LANGFUSE_BASE_URL=https://cloud.langfuse.com`. Настоящие ключи храните только
 в `.env`, который исключен из Git. Пустые оба ключа отключают трейсинг;
@@ -313,7 +315,7 @@ $env:TESSDATA_PREFIX = 'C:\Program Files\Tesseract-OCR\tessdata'
 ## Проверки
 
 ```powershell
-python -m unittest discover -s tests -v
+uv run pytest
 ```
 
 Тесты используют синтетические PDF и подменяют API, не отправляя документы
@@ -324,9 +326,9 @@ python -m unittest discover -s tests -v
 Воспроизводимый эталон для рефакторинга без LLM API и секретов:
 
 ```powershell
-python -m unittest tests.test_baseline -v
-python tests/baseline_audit.py --output .audit_cache/baseline-dev
-python tests/baseline_audit.py --output .audit_cache/baseline-diff --compare .audit_cache/baseline-dev/summary.json .audit_cache/baseline-after/summary.json
+uv run pytest tests/test_baseline.py -v
+uv run python tests/baseline_audit.py --output .audit_cache/baseline-dev
+uv run python tests/baseline_audit.py --output .audit_cache/baseline-diff --compare .audit_cache/baseline-dev/summary.json .audit_cache/baseline-after/summary.json
 ```
 
 Пять позиций покрывают ОК, неверную ссылку, расхождение объёма, неполную

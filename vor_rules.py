@@ -9,7 +9,6 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls
-import math
 
 def safe_calc_formula(expr_str):
     """Безопасно вычисляет математическую формулу из строки."""
@@ -188,8 +187,6 @@ def validate_vor_formatting(file_source):
     id_frequencies = Counter(all_j_ids)
 
     for r in range(17, max_r + 1):
-        seen_identifiers = {}  # { "П1": row_number }
-
         row_vals = [get_val(r, c) for c in range(1, 12)]
         all_empty = all(v == "" for v in row_vals)
 
