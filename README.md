@@ -319,6 +319,27 @@ python -m unittest discover -s tests -v
 Тесты используют синтетические PDF и подменяют API, не отправляя документы
 провайдерам. Тест реального OCR выполняется при заданном `TESSDATA_PREFIX`.
 
+### Офлайн-baseline аудита (issue #13)
+
+Воспроизводимый эталон для рефакторинга без LLM API и секретов:
+
+```powershell
+python -m unittest tests.test_baseline -v
+python tests/baseline_audit.py --output .audit_cache/baseline-dev
+python tests/baseline_audit.py --output .audit_cache/baseline-diff --compare .audit_cache/baseline-dev/summary.json .audit_cache/baseline-after/summary.json
+```
+
+Пять позиций покрывают ОК, неверную ссылку, расхождение объёма, неполную
+проверку и технический сбой. Скрипт генерирует PDF/ВОР в коде, подменяет
+`openai.OpenAI` детерминированным сценарием, блокирует HTTP и игнорирует
+реальные ключи окружения. Сравнение проверяет статусы, страницы, числа,
+единицы, флаги, доказательства, Excel-статусы и счётчики, включая неполные
+проверки и сбои; разные входы или изменения дают exit 1.
+Зафиксировано на dev `9afa718` (Python 3.12.14): 133 теста, 132 пройдены,
+1 OCR-тест пропущен; baseline `9331ac604bd8`: ОК 1, Ошибка 2,
+Неполная проверка 1, Технический сбой 1; запросы 5/5, версии совпадают
+с `requirements.txt`.
+
 Для отдельного реального прогона через Qwen в Yandex Cloud:
 
 ```powershell
