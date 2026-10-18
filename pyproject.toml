@@ -33,6 +33,7 @@ dev = [
     "pytest==9.1.1",
     "ruff==0.17.1",
     "pyright==1.1.414",
+    "pyyaml==6.0.3",
 ]
 
 [tool.pytest.ini_options]

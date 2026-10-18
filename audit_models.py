@@ -525,6 +525,7 @@ class AuditSettings(BaseModel):
     task_soft_time_limit: int = 540
     max_upload_bytes: int = 100 * 1024 * 1024
     max_uploads_per_request: int = 32
+    api_token: str = ""
     allowed_llm_hosts: tuple[str, ...] = ("ai.api.cloud.yandex.net",)
     llm_input_cost_per_1k: float = 0.0
     llm_output_cost_per_1k: float = 0.0
@@ -639,6 +640,9 @@ class AuditSettings(BaseModel):
                     secrets=secrets,
                 )
                 or 32
+            ),
+            api_token=get_setting(
+                "AUDIT_API_TOKEN", "", file_values=file_values, secrets=secrets
             ),
             allowed_llm_hosts=llm_hosts,
             llm_input_cost_per_1k=float(

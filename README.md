@@ -47,6 +47,10 @@ uv run streamlit run app.py
 * `audit_tasks.py` — фоновые задания Celery (issue #19): `prepare_run` (CPU,
   очередь `pdf`), `audit_position` (сеть, очередь `llm`), `finalize_run` и
   `recover_run`. Без брокера API выполняет те же функции в fallback-потоке.
+* `Dockerfile`, `compose.yaml`, `scripts/backup.sh`, `scripts/restore.sh` —
+  production-деплой (issue #22): один образ для api и воркеров, Postgres +
+  Redis + pdf/llm-воркеры, бэкап/восстановление. `scripts/verify.sh` —
+  живая проверка стека (health/auth/upload/рестарт/бэкап) без квоты LLM.
 * `audit_core.py`, `pdf_text.py`, `pdf_binding.py`, `audit_reports.py`,
   `audit_tracing.py`, `vor_rules.py` — предметное ядро и отчёты.
 
@@ -114,10 +118,14 @@ uv run celery -A audit_tasks:worker worker -Q llm -c 8
 Без `DATABASE_URL`/`BLOB_STORE_URL` эндпоинты отвечают 503
 `storage_not_configured`, без `YANDEX_CLOUD_API_KEY` запуск — 503
 `llm_not_configured`, при недоступном брокере — 503 `broker_unavailable`.
-Fallback-поток без брокера теряет выполняющиеся аудиты при рестарте
-процесса (их строки остаются `running`); с брокером восстановление делает
-`recover_run`. `finalize_run` пока вызывается вручную/по расписанию, а не
-автоматически по завершении всех позиций.
+С заполненным `AUDIT_API_TOKEN` все `/api/v1/*` требуют
+`Authorization: Bearer <токен>` (401 `unauthorized` без него); `/healthz`
+открыт для healthcheck. Fallback-поток без брокера теряет выполняющиеся
+аудиты при рестарте процесса (их строки остаются `running`); с брокером
+восстановление делает `recover_run`. В очереди Celery последняя
+завершённая позиция ставит `finalize_run` автоматически
+(флаг `finalize_chained` в конфиге запуска, ровно один раз); вручную
+`finalize_run` вызывается только в тестах и fallback-конвейере.
 ## Постоянное хранение (PostgreSQL + blobs)
 
 Без настроек хранения результаты живут только в `st.session_state` и пропадают
@@ -149,6 +157,72 @@ uv run streamlit run app.py
 и повторный аудит того же файла может создать новую версию.
 `BLOB_STORE_URL` поддерживает только `file://`; S3-compatible бэкенд — шов
 `storage_blobs.BlobStore`, не реализация.
+
+## Production Compose (issue #22)
+
+Один `compose.yaml` поднимает минимальную систему на CPU-only сервере:
+`api` (uvicorn), `db` (PostgreSQL 16), `redis` (брокер Celery с AOF),
+`worker-pdf` (очередь `pdf`: подготовка/OCR/финализация) и `worker-llm`
+(очередь `llm`: сетевые запросы к Yandex Qwen). Миграции выполняет
+одноразовый сервис `migrate` (`alembic upgrade head`) до старта api
+и воркеров.
+
+```bash
+cp .env.example .env  # заполнить POSTGRES_PASSWORD, AUDIT_API_TOKEN, YANDEX_*
+docker compose up -d --build
+docker compose ps     # все healthy
+curl -s http://localhost:8000/healthz  # {"status":"ok"}
+set -a; . ./.env; set +a; ./scripts/verify.sh  # живая проверка без квоты LLM
+```
+
+Конфигурация CPU-only: `worker-pdf -c 2 --max-memory-per-child 1000000`
+(OCR держит PyMuPDF-документы в памяти),
+`worker-llm -c 8` (сеть, не CPU). Переопределения — через `.env`:
+`AUDIT_PDF_CONCURRENCY`, `AUDIT_LLM_CONCURRENCY`, `API_PORT`.
+Без `POSTGRES_PASSWORD`/`AUDIT_API_TOKEN` compose валится до старта —
+это fail-closed, а не значения по умолчанию.
+
+Аутентификация: `AUDIT_API_TOKEN` в `.env` → все `/api/v1/*` требуют
+`Authorization: Bearer <токен>`. Пустой токен оставляет локальный доступ
+открытым (тесты, Streamlit UI); production всегда с токеном.
+Сгенерировать: `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
+
+Деградация без LLM: без `YANDEX_CLOUD_API_KEY` `POST /api/v1/audits`
+отвечает 503 `llm_not_configured`, загрузки/документы/префлайт/история
+работают. С ключом, но недоступным провайдером, позиции получают
+`Технический сбой` с `recoverable=true`, запуск финализируется —
+перезапуск воркеров и `recover_run` подбирают очередь.
+
+Бэкап и восстановление (Postgres custom-dump + файловые блобы):
+
+```bash
+./scripts/backup.sh                 # → ./backups/<UTC-stamp>/
+./scripts/restore.sh ./backups/<stamp>  # останавливает api/workers, pg_restore + blobs
+```
+
+Обновление и перезапуск:
+
+```bash
+docker compose pull && docker compose up -d --build  # обновление образов
+docker compose restart worker-llm                     # мягкий рестарт воркера
+docker compose down && docker compose up -d           # полный рестарт, данные в volumes
+```
+
+Volumes: `pgdata` (PostgreSQL), `redisdata` (очереди Celery, AOF),
+`blobs` (общий для api и воркеров: исходники и отчёты),
+`pdfcache` (общий для воркеров: OCR/Markdown-кеш). Все долгоживущие
+сервисы — `restart: unless-stopped` + healthchecks (`/healthz`,
+`pg_isready`, `redis-cli ping`, `celery inspect ping`).
+
+### Limitations деплоя
+
+Без брокера не работает: compose всегда стартует redis, fallback-поток
+API — только для локального запуска без compose. PDF-кеш и блобы —
+локальные volumes одного хоста, не S3 и не multi-node. TLS завершается
+выше (reverse proxy), compose слушает plain HTTP на `API_PORT`.
+`finalize_run` ставится автоматически только на Celery-пути; задачи,
+зависшие `running` при жёстком убийстве воркера, требуют ручного
+`recover_run` через `celery call`.
 
 ## Трейсинг в Langfuse Cloud
 

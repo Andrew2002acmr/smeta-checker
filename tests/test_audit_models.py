@@ -232,6 +232,14 @@ class AuditSettingsModelTests(unittest.TestCase):
             )
         self.assertEqual(settings.database_url, "postgresql+psycopg://u@/db")
         self.assertEqual(settings.blob_store_url, "file://./.audit_blobs")
+        self.assertEqual(settings.api_token, "")
+
+    def test_api_token_resolves(self):
+        with patch.dict(os.environ, {}, clear=True):
+            settings = AuditSettings.load(
+                file_values={"AUDIT_API_TOKEN": "tok-123"}, secrets=None
+            )
+        self.assertEqual(settings.api_token, "tok-123")
 
     def test_error_kinds_are_explicit(self):
         self.assertEqual(

@@ -1,0 +1,178 @@
+# issue 22: minimal production system on a CPU-only server.
+# One file starts api + postgres + redis + pdf/llm workers.
+# Secrets: copy .env.example to .env and fill POSTGRES_PASSWORD, AUDIT_API_TOKEN,
+# YANDEX_CLOUD_API_KEY, YANDEX_CLOUD_FOLDER. Compose reads .env automatically.
+name: smeta-checker
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-smeta}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-smeta}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-smeta}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # CPU-only server: shared_buffers small, logs bounded.
+    command:
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - log_min_duration_statement=1000
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build: .
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smeta}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-smeta}
+    command: ["alembic", "upgrade", "head"]
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smeta}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-smeta}
+      BLOB_STORE_URL: file:///srv/smeta/.audit_blobs
+      CELERY_BROKER_URL: redis://redis:6379/0
+      AUDIT_API_TOKEN: ${AUDIT_API_TOKEN:?Set AUDIT_API_TOKEN in .env}
+      YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
+      YANDEX_CLOUD_FOLDER: ${YANDEX_CLOUD_FOLDER:-}
+      YANDEX_CLOUD_MODEL: ${YANDEX_CLOUD_MODEL:-qwen3.6-35b-a3b/latest}
+      AUDIT_PDF_CONCURRENCY: ${AUDIT_PDF_CONCURRENCY:-2}
+      AUDIT_LLM_CONCURRENCY: ${AUDIT_LLM_CONCURRENCY:-8}
+      AUDIT_TASK_TIME_LIMIT: ${AUDIT_TASK_TIME_LIMIT:-600}
+      AUDIT_TASK_SOFT_TIME_LIMIT: ${AUDIT_TASK_SOFT_TIME_LIMIT:-540}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
+      LANGFUSE_ENVIRONMENT: ${LANGFUSE_ENVIRONMENT:-production}
+    volumes:
+      - blobs:/srv/smeta/.audit_blobs
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  worker-pdf:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smeta}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-smeta}
+      BLOB_STORE_URL: file:///srv/smeta/.audit_blobs
+      CELERY_BROKER_URL: redis://redis:6379/0
+      YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
+      YANDEX_CLOUD_FOLDER: ${YANDEX_CLOUD_FOLDER:-}
+      YANDEX_CLOUD_MODEL: ${YANDEX_CLOUD_MODEL:-qwen3.6-35b-a3b/latest}
+      AUDIT_TASK_TIME_LIMIT: ${AUDIT_TASK_TIME_LIMIT:-600}
+      AUDIT_TASK_SOFT_TIME_LIMIT: ${AUDIT_TASK_SOFT_TIME_LIMIT:-540}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
+      LANGFUSE_ENVIRONMENT: ${LANGFUSE_ENVIRONMENT:-production}
+    volumes:
+      - blobs:/srv/smeta/.audit_blobs
+      - pdfcache:/srv/smeta/.audit_cache
+    command:
+      - celery
+      - -A
+      - audit_tasks:worker
+      - worker
+      - -Q
+      - pdf
+      - -c
+      - ${AUDIT_PDF_CONCURRENCY:-2}
+      - --max-memory-per-child
+      - "1000000"
+      - -n
+      - pdf-worker@%h
+    healthcheck:
+      # No celery http endpoint: liveness = process answers inspect ping.
+      test: ["CMD-SHELL", "celery -A audit_tasks:worker inspect ping -d pdf-worker@$$(hostname) | grep -q pong"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+
+  worker-llm:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smeta}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-smeta}
+      BLOB_STORE_URL: file:///srv/smeta/.audit_blobs
+      CELERY_BROKER_URL: redis://redis:6379/0
+      YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
+      YANDEX_CLOUD_FOLDER: ${YANDEX_CLOUD_FOLDER:-}
+      YANDEX_CLOUD_MODEL: ${YANDEX_CLOUD_MODEL:-qwen3.6-35b-a3b/latest}
+      AUDIT_TASK_TIME_LIMIT: ${AUDIT_TASK_TIME_LIMIT:-600}
+      AUDIT_TASK_SOFT_TIME_LIMIT: ${AUDIT_TASK_SOFT_TIME_LIMIT:-540}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
+      LANGFUSE_ENVIRONMENT: ${LANGFUSE_ENVIRONMENT:-production}
+    volumes:
+      - blobs:/srv/smeta/.audit_blobs
+      - pdfcache:/srv/smeta/.audit_cache
+    command:
+      - celery
+      - -A
+      - audit_tasks:worker
+      - worker
+      - -Q
+      - llm
+      - -c
+      - ${AUDIT_LLM_CONCURRENCY:-8}
+      - -n
+      - llm-worker@%h
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A audit_tasks:worker inspect ping -d llm-worker@$$(hostname) | grep -q pong"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  pgdata:
+  redisdata:
+  blobs:
+  pdfcache:
