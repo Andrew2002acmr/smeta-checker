@@ -23,6 +23,7 @@ from storage_blobs import BlobStore
 from storage_models import (
     Document,
     DocumentVersion,
+    PositionJob,
     PositionResult,
     Project,
     Run,
@@ -65,6 +66,20 @@ class RunRow:
     vor_version_id: UUID
     status: str
     created_at: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class PositionJobRow:
+    id: UUID
+    run_id: UUID
+    position_index: int
+    queue: str
+    status: str
+    attempts: int
+    worker: str | None
+    payload: dict[str, Any]
+    result: dict[str, Any] | None = None
+    error: str | None = None
 
 
 def _alembic_config(database_url: str) -> Config:
@@ -393,6 +408,173 @@ class Repository:
             run.status = status
             run.finished_at = func.now()
             session.commit()
+
+    @staticmethod
+    def _job_row(job: PositionJob) -> PositionJobRow:
+        return PositionJobRow(
+            id=job.id,
+            run_id=job.run_id,
+            position_index=job.position_index,
+            queue=job.queue,
+            status=job.status,
+            attempts=job.attempts,
+            worker=job.worker,
+            payload=dict(job.payload or {}),
+            result=dict(job.result) if job.result is not None else None,
+            error=job.error,
+        )
+
+    def create_position_job(
+        self, run_id: UUID, position_index: int, *, queue: str, payload: dict[str, Any]
+    ) -> PositionJobRow:
+        """Queue one position; re-creating the same index returns the row."""
+        with Session(self._engine) as session:
+            existing = session.scalar(
+                select(PositionJob).where(
+                    PositionJob.run_id == run_id,
+                    PositionJob.position_index == position_index,
+                )
+            )
+            if existing is not None:
+                return self._job_row(existing)
+            job = PositionJob(
+                run_id=run_id,
+                position_index=position_index,
+                queue=queue,
+                status="queued",
+                attempts=0,
+                payload=dict(payload),
+            )
+            session.add(job)
+            session.commit()
+            session.refresh(job)
+            return self._job_row(job)
+
+    def load_position_job(self, run_id: UUID, position_index: int) -> PositionJobRow:
+        with Session(self._engine) as session:
+            job = session.scalar(
+                select(PositionJob).where(
+                    PositionJob.run_id == run_id,
+                    PositionJob.position_index == position_index,
+                )
+            )
+            if job is None:
+                raise KeyError(f"{run_id}:{position_index}")
+            return self._job_row(job)
+
+    def claim_position_job(
+        self, run_id: UUID, position_index: int, *, worker: str
+    ) -> PositionJobRow:
+        """Claim one job: same worker re-claims, another worker gets LookupError.
+
+        ``queued`` and ``failed`` rows move to ``running`` with attempts + 1;
+        an already ``running`` row is returned only to its owner.
+        """
+        with Session(self._engine) as session:
+            job = session.scalar(
+                select(PositionJob)
+                .where(
+                    PositionJob.run_id == run_id,
+                    PositionJob.position_index == position_index,
+                )
+                .with_for_update()
+            )
+            if job is None:
+                raise KeyError(f"{run_id}:{position_index}")
+            if job.status == "running" and job.worker != worker:
+                raise LookupError(f"job {run_id}:{position_index} is claimed")
+            if job.status in {"queued", "failed"}:
+                job.status = "running"
+                job.worker = worker
+                job.attempts = int(job.attempts or 0) + 1
+                job.error = None
+            session.commit()
+            session.refresh(job)
+            return self._job_row(job)
+
+    def finish_position_job(
+        self,
+        run_id: UUID,
+        position_index: int,
+        status: str,
+        *,
+        result: dict[str, Any] | None = None,
+        error: str | None = None,
+    ) -> None:
+        if status not in {"done", "failed"}:
+            raise ValueError(f"unknown job status: {status!r}")
+        with Session(self._engine) as session:
+            job = session.scalar(
+                select(PositionJob).where(
+                    PositionJob.run_id == run_id,
+                    PositionJob.position_index == position_index,
+                )
+            )
+            if job is None:
+                raise KeyError(f"{run_id}:{position_index}")
+            job.status = status
+            if result is not None:
+                job.result = dict(result)
+            job.error = error
+            session.commit()
+
+    def requeue_position_job(
+        self,
+        run_id: UUID,
+        position_index: int,
+        *,
+        queue: str,
+        payload: dict[str, Any],
+    ) -> None:
+        """Move a claimed job to another queue without consuming an attempt."""
+        with Session(self._engine) as session:
+            job = session.scalar(
+                select(PositionJob).where(
+                    PositionJob.run_id == run_id,
+                    PositionJob.position_index == position_index,
+                )
+            )
+            if job is None:
+                raise KeyError(f"{run_id}:{position_index}")
+            if job.status == "done":
+                return
+            job.queue = queue
+            job.payload = dict(payload)
+            job.status = "queued"
+            job.worker = None
+            job.error = None
+            session.commit()
+
+    def list_position_jobs(self, run_id: UUID) -> list[PositionJobRow]:
+        """List all job rows of a run ordered by position index."""
+        with Session(self._engine) as session:
+            rows = session.scalars(
+                select(PositionJob)
+                .where(PositionJob.run_id == run_id)
+                .order_by(PositionJob.position_index)
+            ).all()
+            return [self._job_row(job) for job in rows]
+
+    def recover_stale_jobs(self, run_id: UUID, *, alive_workers: set[str]) -> list[int]:
+        """Requeue ``running`` jobs whose worker is gone; returns indices."""
+        recovered: list[int] = []
+        with Session(self._engine) as session:
+            jobs = session.scalars(
+                select(PositionJob)
+                .where(
+                    PositionJob.run_id == run_id,
+                    PositionJob.status == "running",
+                )
+                .with_for_update()
+            ).all()
+            for job in jobs:
+                if job.worker in alive_workers:
+                    continue
+                job.status = "queued"
+                job.worker = None
+                recovered.append(job.position_index)
+            session.commit()
+        return sorted(recovered)
 
     def list_runs(self, project_id: UUID) -> list[RunRow]:
         with Session(self._engine) as session:

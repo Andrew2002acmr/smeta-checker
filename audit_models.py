@@ -498,6 +498,11 @@ class AuditSettings(BaseModel):
     langfuse_environment: str = "development"
     database_url: str = ""
     blob_store_url: str = ""
+    broker_url: str = ""
+    pdf_queue_size: int = 2
+    llm_queue_size: int = 8
+    task_time_limit: int = 600
+    task_soft_time_limit: int = 540
 
     @classmethod
     def load(cls, file_values: Any = None, secrets: Any = None) -> "AuditSettings":
@@ -540,5 +545,44 @@ class AuditSettings(BaseModel):
             ),
             blob_store_url=get_setting(
                 "BLOB_STORE_URL", "", file_values=file_values, secrets=secrets
+            ),
+            broker_url=get_setting(
+                "CELERY_BROKER_URL", "", file_values=file_values, secrets=secrets
+            ),
+            pdf_queue_size=int(
+                get_setting(
+                    "AUDIT_PDF_CONCURRENCY",
+                    "2",
+                    file_values=file_values,
+                    secrets=secrets,
+                )
+                or 2
+            ),
+            llm_queue_size=int(
+                get_setting(
+                    "AUDIT_LLM_CONCURRENCY",
+                    "8",
+                    file_values=file_values,
+                    secrets=secrets,
+                )
+                or 8
+            ),
+            task_time_limit=int(
+                get_setting(
+                    "AUDIT_TASK_TIME_LIMIT",
+                    "600",
+                    file_values=file_values,
+                    secrets=secrets,
+                )
+                or 600
+            ),
+            task_soft_time_limit=int(
+                get_setting(
+                    "AUDIT_TASK_SOFT_TIME_LIMIT",
+                    "540",
+                    file_values=file_values,
+                    secrets=secrets,
+                )
+                or 540
             ),
         )

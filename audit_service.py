@@ -274,6 +274,125 @@ def _failure_items(exc, task):
     return res_item, track_item
 
 
+def build_run_artifacts(df_works, meta, tasks, tracking, results):
+    """Build df/excel/word from finished position data; shared by run_audit and tasks.
+
+    Column detection, stale-result cleanup, renames and the report-task
+    projection are byte-identical to the historical inline block: Celery
+    finalize must emit the same exports as the in-process path.
+    """
+    vol_col = next(
+        (
+            c
+            for c in df_works.columns
+            if "объем" in str(c).lower().replace("ё", "е")
+            or "количество" in str(c).lower().replace("ё", "е")
+        ),
+        None,
+    )
+    unit_col = next(
+        (
+            c
+            for c in df_works.columns
+            if "ед." in str(c).lower()
+            or "единица измерения" in str(c).lower()
+            or "единицы измерения" in str(c).lower()
+        ),
+        None,
+    )
+    page_col = next(
+        (
+            c
+            for c in df_works.columns
+            if any(
+                m in str(c).lower().replace("ё", "е")
+                for m in (
+                    "номер страниц",
+                    "номера страниц",
+                    "ссылка на страницу",
+                )
+            )
+        ),
+        None,
+    )
+    file_col = [c for c in df_works.columns if "наименование файла" in str(c).lower()]
+    file_col_name = file_col[0] if file_col else None
+    cols_to_drop = [
+        c
+        for c in df_works.columns
+        if str(c).startswith("Unnamed")
+        or str(c).strip() in ["1", "2", "3", "4", "5", "6", "6.1", "6.2", "7", "8", "9"]
+    ]
+    df_works_clean = df_works.drop(columns=cols_to_drop, errors="ignore").copy()
+
+    if vol_col in df_works_clean.columns:
+
+        def clean_vor_val(v):
+            s = str(v).strip()
+            if s.endswith(".0") and s[:-2].replace("-", "").isdigit():
+                return s[:-2]
+            return s
+
+        df_works_clean[vol_col] = df_works_clean[vol_col].apply(clean_vor_val)
+
+    rename_map = {}
+    if vol_col in df_works_clean.columns:
+        rename_map[vol_col] = "[ВОР] Заявленный объем"
+    if unit_col in df_works_clean.columns:
+        rename_map[unit_col] = "[ВОР] Ед. изм."
+    if page_col in df_works_clean.columns:
+        rename_map[page_col] = "[ВОР] Ссылка на страницу"
+    df_works_clean.rename(columns=rename_map, inplace=True)
+    # Повторный прогон файла с результатами: старые итоги
+    # перезаписываются свежими, а не дублируются в concat.
+    stale = [
+        c
+        for c in df_works_clean.columns
+        if c in ("Статус аудита", "Детали расхождений") or str(c).startswith("[ПД]")
+    ]
+    df_works_clean.drop(columns=stale, inplace=True, errors="ignore")
+
+    df_audit = pd.DataFrame(
+        [
+            {
+                "Статус аудита": r["Статус аудита"],
+                "[ПД] Найденный объем (нейросеть)": r["Фактический объем"],
+                "[ПД] Фактическая страница": r[
+                    "Фактическая страница в ПД (найдено моделью)"
+                ],
+                "Детали расхождений": r["Детали расхождений"],
+                "[ПД] Найденная единица": r.get("[ПД] Найденная единица", "-"),
+                "[ПД] Подтверждения (работа/объём/ед./прим.)": r.get(
+                    "[ПД] Подтверждения (работа/объём/ед./прим.)", "-"
+                ),
+                "[ПД] Доказательства (цитаты со страницами)": r.get(
+                    "[ПД] Доказательства (цитаты со страницами)", "-"
+                ),
+                "[ПД] Найденные страницы": r.get("[ПД] Найденные страницы", "-"),
+                "[ПД] Поиск завершён": r.get("[ПД] Поиск завершён", "нет"),
+                "[ПД] Запросов": r.get("[ПД] Запросов", 0),
+                "[ПД] Контекстов": r.get("[ПД] Контекстов", 0),
+            }
+            for r in results
+        ],
+        index=df_works_clean.index,
+    )
+
+    df_final = pd.concat([df_works_clean, df_audit], axis=1)
+
+    report_tasks = [
+        {**task, "file_refs": df_works.iloc[i].get(file_col_name, "")}
+        for i, task in enumerate(tasks)
+    ]
+    user_report = build_user_report(df_final, tracking, report_tasks)
+    return {
+        "df": df_final,
+        "user_report": user_report,
+        "excel_bytes": generate_excel_report(user_report),
+        "word_bytes": generate_word_report(user_report, meta),
+    }
+
+
 def run_audit(
     loaded_vors,
     target_vor_selection,
@@ -354,45 +473,6 @@ def run_audit(
         current_row_idx = 0
 
         for v_name, (df_works, positions, meta) in vors_parsed.items():
-            vol_col = next(
-                (
-                    c
-                    for c in df_works.columns
-                    if "объем" in str(c).lower().replace("ё", "е")
-                    or "количество" in str(c).lower().replace("ё", "е")
-                ),
-                None,
-            )
-            unit_col = next(
-                (
-                    c
-                    for c in df_works.columns
-                    if "ед." in str(c).lower()
-                    or "единица измерения" in str(c).lower()
-                    or "единицы измерения" in str(c).lower()
-                ),
-                None,
-            )
-            page_col = next(
-                (
-                    c
-                    for c in df_works.columns
-                    if any(
-                        m in str(c).lower().replace("ё", "е")
-                        for m in (
-                            "номер страниц",
-                            "номера страниц",
-                            "ссылка на страницу",
-                        )
-                    )
-                ),
-                None,
-            )
-            file_col = [
-                c for c in df_works.columns if "наименование файла" in str(c).lower()
-            ]
-            file_col_name = file_col[0] if file_col else None
-
             tasks = []
             for position in positions:
                 r_idx = position.index
@@ -611,80 +691,12 @@ def run_audit(
                         f"Многопоточная проверка [{current_row_idx}/{total_items}]: {v_name} (5 потоков)...",
                     )
 
-            cols_to_drop = [
-                c
-                for c in df_works.columns
-                if str(c).startswith("Unnamed")
-                or str(c).strip()
-                in ["1", "2", "3", "4", "5", "6", "6.1", "6.2", "7", "8", "9"]
-            ]
-            df_works_clean = df_works.drop(columns=cols_to_drop, errors="ignore").copy()
-
-            if vol_col in df_works_clean.columns:
-
-                def clean_vor_val(v):
-                    s = str(v).strip()
-                    if s.endswith(".0") and s[:-2].replace("-", "").isdigit():
-                        return s[:-2]
-                    return s
-
-                df_works_clean[vol_col] = df_works_clean[vol_col].apply(clean_vor_val)
-
-            rename_map = {}
-            if vol_col in df_works_clean.columns:
-                rename_map[vol_col] = "[ВОР] Заявленный объем"
-            if unit_col in df_works_clean.columns:
-                rename_map[unit_col] = "[ВОР] Ед. изм."
-            if page_col in df_works_clean.columns:
-                rename_map[page_col] = "[ВОР] Ссылка на страницу"
-            df_works_clean.rename(columns=rename_map, inplace=True)
-            # Повторный прогон файла с результатами: старые итоги
-            # перезаписываются свежими, а не дублируются в concat.
-            stale = [
-                c
-                for c in df_works_clean.columns
-                if c in ("Статус аудита", "Детали расхождений")
-                or str(c).startswith("[ПД]")
-            ]
-            df_works_clean.drop(columns=stale, inplace=True, errors="ignore")
-
-            df_audit = pd.DataFrame(
-                [
-                    {
-                        "Статус аудита": r["Статус аудита"],
-                        "[ПД] Найденный объем (нейросеть)": r["Фактический объем"],
-                        "[ПД] Фактическая страница": r[
-                            "Фактическая страница в ПД (найдено моделью)"
-                        ],
-                        "Детали расхождений": r["Детали расхождений"],
-                        "[ПД] Найденная единица": r.get("[ПД] Найденная единица", "-"),
-                        "[ПД] Подтверждения (работа/объём/ед./прим.)": r.get(
-                            "[ПД] Подтверждения (работа/объём/ед./прим.)", "-"
-                        ),
-                        "[ПД] Доказательства (цитаты со страницами)": r.get(
-                            "[ПД] Доказательства (цитаты со страницами)", "-"
-                        ),
-                        "[ПД] Найденные страницы": r.get(
-                            "[ПД] Найденные страницы", "-"
-                        ),
-                        "[ПД] Поиск завершён": r.get("[ПД] Поиск завершён", "нет"),
-                        "[ПД] Запросов": r.get("[ПД] Запросов", 0),
-                        "[ПД] Контекстов": r.get("[ПД] Контекстов", 0),
-                    }
-                    for r in results_list
-                ],
-                index=df_works_clean.index,
+            artifacts = build_run_artifacts(
+                df_works, meta, tasks, row_page_tracking, results_list
             )
-
-            df_final = pd.concat([df_works_clean, df_audit], axis=1)
-
-            report_tasks = [
-                {**task, "file_refs": df_works.iloc[i].get(file_col_name, "")}
-                for i, task in enumerate(tasks)
-            ]
-            user_report = build_user_report(df_final, row_page_tracking, report_tasks)
-            excel_bytes = generate_excel_report(user_report)
-            word_bytes = generate_word_report(user_report, meta)
+            df_final = artifacts["df"]
+            excel_bytes = artifacts["excel_bytes"]
+            word_bytes = artifacts["word_bytes"]
 
             stored_id = None
             if store is not None and run_id is not None:
