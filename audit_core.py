@@ -7,8 +7,8 @@ from collections import Counter
 from decimal import Decimal
 import unicodedata
 
+from audit_models import AuditResult, LlmAuditResponse
 from audit_tracing import span
-
 
 TECHNICAL_ERROR = "Технический сбой"
 INCOMPLETE = "Неполная проверка"
@@ -23,11 +23,10 @@ def result_level(status):
 
 
 def empty_result(status, message):
-    return {"status": status, "work_found": False, "volume_confirmed": False,
-            "unit_confirmed": False, "comment_confirmed": False,
-            "found_volume": "-", "found_unit": "-", "found_page": "-",
-            "found_pages": [], "evidence": [], "search_complete": False,
-            "requests": 0, "discrepancy_details": str(message)}
+    return AuditResult(
+        status=status, work_found=False, volume_confirmed=False,
+        unit_confirmed=False, comment_confirmed=False,
+        discrepancy_details=str(message)).to_legacy()
 
 
 def technical_error(message):
@@ -348,23 +347,17 @@ def parse_audit_response(raw, context, comment_required=True, *, expected_volume
     if start < 0:
         raise ValueError("В ответе модели нет JSON")
     data, _ = json.JSONDecoder().raw_decode(cleaned[start:])
-    required = {"work_found", "volume_confirmed", "unit_confirmed",
-                "comment_confirmed", "found_volume", "found_unit", "found_page",
-                "evidence", "discrepancy_details"}
-    if not isinstance(data, dict) or not required <= data.keys():
+    if not isinstance(data, dict):
         raise ValueError("В ответе модели отсутствуют обязательные поля")
-    for field in ("work_found", "volume_confirmed", "unit_confirmed", "comment_confirmed"):
-        if not isinstance(data[field], bool):
-            raise ValueError(f"Поле {field} должно быть логическим")
+    try:
+        wire = LlmAuditResponse.model_validate(data)
+    except ValueError as exc:
+        raise ValueError(f"В ответе модели некорректные поля: {exc}") from exc
+    data = wire.model_dump()
     for field in ("found_volume", "found_unit", "discrepancy_details"):
-        value = data[field]
-        if value is not None and (isinstance(value, bool) or not isinstance(value, (str, int, float))):
-            raise ValueError(f"Некорректное поле {field}")
-        data[field] = str(value).strip() if value is not None else ""
+        data[field] = data[field] if data[field] is not None else ""
     data["found_volume"] = data["found_volume"] or "-"
     data["found_unit"] = data["found_unit"] or "-"
-    if not isinstance(data["evidence"], list):
-        raise ValueError("Доказательства должны быть списком цитат")
     if quote_sources is not None:
         def resolve_source(item):
             source_id = item.get("source_id") if isinstance(item, dict) else None
@@ -469,7 +462,7 @@ def parse_audit_response(raw, context, comment_required=True, *, expected_volume
             if not data[flag]]
         data["discrepancy_details"] = "Не подтверждены: " + ", ".join(missing) + "."
     data["search_complete"] = data["work_found"]
-    return data
+    return AuditResult.from_legacy(data).to_legacy()
 
 
 def audit_text_pages(index, target_indices, ask, work_name, volume, reference="", comment="",

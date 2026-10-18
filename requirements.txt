@@ -383,6 +383,7 @@ pydantic==2.14.1 \
     # via
     #   langfuse
     #   openai
+    #   smeta-checker
 pydantic-core==2.50.1 \
     --hash=sha256:132529c83901437ff642f585216831bf5fd7a91df66829907e155192ead62498 \
     --hash=sha256:45b11cac094aa25725581d9304eee93c9028516b9ea80dd9e175e13a5a2c840e \

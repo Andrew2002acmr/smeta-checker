@@ -30,7 +30,11 @@ uv run streamlit run app.py
   (`preflight_bindings`), подготовка позиций, пул потоков, `run_audit`.
 * `audit_llm.py` — LLM-адаптер: `audit_position_hybrid` (промпт, бюджеты,
   ретраи, guardrail цитат). Клиент, ключи и модель передаются явно.
-* `vor_parse.py` — парсер ВОР (`load_vor_with_metadata`).
+* `audit_models.py` — типизированные доменные модели Pydantic: `Document`,
+  `VorPosition`, `AuditResult`, `Evidence`, `AuditSettings`, явные статусы
+  и ошибки. Между модулями ходят модели; pandas и dict — только на границах
+  импорта/экспорта (Excel/CSV, Streamlit, Excel/Word).
+* `vor_parse.py` — парсер ВОР (`load_vor_positions`, legacy `load_vor_with_metadata`).
 * `audit_settings.py` — настройки `.env` → окружение → переданные secrets.
 * `audit_core.py`, `pdf_text.py`, `pdf_binding.py`, `audit_reports.py`,
   `audit_tracing.py`, `vor_rules.py` — предметное ядро и отчёты.

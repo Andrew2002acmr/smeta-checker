@@ -16,6 +16,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 from audit_core import INCOMPLETE, TECHNICAL_ERROR
+from audit_models import AuditResult, VorPosition
 from pdf_binding import split_pdf_refs
 
 DISCREPANCY = "Обнаружено расхождение"
@@ -51,8 +52,26 @@ def _number(value, unit):
     return None
 
 
+def _as_task_dict(task):
+    if isinstance(task, VorPosition):
+        return task.legacy_task()
+    return task
+
+
+def _as_source_dict(source):
+    if isinstance(source, AuditResult):
+        data = source.to_legacy()
+        data["found_page"] = (
+            int(source.found_page) if source.found_page.isdigit() else None
+        )
+        return data
+    return source
+
+
 def build_user_report(df, tracking, tasks):
     """Project explicit presentation fields; align tracking by position, not df index."""
+    tracking = [_as_source_dict(source) for source in tracking]
+    tasks = [_as_task_dict(task) for task in tasks]
     if len(df) != len(tracking) or len(df) != len(tasks):
         raise ValueError("Данные позиций и источников отчёта не согласованы")
     records = []

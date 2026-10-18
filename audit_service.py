@@ -22,11 +22,12 @@ from audit_core import (
     technical_error,
 )
 from audit_llm import audit_position_hybrid
+from audit_models import AuditResult
 from audit_reports import build_user_report, generate_excel_report, generate_word_report
 from audit_tracing import TracingRun
-from pdf_binding import resolve_pdf_name, resolve_position_pdfs, split_pdf_refs
+from pdf_binding import resolve_pdf_name, resolve_position_pdfs
 from pdf_text import PDFTextSource
-from vor_parse import load_vor_with_metadata
+from vor_parse import load_vor_frame_positions, load_vor_positions
 
 
 def get_optimized_page_indices(doc, page_str):
@@ -41,14 +42,15 @@ def preflight_bindings(loaded_vors, target_vor_selection, pdf_pool_keys):
 
     for v_name in target_vor_selection:
         try:
-            df_prev, prev_meta = load_vor_with_metadata(loaded_vors[v_name], v_name)
+            prev_positions, prev_meta = load_vor_positions(
+                loaded_vors[v_name], v_name
+            )
         except Exception:
             continue
 
-        f_cols = [c for c in df_prev.columns if "наименование файла" in c.lower()]
         seen_bindings = set()
-        for _, preview_row in df_prev.iterrows():
-            refs = split_pdf_refs(preview_row.get(f_cols[0], "")) if f_cols else []
+        for position in prev_positions:
+            refs = position.explicit_refs
             binding_key = tuple(refs)
             if binding_key in seen_bindings:
                 continue
@@ -105,7 +107,22 @@ def worker_check_row(task, audit_position):
             comment_text=task["w_comment"],
             formula_text=task["w_formula"],
         )
-    audit = dict(audit)
+    validated = (
+        audit
+        if isinstance(audit, AuditResult)
+        else AuditResult.from_legacy(dict(audit))
+    )
+    document_id = task.get("target_pdf_name") or ""
+    if document_id:
+        validated = validated.model_copy(
+            update={
+                "evidence": [
+                    item.model_copy(update={"document_id": document_id})
+                    for item in validated.evidence
+                ]
+            }
+        )
+    audit = validated.to_legacy()
     evidence = [dict(e) for e in (audit.get("evidence") or []) if isinstance(e, dict)]
     found_pages = sorted(
         {e["page"] for e in evidence if isinstance(e.get("page"), int)}
@@ -298,93 +315,81 @@ def run_audit(
         total_items = 0
         for v_name in target_vor_selection:
             try:
-                df_w, meta = load_vor_with_metadata(loaded_vors[v_name], v_name)
+                df_w, positions_w, meta = load_vor_frame_positions(
+                    loaded_vors[v_name], v_name
+                )
+            except ValueError as exc:
+                if "обязательные колонки" in str(exc):
+                    issues.append(f"{v_name}: {exc}")
+                    continue
+                issues.append(
+                    f"Не удалось прочитать {v_name}: {type(exc).__name__}: {str(exc)[:300]}"
+                )
+                continue
             except Exception as exc:
                 issues.append(
                     f"Не удалось прочитать {v_name}: {type(exc).__name__}: {str(exc)[:300]}"
                 )
                 continue
-            if df_w.empty:
+            if not positions_w:
                 issues.append(f"{v_name}: позиции для проверки не найдены.")
                 continue
-            vors_parsed[v_name] = (df_w, meta)
-            total_items += len(df_w)
+            vors_parsed[v_name] = (df_w, positions_w, meta)
+            total_items += len(positions_w)
 
         notify(0, "Инициализация многопоточной проверки...")
         current_row_idx = 0
 
-        for v_name, (df_works, meta) in vors_parsed.items():
-
-            def find_column(*markers):
-                return next(
-                    (
-                        c
-                        for c in df_works.columns
-                        if any(
-                            marker in c.lower().replace("ё", "е") for marker in markers
-                        )
-                    ),
-                    None,
-                )
-
-            page_col = find_column(
-                "номер страниц", "номера страниц", "ссылка на страницу"
+        for v_name, (df_works, positions, meta) in vors_parsed.items():
+            vol_col = next(
+                (
+                    c
+                    for c in df_works.columns
+                    if "объем" in str(c).lower().replace("ё", "е")
+                    or "количество" in str(c).lower().replace("ё", "е")
+                ),
+                None,
             )
-            name_col = find_column("наименование работ", "наименование")
-            vol_col = find_column("объем", "количество")
-            unit_col = find_column("ед.", "единица измерения", "единицы измерения")
-            ref_col = find_column("ссылка")
-            missing = [
-                label
-                for label, col in (
-                    ("наименование работ", name_col),
-                    ("объем / количество", vol_col),
-                    ("единица измерения", unit_col),
-                )
-                if col is None
-            ]
-            if missing:
-                issues.append(
-                    f"{v_name}: не найдены обязательные колонки: {', '.join(missing)}. Проверьте шапку ВОР."
-                )
-                current_row_idx += len(df_works)
-                continue
+            unit_col = next(
+                (
+                    c
+                    for c in df_works.columns
+                    if "ед." in str(c).lower()
+                    or "единица измерения" in str(c).lower()
+                    or "единицы измерения" in str(c).lower()
+                ),
+                None,
+            )
+            page_col = next(
+                (
+                    c
+                    for c in df_works.columns
+                    if any(
+                        m in str(c).lower().replace("ё", "е")
+                        for m in (
+                            "номер страниц",
+                            "номера страниц",
+                            "ссылка на страницу",
+                        )
+                    )
+                ),
+                None,
+            )
             file_col = [
-                c for c in df_works.columns if "наименование файла" in c.lower()
+                c for c in df_works.columns if "наименование файла" in str(c).lower()
             ]
             file_col_name = file_col[0] if file_col else None
 
-            comm_cols = [
-                c
-                for c in df_works.columns
-                if "дополнительная" in c.lower() or "комментарий" in c.lower()
-            ]
-            comment_col_name = comm_cols[0] if comm_cols else None
-
-            form_cols = [c for c in df_works.columns if "формула" in c.lower()]
-            formula_col_name = form_cols[0] if form_cols else None
-
             tasks = []
-            for r_idx, (_, row) in enumerate(df_works.iterrows()):
-                w_name = str(row[name_col])
-                w_vol = str(row[vol_col])
-                w_unit = str(row[unit_col])
-                w_ref = str(row[ref_col]) if ref_col else ""
-                w_page = str(row[page_col]) if page_col else ""
-                w_comment = (
-                    str(row.get(comment_col_name, "")).strip()
-                    if comment_col_name
-                    else ""
-                )
-                w_formula = (
-                    str(row.get(formula_col_name, "")).strip()
-                    if formula_col_name
-                    else ""
-                )
-                if w_comment.lower() == "nan":
-                    w_comment = ""
-                if w_formula.lower() == "nan":
-                    w_formula = ""
+            for position in positions:
+                r_idx = position.index
+                w_name = position.work_name
+                w_vol = position.volume
+                w_unit = position.unit
+                w_ref = position.reference
+                w_page = position.page_ref
+                w_comment = position.comment
+                w_formula = position.formula
                 position_trace = trace_run.position(
                     input={
                         "work": w_name,
@@ -406,9 +411,7 @@ def run_audit(
                 target_pdf_doc = None
                 target_pdf_name = ""
                 bind_error = None
-                explicit_refs = []
-                if file_col_name:
-                    explicit_refs = split_pdf_refs(row.get(file_col_name, ""))
+                explicit_refs = list(position.explicit_refs)
                 pdfs, _, _, bind_error = resolve_position_pdfs(
                     explicit_refs, pdf_pool.keys(), meta.get("basis_code", "")
                 )
