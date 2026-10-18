@@ -92,6 +92,7 @@ def _read_source_bytes(source: Any) -> bytes:
 
 class Repository:
     def __init__(self, database_url: str, blob_store: BlobStore) -> None:
+        self._database_url = database_url
         self._engine = create_engine(database_url)
         self._blobs = blob_store
 
@@ -101,8 +102,9 @@ class Repository:
             self._engine.url
         ):
             raise RuntimeError("reset_for_tests is restricted to test databases")
-        downgrade(str(self._engine.url))
-        migrate(str(self._engine.url))
+        # NOTE: never str(engine.url) — SQLAlchemy masks the password as "***".
+        downgrade(self._database_url)
+        migrate(self._database_url)
 
     def get_or_create_project(self, name: str) -> ProjectRow:
         with Session(self._engine) as session:

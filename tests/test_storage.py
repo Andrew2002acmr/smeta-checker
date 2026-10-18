@@ -203,11 +203,14 @@ class MigrationTests(unittest.TestCase):
         admin = create_engine(
             url.set(database="postgres"), isolation_level="AUTOCOMMIT"
         )
-        probe_engine = create_engine(str(url.set(database="smeta_migrate_probe")))
+        # NOTE: str(url) masks the password as "***"; render it explicitly.
+        probe = url.set(database="smeta_migrate_probe").render_as_string(
+            hide_password=False
+        )
+        probe_engine = create_engine(probe)
         with admin.connect() as conn:
             conn.exec_driver_sql('DROP DATABASE IF EXISTS "smeta_migrate_probe"')
             conn.exec_driver_sql('CREATE DATABASE "smeta_migrate_probe"')
-        probe = str(probe_engine.url)
         try:
             migrate(probe)
             tables = set(inspect(probe_engine).get_table_names())
