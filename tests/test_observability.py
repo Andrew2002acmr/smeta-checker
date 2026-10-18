@@ -56,9 +56,7 @@ class CorrelationTests(unittest.TestCase):
                 return f"https://langfuse/{trace_id}"
 
         with patch("audit_tracing._configured_client", return_value=FakeClient()):
-            run = TracingRun(
-                "pk", "sk", audit_run_id="run-123", request_id="req-456"
-            )
+            run = TracingRun("pk", "sk", audit_run_id="run-123", request_id="req-456")
             trace = run.position({"work": "Кабель"}, {"position_index": 0})
             trace.finish({"status": "ОК"})
             run.close()
@@ -108,9 +106,7 @@ class StructuredLogTests(unittest.TestCase):
             logger = get_logger("test-issue-21-logs")
             token = bind(audit_run_id="run-1", position_index=3, stage="audit")
             try:
-                logger.info(
-                    "done", extra={"api_key": "SECRET-VALUE", "status": "ОК"}
-                )
+                logger.info("done", extra={"api_key": "SECRET-VALUE", "status": "ОК"})
             finally:
                 reset(token)
         finally:
@@ -168,9 +164,11 @@ class RedactionTests(unittest.TestCase):
 
     def test_redact_pdf_replaces_fragments_keeps_routing(self):
         seen, active, redact, mask = self._capture(redact=True)
-        with patch("audit_tracing._client", active), patch(
-            "audit_tracing._redact", redact
-        ), patch("audit_tracing._mask", mask):
+        with (
+            patch("audit_tracing._client", active),
+            patch("audit_tracing._redact", redact),
+            patch("audit_tracing._mask", mask),
+        ):
             with span("select-context", input={1: "секретный текст ПД"}) as obs:
                 obs.update(output={2: "другой секрет"})
         self.assertEqual(seen["start"]["input"], {1: "[redacted 18 chars]"})
@@ -182,9 +180,11 @@ class RedactionTests(unittest.TestCase):
             {"role": "system", "content": "инструкция"},
             {"role": "user", "content": "промпт с ПД"},
         ]
-        with patch("audit_tracing._client", active), patch(
-            "audit_tracing._redact", redact
-        ), patch("audit_tracing._mask", mask):
+        with (
+            patch("audit_tracing._client", active),
+            patch("audit_tracing._redact", redact),
+            patch("audit_tracing._mask", mask),
+        ):
             with span("generate-audit", input=messages):
                 pass
         self.assertEqual(
@@ -197,14 +197,14 @@ class RedactionTests(unittest.TestCase):
 
     def test_flags_off_leaves_payloads_untouched(self):
         seen, active, redact, mask = self._capture()
-        with patch("audit_tracing._client", active), patch(
-            "audit_tracing._redact", redact
-        ), patch("audit_tracing._mask", mask):
+        with (
+            patch("audit_tracing._client", active),
+            patch("audit_tracing._redact", redact),
+            patch("audit_tracing._mask", mask),
+        ):
             with span("generate-audit", input=[{"role": "user", "content": "x"}]):
                 pass
-        self.assertEqual(
-            seen["start"]["input"], [{"role": "user", "content": "x"}]
-        )
+        self.assertEqual(seen["start"]["input"], [{"role": "user", "content": "x"}])
 
     def test_observation_update_is_redacted_by_stage_name(self):
         seen = {}
@@ -230,18 +230,18 @@ class RedactionTests(unittest.TestCase):
             "discrepancy_details": "секретные детали",
             "evidence": [{"page": 1, "quote": "секретная цитата"}],
         }
-        with patch("audit_tracing._client", active), patch(
-            "audit_tracing._redact", redact
-        ), patch("audit_tracing._mask", mask):
+        with (
+            patch("audit_tracing._client", active),
+            patch("audit_tracing._redact", redact),
+            patch("audit_tracing._mask", mask),
+        ):
             with span("confirm-quantities", input=result):
                 pass
         redacted = seen["start"]["input"]
         self.assertEqual(redacted["status"], "Ошибка")
         self.assertTrue(redacted["work_found"])
         self.assertEqual(redacted["requests"], 2)
-        self.assertEqual(
-            redacted["discrepancy_details"], "[redacted 16 chars]"
-        )
+        self.assertEqual(redacted["discrepancy_details"], "[redacted 16 chars]")
         self.assertEqual(
             redacted["evidence"], [{"page": 1, "quote": "[redacted 16 chars]"}]
         )
@@ -253,9 +253,7 @@ class UploadSecurityTests(unittest.TestCase):
         from storage_blobs import FileBlobStore
 
         tmp = tempfile.mkdtemp(prefix="smeta-21-")
-        self.addCleanup(
-            lambda: __import__("shutil").rmtree(tmp, ignore_errors=True)
-        )
+        self.addCleanup(lambda: __import__("shutil").rmtree(tmp, ignore_errors=True))
         settings = AuditSettings(database_url="x", blob_store_url=f"file://{tmp}")
         for key, value in overrides.items():
             object.__setattr__(settings, key, value)
@@ -295,7 +293,9 @@ class UploadSecurityTests(unittest.TestCase):
         with self.assertRaises(ApiError) as raised:
             _check_upload_mime(bad, "pdf")
         self.assertEqual(raised.exception.code, "unsupported_media_type")
-        generic = SimpleNamespace(filename="a.pdf", content_type="application/octet-stream")
+        generic = SimpleNamespace(
+            filename="a.pdf", content_type="application/octet-stream"
+        )
         _check_upload_mime(generic, "pdf")
 
     def test_magic_bytes_verified(self):
@@ -326,11 +326,16 @@ class LlmPolicyTests(unittest.TestCase):
     def test_disallowed_host_fails_closed(self):
         from audit_llm import _check_llm_host
 
-        _check_llm_host("https://ai.api.cloud.yandex.net/v1", ("ai.api.cloud.yandex.net",))
+        _check_llm_host(
+            "https://ai.api.cloud.yandex.net/v1", ("ai.api.cloud.yandex.net",)
+        )
         with self.assertRaises(ValueError):
             _check_llm_host("https://evil.example/v1", ("ai.api.cloud.yandex.net",))
         with self.assertRaises(ValueError):
-            _check_llm_host("https://ai.api.cloud.yandex.net.evil.example/v1", ("ai.api.cloud.yandex.net",))
+            _check_llm_host(
+                "https://ai.api.cloud.yandex.net.evil.example/v1",
+                ("ai.api.cloud.yandex.net",),
+            )
         with self.assertRaises(ValueError):
             _check_llm_host("not a url", ("ai.api.cloud.yandex.net",))
 
@@ -366,9 +371,7 @@ class MetricsTests(unittest.TestCase):
         self.assertIsNone(estimate_cost({"total": 100}, 1.0, 2.0))
         self.assertIsNone(estimate_cost({"input": 1, "output": 1}, 0.0, 2.0))
         self.assertIsNone(estimate_cost({"input": 1, "output": 1}, 1.0, 0.0))
-        self.assertEqual(
-            estimate_cost({"input": 1000, "output": 500}, 2.0, 4.0), 4.0
-        )
+        self.assertEqual(estimate_cost({"input": 1000, "output": 500}, 2.0, 4.0), 4.0)
 
     def test_run_metrics_summary(self):
         metrics = RunMetrics(run_id="run-1")

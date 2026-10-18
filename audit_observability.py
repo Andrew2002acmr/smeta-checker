@@ -85,10 +85,27 @@ class _ContextFilter(logging.Filter):
 class _JsonFormatter(logging.Formatter):
     _RESERVED = frozenset(
         {
-            "name", "msg", "args", "levelname", "levelno", "pathname",
-            "filename", "module", "exc_info", "exc_text", "stack_info",
-            "lineno", "funcName", "created", "msecs", "relativeCreated",
-            "thread", "threadName", "processName", "process", "message",
+            "name",
+            "msg",
+            "args",
+            "levelname",
+            "levelno",
+            "pathname",
+            "filename",
+            "module",
+            "exc_info",
+            "exc_text",
+            "stack_info",
+            "lineno",
+            "funcName",
+            "created",
+            "msecs",
+            "relativeCreated",
+            "thread",
+            "threadName",
+            "processName",
+            "process",
+            "message",
             "taskName",
         }
     )
@@ -125,9 +142,7 @@ def get_logger(name: str) -> logging.Logger:
     if not any(isinstance(item, _ContextFilter) for item in logger.filters):
         logger.addFilter(_ContextFilter())
     for handler in logging.root.handlers:
-        if not any(
-            isinstance(item, _JsonFormatter) for item in [handler.formatter]
-        ):
+        if not any(isinstance(item, _JsonFormatter) for item in [handler.formatter]):
             handler.setFormatter(_JsonFormatter())
     if not logging.root.handlers:
         handler = logging.StreamHandler()
@@ -153,7 +168,9 @@ def estimate_cost(
         tokens = usage
     else:
         tokens = {
-            "input": getattr(usage, "input_tokens", getattr(usage, "prompt_tokens", None)),
+            "input": getattr(
+                usage, "input_tokens", getattr(usage, "prompt_tokens", None)
+            ),
             "output": getattr(
                 usage, "output_tokens", getattr(usage, "completion_tokens", None)
             ),
