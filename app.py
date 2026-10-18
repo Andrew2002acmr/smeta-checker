@@ -9,12 +9,18 @@ from audit_core import INCOMPLETE, TECHNICAL_ERROR
 from pdf_text import bounded_page_dpi
 from audit_tracing import TracingRun
 from audit_settings import get_setting as _resolve_setting
+from audit_models import AuditSettings
 from audit_service import preflight_bindings, run_audit
 
 
 def get_setting(name, default=""):
     """Настройки: .env этого проекта, окружение процесса, Streamlit Secrets."""
     return _resolve_setting(name, default, secrets=st.secrets)
+
+
+def load_settings():
+    """Typed settings snapshot; resolution stays .env → env → Secrets."""
+    return AuditSettings.load(secrets=st.secrets)
 
 
 st.set_page_config(page_title="Аудит ВОР и ПД", layout="wide")
@@ -97,12 +103,10 @@ def prepare_df_for_display(df):
 
 
 
-YANDEX_FOLDER = get_setting("YANDEX_CLOUD_FOLDER")
-YANDEX_API_KEY = get_setting("YANDEX_CLOUD_API_KEY")
-YANDEX_MODEL_NAME = get_setting(
-    "YANDEX_CLOUD_MODEL",
-    "qwen3.6-35b-a3b/latest"
-)
+_SETTINGS = load_settings()
+YANDEX_FOLDER = _SETTINGS.yandex_cloud_folder
+YANDEX_API_KEY = _SETTINGS.yandex_cloud_api_key
+YANDEX_MODEL_NAME = _SETTINGS.yandex_cloud_model
 
 
 def render_page(doc, page_idx, dpi=250):
@@ -260,10 +264,13 @@ with main_tab1:
                     st.error("Не загружено ни одного файла PDF!")
                 else:
                     st.session_state.audit_run_issues = []
+                    _run_settings = load_settings()
                     trace_run = TracingRun(
-                        get_setting("LANGFUSE_PUBLIC_KEY"), get_setting("LANGFUSE_SECRET_KEY"),
-                        get_setting("LANGFUSE_BASE_URL", "https://cloud.langfuse.com"),
-                        get_setting("LANGFUSE_ENVIRONMENT", "development"))
+                        _run_settings.langfuse_public_key,
+                        _run_settings.langfuse_secret_key,
+                        _run_settings.langfuse_base_url,
+                        _run_settings.langfuse_environment,
+                    )
                     if trace_run.error:
                         st.warning(trace_run.error)
                     for v_name in target_vor_selection:

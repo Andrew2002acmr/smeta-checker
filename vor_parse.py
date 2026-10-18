@@ -1,6 +1,6 @@
 """VOR workbook parsing: header metadata, work rows, continuation refs.
 
-Pure pandas/io/re; no Streamlit dependency.
+Pandas lives only at this import boundary; callers receive validated models.
 """
 
 from __future__ import annotations
@@ -10,8 +10,12 @@ import re
 
 import pandas as pd
 
+from audit_models import VorMeta, VorPosition
+from pdf_binding import split_pdf_refs
 
-def load_vor_with_metadata(file_source, filename):
+
+def _read_vor_frame(file_source, filename):
+    """Read raw bytes into (df, meta_dict); pure pandas/io/re boundary."""
     meta = {
         "object_name": "Не указано",
         "doc_number": filename,
@@ -151,3 +155,105 @@ def load_vor_with_metadata(file_source, filename):
             elif pd.notna(row.iloc[0]) or pd.notna(row.iloc[1]):
                 owner_idx = None
     return df_clean, meta
+
+
+def _vor_positions(df):
+    """Validate work rows into VorPosition; pandas objects never escape."""
+
+    def find_column(*markers):
+        return next(
+            (
+                c
+                for c in df.columns
+                if any(
+                    marker in str(c).lower().replace("ё", "е") for marker in markers
+                )
+            ),
+            None,
+        )
+
+    name_col = find_column("наименование работ", "наименование")
+    vol_col = find_column("объем", "количество")
+    unit_col = find_column("ед.", "единица измерения", "единицы измерения")
+    ref_col = find_column("ссылка")
+    page_col = find_column("номер страниц", "номера страниц", "ссылка на страницу")
+    file_col = next(
+        (c for c in df.columns if "наименование файла" in str(c).lower()),
+        None,
+    )
+    comment_col = next(
+        (
+            c
+            for c in df.columns
+            if "дополнительная" in str(c).lower() or "комментарий" in str(c).lower()
+        ),
+        None,
+    )
+    formula_col = next((c for c in df.columns if "формула" in str(c).lower()), None)
+    missing = [
+        label
+        for label, col in (
+            ("наименование работ", name_col),
+            ("объем / количество", vol_col),
+            ("единица измерения", unit_col),
+        )
+        if col is None
+    ]
+    if missing:
+        raise ValueError(
+            "не найдены обязательные колонки: "
+            + ", ".join(missing)
+            + ". Проверьте шапку ВОР."
+        )
+    positions = []
+    for index, (_, row) in enumerate(df.reset_index(drop=True).iterrows()):
+        def cell(col):
+            return "" if col is None else row.get(col, "")
+
+        number = re.sub(r"\.0+$", "", str(row.iloc[0]).strip())
+        work_name = str(row[name_col]).strip()
+        volume = str(row[vol_col]).strip()
+        unit = str(row[unit_col]).strip()
+        reference = str(cell(ref_col)).strip()
+        page_ref = str(cell(page_col)).strip()
+        file_ref = str(cell(file_col)).strip()
+        comment = str(cell(comment_col)).strip()
+        formula = str(cell(formula_col)).strip()
+        if comment.lower() == "nan":
+            comment = ""
+        if formula.lower() == "nan":
+            formula = ""
+        positions.append(
+            VorPosition(
+                index=index,
+                number="" if number.lower() == "nan" else number,
+                work_name=work_name,
+                volume=volume,
+                unit=unit,
+                reference="" if reference.lower() == "nan" else reference,
+                page_ref="" if page_ref.lower() == "nan" else page_ref,
+                file_ref="" if file_ref.lower() == "nan" else file_ref,
+                explicit_refs=split_pdf_refs(file_ref),
+                comment=comment,
+                formula=formula,
+            )
+        )
+    return positions
+
+
+def load_vor_frame_positions(file_source, filename):
+    """Parse a VOR workbook into (df, positions, meta); df stays at the boundary."""
+    df, meta_dict = _read_vor_frame(file_source, filename)
+    return df, _vor_positions(df), VorMeta(**meta_dict)
+
+
+def load_vor_positions(file_source, filename):
+    """Parse a VOR workbook into (positions, meta); pandas stays inside."""
+    df, positions, meta = load_vor_frame_positions(file_source, filename)
+    return positions, meta
+
+
+def load_vor_with_metadata(file_source, filename):
+    """Legacy (df, meta-dict) view; new code uses ``load_vor_positions``."""
+    df, meta_dict = _read_vor_frame(file_source, filename)
+    return df, VorMeta(**meta_dict)

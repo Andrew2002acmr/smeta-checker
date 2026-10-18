@@ -11,6 +11,7 @@ dependencies = [
     "openpyxl==3.1.5",
     "pandas==3.0.6",
     "pillow==12.3.0",
+    "pydantic==2.14.1",
     "pymupdf==1.28.2",
     "pymupdf-layout==1.28.2",
     "pymupdf4llm==1.28.2",
