@@ -194,6 +194,44 @@ usage попытки, причина ретрая. `level` отражает ис
 В конце запуска выполняется `flush()`. Ошибки доставки телеметрии не меняют
 результат аудита и журналируются отдельно.
 
+### Связка trace ↔ запуск ↔ HTTP (issue #21)
+
+Каждый position trace несёт durable-ключи `audit_run_id` (также тег
+`audit-run-<id>` и `user_id` для cost-атрибуции) и `request_id` из заголовка
+`X-Request-ID` (сервер возвращает его в ответе и генерирует при отсутствии).
+Путь восстанавливается в обе стороны: HTTP-запрос → строка `runs` (поле
+`config.request_id`) → payload позиций (`position_jobs`) → те же ключи в
+воркере и LLM-спане. Celery-очереди и fallback-поток используют один контракт.
+
+### Логи, маскирование, метрики (issue #21)
+
+- Логи — JSON по одной строке (`audit_observability.get_logger`): поля
+  `audit_run_id`, `position_index`, `request_id`, `stage`, `worker`, `queue`.
+  Ключи со словами `key`/`secret`/`token`/`password`/`auth`/`cookie`
+  заменяются на `[redacted]`; контекст переносится в потоки/таски явно.
+- `AUDIT_TELEMETRY_REDACT_PDF=1` заменяет тела фрагментов ПД в спанах на
+  `[redacted N chars]`; маршрутные ключи (страницы, счётчики, usage) остаются.
+  `AUDIT_TELEMETRY_MASK_PROMPTS=1` скрывает только тексты сообщений
+  `generate-audit`, метаданные (провайдер, попытка, страницы, символы) остаются.
+- Каждая позиция хранит провайдерский `usage` (сумма по попыткам) и
+  `budget_tokens`; `finalize` пишет сводку в `runs.config.metrics`: статусы,
+  ошибки, длительности этапов, запросы/контексты, токены input/output и
+  `estimated_cost` по тарифам `AUDIT_LLM_INPUT_COST_PER_1K` /
+  `AUDIT_LLM_OUTPUT_COST_PER_1K` (нули = неизвестно, не бесплатно;
+  `total`-only usage в стоимость не превращается).
+
+### Безопасность документов и провайдеров (issue #21)
+
+- Загрузки: basename-only имена (без `..`, NUL, каталогов), лимит размера
+  `AUDIT_MAX_UPLOAD_BYTES` (413 при превышении) и числа документов
+  `AUDIT_MAX_UPLOADS_PER_REQUEST`, сверка Content-Type с видом (octet-stream
+  допускается) и magic bytes (`%PDF-` для PDF, `PK` для xlsx, без NUL для CSV)
+  до парсинга. Чтение blob-ключей не выходит за корень хранилища.
+- Доступ: документы адресуются только по UUID версий внутри проекта;
+  произвольные пути и чтения вне blob-корня невозможны. Внешний LLM-провайдер
+  один — Yandex Cloud; хост эндпоинта проверяется по allowlist
+  `AUDIT_ALLOWED_LLM_HOSTS` до открытия HTTP-клиента (по умолчанию только
+  `ai.api.cloud.yandex.net`).
 
 ### Агентские знания: skills и MCP (issue #33)
 
@@ -237,7 +275,8 @@ langfuse`, `npx skills add pydantic/skills --skill pydantic` (без `-g`);
 
 ### Limitations трейсинга
 
-В Cloud передаются фрагменты ПД, сведения позиции ВОР, ответы и цитаты.
+В Cloud передаются фрагменты ПД, сведения позиции ВОР, ответы и цитаты
+(см. `AUDIT_TELEMETRY_REDACT_PDF` / `AUDIT_TELEMETRY_MASK_PROMPTS` выше).
 Конфигурация и API-клиенты не передаются как входы observations. Используйте
 только документы, разрешенные к передаче в этот сервис.
 

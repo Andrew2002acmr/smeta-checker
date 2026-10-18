@@ -50,10 +50,25 @@ class FileBlobStore(BlobStore):
         return BlobRef(key=key, sha256=digest, size=len(payload))
 
     def get(self, key: str) -> bytes:
-        path = self._root / key
-        if not path.is_file():
+        cleaned = str(key or "").replace("\\", "/").strip()
+        parts = [part for part in cleaned.split("/") if part not in {"", "."}]
+        if not parts or ".." in parts or len(parts) > 4:
             raise FileNotFoundError(key)
-        return path.read_bytes()
+        root = self._root.resolve()
+        path = root
+        for part in parts:
+            if len(part) > 128:
+                raise FileNotFoundError(key)
+            path = path / part
+        try:
+            resolved = path.resolve()
+        except OSError as exc:
+            raise FileNotFoundError(key) from exc
+        if resolved != root and root not in resolved.parents:
+            raise FileNotFoundError(key)
+        if not resolved.is_file():
+            raise FileNotFoundError(key)
+        return resolved.read_bytes()
 
 
 def open_blob_store(url: str) -> BlobStore:

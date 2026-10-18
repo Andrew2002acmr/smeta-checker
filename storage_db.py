@@ -247,6 +247,8 @@ class Repository:
                 "search_complete": bool(track.get("search_complete")),
                 "requests": track.get("requests", 0),
                 "contexts": track.get("contexts", 0),
+                "budget_tokens": track.get("budget_tokens", result.get("budget_tokens")),
+                "usage": dict(track.get("usage") or result.get("usage") or {}),
                 "pdf_name": track.get("pdf_name", ""),
                 "trace_id": track.get("trace_id"),
                 "trace_url": track.get("trace_url"),
@@ -358,6 +360,17 @@ class Repository:
                 created_at=run.created_at,
             )
 
+    def update_run_config(self, run_id: UUID, patch: dict[str, Any]) -> None:
+        """Merge ``patch`` into the stored run config (metrics, timings)."""
+        with Session(self._engine) as session:
+            run = session.get(Run, run_id)
+            if run is None:
+                raise KeyError(str(run_id))
+            config = dict(run.config or {})
+            config.update(dict(patch or {}))
+            run.config = config
+            session.commit()
+
     def save_position_result(
         self, run_id: UUID, position_index: int, result: dict[str, Any]
     ) -> None:
@@ -400,13 +413,23 @@ class Repository:
                 existing.size = blob.size
             session.commit()
 
-    def finish_run(self, run_id: UUID, status: str) -> None:
+    def finish_run(
+        self,
+        run_id: UUID,
+        status: str,
+        *,
+        metrics: dict[str, Any] | None = None,
+    ) -> None:
         with Session(self._engine) as session:
             run = session.get(Run, run_id)
             if run is None:
                 raise KeyError(str(run_id))
             run.status = status
             run.finished_at = func.now()
+            if metrics is not None:
+                config = dict(run.config or {})
+                config["metrics"] = dict(metrics)
+                run.config = config
             session.commit()
 
     @staticmethod

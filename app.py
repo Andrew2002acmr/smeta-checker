@@ -273,6 +273,8 @@ with main_tab1:
                         _run_settings.langfuse_secret_key,
                         _run_settings.langfuse_base_url,
                         _run_settings.langfuse_environment,
+                        redact_pdf=_run_settings.telemetry_redact_pdf,
+                        mask_prompts=_run_settings.telemetry_mask_prompts,
                     )
                     if trace_run.error:
                         st.warning(trace_run.error)
@@ -299,7 +301,8 @@ with main_tab1:
                         trace_run=trace_run,
                         progress=lambda fraction, text: progress_bar.progress(fraction, text=text),
                         store=store, project_name=project_name or "default",
-                        pdf_sources=pdf_local_paths)
+                        pdf_sources=pdf_local_paths,
+                        allowed_llm_hosts=_run_settings.allowed_llm_hosts)
                     st.session_state.audit_run_issues = outcome["issues"]
                     st.session_state.audit_results.update(outcome["results"])
 

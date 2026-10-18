@@ -191,6 +191,8 @@ def worker_check_row(task, audit_position):
         "search_complete": bool(audit.get("search_complete")),
         "requests": audit.get("requests", 0),
         "contexts": audit.get("contexts", 0),
+        "budget_tokens": audit.get("budget_tokens"),
+        "usage": dict(audit.get("usage") or {}),
     }
     show_p = (
         list(found_pages) if found_pages else (vor_pages_int if vor_pages_int else [1])
@@ -212,6 +214,8 @@ def worker_check_row(task, audit_position):
         "search_complete": bool(audit.get("search_complete")),
         "requests": audit.get("requests", 0),
         "contexts": audit.get("contexts", 0),
+        "budget_tokens": audit.get("budget_tokens"),
+        "usage": dict(audit.get("usage") or {}),
         "work_name": task["w_name"],
     }
     return task["idx"], res_item, track_item
@@ -253,6 +257,8 @@ def _failure_items(exc, task):
         "search_complete": False,
         "requests": 0,
         "contexts": 0,
+        "budget_tokens": None,
+        "usage": {},
     }
     track_item = {
         "pdf_name": task["target_pdf_name"],
@@ -269,6 +275,8 @@ def _failure_items(exc, task):
         "search_complete": False,
         "requests": 0,
         "contexts": 0,
+        "budget_tokens": None,
+        "usage": {},
         "work_name": task["w_name"],
     }
     return res_item, track_item
@@ -411,6 +419,7 @@ def run_audit(
     pdf_sources=None,
     run_id=None,
     pdf_versions=None,
+    allowed_llm_hosts=("ai.api.cloud.yandex.net",),
 ):
     """Audit selected VORs headless.
 
@@ -435,6 +444,7 @@ def run_audit(
         model_name=model_name,
         client_factory=client_factory,
         sleeper=sleeper,
+        allowed_hosts=tuple(allowed_llm_hosts or ()),
     )
     own_trace = trace_run is None
     trace_run = trace_run or TracingRun()

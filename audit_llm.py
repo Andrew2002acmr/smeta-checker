@@ -6,6 +6,7 @@ audit runs headless and tests inject fakes without AST tricks.
 """
 
 import time
+from urllib.parse import urlparse
 
 import openai
 
@@ -20,6 +21,17 @@ from audit_core import (
     technical_error,
 )
 from audit_tracing import span, token_usage
+
+
+def _check_llm_host(base_url, allowed_hosts):
+    """Allowlist the LLM endpoint; fail closed on redirect-capable hosts."""
+    try:
+        host = (urlparse(str(base_url)).hostname or "").lower()
+    except ValueError:
+        host = ""
+    allowed = {str(item).lower() for item in (allowed_hosts or ()) if str(item).strip()}
+    if not host or host not in allowed:
+        raise ValueError(f"LLM host {host or base_url!r} is not allowlisted")
 
 
 def audit_position_hybrid(
@@ -39,11 +51,14 @@ def audit_position_hybrid(
     model_name="",
     client_factory=None,
     sleeper=None,
+    allowed_hosts=("ai.api.cloud.yandex.net",),
+    base_url="https://ai.api.cloud.yandex.net/v1",
 ):
     """Ограниченная проверка связанных страниц с проверяемыми доказательствами."""
     budget = budget or RequestBudget()
     factory = openai.OpenAI if client_factory is None else client_factory
     snooze = time.sleep if sleeper is None else sleeper
+    _check_llm_host(base_url, allowed_hosts)
     instructions = """Ты — эксперт-аудитор проектно-сметной документации.
 Проверь позицию ВОР по нескольким фрагментам ПД как единому контексту.
 1. work_found означает, что найдена именно работа по наименованию, контексту и ссылке. Совпадения одного числа, общей темы или похожей работы недостаточно.
@@ -61,11 +76,12 @@ def audit_position_hybrid(
 
     api_client = factory(
         api_key=api_key,
-        base_url="https://ai.api.cloud.yandex.net/v1",
+        base_url=base_url,
         project=folder,
         timeout=60.0,
         max_retries=0,
     )
+    used = {"input": 0, "output": 0, "total": 0}
 
     def ask(context):
         quote_sources, pages = {}, []
@@ -190,6 +206,10 @@ def audit_position_hybrid(
                     usage = getattr(response, "usage", None)
                     budget.record(usage)
                     usage_details = token_usage(usage)
+                    if usage_details:
+                        used["input"] += usage_details.get("input", 0)
+                        used["output"] += usage_details.get("output", 0)
+                        used["total"] += usage_details.get("total", 0)
                     total_tokens = usage_details.get("total")
                     truncated = any(
                         marker in last_incomplete.lower()
@@ -324,6 +344,10 @@ def audit_position_hybrid(
         result["requests"] = budget.requests
         result["contexts"] = result.get("contexts", 0)
         result["budget_tokens"] = budget.tokens
+        if any(used.values()):
+            result["usage"] = {
+                key: used[key] for key in ("input", "output", "total") if used[key]
+            }
         return result
     finally:
         api_client.close()
