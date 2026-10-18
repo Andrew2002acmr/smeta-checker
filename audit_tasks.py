@@ -13,7 +13,7 @@ and tests call the ``*_run`` functions directly with injected fakes.
 
 from __future__ import annotations
 
-import logging
+import time
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, Callable
@@ -22,6 +22,7 @@ from uuid import UUID
 from audit_core import technical_error
 from audit_llm import audit_position_hybrid
 from audit_models import AuditSettings
+from audit_observability import RunMetrics, bind, estimate_cost, get_logger, reset
 from audit_service import (
     build_run_artifacts,
     get_optimized_page_indices,
@@ -35,7 +36,7 @@ from storage_blobs import BlobStore, open_blob_store
 from storage_db import Repository, open_repository
 from vor_parse import load_vor_frame_positions
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 PDF_QUEUE = "pdf"
 LLM_QUEUE = "llm"
@@ -185,6 +186,7 @@ def prepare_run(
     pdf_versions: dict[str, Any],
     worker: str,
     dispatch: Callable[[str, dict[str, Any]], None] | None = None,
+    request_id: str = "",
 ) -> dict[str, Any]:
     """CPU stage: bind PDFs, pre-warm one OCR allowance, queue LLM jobs.
 
@@ -196,12 +198,21 @@ def prepare_run(
     """
     import fitz
 
+    started = time.monotonic()
+    token = bind(
+        audit_run_id=str(run_id), request_id=request_id or None,
+        stage="prepare", worker=worker, queue=PDF_QUEUE,
+    )
     pool: dict[str, Any] = {}
     trace_run = TracingRun(
         context.settings.langfuse_public_key,
         context.settings.langfuse_secret_key,
         context.settings.langfuse_base_url,
         context.settings.langfuse_environment,
+        audit_run_id=str(run_id),
+        request_id=request_id,
+        redact_pdf=context.settings.telemetry_redact_pdf,
+        mask_prompts=context.settings.telemetry_mask_prompts,
     )
     sources: dict[str, PDFTextSource] = {}
     queued: list[int] = []
@@ -261,6 +272,7 @@ def prepare_run(
                         "primary_pages": primary_pages,
                         "vor_filename": vor_filename,
                         "project": project,
+                        "request_id": request_id,
                         "pdf_versions": {
                             key: str(row.id) for key, row in pdf_versions.items()
                         },
@@ -270,13 +282,13 @@ def prepare_run(
                     run_id, index, queue=LLM_QUEUE, payload=payload
                 )
                 if dispatch is not None:
-                    dispatch(
-                        "audit_tasks.audit_position",
-                        {
-                            "run_id": str(run_id),
-                            "position_index": index,
-                        },
-                    )
+                    position_payload: dict[str, Any] = {
+                        "run_id": str(run_id),
+                        "position_index": index,
+                    }
+                    if request_id:
+                        position_payload["request_id"] = request_id
+                    dispatch("audit_tasks.audit_position", position_payload)
                 queued.append(index)
             except Exception as exc:
                 logger.exception("prepare position %s of run %s failed", index, run_id)
@@ -291,12 +303,24 @@ def prepare_run(
                     error=f"{type(exc).__name__}: {str(exc)[:300]}",
                 )
                 failed.append(index)
+        logger.info(
+            "prepare finished",
+            extra={"queued": len(queued), "failed": len(failed)},
+        )
+        prepare_seconds = round(time.monotonic() - started, 3)
+        try:
+            context.repository.update_run_config(
+                run_id, {"prepare_seconds": prepare_seconds}
+            )
+        except Exception:
+            logger.warning("could not persist prepare timing", exc_info=True)
         return {
             "run_id": str(run_id),
             "vor_filename": vor_filename,
             "df_rows": len(df_works),
             "queued": queued,
             "failed": failed,
+            "prepare_seconds": prepare_seconds,
         }
     finally:
         for source in sources.values():
@@ -311,6 +335,7 @@ def prepare_run(
             except Exception:
                 pass
         trace_run.close()
+        reset(token)
 
 
 def audit_position(
@@ -321,6 +346,7 @@ def audit_position(
     worker: str,
     pdf_files: dict[str, bytes] | None = None,
     pdf_versions: dict[str, Any] | None = None,
+    request_id: str = "",
 ) -> dict[str, Any]:
     """Network stage: audit one position through the LLM, persist its result.
 
@@ -332,10 +358,18 @@ def audit_position(
     """
     import fitz
 
+    started = time.monotonic()
     job = context.repository.load_position_job(run_id, position_index)
     if job.status == "done" and job.result:
         return {"position_index": position_index, "duplicate": True}
     job = context.repository.claim_position_job(run_id, position_index, worker=worker)
+    payload = dict(job.payload or {})
+    resolved_request = str(request_id or payload.get("request_id") or "")
+    token = bind(
+        audit_run_id=str(run_id), position_index=position_index,
+        request_id=resolved_request or None, stage="audit",
+        worker=worker, queue=LLM_QUEUE,
+    )
     stored: dict[str, Any] | None = None
     try:
         payload = job.payload
@@ -360,6 +394,8 @@ def audit_position(
                 "search_complete": False,
                 "requests": 0,
                 "contexts": 0,
+                "budget_tokens": None,
+                "usage": {},
             }
             track_item = {
                 "pdf_name": payload.get("pdf_name", ""),
@@ -375,6 +411,8 @@ def audit_position(
                 "search_complete": False,
                 "requests": 0,
                 "contexts": 0,
+                "budget_tokens": None,
+                "usage": {},
                 "work_name": w_name,
             }
         else:
@@ -404,6 +442,10 @@ def audit_position(
                 context.settings.langfuse_secret_key,
                 context.settings.langfuse_base_url,
                 context.settings.langfuse_environment,
+                audit_run_id=str(run_id),
+                request_id=resolved_request,
+                redact_pdf=context.settings.telemetry_redact_pdf,
+                mask_prompts=context.settings.telemetry_mask_prompts,
             )
             try:
                 position_trace = trace_run.position(
@@ -453,6 +495,7 @@ def audit_position(
                     model_name=context.settings.yandex_cloud_model,
                     client_factory=context.client_factory,
                     sleeper=(lambda _: None),
+                    allowed_hosts=tuple(context.settings.allowed_llm_hosts or ()),
                 )
                 _, res_item, track_item = traced_worker_check_row(task, audit_fn)
                 position_trace.finish(res_item)
@@ -471,10 +514,19 @@ def audit_position(
             track_item=track_item,
             index=position_index,
             pdf_versions=versions,
+            settings=context.settings,
         )
         context.repository.save_position_result(run_id, position_index, stored)
         context.repository.finish_position_job(
             run_id, position_index, "done", result=stored
+        )
+        logger.info(
+            "position audited",
+            extra={
+                "status": stored.get("status"),
+                "requests": stored.get("requests", 0),
+                "seconds": round(time.monotonic() - started, 3),
+            },
         )
         return {"position_index": position_index, "duplicate": False}
     except Exception as exc:
@@ -486,7 +538,8 @@ def audit_position(
             error=f"{type(exc).__name__}: {str(exc)[:300]}",
         )
         raise
-
+    finally:
+        reset(token)
 
 def _position_result_payload(
     *,
@@ -495,6 +548,7 @@ def _position_result_payload(
     track_item: dict[str, Any],
     index: int,
     pdf_versions: dict[str, Any],
+    settings: Any = None,
 ) -> dict[str, Any]:
     """Same stored shape as ``save_vor_run_payload``; never diverges."""
     _ = index
@@ -516,6 +570,9 @@ def _position_result_payload(
         "search_complete": bool(track_item.get("search_complete")),
         "requests": track_item.get("requests", 0),
         "contexts": track_item.get("contexts", 0),
+        "budget_tokens": res_item.get("budget_tokens", track_item.get("budget_tokens")),
+        "usage": dict(track_item.get("usage") or {}),
+        "estimated_cost": track_item.get("estimated_cost"),
         "pdf_name": track_item.get("pdf_name", ""),
         "trace_id": track_item.get("trace_id"),
         "trace_url": track_item.get("trace_url"),
@@ -525,6 +582,7 @@ def _position_result_payload(
         row = pdf_versions[pdf_name]
         payload["pdf_version_id"] = str(row.id)
         payload["pdf_sha256"] = row.sha256
+    _ = settings
     return payload
 
 
@@ -570,6 +628,7 @@ def finalize_run(
     worker: str,
     vor_filename: str | None = None,
     vor_bytes: bytes | None = None,
+    request_id: str = "",
 ) -> dict[str, Any]:
     """Merge stage: rebuild df/excel/word from stored results, finish the run.
 
@@ -578,64 +637,102 @@ def finalize_run(
     gap). Uses the shared ``build_run_artifacts`` so exports match the
     in-process runner byte-for-shape.
     """
+    started = time.monotonic()
     record = context.repository.load_run(run_id)
     config = record.get("config") or {}
-    vor_name = vor_filename or config.get("vor_filename") or record.get("vor_filename")
-    if vor_bytes is None:
-        ref = context.repository.load_version(record["vor_version_id"])
-        vor_data = context.blob_store.get(ref.blob_key)
-    else:
-        vor_data = bytes(vor_bytes)
-    df_works, positions, meta = load_vor_frame_positions(vor_data, vor_name)
-    jobs = {
-        job.position_index: job for job in context.repository.list_position_jobs(run_id)
-    }
-    results = record.get("results") or []
-    # load_run orders by position_index: zip with sorted jobs, never enumerate.
-    ordered_jobs = [jobs[position.index] for position in positions]
-    ordered = [jobs[position.index].result or {} for position in positions]
-    if len(results) == len(positions):
-        ordered = list(results)
-    tasks: list[dict[str, Any]] = []
-    tracking: list[dict[str, Any]] = []
-    results_list: list[dict[str, Any]] = []
-    for position, stored, job in zip(positions, ordered, ordered_jobs):
-        if job.status not in {"done", "failed"}:
-            raise RuntimeError(
-                f"position {position.index} is {job.status}; finalize needs done/failed"
-            )
-        res_item, track_item = _stored_to_items(position, stored, job)
-        job_payload = job.payload or {}
-        position_trace = _NullTrace()
-        tasks.append(
-            _build_task_dict(
-                position=position,
-                pdf_name=track_item.get("pdf_name", ""),
-                bind_error=job_payload.get("bind_error"),
-                prep_error=None,
-                text_index=None,
-                target_indices=list(job_payload.get("target_indices") or []),
-                loc_desc=str(job_payload.get("loc_desc", "") or ""),
-                primary_pages=list(track_item.get("vor_pages") or []),
-                position_trace=position_trace,
-            )
-        )
-        tracking.append(track_item)
-        results_list.append(res_item)
-    artifacts = build_run_artifacts(df_works, meta, tasks, tracking, results_list)
-    versions = _load_run_pdf_versions(context, run_id)
-    context.repository.save_vor_run_payload(
-        run_id,
-        tasks=tasks,
-        tracking=tracking,
-        results=results_list,
-        excel_bytes=bytes(artifacts["excel_bytes"]),
-        word_bytes=bytes(artifacts["word_bytes"]),
-        pdf_versions=dict(versions),
+    resolved_request = str(request_id or config.get("request_id") or "")
+    token = bind(
+        audit_run_id=str(run_id), request_id=resolved_request or None,
+        stage="finalize", worker=worker, queue=PDF_QUEUE,
     )
-    context.repository.finish_run(run_id, "done")
-    _ = worker
-    return {"run_id": str(run_id), "positions": len(positions)}
+    try:
+        vor_name = vor_filename or config.get("vor_filename") or record.get("vor_filename")
+        if vor_bytes is None:
+            ref = context.repository.load_version(record["vor_version_id"])
+            vor_data = context.blob_store.get(ref.blob_key)
+        else:
+            vor_data = bytes(vor_bytes)
+        df_works, positions, meta = load_vor_frame_positions(vor_data, vor_name)
+        jobs = {
+            job.position_index: job for job in context.repository.list_position_jobs(run_id)
+        }
+        results = record.get("results") or []
+        # load_run orders by position_index: zip with sorted jobs, never enumerate.
+        ordered_jobs = [jobs[position.index] for position in positions]
+        ordered = [jobs[position.index].result or {} for position in positions]
+        if len(results) == len(positions):
+            ordered = list(results)
+        tasks: list[dict[str, Any]] = []
+        tracking: list[dict[str, Any]] = []
+        results_list: list[dict[str, Any]] = []
+        for position, stored, job in zip(positions, ordered, ordered_jobs):
+            if job.status not in {"done", "failed"}:
+                raise RuntimeError(
+                    f"position {position.index} is {job.status}; finalize needs done/failed"
+                )
+            res_item, track_item = _stored_to_items(position, stored, job)
+            job_payload = job.payload or {}
+            position_trace = _NullTrace()
+            tasks.append(
+                _build_task_dict(
+                    position=position,
+                    pdf_name=track_item.get("pdf_name", ""),
+                    bind_error=job_payload.get("bind_error"),
+                    prep_error=None,
+                    text_index=None,
+                    target_indices=list(job_payload.get("target_indices") or []),
+                    loc_desc=str(job_payload.get("loc_desc", "") or ""),
+                    primary_pages=list(track_item.get("vor_pages") or []),
+                    position_trace=position_trace,
+                )
+            )
+            tracking.append(track_item)
+            results_list.append(res_item)
+        artifacts = build_run_artifacts(df_works, meta, tasks, tracking, results_list)
+        versions = _load_run_pdf_versions(context, run_id)
+        context.repository.save_vor_run_payload(
+            run_id,
+            tasks=tasks,
+            tracking=tracking,
+            results=results_list,
+            excel_bytes=bytes(artifacts["excel_bytes"]),
+            word_bytes=bytes(artifacts["word_bytes"]),
+            pdf_versions=dict(versions),
+        )
+        metrics = RunMetrics(run_id=str(run_id))
+        metrics.record_stage("finalize", time.monotonic() - started)
+        if isinstance(config.get("prepare_seconds"), (int, float)):
+            metrics.record_stage("prepare", float(config["prepare_seconds"]))
+        for stored, job in zip(ordered, ordered_jobs):
+            payload = dict(stored or {})
+            if not payload and job.result:
+                payload = {"status": "Технический сбой"}
+            usage = payload.get("usage") if isinstance(payload.get("usage"), dict) else {}
+            metrics.record_position(
+                {"status": payload.get("status", "unknown"),
+                 "requests": payload.get("requests", 0),
+                 "contexts": payload.get("contexts", 0)},
+                usage=usage,
+                cost=estimate_cost(
+                    usage,
+                    float(context.settings.llm_input_cost_per_1k or 0.0),
+                    float(context.settings.llm_output_cost_per_1k or 0.0),
+                ),
+            )
+            if job.status == "failed" or payload.get("status") == "Технический сбой":
+                metrics.record_error(job.error or "technical")
+        summary = metrics.finish()
+        context.repository.finish_run(run_id, "done", metrics=summary)
+        logger.info(
+            "finalize finished",
+            extra={
+                "positions": len(positions),
+                "seconds": round(time.monotonic() - started, 3),
+            },
+        )
+        return {"run_id": str(run_id), "positions": len(positions), "metrics": summary}
+    finally:
+        reset(token)
 
 
 def _stored_to_items(
@@ -688,6 +785,8 @@ def _stored_to_items(
             "volume_confirmed": vol_ok,
             "unit_confirmed": unit_ok,
             "comment_confirmed": comm_ok,
+            "budget_tokens": stored.get("budget_tokens"),
+            "usage": dict(stored.get("usage") or {}),
         }
         track_item = {
             "pdf_name": stored.get("pdf_name", ""),
@@ -705,6 +804,8 @@ def _stored_to_items(
             "search_complete": bool(stored.get("search_complete")),
             "requests": stored.get("requests", 0),
             "contexts": stored.get("contexts", 0),
+            "budget_tokens": stored.get("budget_tokens"),
+            "usage": dict(stored.get("usage") or {}),
             "work_name": stored.get("work_name", position.work_name),
             "trace_id": stored.get("trace_id"),
             "trace_url": stored.get("trace_url"),
@@ -728,6 +829,8 @@ def _stored_to_items(
         "volume_confirmed": False,
         "unit_confirmed": False,
         "comment_confirmed": False,
+        "budget_tokens": None,
+        "usage": {},
     }
     track_item = {
         "pdf_name": "",
@@ -743,6 +846,8 @@ def _stored_to_items(
         "search_complete": False,
         "requests": 0,
         "contexts": 0,
+        "budget_tokens": None,
+        "usage": {},
         "work_name": position.work_name,
     }
     return res_item, track_item
@@ -776,11 +881,11 @@ def recover_run(
         if dispatch is not None:
             # prepare_run takes whole-run args; per-position requeue
             # always redispatches the single-position auditor.
-            _ = job
-            dispatch(
-                "audit_tasks.audit_position",
-                {"run_id": str(run_id), "position_index": index},
-            )
+            payload = {"run_id": str(run_id), "position_index": index}
+            request_id = (job.payload or {}).get("request_id")
+            if request_id:
+                payload["request_id"] = str(request_id)
+            dispatch("audit_tasks.audit_position", payload)
     return {"run_id": str(run_id), "recovered": recovered}
 
 
@@ -789,7 +894,8 @@ def register_tasks(app):  # type: ignore[no-untyped-def]
 
     @app.task(name="audit_tasks.prepare_run", bind=True)
     def _prepare(  # type: ignore[no-untyped-def]
-        self, run_id, project, vor_filename, vor_blob_key, pdf_blob_keys
+        self, run_id, project, vor_filename, vor_blob_key, pdf_blob_keys,
+        request_id="",
     ):
         context = open_task_context()
         vor_data = context.blob_store.get(vor_blob_key)
@@ -809,6 +915,7 @@ def register_tasks(app):  # type: ignore[no-untyped-def]
             pdf_versions=versions,
             worker=self.request.hostname or "pdf-worker",
             dispatch=lambda name, payload: app.send_task(name, kwargs=payload),
+            request_id=str(request_id or ""),
         )
 
     @app.task(
@@ -818,22 +925,24 @@ def register_tasks(app):  # type: ignore[no-untyped-def]
         autoretry_for=(Exception,),
         retry_backoff=True,
     )
-    def _audit(self, run_id, position_index):  # type: ignore[no-untyped-def]
+    def _audit(self, run_id, position_index, request_id=""):  # type: ignore[no-untyped-def]
         context = open_task_context()
         return audit_position(
             context,
             UUID(str(run_id)),
             int(position_index),
             worker=self.request.hostname or "llm-worker",
+            request_id=str(request_id or ""),
         )
 
     @app.task(name="audit_tasks.finalize_run", bind=True)
-    def _finalize(self, run_id):  # type: ignore[no-untyped-def]
+    def _finalize(self, run_id, request_id=""):  # type: ignore[no-untyped-def]
         context = open_task_context()
         return finalize_run(
             context,
             UUID(str(run_id)),
             worker=self.request.hostname or "pdf-worker",
+            request_id=str(request_id or ""),
         )
 
     @app.task(name="audit_tasks.recover_run")

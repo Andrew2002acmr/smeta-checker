@@ -2,6 +2,12 @@
 
 Only explicit payloads are captured; API clients, credentials and PDF objects
 never become observation inputs. Context is reattached explicitly in workers.
+
+Every position trace carries the durable correlation keys ``audit_run_id`` and
+``position_index``: an HTTP request (``X-Request-ID``) resolves to a stored
+``runs`` row, the row resolves to Job payloads, and each payload rebuilds the
+same keys in the worker. ``redact_pdf`` additionally replaces PDF fragments
+with page/quote identifiers before anything reaches Langfuse.
 """
 
 from contextlib import contextmanager
@@ -15,6 +21,88 @@ from uuid import uuid4
 _logger = logging.getLogger(__name__)
 _client = ContextVar("audit_langfuse_client", default=None)
 _position = ContextVar("audit_langfuse_position", default=None)
+_redact = ContextVar("audit_langfuse_redact_pdf", default=False)
+_mask = ContextVar("audit_langfuse_mask_prompts", default=False)
+_redact_pdf_names: frozenset[str] = frozenset({
+    "select-context", "locate-work", "confirm-quantity-context",
+    "confirm-quantities", "generate-audit", "validate-audit-response",
+    "read-ocr-page",
+})
+_context_map_stages: frozenset[str] = frozenset({
+    "select-context", "locate-work", "confirm-quantity-context",
+})
+_fragment_keys: frozenset[str] = frozenset({
+    "context", "response", "text", "evidence", "discrepancy_details", "quote",
+})
+
+
+def _redacted_context(context):
+    """Replace fragment bodies with stable identifiers; keeps routing keys."""
+    if isinstance(context, str):
+        return f"[redacted {len(context)} chars]"
+    if isinstance(context, dict):
+        redacted = {}
+        for key, value in context.items():
+            if isinstance(value, str):
+                redacted[key] = f"[redacted {len(value)} chars]"
+            else:
+                redacted[key] = _redacted_context(value)
+        return redacted
+    if isinstance(context, list):
+        return [_redacted_context(item) for item in context]
+    return context
+
+
+def _maybe_redact(name, kind, payload):
+    """Apply PDF redaction and prompt masking independently.
+
+    ``redact_pdf`` replaces fragment bodies with ``[redacted N chars]``
+    markers: whole ``{page: fragment}`` maps on context stages, message
+    ``content`` on ``generate-audit``, and ``context``/``response``/``text``/
+    ``evidence``/``discrepancy_details``/``quote`` keys elsewhere. Routing
+    keys (pages, counts, flags, statuses) survive. ``mask_prompts`` replaces
+    only ``generate-audit`` message contents with ``[redacted prompt]``,
+    keeping metadata (provider, attempt, pages, chars) for cost debugging.
+    """
+    redact_pdf = _redact.get()
+    mask_prompts = _mask.get()
+    if not redact_pdf and not mask_prompts:
+        return payload
+    if name == "generate-audit" and isinstance(payload, list):
+        redacted_messages = []
+        for item in payload:
+            if (
+                isinstance(item, dict)
+                and isinstance(item.get("content"), str)
+                and (mask_prompts or redact_pdf)
+            ):
+                marker = (
+                    "[redacted prompt]"
+                    if mask_prompts
+                    else f"[redacted {len(item['content'])} chars]"
+                )
+                item = {**item, "content": marker}
+            redacted_messages.append(item)
+        return redacted_messages
+    if isinstance(payload, str):
+        if redact_pdf and name in _redact_pdf_names:
+            return f"[redacted {len(payload)} chars]"
+        return payload
+    if isinstance(payload, dict) and kind in {"input", "output"}:
+        whole_map = redact_pdf and name in _context_map_stages
+        redacted = {}
+        for key, value in payload.items():
+            if whole_map and key not in {"pages", "per_page_chars", "context_chars"}:
+                redacted[key] = _redacted_context(value)
+            elif redact_pdf and key in _fragment_keys:
+                redacted[key] = _redacted_context(value)
+            else:
+                redacted[key] = value
+        return redacted
+    if redact_pdf and isinstance(payload, (dict, list)):
+        return _redacted_context(payload)
+    return payload
+
 
 STAGE_DESCRIPTIONS = {
     "audit-vor-position": "Позиция ВОР: вход — строка ведомости, выход — итог после сверки ссылки",
@@ -51,12 +139,17 @@ def _describe(name, kwargs):
 
 
 class Observation:
-    def __init__(self, observation=None):
+    def __init__(self, observation=None, name=""):
         self.observation = observation
+        self.name = name
 
     def update(self, **kwargs):
         if self.observation is not None:
             try:
+                if _redact.get() or _mask.get():
+                    for key in ("input", "output"):
+                        if key in kwargs:
+                            kwargs[key] = _maybe_redact(self.name, key, kwargs[key])
                 self.observation.update(**kwargs)
             except Exception:
                 _logger.warning("Langfuse observation update failed", exc_info=True)
@@ -66,14 +159,18 @@ class Observation:
 def span(name, *, client=None, trace_context=None, **kwargs):
     """Instrumentation failures must not swallow or replace audit failures."""
     kwargs = _describe(name, kwargs)
+    if _redact.get() or _mask.get():
+        for key in ("input", "output"):
+            if key in kwargs:
+                kwargs[key] = _maybe_redact(name, key, kwargs[key])
     client = client if client is not None else _client.get()
     manager = None
-    observation = Observation()
+    observation = Observation(name=name)
     if client is not None:
         try:
             manager = client.start_as_current_observation(
                 name=name, trace_context=trace_context, **kwargs)
-            observation = Observation(manager.__enter__())
+            observation = Observation(manager.__enter__(), name=name)
         except Exception:
             manager = None
             _logger.warning("Langfuse observation start failed", exc_info=True)
@@ -93,7 +190,6 @@ def span(name, *, client=None, trace_context=None, **kwargs):
             except Exception:
                 _logger.warning("Langfuse observation close failed", exc_info=True)
 
-
 @lru_cache(maxsize=4)
 def _configured_client(public_key, secret_key, base_url, environment):
     from langfuse import Langfuse
@@ -103,8 +199,13 @@ def _configured_client(public_key, secret_key, base_url, environment):
 
 class TracingRun:
     def __init__(self, public_key="", secret_key="", base_url="https://cloud.langfuse.com",
-                 environment="development"):
+                 environment="development", audit_run_id="", request_id="",
+                 redact_pdf=False, mask_prompts=False):
         self.session_id = "audit-" + uuid4().hex
+        self.audit_run_id = str(audit_run_id or "")
+        self.request_id = str(request_id or "")
+        self.redact_pdf = bool(redact_pdf)
+        self.mask_prompts = bool(mask_prompts)
         self.client = None
         self.error = ""
         self.positions = []
@@ -147,10 +248,19 @@ class PositionTrace:
                 from langfuse import propagate_attributes
                 # The root owns its trace: no remote trace_context, or the SDK
                 # invents a phantom parent span id for it.
-                with propagate_attributes(session_id=run.session_id, tags=["vor-audit"],
-                                          trace_name="audit-vor-position"):
+                tags = ["vor-audit"]
+                if run.audit_run_id:
+                    tags.append(f"audit-run-{run.audit_run_id}")
+                with propagate_attributes(session_id=run.session_id, tags=tags,
+                                          trace_name="audit-vor-position",
+                                          user_id=run.audit_run_id or None):
                     if isinstance(metadata, dict):
-                        metadata = {"description_ru": STAGE_DESCRIPTIONS["audit-vor-position"], **metadata}
+                        enriched = {"description_ru": STAGE_DESCRIPTIONS["audit-vor-position"]}
+                        if run.audit_run_id:
+                            enriched["audit_run_id"] = run.audit_run_id
+                        if run.request_id:
+                            enriched["request_id"] = run.request_id
+                        metadata = {**enriched, **metadata}
                     self.root = run.client.start_observation(
                         name="audit-vor-position", input=input, metadata=metadata)
                 self.trace_id = self.root.trace_id
@@ -164,15 +274,22 @@ class PositionTrace:
         token = _client.set(self.run.client if self.root is not None else None)
         context = None if _position.get() is self else self.context
         position_token = _position.set(self)
+        redact_token = _redact.set(bool(self.run.redact_pdf))
+        mask_token = _mask.set(bool(self.run.mask_prompts))
         try:
             if self.root is None:
                 yield Observation()
             else:
                 from langfuse import propagate_attributes
-                with propagate_attributes(session_id=self.run.session_id, tags=["vor-audit"]):
+                tags = ["vor-audit"]
+                if self.run.audit_run_id:
+                    tags.append(f"audit-run-{self.run.audit_run_id}")
+                with propagate_attributes(session_id=self.run.session_id, tags=tags):
                     with span(name, trace_context=context, **kwargs) as observation:
                         yield observation
         finally:
+            _mask.reset(mask_token)
+            _redact.reset(redact_token)
             _position.reset(position_token)
             _client.reset(token)
 

@@ -11,11 +11,11 @@ Run locally: ``uv run uvicorn api:get_app --factory``.
 
 from __future__ import annotations
 
-import logging
+import mimetypes
 import threading
 from dataclasses import dataclass, field
 from typing import Any, Callable
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import fitz
 from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
@@ -25,16 +25,24 @@ from pydantic import BaseModel, ConfigDict, Field
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from audit_models import AuditSettings
+from audit_observability import bind, get_logger, reset, restore, snapshot
 from audit_service import preflight_bindings, run_audit
 from storage_blobs import BlobStore, open_blob_store
 from storage_db import DocumentVersionRow, Repository, open_repository
 from vor_parse import load_vor_positions
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 VOR_EXTENSIONS = (".xlsx", ".csv")
 PDF_EXTENSION = ".pdf"
+VOR_MIME_TYPES = frozenset({
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "text/csv",
+})
+PDF_MIME_TYPES = frozenset({"application/pdf"})
+OCTET_STREAM = "application/octet-stream"
 POSITION_DONE_STATUSES = frozenset({"done", "failed"})
+REQUEST_ID_HEADER = "X-Request-ID"
 
 
 class ApiError(Exception):
@@ -180,6 +188,15 @@ class AuditRunner:
         return run
 
 
+def _request_id(request: Request | None) -> str:
+    """Client-supplied ``X-Request-ID`` or a fresh one; echoed back."""
+    if request is not None:
+        supplied = str(request.headers.get(REQUEST_ID_HEADER, "")).strip()
+        if supplied and len(supplied) <= 128:
+            return supplied
+    return uuid4().hex
+
+
 def _parse_uuid(value: str, *, field: str) -> UUID:
     try:
         return UUID(str(value))
@@ -189,8 +206,65 @@ def _parse_uuid(value: str, *, field: str) -> UUID:
         ) from exc
 
 
+def _safe_filename(filename: str) -> str:
+    """Basename only: strips directories, NUL bytes and blank names."""
+    cleaned = str(filename or "").replace("\x00", "").replace("\\", "/")
+    cleaned = cleaned.rsplit("/", 1)[-1].strip().strip(".")
+    if not cleaned or cleaned in {".", ".."}:
+        raise ApiError(400, "filename_required", "Имя файла обязательно.")
+    return cleaned[:255]
+
+
 def _clean_pool_key(filename: str) -> str:
-    return str(filename).replace("\\", "/").rsplit("/", 1)[-1].strip().lower()
+    return _safe_filename(filename).lower()
+
+
+def _check_upload_limits(context: ApiContext, data: bytes, *, count: int = 1) -> None:
+    limit = max(1, int(context.settings.max_upload_bytes or 0))
+    if len(data) > limit:
+        raise ApiError(
+            413,
+            "upload_too_large",
+            f"Файл больше лимита {limit} байт.",
+        )
+    allowed = max(1, int(context.settings.max_uploads_per_request or 1))
+    if count > allowed:
+        raise ApiError(
+            400,
+            "too_many_uploads",
+            f"Больше {allowed} файлов за один запрос.",
+        )
+
+
+def _check_upload_mime(upload: UploadFile, kind: str) -> None:
+    """Declared Content-Type must match the kind; bytes are verified later."""
+    declared = str(upload.content_type or "").split(";")[0].strip().lower()
+    if not declared or declared == OCTET_STREAM:
+        guessed, _ = mimetypes.guess_type(upload.filename or "")
+        declared = (guessed or "").lower()
+    if not declared or declared == OCTET_STREAM:
+        return
+    allowed = VOR_MIME_TYPES if kind == "vor" else PDF_MIME_TYPES
+    if declared not in allowed:
+        raise ApiError(
+            400,
+            "unsupported_media_type",
+            f"Тип {declared or 'неизвестен'} не подходит для {kind}.",
+        )
+
+
+def _check_pdf_magic(data: bytes) -> None:
+    if not bytes(data).lstrip()[:5] == b"%PDF-":
+        raise ApiError(400, "invalid_pdf", "Файл не похож на PDF (%PDF-).")
+
+
+def _check_vor_magic(data: bytes, filename: str) -> None:
+    payload = bytes(data)
+    if filename.lower().endswith(".xlsx"):
+        if payload[:2] != b"PK":
+            raise ApiError(400, "invalid_vor", "Файл не похож на .xlsx (ZIP).")
+    elif b"\x00" in payload[:1024]:
+        raise ApiError(400, "invalid_vor", "Файл не похож на CSV (NUL-байты).")
 
 
 def _require_configured(context: ApiContext) -> None:
@@ -240,9 +314,9 @@ def _read_version_bytes(
 def _upload_document(
     context: ApiContext, project: str, kind: str, upload: UploadFile, data: bytes
 ) -> DocumentUploadResponse:
-    filename = (upload.filename or "").strip()
-    if not filename:
-        raise ApiError(400, "filename_required", "Имя файла обязательно.")
+    filename = _safe_filename(upload.filename or "")
+    _check_upload_limits(context, data)
+    _check_upload_mime(upload, kind)
     lowered = filename.lower()
     if kind == "vor" and not lowered.endswith(VOR_EXTENSIONS):
         raise ApiError(
@@ -255,6 +329,7 @@ def _upload_document(
     if not data:
         raise ApiError(400, "empty_upload", "Загруженный файл пуст.")
     if kind == "vor":
+        _check_vor_magic(data, filename)
         try:
             positions, _ = load_vor_positions(data, filename)
         except ValueError as exc:
@@ -270,6 +345,7 @@ def _upload_document(
         if not positions:
             raise ApiError(400, "empty_vor", "В ВОР нет позиций для проверки.")
     else:
+        _check_pdf_magic(data)
         try:
             with fitz.open(stream=bytes(data), filetype="pdf") as doc:
                 if doc.page_count < 1:
@@ -377,6 +453,8 @@ def run_tasks_job(
     vor_bytes: bytes,
     pdf_files: dict[str, bytes],
     pdf_versions: dict[str, DocumentVersionRow],
+    request_id: str = "",
+    log_context: dict[str, Any] | None = None,
 ) -> None:
     """Fallback pipeline without a broker: prepare → audit → finalize inline.
 
@@ -391,6 +469,7 @@ def run_tasks_job(
         blob_store=context.blob_store,
         client_factory=context.client_factory,
     )
+    token = restore(dict(log_context or {}))
     try:
         out = prepare_run(
             task_context,
@@ -402,10 +481,16 @@ def run_tasks_job(
             pdf_versions=dict(pdf_versions),
             worker="api-fallback",
             dispatch=None,
+            request_id=request_id,
         )
         for index in out["queued"]:
-            audit_position(task_context, run_id, index, worker="api-fallback")
-        finalize_run(task_context, run_id, worker="api-fallback")
+            audit_position(
+                task_context, run_id, index,
+                worker="api-fallback", request_id=request_id,
+            )
+        finalize_run(
+            task_context, run_id, worker="api-fallback", request_id=request_id
+        )
     except Exception:
         logger.exception("audit %s failed", run_id)
         try:
@@ -413,6 +498,8 @@ def run_tasks_job(
         except Exception:
             logger.exception("could not mark audit %s failed", run_id)
         raise
+    finally:
+        reset(token)
 
 
 def run_audit_job(
@@ -424,6 +511,8 @@ def run_audit_job(
     vor_bytes: bytes,
     pdf_files: dict[str, bytes],
     pdf_versions: dict[str, DocumentVersionRow],
+    request_id: str = "",
+    log_context: dict[str, Any] | None = None,
 ) -> None:
     """Execute one stored ``runs`` row headless; failures mark it ``failed``.
 
@@ -439,8 +528,9 @@ def run_audit_job(
         vor_bytes=bytes(vor_bytes),
         pdf_files=dict(pdf_files),
         pdf_versions=dict(pdf_versions),
+        request_id=request_id,
+        log_context=log_context,
     )
-
 
 def create_app(context: ApiContext | None = None) -> FastAPI:
     """Build the API; callers inject a test context or load settings from env."""
@@ -456,10 +546,21 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             blob_store=blobs,
         )
     runner = AuditRunner(resolved)
-
     app = FastAPI(title="smeta-checker API", version="1.0.0")
     app.state.context = resolved
     app.state.runner = runner
+
+    @app.middleware("http")
+    async def _request_context(request: Request, call_next):  # type: ignore[no-untyped-def]
+        request_id = _request_id(request)
+        request.state.request_id = request_id
+        token = bind(request_id=request_id, stage="http")
+        try:
+            response = await call_next(request)
+        finally:
+            reset(token)
+        response.headers[REQUEST_ID_HEADER] = request_id
+        return response
 
     def get_context() -> ApiContext:
         return app.state.context
@@ -468,26 +569,30 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
         return app.state.runner
 
     @app.exception_handler(ApiError)
-    async def _api_error_handler(_: Request, exc: ApiError) -> JSONResponse:
-        return JSONResponse(status_code=exc.status, content=_error_payload(exc))
+    async def _api_error_handler(request: Request, exc: ApiError) -> JSONResponse:
+        response = JSONResponse(status_code=exc.status, content=_error_payload(exc))
+        response.headers[REQUEST_ID_HEADER] = _request_id(request)
+        return response
 
     @app.exception_handler(StarletteHTTPException)
     async def _http_error_handler(
-        _: Request, exc: StarletteHTTPException
+        request: Request, exc: StarletteHTTPException
     ) -> JSONResponse:
         detail = exc.detail
         message = detail if isinstance(detail, str) else "Ошибка запроса."
         code = "not_found" if exc.status_code == 404 else "http_error"
-        return JSONResponse(
+        response = JSONResponse(
             status_code=exc.status_code,
             content={"error": {"code": code, "message": message}},
         )
+        response.headers[REQUEST_ID_HEADER] = _request_id(request)
+        return response
 
     @app.exception_handler(RequestValidationError)
     async def _validation_error_handler(
-        _: Request, exc: RequestValidationError
+        request: Request, exc: RequestValidationError
     ) -> JSONResponse:
-        return JSONResponse(
+        response = JSONResponse(
             status_code=422,
             content={
                 "error": {
@@ -497,21 +602,25 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
                 }
             },
         )
+        response.headers[REQUEST_ID_HEADER] = _request_id(request)
+        return response
 
     @app.exception_handler(Exception)
-    async def _unhandled_error_handler(_: Request, exc: Exception) -> JSONResponse:
+    async def _unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
         logger.exception("unhandled API error", exc_info=exc)
-        return JSONResponse(
+        response = JSONResponse(
             status_code=500,
             content={"error": {"code": "internal", "message": "Внутренняя ошибка."}},
         )
-
+        response.headers[REQUEST_ID_HEADER] = _request_id(request)
+        return response
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
         return {"status": "ok"}
 
     @app.post("/api/v1/documents", response_model=DocumentUploadResponse)
     async def upload_document(
+        request: Request,
         project: str = Form(min_length=1, max_length=256),
         kind: str = Form(pattern="^(vor|pdf)$"),
         file: UploadFile = File(...),
@@ -519,8 +628,17 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
     ) -> DocumentUploadResponse:
         _require_configured(context)
         data = await file.read()
-        return _upload_document(context, project.strip(), kind, file, data)
-
+        response = _upload_document(context, project.strip(), kind, file, data)
+        logger.info(
+            "document uploaded",
+            extra={
+                "stage": "upload",
+                "sha256": response.sha256,
+                "size": response.size,
+                "kind": kind,
+            },
+        )
+        return response
     @app.post("/api/v1/documents/preflight", response_model=PreflightResponse)
     def preflight_documents(
         payload: AuditCreateRequest,
@@ -536,10 +654,12 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
 
     @app.post("/api/v1/audits", response_model=AuditCreateResponse, status_code=202)
     def create_audit(
+        request: Request,
         payload: AuditCreateRequest,
         context: ApiContext = Depends(get_context),
         audit_runner: AuditRunner = Depends(get_runner),
     ) -> AuditCreateResponse:
+        request_id = _request_id(request)
         _require_configured(context)
         _require_llm_credentials(context.settings)
         project = payload.project.strip()
@@ -550,6 +670,13 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             _parse_uuid(item, field="pdf_version_ids")
             for item in payload.pdf_version_ids
         ]
+        allowed = max(1, int(context.settings.max_uploads_per_request or 1))
+        if len(pdf_ids) + 1 > allowed:
+            raise ApiError(
+                400,
+                "too_many_uploads",
+                f"Больше {allowed} документов на один аудит.",
+            )
         vor_bytes, _, vor_filename, vor_kind = _read_version_bytes(context, vor_id)
         if vor_kind != "vor":
             raise ApiError(400, "not_vor_version", "Указанная версия — не ВОР.")
@@ -572,6 +699,7 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             "vor_filename": vor_filename,
             "preflight": [row.model_dump() for row in preflight.rows],
             "has_critical_error": preflight.has_critical_error,
+            "request_id": request_id,
         }
         try:
             run = context.repository.create_run(stored_project.id, vor_id, config)
@@ -598,13 +726,21 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
                         "vor_filename": vor_filename,
                         "vor_blob_key": vor_ref.blob_key,
                         "pdf_blob_keys": pdf_blob_keys,
+                        "request_id": request_id,
                     },
                 )
             except Exception as exc:
                 raise ApiError(
                     503, "broker_unavailable", f"Очередь недоступна: {exc}"
                 ) from exc
+            logger.info(
+                "audit dispatched",
+                extra={"audit_run_id": str(run.id), "stage": "dispatch"},
+            )
             return AuditCreateResponse(run_id=str(run.id), status="running")
+
+        log_fields = snapshot()
+        log_fields.update({"audit_run_id": str(run.id), "stage": "fallback"})
 
         def _target() -> None:
             run_audit_job(
@@ -615,9 +751,15 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
                 vor_bytes=bytes(vor_bytes),
                 pdf_files=dict(pdf_files),
                 pdf_versions=dict(pdf_versions),
+                request_id=request_id,
+                log_context=log_fields,
             )
 
         audit_runner.start(run.id, target=_target)
+        logger.info(
+            "audit started",
+            extra={"audit_run_id": str(run.id), "stage": "dispatch"},
+        )
         return AuditCreateResponse(run_id=str(run.id), status="running")
 
     @app.get("/api/v1/audits/{run_id}", response_model=AuditStatusResponse)

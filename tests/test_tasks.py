@@ -253,10 +253,17 @@ class TaskPipelineTests(unittest.TestCase):
             with patch("audit_tracing._configured_client", return_value=None):
                 final = finalize_run(context, run.id, worker="pdf-test")
             self.assertEqual(final["positions"], 1)
+            self.assertIn("metrics", final)
+            self.assertEqual(final["metrics"]["statuses"], {"ОК": 1})
+            self.assertIn("prepare", final["metrics"]["stage_seconds"])
             finished = repo.load_run(run.id)
             self.assertEqual(finished["status"], "done")
             self.assertEqual(len(finished["results"]), 1)
             self.assertEqual(finished["results"][0]["status"], "ОК")
+            self.assertEqual(finished["results"][0]["usage"], {"total": 100})
+            self.assertEqual(
+                finished["config"]["metrics"]["statuses"], {"ОК": 1}
+            )
             self.assertEqual(repo.load_run_report(run.id, "excel")[:2], b"PK")
             self.assertEqual(repo.load_run_report(run.id, "word")[:2], b"PK")
 

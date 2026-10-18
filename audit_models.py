@@ -306,9 +306,27 @@ class AuditResult(BaseModel):
     requests: int = Field(default=0, ge=0)
     contexts: int = Field(default=0, ge=0)
     budget_tokens: int | None = Field(default=None, ge=0)
+    usage: dict[str, int] = Field(default_factory=dict)
     volume_calculation: VolumeCalculation | None = None
     recoverable: bool | None = None
     error: AuditError | None = None
+
+    @field_validator("usage", mode="before")
+    @classmethod
+    def _validate_usage(cls, value: Any) -> Any:
+        if value is None:
+            return {}
+        if not isinstance(value, dict):
+            raise ValueError("usage must be a mapping")
+        cleaned: dict[str, int] = {}
+        for key in ("input", "output", "total"):
+            item = value.get(key)
+            if item is None:
+                continue
+            if isinstance(item, bool) or not isinstance(item, int) or item < 0:
+                raise ValueError("usage tokens must be non-negative integers")
+            cleaned[key] = item
+        return cleaned
 
     @field_validator("found_volume", "found_unit", "found_page", mode="before")
     @classmethod
@@ -496,6 +514,8 @@ class AuditSettings(BaseModel):
     langfuse_secret_key: str = ""
     langfuse_base_url: str = "https://cloud.langfuse.com"
     langfuse_environment: str = "development"
+    telemetry_redact_pdf: bool = False
+    telemetry_mask_prompts: bool = False
     database_url: str = ""
     blob_store_url: str = ""
     broker_url: str = ""
@@ -503,11 +523,26 @@ class AuditSettings(BaseModel):
     llm_queue_size: int = 8
     task_time_limit: int = 600
     task_soft_time_limit: int = 540
+    max_upload_bytes: int = 100 * 1024 * 1024
+    max_uploads_per_request: int = 32
+    allowed_llm_hosts: tuple[str, ...] = ("ai.api.cloud.yandex.net",)
+    llm_input_cost_per_1k: float = 0.0
+    llm_output_cost_per_1k: float = 0.0
 
     @classmethod
     def load(cls, file_values: Any = None, secrets: Any = None) -> "AuditSettings":
         """Resolve every key through the historical ``get_setting`` precedence."""
         from audit_settings import get_setting
+
+        def _truthy(name: str) -> bool:
+            value = get_setting(name, "", file_values=file_values, secrets=secrets)
+            return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+        def _csv(name: str) -> tuple[str, ...]:
+            raw = get_setting(name, "", file_values=file_values, secrets=secrets)
+            return tuple(part.strip() for part in str(raw).split(",") if part.strip())
+
+        llm_hosts = _csv("AUDIT_ALLOWED_LLM_HOSTS") or ("ai.api.cloud.yandex.net",)
 
         return cls(
             yandex_cloud_folder=get_setting(
@@ -540,6 +575,8 @@ class AuditSettings(BaseModel):
                 file_values=file_values,
                 secrets=secrets,
             ),
+            telemetry_redact_pdf=_truthy("AUDIT_TELEMETRY_REDACT_PDF"),
+            telemetry_mask_prompts=_truthy("AUDIT_TELEMETRY_MASK_PROMPTS"),
             database_url=get_setting(
                 "DATABASE_URL", "", file_values=file_values, secrets=secrets
             ),
@@ -584,5 +621,42 @@ class AuditSettings(BaseModel):
                     secrets=secrets,
                 )
                 or 540
+            ),
+            max_upload_bytes=int(
+                get_setting(
+                    "AUDIT_MAX_UPLOAD_BYTES",
+                    str(100 * 1024 * 1024),
+                    file_values=file_values,
+                    secrets=secrets,
+                )
+                or 100 * 1024 * 1024
+            ),
+            max_uploads_per_request=int(
+                get_setting(
+                    "AUDIT_MAX_UPLOADS_PER_REQUEST",
+                    "32",
+                    file_values=file_values,
+                    secrets=secrets,
+                )
+                or 32
+            ),
+            allowed_llm_hosts=llm_hosts,
+            llm_input_cost_per_1k=float(
+                get_setting(
+                    "AUDIT_LLM_INPUT_COST_PER_1K",
+                    "0",
+                    file_values=file_values,
+                    secrets=secrets,
+                )
+                or 0
+            ),
+            llm_output_cost_per_1k=float(
+                get_setting(
+                    "AUDIT_LLM_OUTPUT_COST_PER_1K",
+                    "0",
+                    file_values=file_values,
+                    secrets=secrets,
+                )
+                or 0
             ),
         )

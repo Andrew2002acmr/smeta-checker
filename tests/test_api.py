@@ -381,5 +381,84 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(status["status"], "running")
             self.assertEqual(status["position_count"], 0)
 
+    def test_request_id_echoed_and_stored_with_run(self):
+        dispatched = []
+        with tempfile.TemporaryDirectory(prefix="smeta-api-") as tmp:
+            client, app = self._open_app_with_dispatcher(
+                tmp, lambda name, payload: dispatched.append((name, payload))
+            )
+            vor, pdf = self._upload_pair(client)
+            created = client.post(
+                "/api/v1/audits",
+                json={
+                    "project": "ИГДИ",
+                    "vor_version_id": vor["version_id"],
+                    "pdf_version_ids": [pdf["version_id"]],
+                },
+                headers={"X-Request-ID": "req-test-123"},
+            )
+            self.assertEqual(created.status_code, 202, created.text)
+            self.assertEqual(created.headers["X-Request-ID"], "req-test-123")
+            self.assertEqual(dispatched[0][1]["request_id"], "req-test-123")
+            record = app.state.context.repository.load_run(
+                __import__("uuid").UUID(created.json()["run_id"])
+            )
+            self.assertEqual(record["config"]["request_id"], "req-test-123")
+
+    def test_request_id_generated_when_missing(self):
+        with tempfile.TemporaryDirectory(prefix="smeta-api-") as tmp:
+            client, _ = self._open_app(tmp)
+            response = client.get("/healthz")
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.headers["X-Request-ID"])
+
+    def test_oversize_upload_rejected_with_413(self):
+        from storage_blobs import FileBlobStore
+        from storage_db import open_repository
+
+        from api import ApiContext, create_app
+
+        with tempfile.TemporaryDirectory(prefix="smeta-api-") as tmp:
+            repo = open_repository(_postgres_url(), blob_store=FileBlobStore(tmp))
+            repo.reset_for_tests()
+            settings = AuditSettings(
+                yandex_cloud_api_key="test-only",
+                yandex_cloud_folder="test-folder",
+                database_url=_postgres_url(),
+                blob_store_url=f"file://{tmp}",
+                max_upload_bytes=10,
+            )
+            context = ApiContext(
+                settings=settings,
+                repository=repo,
+                blob_store=FileBlobStore(tmp),
+                client_factory=_ok_client_factory(),
+            )
+            app = create_app(context)
+            from fastapi.testclient import TestClient
+
+            client = TestClient(app, raise_server_exceptions=False)
+            self.addCleanup(client.close)
+            response = client.post(
+                "/api/v1/documents",
+                data={"project": "ИГДИ", "kind": "vor"},
+                files={"file": ("vor.csv", _fake_vor_bytes(), "text/csv")},
+            )
+            self.assertEqual(response.status_code, 413)
+            self.assertEqual(response.json()["error"]["code"], "upload_too_large")
+
+    def test_wrong_mime_rejected(self):
+        with tempfile.TemporaryDirectory(prefix="smeta-api-") as tmp:
+            client, _ = self._open_app(tmp)
+            response = client.post(
+                "/api/v1/documents",
+                data={"project": "ИГДИ", "kind": "pdf"},
+                files={"file": ("a.pdf", _fake_pdf_bytes(), "image/png")},
+            )
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(
+                response.json()["error"]["code"], "unsupported_media_type"
+            )
+
 if __name__ == "__main__":
     unittest.main()
