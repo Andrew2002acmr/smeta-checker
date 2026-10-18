@@ -98,6 +98,47 @@ usage попытки, причина ретрая. `level` отражает ис
 В конце запуска выполняется `flush()`. Ошибки доставки телеметрии не меняют
 результат аудита и журналируются отдельно.
 
+
+### Агентские знания: skills и MCP (issue #33)
+
+Репозиторий несет знания вендоров в файлах проекта: skills
+`langfuse` и `pydantic` установлены через `npx skills add` в project scope
+(CLI разложил файлы в `.agents/skills/<skill>/` как универсальное хранилище
+и добавил symlink `.claude/skills/<skill> -> ../../.agents/skills/<skill>`;
+`skills-lock.json` фиксирует источники `langfuse/skills` и `pydantic/skills`).
+Установка только `langfuse`: `migrate-to-langfuse` не нужен (миграции нет);
+из каталога `pydantic/skills` (22 скилла: AI/Logfire/migration) взят только
+`pydantic` — проект использует валидацию/сериализацию, `pydantic-ai`/`logfire`
+в `pyproject.toml` нет. Переустановка: `npx skills add langfuse/skills --skill
+langfuse`, `npx skills add pydantic/skills --skill pydantic` (без `-g`);
+обновление: `npx skills update`. Проверка: `npx skills list` показывает оба
+как project-установки.
+
+`.mcp.json` (потребитель — Claude Code; серверы project scope требуют
+одобрения в интерактивной сессии) содержит три сервера, `agent-browser`
+без изменений:
+
+- `langfuse-docs` — публичный Docs MCP, `https://langfuse.com/api/mcp`
+  (streamableHttp, без авторизации). Проверены `initialize`, `tools/list`
+  (4 инструмента: `submitFeedback`, `searchLangfuseDocs`,
+  `getLangfuseDocsPage`, `getLangfuseOverview`) и реальный вызов
+  `getLangfuseOverview` — без ключа.
+- `langfuse` — аутентифицированный Data MCP Cloud EU,
+  `https://cloud.langfuse.com/api/public/mcp` (совпадает с `LANGFUSE_BASE_URL`
+  из `.env.example`). Авторизация `Basic base64(pk:sk)`: в `.env` задайте
+  `LANGFUSE_MCP_AUTH_TOKEN` — base64 от `pk-lf-...:sk-lf-...` project-scoped
+  ключа (`echo -n "pk:sk" | base64`; имя переменной см. также в
+  `.env.example`), конфиг подставляет его через `${LANGFUSE_MCP_AUTH_TOKEN}`
+  (env-подстановка в `headers` поддерживается Claude Code; сам токен никогда
+  не коммитится). Проверены `initialize` (server `langfuse 0.3.0-unstable`),
+  `tools/list` (86 инструментов, есть `listPrompts`) и read-only вызов
+  `listPrompts` (пустой список, ключ из локального `.env`); без ключа сервер
+  отвечает 401.
+
+Приоритет по докам Langfuse: при доступном CLI/skill Data MCP — вторичный
+протокол, skill — основной инструмент агента. Data MCP по умолчанию отдаёт
+и write-инструменты — для ограничения чтением настройте allowlist на клиенте.
+
 ### Limitations трейсинга
 
 В Cloud передаются фрагменты ПД, сведения позиции ВОР, ответы и цитаты.
@@ -405,6 +446,11 @@ CLI устанавливается отдельно от Python-зависимо
 из этого worktree. Наличие конфигурации не означает загрузку сервера в уже запущенную сессию.
 Протокол `initialize`/`tools/list` и реальный вызов `agent_browser_get_url` проверены;
 новый браузер не скачивался — использован собственный Chrome через CDP.
+
+Langfuse MCP (Docs + Data): см. «Агентские знания: skills и MCP» выше.
+Запись HTTP-серверов использует `type: http` + `url` — синтаксис Claude Code
+(запись `url` без `type` он считает ошибкой конфигурации); Cursor/VS Code
+используют свои файлы (`mcp.json`/`servers`) и этот формат не читают.
 
 
 ### Проверка слияния в dev (2026-10-15)

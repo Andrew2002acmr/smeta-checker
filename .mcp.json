@@ -6,6 +6,17 @@
       "env": {
         "AGENT_BROWSER_SESSION": "smeta-check"
       }
+    },
+    "langfuse-docs": {
+      "type": "http",
+      "url": "https://langfuse.com/api/mcp"
+    },
+    "langfuse": {
+      "type": "http",
+      "url": "https://cloud.langfuse.com/api/public/mcp",
+      "headers": {
+        "Authorization": "Basic ${LANGFUSE_MCP_AUTH_TOKEN}"
+      }
     }
   }
 }

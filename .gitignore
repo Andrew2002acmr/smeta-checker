@@ -9,7 +9,8 @@ __pycache__/
 *.py[cod]
 
 .idea/
-.agents
+.agents/*
+!.agents/skills/
 
 activate.txt
 drawing_test.py
