@@ -474,20 +474,26 @@ def run_audit(
                                                 i + 1 for i in source.pending_ocr
                                             ],
                                             "errors": source.native_index.errors,
+                                            "extraction_hits": source.extraction_hits,
+                                            "extraction_misses": source.extraction_misses,
+                                            "table_cache_hits": source.table_cache_hits,
                                         },
                                         status_message=(
                                             f"Страниц: {source.page_count}; "
                                             f"сканов: {len(source.pending_ocr)}; "
-                                            f"сбоев чтения: {len(source.native_index.errors)}"
+                                            f"сбоев чтения: {len(source.native_index.errors)}; "
+                                            f"Markdown из кеша: {source.extraction_hits}; "
+                                            f"заново: {source.extraction_misses}"
                                         ),
                                         level="ERROR"
                                         if source.native_index.errors
                                         else "DEFAULT",
                                     )
                             source = pdf_text_sources[target_pdf_name]
-                            before_ocr, before_hits = (
+                            before_ocr, before_hits, before_tables = (
                                 source.ocr_count,
                                 source.cache_hits,
+                                source.table_cache_hits,
                             )
                             with position_trace.stage(
                                 "prepare-ocr-snapshot",
@@ -498,10 +504,12 @@ def run_audit(
                                 )
                                 new_ocr = source.ocr_count - before_ocr
                                 ocr_hits = source.cache_hits - before_hits
+                                table_hits = source.table_cache_hits - before_tables
                                 observation.update(
                                     output={
                                         "new_ocr_pages": new_ocr,
                                         "cache_hits": ocr_hits,
+                                        "table_cache_hits": table_hits,
                                         "pending_ocr": [
                                             i + 1 for i in text_index.pending_ocr
                                         ],
@@ -512,6 +520,7 @@ def run_audit(
                                     },
                                     status_message=(
                                         f"Новых OCR: {new_ocr}; из кеша: {ocr_hits}; "
+                                        f"таблиц из кеша: {table_hits}; "
                                         f"отложено: {len(text_index.pending_ocr)}; "
                                         f"ошибок: {len(text_index.errors)}"
                                     ),
