@@ -37,6 +37,18 @@ class ProjectRow:
 
 
 @dataclass(frozen=True, slots=True)
+class VersionRef:
+    id: UUID
+    document_id: UUID
+    filename: str
+    kind: str
+    version_no: int
+    sha256: str
+    blob_key: str
+    size: int
+
+
+@dataclass(frozen=True, slots=True)
 class DocumentVersionRow:
     id: UUID
     document_id: UUID
@@ -175,6 +187,34 @@ class Repository:
                 },
             },
         )
+        self.save_vor_run_payload(
+            run.id,
+            tasks=tasks,
+            tracking=tracking,
+            results=results,
+            excel_bytes=bytes(excel_bytes),
+            word_bytes=bytes(word_bytes),
+            pdf_versions=pdf_versions,
+        )
+        self.finish_run(run.id, "done")
+        return run.id
+
+    def save_vor_run_payload(
+        self,
+        run_id: UUID,
+        *,
+        tasks: list[dict[str, Any]],
+        tracking: list[dict[str, Any]],
+        results: list[dict[str, Any]],
+        excel_bytes: bytes,
+        word_bytes: bytes,
+        pdf_versions: dict[str, DocumentVersionRow],
+    ) -> None:
+        """Write position results and Excel/Word artifacts into an open run.
+
+        ``run_audit(..., run_id=...)`` reuses this for API-created runs so the
+        stored payload shape never diverges from the Streamlit path.
+        """
         for task, track, result in zip(tasks, tracking, results):
             payload = {
                 "status": result.get("Статус аудита"),
@@ -200,11 +240,29 @@ class Repository:
             if pdf_name in pdf_versions:
                 payload["pdf_version_id"] = str(pdf_versions[pdf_name].id)
                 payload["pdf_sha256"] = pdf_versions[pdf_name].sha256
-            self.save_position_result(run.id, int(task.get("idx", 0)), payload)
-        self.save_run_report(run.id, "excel", bytes(excel_bytes))
-        self.save_run_report(run.id, "word", bytes(word_bytes))
-        self.finish_run(run.id, "done")
-        return run.id
+            self.save_position_result(run_id, int(task.get("idx", 0)), payload)
+        self.save_run_report(run_id, "excel", bytes(excel_bytes))
+        self.save_run_report(run_id, "word", bytes(word_bytes))
+
+    def load_version(self, version_id: UUID) -> VersionRef:
+        """Load one document version with its document filename and kind."""
+        with Session(self._engine) as session:
+            version = session.get(DocumentVersion, version_id)
+            if version is None:
+                raise KeyError(str(version_id))
+            document = session.get(Document, version.document_id)
+            if document is None:
+                raise KeyError(str(version_id))
+            return VersionRef(
+                id=version.id,
+                document_id=document.id,
+                filename=document.filename,
+                kind=document.kind,
+                version_no=version.version_no,
+                sha256=version.sha256,
+                blob_key=version.blob_key,
+                size=version.size,
+            )
 
     def add_document_version(
         self, project_id: UUID, data: bytes, *, filename: str, kind: str

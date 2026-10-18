@@ -40,6 +40,10 @@ uv run streamlit run app.py
   постоянное хранение: метаданные в PostgreSQL, байты в контент-адресном
   blob-хранилище (`file://`, шов под S3-compatible). История запусков
   append-only и переживает перезапуск; документы идентифицируются sha256.
+* `api.py` — REST API поверх сервисов (issue #18): импорт документов,
+  префлайт привязки, фоновый запуск аудита, результаты и скачивание отчётов.
+  Streamlit не импортируется; OpenAPI — `/openapi.json`, ошибки — единый
+  `{"error": {code, message, details}}`.
 * `audit_core.py`, `pdf_text.py`, `pdf_binding.py`, `audit_reports.py`,
   `audit_tracing.py`, `vor_rules.py` — предметное ядро и отчёты.
 
@@ -58,6 +62,34 @@ print(outcome["results"]["vor.xlsx"]["df"]["Статус аудита"].tolist()
 print(outcome["issues"])
 ```
 
+## REST API (issue #18)
+
+```powershell
+$env:DATABASE_URL = "postgresql+psycopg://smeta:secret@localhost:5432/smeta"
+$env:BLOB_STORE_URL = "file://./.audit_blobs"
+uv run uvicorn api:get_app --factory
+```
+
+Маршруты: `POST /api/v1/documents` (multipart: `project`, `kind=vor|pdf`,
+`file`), `POST /api/v1/documents/preflight`, `POST /api/v1/audits` (202 +
+`run_id`), `GET /api/v1/audits/{id}`, `GET /api/v1/audits/{id}/results`,
+`GET /api/v1/audits/{id}/reports/{excel|word}`. Один запуск — одна ВОР и
+выбранные PDF; конфиг запуска хранит версии PDF, префлайт и модель.
+`POST /api/v1/audits` возвращает 202 сразу: сам аудит выполняется в
+фоновом daemon-потоке того же процесса через `run_audit(..., run_id=...)`,
+поэтому формат сохранённых результатов совпадает со Streamlit-путём.
+Статусы запуска: `running` → `done`/`failed`; результаты и отчёты до
+завершения отвечают 409 `audit_not_finished`.
+
+### Limitations API
+
+Фоновый запуск — in-process потоки без очереди и персистентности задач:
+перезапуск процесса теряет выполняющиеся аудиты (их строки остаются
+`running`), лимитов времени/памяти/конкурентности нет. Issue #19 заменит
+это на Redis + Celery со статусами в PostgreSQL и восстановлением после
+рестарта воркера. Без `DATABASE_URL`/`BLOB_STORE_URL` эндпоинты отвечают
+503 `storage_not_configured`, без `YANDEX_CLOUD_API_KEY` запуск — 503
+`llm_not_configured`.
 ## Постоянное хранение (PostgreSQL + blobs)
 
 Без настроек хранения результаты живут только в `st.session_state` и пропадают
