@@ -42,9 +42,7 @@ def preflight_bindings(loaded_vors, target_vor_selection, pdf_pool_keys):
 
     for v_name in target_vor_selection:
         try:
-            prev_positions, prev_meta = load_vor_positions(
-                loaded_vors[v_name], v_name
-            )
+            prev_positions, prev_meta = load_vor_positions(loaded_vors[v_name], v_name)
         except Exception:
             continue
 
@@ -289,12 +287,20 @@ def run_audit(
     progress=None,
     client_factory=None,
     sleeper=None,
+    store=None,
+    project_name="default",
+    pdf_sources=None,
 ):
     """Audit selected VORs headless.
 
     Returns ``{"results": {v_name: {"df", "meta", "tracking", "excel_bytes",
     "word_bytes"}}, "issues": [...]}``. Owns PDF text sources (closed on exit);
     the caller owns ``pdf_pool`` documents and ``trace_run``.
+
+    ``store`` (``storage_db.Repository``) persists each VOR as a new run with
+    position results and Excel/Word artifacts; reruns append new runs.
+    ``pdf_sources`` optionally maps pool keys to original PDF bytes/paths so
+    stored hashes are stable (``fitz`` re-serialization is not deterministic).
     """
     audit_position = partial(
         audit_position_hybrid,
@@ -664,6 +670,22 @@ def run_audit(
             excel_bytes = generate_excel_report(user_report)
             word_bytes = generate_word_report(user_report, meta)
 
+            run_id = None
+            if store is not None:
+                run_id = store.persist_vor_run(
+                    vor_name=v_name,
+                    vor_source=loaded_vors[v_name],
+                    pdf_pool=pdf_pool,
+                    tasks=tasks,
+                    tracking=row_page_tracking,
+                    results=results_list,
+                    excel_bytes=excel_bytes,
+                    word_bytes=word_bytes,
+                    model_name=model_name,
+                    project_name=project_name,
+                    pdf_sources=pdf_sources,
+                )
+
             results[v_name] = {
                 "df": df_final,
                 "meta": meta,
@@ -671,6 +693,8 @@ def run_audit(
                 "excel_bytes": excel_bytes,
                 "word_bytes": word_bytes,
             }
+            if run_id is not None:
+                results[v_name]["run_id"] = run_id
 
         return {"results": results, "issues": issues}
     finally:

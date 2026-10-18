@@ -218,6 +218,20 @@ class AuditSettingsModelTests(unittest.TestCase):
         self.assertEqual(settings.yandex_cloud_api_key, "key")
         self.assertEqual(settings.yandex_cloud_model, "qwen3.6-35b-a3b/latest")
         self.assertEqual(settings.langfuse_base_url, "https://cloud.langfuse.com")
+        self.assertEqual(settings.database_url, "")
+        self.assertEqual(settings.blob_store_url, "")
+
+    def test_storage_settings_resolve(self):
+        with patch.dict(os.environ, {}, clear=True):
+            settings = AuditSettings.load(
+                file_values={
+                    "DATABASE_URL": "postgresql+psycopg://u@/db",
+                    "BLOB_STORE_URL": "file://./.audit_blobs",
+                },
+                secrets=None,
+            )
+        self.assertEqual(settings.database_url, "postgresql+psycopg://u@/db")
+        self.assertEqual(settings.blob_store_url, "file://./.audit_blobs")
 
     def test_error_kinds_are_explicit(self):
         self.assertEqual(
