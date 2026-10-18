@@ -20,4 +20,5 @@ report_drawing.py
 /ВР-1 ИГДИ/
 /tmp/
 /.audit_cache/
+/.audit_blobs/
 /test_documents/

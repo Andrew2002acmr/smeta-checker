@@ -36,6 +36,10 @@ uv run streamlit run app.py
   импорта/экспорта (Excel/CSV, Streamlit, Excel/Word).
 * `vor_parse.py` — парсер ВОР (`load_vor_positions`, legacy `load_vor_with_metadata`).
 * `audit_settings.py` — настройки `.env` → окружение → переданные secrets.
+* `storage_models.py`, `storage_db.py`, `storage_blobs.py`, `alembic/` —
+  постоянное хранение: метаданные в PostgreSQL, байты в контент-адресном
+  blob-хранилище (`file://`, шов под S3-compatible). История запусков
+  append-only и переживает перезапуск; документы идентифицируются sha256.
 * `audit_core.py`, `pdf_text.py`, `pdf_binding.py`, `audit_reports.py`,
   `audit_tracing.py`, `vor_rules.py` — предметное ядро и отчёты.
 
@@ -53,6 +57,38 @@ outcome = run_audit(
 print(outcome["results"]["vor.xlsx"]["df"]["Статус аудита"].tolist())
 print(outcome["issues"])
 ```
+
+## Постоянное хранение (PostgreSQL + blobs)
+
+Без настроек хранения результаты живут только в `st.session_state` и пропадают
+при перезапуске. С заполненными `DATABASE_URL` и `BLOB_STORE_URL` (см.
+`.env.example`) каждый аудит сохраняется как новый запуск: проект, версии
+документов, результаты позиций, Excel/Word-артефакты. Повторный запуск не
+перезаписывает историю. Документы идентифицируются sha256 исходных байтов, а
+не basename: одинаковые байты хранятся один раз, повторная загрузка того же
+содержимого не создаёт новую версию.
+
+```powershell
+# Применить миграции (или DATABASE_URL в .env — это же делает open_repository)
+$env:DATABASE_URL = "postgresql+psycopg://smeta:secret@localhost:5432/smeta"
+uv run alembic upgrade head
+uv run streamlit run app.py
+```
+
+Схема: `projects` → `documents` → `document_versions` (sha256, blob_key),
+`runs` (один запуск = одна ВОР, `config` с версиями PDF и моделью) →
+`position_results` (JSONB результата позиции) и `run_artifacts`
+(excel/word в blobs). Секция «🗂️ История запусков» в UI показывает прошлые
+запуски, их таблицы и скачивание отчётов из хранилища после перезапуска.
+
+### Limitations хранения
+
+`fitz.Document.tobytes()` недетерминирован, поэтому хеш PDF считается по
+исходным байтам (`pdf_sources`: путь на диске или загруженный файл). Без
+исходников (только открытый документ без источника) хранится ресериализация,
+и повторный аудит того же файла может создать новую версию.
+`BLOB_STORE_URL` поддерживает только `file://`; S3-compatible бэкенд — шов
+`storage_blobs.BlobStore`, не реализация.
 
 ## Трейсинг в Langfuse Cloud
 

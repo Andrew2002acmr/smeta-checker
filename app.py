@@ -11,6 +11,8 @@ from audit_tracing import TracingRun
 from audit_settings import get_setting as _resolve_setting
 from audit_models import AuditSettings
 from audit_service import preflight_bindings, run_audit
+from storage_blobs import open_blob_store
+from storage_db import open_repository
 
 
 def get_setting(name, default=""):
@@ -128,6 +130,7 @@ for previous_doc in st.session_state.pdf_pool.values():
         previous_doc.close()
 pdf_pool = {}
 pdf_local_paths = {}
+folder_path = ""
 
 if source_mode == "📁 Локальная папка проекта":
     folder_path = st.sidebar.text_input("Путь к папке проекта на диске", value=r"C:\Projects\Project")
@@ -273,6 +276,17 @@ with main_tab1:
                     )
                     if trace_run.error:
                         st.warning(trace_run.error)
+                    store = None
+                    project_name = os.path.basename(os.path.normpath(folder_path)) if source_mode == "📁 Локальная папка проекта" else "uploads"
+                    if _run_settings.database_url and _run_settings.blob_store_url:
+                        try:
+                            store = open_repository(
+                                _run_settings.database_url,
+                                blob_store=open_blob_store(_run_settings.blob_store_url),
+                            )
+                        except Exception as exc:
+                            st.warning(f"Хранилище истории недоступно, результаты только в сессии: {exc}")
+                            store = None
                     for v_name in target_vor_selection:
                         st.session_state.audit_results.pop(v_name, None)
 
@@ -283,7 +297,9 @@ with main_tab1:
                         loaded_vors, target_vor_selection, pdf_pool,
                         api_key=YANDEX_API_KEY, folder=YANDEX_FOLDER, model_name=YANDEX_MODEL_NAME,
                         trace_run=trace_run,
-                        progress=lambda fraction, text: progress_bar.progress(fraction, text=text))
+                        progress=lambda fraction, text: progress_bar.progress(fraction, text=text),
+                        store=store, project_name=project_name or "default",
+                        pdf_sources=pdf_local_paths)
                     st.session_state.audit_run_issues = outcome["issues"]
                     st.session_state.audit_results.update(outcome["results"])
 
@@ -458,6 +474,77 @@ with main_tab1:
                         type="primary",
                         key=f"dl_doc_{v_name}"
                     )
+
+    # =========================================================================
+    # ИСТОРИЯ ЗАПУСКОВ (PostgreSQL + blob-хранилище, переживает перезапуск)
+    # =========================================================================
+    _history_settings = load_settings()
+    if _history_settings.database_url and _history_settings.blob_store_url:
+        st.markdown("---")
+        st.header("🗂️ История запусков")
+        try:
+            _store = open_repository(
+                _history_settings.database_url,
+                blob_store=open_blob_store(_history_settings.blob_store_url),
+            )
+            _project_names = _store.list_project_names()
+        except Exception as exc:
+            st.warning(f"История недоступна: {exc}")
+            _project_names = []
+            _store = None
+        if _store is not None and _project_names:
+            _history_project = st.selectbox("Проект", options=_project_names, key="history_project")
+            _runs = _store.list_runs(_store.get_or_create_project(_history_project).id)
+            if not _runs:
+                st.info("В проекте пока нет сохранённых запусков.")
+            else:
+                _labels = {
+                    f"{run.created_at:%Y-%m-%d %H:%M:%S} · {run.status} · {str(run.id)[:8]}": run
+                    for run in _runs
+                }
+                _choice = st.selectbox("Запуск", options=list(_labels.keys()), key="history_run")
+                _run = _labels[_choice]
+                _loaded = _store.load_run(_run.id)
+                st.caption(f"ВОР: `{_loaded['vor_filename']}` · sha256 `{_loaded['vor_sha256'][:16]}…` · позиций: {len(_loaded['results'])}")
+                try:
+                    _hist_excel = _store.load_run_report(_run.id, "excel")
+                    _hist_word = _store.load_run_report(_run.id, "word")
+                except (FileNotFoundError, KeyError):
+                    _hist_excel = _hist_word = None
+                if _hist_excel is None:
+                    st.warning("Файлы отчётов запуска отсутствуют в blob-хранилище; таблица позиций ниже загружена из PostgreSQL.")
+                else:
+                    _h1, _h2 = st.columns(2)
+                    with _h1:
+                        st.download_button(
+                            label="📊 Скачать Excel из истории",
+                            data=_hist_excel,
+                            file_name=f"Аудит_{_loaded['vor_filename']}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key=f"hist_xl_{_run.id}",
+                        )
+                    with _h2:
+                        st.download_button(
+                            label="📄 Скачать Word из истории",
+                            data=_hist_word,
+                            file_name=f"Замечания_{_loaded['vor_filename']}.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            key=f"hist_doc_{_run.id}",
+                        )
+                _rows = [
+                    {
+                        "№": idx + 1,
+                        "Работа": item.get("work_name", ""),
+                        "Статус аудита": item.get("status", ""),
+                        "Объём ПД": item.get("found_volume", "-"),
+                        "Ед. ПД": item.get("found_unit", "-"),
+                        "Страницы": ", ".join(map(str, item.get("found_pages") or [])) or "-",
+                    }
+                    for idx, item in enumerate(_loaded["results"])
+                ]
+                st.dataframe(pd.DataFrame(_rows), use_container_width=True, key=f"hist_table_{_run.id}")
+        elif _store is not None:
+            st.info("История пуста: запустите аудит с настроенным DATABASE_URL и BLOB_STORE_URL.")
 
 # ----------------- ВКЛАДКА 2: ПРОВЕРКА ОФОРМЛЕНИЯ -----------------
 with main_tab2:

@@ -48,7 +48,7 @@ class FakeClient:
 
 
 class AppFlowTests(unittest.TestCase):
-    def _run_audit(self, folder, header, rows, preparation_fault_on_call=None):
+    def _run_audit(self, folder, header, rows, preparation_fault_on_call=None, extra_env=None):
         with fitz.open() as pdf:
             for content in ("Copper cable specification. " * 20, "Copper cable 45 m. " * 20):
                 page = pdf.new_page()
@@ -68,7 +68,9 @@ class AppFlowTests(unittest.TestCase):
                 raise RuntimeError("Simulated preparation failure")
             return real_for_position(source, *args, **kwargs)
 
-        with patch.dict(os.environ, {"YANDEX_CLOUD_API_KEY": "test-only", "YANDEX_CLOUD_FOLDER": "test-folder"}), \
+        env = {"YANDEX_CLOUD_API_KEY": "test-only", "YANDEX_CLOUD_FOLDER": "test-folder"}
+        env.update(extra_env or {})
+        with patch.dict(os.environ, env), \
                 patch("openai.OpenAI", FakeClient), \
                 patch("audit_tracing._configured_client", return_value=None), \
                 patch("pdf_text.PDFTextSource.for_position", _maybe_flaky):
@@ -264,6 +266,73 @@ class AppFlowTests(unittest.TestCase):
             finally:
                 for pdf in at.session_state["pdf_pool"].values():
                     pdf.close()
+
+    def test_history_survives_ui_restart(self):
+        import shutil
+
+        from storage_blobs import FileBlobStore
+        from storage_db import open_repository
+
+        db_url = os.environ.get(
+            "TEST_POSTGRES_URL",
+            "postgresql+psycopg://nikgretenok@localhost:5432/smeta_test",
+        )
+        with tempfile.TemporaryDirectory(prefix="smeta-history-test-") as tmp:
+            folder = Path(tmp) / "project"
+            folder.mkdir()
+            blobs = Path(tmp) / "blobs"
+            blobs.mkdir()
+            open_repository(db_url, blob_store=FileBlobStore(blobs)).reset_for_tests()
+            at = self._run_audit(
+                folder,
+                ["№ п.п.", "Наименование работ, ресурсов, затрат по проекту",
+                 "Объём работ / Количество", "Ед. изм.", "Ссылка на ПД",
+                 "Наименование файла", "Номер страниц (через пробел)"],
+                [[1, "Copper cable", 45, "m", "", "project.pdf", 1]],
+                extra_env={"DATABASE_URL": db_url, "BLOB_STORE_URL": f"file://{blobs}"},
+            )
+            try:
+                self.assertIn("run_id", at.session_state["audit_results"]["vor.csv"])
+            finally:
+                for pdf in at.session_state["pdf_pool"].values():
+                    pdf.close()
+            shutil.rmtree(folder)
+            folder.mkdir()
+            with patch.dict(
+                os.environ,
+                {
+                    "YANDEX_CLOUD_API_KEY": "test-only",
+                    "YANDEX_CLOUD_FOLDER": "test-folder",
+                    "DATABASE_URL": db_url,
+                    "BLOB_STORE_URL": f"file://{blobs}",
+                },
+            ), patch("audit_tracing._configured_client", return_value=None):
+                restarted = AppTest.from_file(
+                    str(Path(__file__).resolve().parents[1] / "app.py"),
+                    default_timeout=30,
+                )
+                restarted.run()
+                self.assertEqual(len(restarted.exception), 0, str(restarted.exception))
+                folder_input = next(
+                    item
+                    for item in restarted.text_input
+                    if item.label == "Путь к папке проекта на диске"
+                )
+                folder_input.set_value(str(folder)).run()
+                self.assertEqual(len(restarted.exception), 0, str(restarted.exception))
+                headers = [h.value for h in restarted.header]
+                self.assertIn("🗂️ История запусков", headers)
+                run_box = next(s for s in restarted.selectbox if s.label == "Запуск")
+                self.assertEqual(len(run_box.options), 1)
+                tables = [frame.value for frame in restarted.dataframe]
+                self.assertTrue(
+                    any(
+                        "Статус аудита" in map(str, frame.columns)
+                        and (frame["Статус аудита"] == "ОК").any()
+                        for frame in tables
+                        if hasattr(frame, "columns")
+                    )
+                )
 
 
 if __name__ == "__main__":

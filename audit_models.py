@@ -496,6 +496,8 @@ class AuditSettings(BaseModel):
     langfuse_secret_key: str = ""
     langfuse_base_url: str = "https://cloud.langfuse.com"
     langfuse_environment: str = "development"
+    database_url: str = ""
+    blob_store_url: str = ""
 
     @classmethod
     def load(cls, file_values: Any = None, secrets: Any = None) -> "AuditSettings":
@@ -532,5 +534,11 @@ class AuditSettings(BaseModel):
                 "development",
                 file_values=file_values,
                 secrets=secrets,
+            ),
+            database_url=get_setting(
+                "DATABASE_URL", "", file_values=file_values, secrets=secrets
+            ),
+            blob_store_url=get_setting(
+                "BLOB_STORE_URL", "", file_values=file_values, secrets=secrets
             ),
         )
