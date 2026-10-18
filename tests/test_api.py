@@ -108,6 +108,32 @@ class ApiTests(unittest.TestCase):
         self.addCleanup(client.close)
         return client, app
 
+    def _open_app_with_dispatcher(self, tmp, dispatcher):
+        from storage_db import open_repository
+
+        repo = open_repository(_postgres_url(), blob_store=FileBlobStore(tmp))
+        repo.reset_for_tests()
+        settings = AuditSettings(
+            yandex_cloud_api_key="test-only",
+            yandex_cloud_folder="test-folder",
+            yandex_cloud_model="qwen-test",
+            database_url=_postgres_url(),
+            blob_store_url=f"file://{tmp}",
+        )
+        context = ApiContext(
+            settings=settings,
+            repository=repo,
+            blob_store=FileBlobStore(tmp),
+            client_factory=_ok_client_factory(),
+            dispatcher=dispatcher,
+        )
+        app = create_app(context)
+        from fastapi.testclient import TestClient
+
+        client = TestClient(app, raise_server_exceptions=False)
+        self.addCleanup(client.close)
+        return client, app
+
     def _upload(self, client, project, kind, filename, payload, content_type):
         response = client.post(
             "/api/v1/documents",
@@ -326,6 +352,34 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.json()["error"]["code"], "unknown_report")
 
+    def test_audit_with_dispatcher_enqueues_without_running_inline(self):
+        dispatched = []
+        with tempfile.TemporaryDirectory(prefix="smeta-api-") as tmp:
+            client, _ = self._open_app_with_dispatcher(
+                tmp, lambda name, payload: dispatched.append((name, payload))
+            )
+            vor, pdf = self._upload_pair(client)
+            created = client.post(
+                "/api/v1/audits",
+                json={
+                    "project": "ИГДИ",
+                    "vor_version_id": vor["version_id"],
+                    "pdf_version_ids": [pdf["version_id"]],
+                },
+            )
+            self.assertEqual(created.status_code, 202, created.text)
+            self.assertEqual(len(dispatched), 1)
+            name, payload = dispatched[0]
+            self.assertEqual(name, "audit_tasks.prepare_run")
+            self.assertEqual(payload["run_id"], created.json()["run_id"])
+            self.assertEqual(payload["project"], "ИГДИ")
+            self.assertEqual(payload["vor_filename"], "vor.csv")
+            self.assertIn("vor_blob_key", payload)
+            self.assertIn("project.pdf", payload["pdf_blob_keys"])
+            # Nothing ran inline: the run stays running with zero results.
+            status = client.get(f"/api/v1/audits/{created.json()['run_id']}").json()
+            self.assertEqual(status["status"], "running")
+            self.assertEqual(status["position_count"], 0)
 
 if __name__ == "__main__":
     unittest.main()

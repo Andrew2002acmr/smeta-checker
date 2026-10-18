@@ -44,6 +44,9 @@ uv run streamlit run app.py
   префлайт привязки, фоновый запуск аудита, результаты и скачивание отчётов.
   Streamlit не импортируется; OpenAPI — `/openapi.json`, ошибки — единый
   `{"error": {code, message, details}}`.
+* `audit_tasks.py` — фоновые задания Celery (issue #19): `prepare_run` (CPU,
+  очередь `pdf`), `audit_position` (сеть, очередь `llm`), `finalize_run` и
+  `recover_run`. Без брокера API выполняет те же функции в fallback-потоке.
 * `audit_core.py`, `pdf_text.py`, `pdf_binding.py`, `audit_reports.py`,
   `audit_tracing.py`, `vor_rules.py` — предметное ядро и отчёты.
 
@@ -75,21 +78,46 @@ uv run uvicorn api:get_app --factory
 `run_id`), `GET /api/v1/audits/{id}`, `GET /api/v1/audits/{id}/results`,
 `GET /api/v1/audits/{id}/reports/{excel|word}`. Один запуск — одна ВОР и
 выбранные PDF; конфиг запуска хранит версии PDF, префлайт и модель.
-`POST /api/v1/audits` возвращает 202 сразу: сам аудит выполняется в
-фоновом daemon-потоке того же процесса через `run_audit(..., run_id=...)`,
-поэтому формат сохранённых результатов совпадает со Streamlit-путём.
+`POST /api/v1/audits` возвращает 202 сразу: с настроенным `CELERY_BROKER_URL`
+запуск уходит в очередь Redis/Celery (`prepare_run` на `pdf` → по одной
+`audit_position` на `llm` → `finalize_run` на `pdf`), без брокера тот же
+конвейер `audit_tasks` выполняется в fallback-потоке процесса. Статусы
+позиций (`queued`/`running`/`done`/`failed`) хранятся в `position_jobs`,
+повторный claim тем же воркером идемпотентен, чужой получает `LookupError`;
+результаты позиций пишутся в `position_results` по мере готовности.
 Статусы запуска: `running` → `done`/`failed`; результаты и отчёты до
 завершения отвечают 409 `audit_not_finished`.
 
+Воркеры (issue #19): CPU-подготовка PDF/OCR и финализация отчётов живут на
+очереди `pdf` (конкурентность `AUDIT_PDF_CONCURRENCY=2`), сетевые запросы к
+LLM — на очереди `llm` (`AUDIT_LLM_CONCURRENCY=8`):
+
+```powershell
+$env:CELERY_BROKER_URL = "redis://localhost:6379/0"
+uv run celery -A audit_tasks:worker worker -Q pdf -c 2 --max-memory-per-child 1000000
+uv run celery -A audit_tasks:worker worker -Q llm -c 8
+```
+
+Лимиты задачи: `AUDIT_TASK_TIME_LIMIT=600` (hard) и
+`AUDIT_TASK_SOFT_TIME_LIMIT=540` (soft) секунд; `task_acks_late` +
+`task_reject_on_worker_lost` возвращают убитую задачу в очередь, повторы
+`audit_position` безопасны (claim + перезапись результата по
+`position_index`). Сбой одной позиции не останавливает остальные: она
+получает технический результат, финализация всё равно собирает отчёты.
+После рестарта воркера `recover_run` переводит `running`-задания погибших
+воркеров в `queued` и переотправляет их. Несколько PDF обрабатываются
+последовательно одним `prepare_run` (по одному `PDFTextSource` на документ),
+память ограничена `--max-memory-per-child` и побайтовыми бюджетами OCR.
+
 ### Limitations API
 
-Фоновый запуск — in-process потоки без очереди и персистентности задач:
-перезапуск процесса теряет выполняющиеся аудиты (их строки остаются
-`running`), лимитов времени/памяти/конкурентности нет. Issue #19 заменит
-это на Redis + Celery со статусами в PostgreSQL и восстановлением после
-рестарта воркера. Без `DATABASE_URL`/`BLOB_STORE_URL` эндпоинты отвечают
-503 `storage_not_configured`, без `YANDEX_CLOUD_API_KEY` запуск — 503
-`llm_not_configured`.
+Без `DATABASE_URL`/`BLOB_STORE_URL` эндпоинты отвечают 503
+`storage_not_configured`, без `YANDEX_CLOUD_API_KEY` запуск — 503
+`llm_not_configured`, при недоступном брокере — 503 `broker_unavailable`.
+Fallback-поток без брокера теряет выполняющиеся аудиты при рестарте
+процесса (их строки остаются `running`); с брокером восстановление делает
+`recover_run`. `finalize_run` пока вызывается вручную/по расписанию, а не
+автоматически по завершении всех позиций.
 ## Постоянное хранение (PostgreSQL + blobs)
 
 Без настроек хранения результаты живут только в `st.session_state` и пропадают

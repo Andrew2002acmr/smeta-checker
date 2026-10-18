@@ -1,10 +1,10 @@
 """REST API over the extracted audit services (issue 18).
 
 Headless counterpart to ``app.py``: documents import into the issue-17
-repository, audits run in background threads (issue 19 replaces this with
-Redis + Celery), results and report downloads read back from storage.
-Streamlit is never imported here; integration tests use an httpx ASGI
-transport against the same app factory.
+repository, audits dispatch to Celery workers (issue 19) or run the same
+``audit_tasks`` pipeline in a fallback thread without a broker, results and
+report downloads read back from storage. Streamlit is never imported here;
+integration tests use an httpx ASGI transport against the same app factory.
 
 Run locally: ``uv run uvicorn api:get_app --factory``.
 """
@@ -26,7 +26,6 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from audit_models import AuditSettings
 from audit_service import preflight_bindings, run_audit
-from audit_tracing import TracingRun
 from storage_blobs import BlobStore, open_blob_store
 from storage_db import DocumentVersionRow, Repository, open_repository
 from vor_parse import load_vor_positions
@@ -125,6 +124,7 @@ class ApiContext:
     blob_store: BlobStore
     client_factory: Callable[..., Any] | None = None
     auditor: Callable[..., Any] = run_audit
+    dispatcher: Callable[[str, dict[str, Any]], None] | None = None
 
 
 @dataclass(slots=True)
@@ -135,7 +135,7 @@ class AuditJob:
 
 
 class AuditRunner:
-    """In-process background audits; issue 19 replaces this with Redis + Celery."""
+    """Fallback background audits; with a broker, Celery owns execution."""
 
     def __init__(self, context: ApiContext) -> None:
         self._context = context
@@ -350,6 +350,71 @@ def _load_run_record(context: ApiContext, run_id: UUID) -> dict[str, Any]:
         raise ApiError(404, "run_not_found", "Запуск аудита не найден.") from exc
 
 
+def _celery_dispatch(
+    context: ApiContext,
+) -> Callable[[str, dict[str, Any]], None] | None:
+    """Return the Celery dispatcher, or None when no broker is configured."""
+    if context.dispatcher is not None:
+        return context.dispatcher
+    if not context.settings.broker_url:
+        return None
+    from audit_tasks import celery_app, register_tasks
+
+    app = register_tasks(celery_app(context.settings))
+
+    def _send(name: str, payload: dict[str, Any]) -> None:
+        app.send_task(name, kwargs=dict(payload))
+
+    return _send
+
+
+def run_tasks_job(
+    context: ApiContext,
+    run_id: UUID,
+    *,
+    project: str,
+    vor_filename: str,
+    vor_bytes: bytes,
+    pdf_files: dict[str, bytes],
+    pdf_versions: dict[str, DocumentVersionRow],
+) -> None:
+    """Fallback pipeline without a broker: prepare → audit → finalize inline.
+
+    Uses the same ``audit_tasks`` functions Celery workers call, so results
+    match the queued path. Failures mark the run ``failed``.
+    """
+    from audit_tasks import TaskContext, audit_position, finalize_run, prepare_run
+
+    task_context = TaskContext(
+        settings=context.settings,
+        repository=context.repository,
+        blob_store=context.blob_store,
+        client_factory=context.client_factory,
+    )
+    try:
+        out = prepare_run(
+            task_context,
+            run_id,
+            project=project,
+            vor_filename=vor_filename,
+            vor_bytes=bytes(vor_bytes),
+            pdf_files=dict(pdf_files),
+            pdf_versions=dict(pdf_versions),
+            worker="api-fallback",
+            dispatch=None,
+        )
+        for index in out["queued"]:
+            audit_position(task_context, run_id, index, worker="api-fallback")
+        finalize_run(task_context, run_id, worker="api-fallback")
+    except Exception:
+        logger.exception("audit %s failed", run_id)
+        try:
+            context.repository.finish_run(run_id, "failed")
+        except Exception:
+            logger.exception("could not mark audit %s failed", run_id)
+        raise
+
+
 def run_audit_job(
     context: ApiContext,
     run_id: UUID,
@@ -360,56 +425,21 @@ def run_audit_job(
     pdf_files: dict[str, bytes],
     pdf_versions: dict[str, DocumentVersionRow],
 ) -> None:
-    """Execute one stored ``runs`` row headless; failures mark it ``failed``."""
-    pool: dict[str, Any] = {}
-    trace_run: TracingRun | None = None
-    try:
-        for name, data in pdf_files.items():
-            pool[name] = fitz.open(stream=bytes(data), filetype="pdf")
-        trace_run = TracingRun(
-            context.settings.langfuse_public_key,
-            context.settings.langfuse_secret_key,
-            context.settings.langfuse_base_url,
-            context.settings.langfuse_environment,
-        )
-        outcome = context.auditor(
-            {vor_filename: bytes(vor_bytes)},
-            [vor_filename],
-            pool,
-            api_key=context.settings.yandex_cloud_api_key,
-            folder=context.settings.yandex_cloud_folder,
-            model_name=context.settings.yandex_cloud_model,
-            trace_run=trace_run,
-            client_factory=context.client_factory,
-            sleeper=(lambda _: None),
-            store=context.repository,
-            project_name=project,
-            pdf_sources={name: bytes(data) for name, data in pdf_files.items()},
-            run_id=run_id,
-            pdf_versions=dict(pdf_versions),
-        )
-        entry = outcome["results"].get(vor_filename)
-        if entry is None:
-            details = (
-                "; ".join(outcome.get("issues") or []) or "Аудит не дал результата."
-            )
-            raise RuntimeError(details)
-    except Exception:
-        logger.exception("audit %s failed", run_id)
-        try:
-            context.repository.finish_run(run_id, "failed")
-        except Exception:
-            logger.exception("could not mark audit %s failed", run_id)
-        raise
-    finally:
-        for doc in pool.values():
-            try:
-                if not doc.is_closed:
-                    doc.close()
-            except Exception:
-                pass
-        if trace_run is not None:
-            trace_run.close()
+    """Execute one stored ``runs`` row headless; failures mark it ``failed``.
+
+    Issue 19: the in-process ``run_audit`` path is replaced by the same
+    ``audit_tasks`` functions Celery workers call (prepare → audit →
+    finalize), so fallback results match the queued path byte-for-shape.
+    """
+    run_tasks_job(
+        context,
+        run_id,
+        project=project,
+        vor_filename=vor_filename,
+        vor_bytes=bytes(vor_bytes),
+        pdf_files=dict(pdf_files),
+        pdf_versions=dict(pdf_versions),
+    )
 
 
 def create_app(context: ApiContext | None = None) -> FastAPI:
@@ -549,6 +579,32 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             raise ApiError(
                 500, "storage_error", f"Не удалось создать запуск: {exc}"
             ) from exc
+
+        dispatch = _celery_dispatch(context)
+        if dispatch is not None:
+            vor_ref = context.repository.load_version(vor_id)
+            pdf_blob_keys = {
+                key: context.repository.load_version(
+                    _parse_uuid(str(row.id), field="pdf_version_ids")
+                ).blob_key
+                for key, row in pdf_versions.items()
+            }
+            try:
+                dispatch(
+                    "audit_tasks.prepare_run",
+                    {
+                        "run_id": str(run.id),
+                        "project": project,
+                        "vor_filename": vor_filename,
+                        "vor_blob_key": vor_ref.blob_key,
+                        "pdf_blob_keys": pdf_blob_keys,
+                    },
+                )
+            except Exception as exc:
+                raise ApiError(
+                    503, "broker_unavailable", f"Очередь недоступна: {exc}"
+                ) from exc
+            return AuditCreateResponse(run_id=str(run.id), status="running")
 
         def _target() -> None:
             run_audit_job(
