@@ -8,6 +8,10 @@ altair==6.3.0 \
     --hash=sha256:7defb6ca730676dfc99a299768e2769f51585fcb3dc960ea71aacc368929d65e \
     --hash=sha256:fa632121aca6d0fcb198a3d8a9f7d937fa5b7518ec947951cfffb44e736d97c8
     # via streamlit
+annotated-doc==0.0.5 \
+    --hash=sha256:117bac03a25ede5df5440e855b32d556049ca169ead221505badf432fed4b101 \
+    --hash=sha256:c7e58ce09192557605d8bbd92836d7e1d520ac9580096042c0bfd197efacf1bb
+    # via fastapi
 annotated-types==0.8.0 \
     --hash=sha256:13b2beaad985e05e2d6407ee4c4f35590b11f8d693a258a561055cac8f64cab7 \
     --hash=sha256:f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0
@@ -84,6 +88,10 @@ et-xmlfile==2.0.0 \
     --hash=sha256:7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa \
     --hash=sha256:dab3f4764309081ce75662649be815c4c9081e88f0837825f90fd28317d4da54
     # via openpyxl
+fastapi==0.143.5 \
+    --hash=sha256:09cc38ed8c6a95f407783ef4d98ceeb350e192fe8fbb8ed711070bcd5208fdfa \
+    --hash=sha256:0b5c8e52d243cd2f015376b41e78db5bee585578782481abd145e1ab5a62a3ba
+    # via smeta-checker
 flatbuffers==25.12.19 \
     --hash=sha256:7634f50c427838bb021c2d66a3d1168e9d199b0607e6329399f04846d42e20b4
     # via onnxruntime
@@ -278,6 +286,7 @@ opentelemetry-api==1.45.1 \
     --hash=sha256:aa38ed19bcc084ba42782a73255b3582283eced7ad6dddbd6695189e69adfb75 \
     --hash=sha256:b31553efa588ae44bc306f863c785c5333a9ecc091248c6ee68b4b6c87fdedfb
     # via
+    #   fastapi
     #   langfuse
     #   opentelemetry-exporter-http-transport
     #   opentelemetry-exporter-otlp-proto-http
@@ -408,6 +417,7 @@ pydantic==2.14.1 \
     --hash=sha256:9195d967ec791692a04438115466764fb8b9a27b31f14a760437694f40d6b454 \
     --hash=sha256:94f478203dd03404682a1ada216965651dd74b1d2d5ffd62e00e0837caab5c26
     # via
+    #   fastapi
     #   langfuse
     #   openai
     #   smeta-checker
@@ -480,7 +490,9 @@ python-dotenv==1.2.4 \
 python-multipart==0.0.32 \
     --hash=sha256:be54b7f3fa167bb83e4fcd936b887b708f4e57fe75911c02aebf53efaf8d938e \
     --hash=sha256:ff6d3f776f16878c894e52e107296ffc890e913c611b1a4ec6c44e2821fe2e23
-    # via streamlit
+    # via
+    #   smeta-checker
+    #   streamlit
 pyyaml==6.0.3 \
     --hash=sha256:41715c910c881bc081f1e8872880d3c650acf13dfa8214bad49ed4cede7c34ea \
     --hash=sha256:5fcd34e47f6e0b794d17de1b4ff496c00986e1c83f7ab2fb8fcfe9616ff7477b \
@@ -566,7 +578,9 @@ sqlalchemy==2.1.5 \
 starlette==1.8.0 \
     --hash=sha256:1565dc0b35d5737a271ed1e0e04e949f4e81198799f216d2667b0a0fb9cf9522 \
     --hash=sha256:dfdd6b29c26483288088d990eee59631dedadd66ce20d203402a7ca8e3c4656f
-    # via streamlit
+    # via
+    #   fastapi
+    #   streamlit
 streamlit==1.65.0 \
     --hash=sha256:42acd9ebdf3576a35584977c48a044ec0b5d3e4997fa9248809b9891598ac6a0 \
     --hash=sha256:517a7254e223f4986d2b2e0745d02acf8ca64656943e63e422d345ce34a7495b
@@ -592,6 +606,7 @@ typing-extensions==4.16.0 \
     #   alembic
     #   altair
     #   anyio
+    #   fastapi
     #   httpx2
     #   langfuse
     #   openai
@@ -611,7 +626,9 @@ typing-extensions==4.16.0 \
 typing-inspection==0.4.4 \
     --hash=sha256:547274fa6b0a561ccf549cc9524b999a578e737d015d8709d021f9d0d13bea47 \
     --hash=sha256:65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147
-    # via pydantic
+    # via
+    #   fastapi
+    #   pydantic
 tzdata==2026.5 ; sys_platform == 'emscripten' or sys_platform == 'win32' \
     --hash=sha256:8cc73c0a0bfca7dbfa59235d60b2eff82231dee33f53d206db1acd9173cfc0a7 \
     --hash=sha256:b683bd1b6659ddcd810ff02ad09ba821d4bf1065072805063eb35c49617905ac
@@ -625,7 +642,9 @@ urllib3==2.8.0 \
 uvicorn==0.54.0 \
     --hash=sha256:505bdb0f318731d45f1f712071fc781a8981f6847a31c902c9f5e652d4f67faf \
     --hash=sha256:a2e33cbfaa0306f8e6b0c13e0cb89d7d7a2da3e62b90c66e18c33d9807b28620
-    # via streamlit
+    # via
+    #   smeta-checker
+    #   streamlit
 watchdog==6.0.0 ; sys_platform != 'darwin' \
     --hash=sha256:07df1fdd701c5d4c8e55ef6cf55b8f0120fe1aef7ef39a1c6fc6bc2e606d517a \
     --hash=sha256:20ffe5b202af80ab4266dcd3e91aae72bf2da48c0d33bdb15c66658e685e94e2 \

@@ -290,6 +290,8 @@ def run_audit(
     store=None,
     project_name="default",
     pdf_sources=None,
+    run_id=None,
+    pdf_versions=None,
 ):
     """Audit selected VORs headless.
 
@@ -299,8 +301,13 @@ def run_audit(
 
     ``store`` (``storage_db.Repository``) persists each VOR as a new run with
     position results and Excel/Word artifacts; reruns append new runs.
-    ``pdf_sources`` optionally maps pool keys to original PDF bytes/paths so
-    stored hashes are stable (``fitz`` re-serialization is not deterministic).
+    ``run_id`` reuses one API-created ``runs`` row instead: the payload lands
+    in that row via ``save_vor_run_payload`` (same shape as above) and the row
+    is finished ``done``. ``pdf_versions`` maps pool keys to stored version
+    rows so API payloads keep ``pdf_version_id``/``pdf_sha256`` without
+    re-adding versions. ``pdf_sources`` optionally maps pool keys to
+    original PDF bytes/paths so stored hashes are stable (``fitz``
+    re-serialization is not deterministic).
     """
     audit_position = partial(
         audit_position_hybrid,
@@ -679,9 +686,21 @@ def run_audit(
             excel_bytes = generate_excel_report(user_report)
             word_bytes = generate_word_report(user_report, meta)
 
-            run_id = None
-            if store is not None:
-                run_id = store.persist_vor_run(
+            stored_id = None
+            if store is not None and run_id is not None:
+                store.save_vor_run_payload(
+                    run_id,
+                    tasks=tasks,
+                    tracking=row_page_tracking,
+                    results=results_list,
+                    excel_bytes=bytes(excel_bytes),
+                    word_bytes=bytes(word_bytes),
+                    pdf_versions=dict(pdf_versions or {}),
+                )
+                store.finish_run(run_id, "done")
+                stored_id = run_id
+            elif store is not None:
+                stored_id = store.persist_vor_run(
                     vor_name=v_name,
                     vor_source=loaded_vors[v_name],
                     pdf_pool=pdf_pool,
@@ -702,8 +721,8 @@ def run_audit(
                 "excel_bytes": excel_bytes,
                 "word_bytes": word_bytes,
             }
-            if run_id is not None:
-                results[v_name]["run_id"] = run_id
+            if stored_id is not None:
+                results[v_name]["run_id"] = stored_id
 
         return {"results": results, "issues": issues}
     finally:

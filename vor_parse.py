@@ -26,6 +26,8 @@ def _read_vor_frame(file_source, filename):
     if isinstance(file_source, str):
         with open(file_source, "rb") as f:
             content = f.read()
+    elif isinstance(file_source, (bytes, bytearray)):
+        content = bytes(file_source)
     elif hasattr(file_source, "getvalue"):
         content = file_source.getvalue()
     else:

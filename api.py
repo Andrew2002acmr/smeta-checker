@@ -1,0 +1,659 @@
+"""REST API over the extracted audit services (issue 18).
+
+Headless counterpart to ``app.py``: documents import into the issue-17
+repository, audits run in background threads (issue 19 replaces this with
+Redis + Celery), results and report downloads read back from storage.
+Streamlit is never imported here; integration tests use an httpx ASGI
+transport against the same app factory.
+
+Run locally: ``uv run uvicorn api:get_app --factory``.
+"""
+
+from __future__ import annotations
+
+import logging
+import threading
+from dataclasses import dataclass, field
+from typing import Any, Callable
+from uuid import UUID
+
+import fitz
+from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse, Response
+from pydantic import BaseModel, ConfigDict, Field
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from audit_models import AuditSettings
+from audit_service import preflight_bindings, run_audit
+from audit_tracing import TracingRun
+from storage_blobs import BlobStore, open_blob_store
+from storage_db import DocumentVersionRow, Repository, open_repository
+from vor_parse import load_vor_positions
+
+logger = logging.getLogger(__name__)
+
+VOR_EXTENSIONS = (".xlsx", ".csv")
+PDF_EXTENSION = ".pdf"
+POSITION_DONE_STATUSES = frozenset({"done", "failed"})
+
+
+class ApiError(Exception):
+    """Structured API failure; rendered as ``{"error": {code, message, details}}``."""
+
+    def __init__(
+        self, status: int, code: str, message: str, details: Any = None
+    ) -> None:
+        super().__init__(message)
+        self.status = status
+        self.code = code
+        self.message = message
+        self.details = details
+
+
+class DocumentUploadResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version_id: str = Field(min_length=1)
+    document_id: str = Field(min_length=1)
+    version_no: int = Field(ge=1)
+    sha256: str = Field(min_length=64, max_length=64)
+    size: int = Field(ge=0)
+
+
+class PreflightRow(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    vor: str
+    refs: str
+    status: str
+    pdf: str
+
+
+class PreflightResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    rows: list[PreflightRow]
+    has_critical_error: bool
+
+
+class AuditCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    project: str = Field(min_length=1, max_length=256)
+    vor_version_id: str = Field(min_length=1)
+    pdf_version_ids: list[str] = Field(default_factory=list)
+
+
+class AuditCreateResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    run_id: str = Field(min_length=1)
+    status: str = Field(min_length=1)
+
+
+class AuditStatusResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    run_id: str = Field(min_length=1)
+    status: str = Field(min_length=1)
+    vor_filename: str = ""
+    position_count: int = Field(ge=0)
+    config: dict[str, Any] = Field(default_factory=dict)
+
+
+class AuditResultsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    run_id: str = Field(min_length=1)
+    status: str = Field(min_length=1)
+    vor_filename: str = ""
+    results: list[dict[str, Any]] = Field(default_factory=list)
+
+
+def _error_payload(exc: ApiError) -> dict[str, Any]:
+    payload: dict[str, Any] = {"code": exc.code, "message": exc.message}
+    if exc.details is not None:
+        payload["details"] = exc.details
+    return {"error": payload}
+
+
+@dataclass(frozen=True, slots=True)
+class ApiContext:
+    settings: AuditSettings
+    repository: Repository
+    blob_store: BlobStore
+    client_factory: Callable[..., Any] | None = None
+    auditor: Callable[..., Any] = run_audit
+
+
+@dataclass(slots=True)
+class AuditJob:
+    run_id: UUID
+    thread: threading.Thread | None = None
+    started: threading.Event = field(default_factory=threading.Event)
+
+
+class AuditRunner:
+    """In-process background audits; issue 19 replaces this with Redis + Celery."""
+
+    def __init__(self, context: ApiContext) -> None:
+        self._context = context
+        self._jobs: dict[UUID, AuditJob] = {}
+        self._lock = threading.Lock()
+
+    def start(
+        self, run_id: UUID, *, target: Callable[[], None], daemon: bool = True
+    ) -> None:
+        job = AuditJob(run_id=run_id)
+        thread = threading.Thread(
+            target=self._guarded(target, run_id),
+            name=f"audit-{run_id}",
+            daemon=daemon,
+        )
+        job.thread = thread
+        with self._lock:
+            self._jobs[run_id] = job
+        thread.start()
+        job.started.set()
+
+    def wait(self, run_id: UUID, timeout: float | None = None) -> bool:
+        with self._lock:
+            job = self._jobs.get(run_id)
+        if job is None or job.thread is None:
+            return True
+        job.started.wait(timeout)
+        job.thread.join(timeout)
+        return not job.thread.is_alive()
+
+    def _guarded(self, target: Callable[[], None], run_id: UUID) -> Callable[[], None]:
+        def run() -> None:
+            try:
+                target()
+            except Exception:
+                logger.exception("background audit %s failed", run_id)
+                try:
+                    self._context.repository.finish_run(run_id, "failed")
+                except Exception:
+                    logger.exception("could not mark audit %s failed", run_id)
+
+        return run
+
+
+def _parse_uuid(value: str, *, field: str) -> UUID:
+    try:
+        return UUID(str(value))
+    except (TypeError, ValueError) as exc:
+        raise ApiError(
+            400, "invalid_uuid", f"Некорректный {field}: {value!r}."
+        ) from exc
+
+
+def _clean_pool_key(filename: str) -> str:
+    return str(filename).replace("\\", "/").rsplit("/", 1)[-1].strip().lower()
+
+
+def _require_configured(context: ApiContext) -> None:
+    if not context.settings.database_url or not context.settings.blob_store_url:
+        raise ApiError(
+            503,
+            "storage_not_configured",
+            "Хранилище не настроено: заполните DATABASE_URL и BLOB_STORE_URL.",
+        )
+
+
+def _require_llm_credentials(settings: AuditSettings) -> None:
+    if not settings.yandex_cloud_api_key:
+        raise ApiError(
+            503,
+            "llm_not_configured",
+            "LLM не настроен: заполните YANDEX_CLOUD_API_KEY в .env.",
+        )
+
+
+def _read_version_bytes(
+    context: ApiContext, version_id: UUID
+) -> tuple[bytes, DocumentVersionRow, str, str]:
+    try:
+        ref = context.repository.load_version(version_id)
+    except KeyError as exc:
+        raise ApiError(
+            404, "version_not_found", "Версия документа не найдена."
+        ) from exc
+    try:
+        data = context.blob_store.get(ref.blob_key)
+    except FileNotFoundError as exc:
+        raise ApiError(
+            500, "blob_missing", "Байты документа отсутствуют в хранилище."
+        ) from exc
+    row = DocumentVersionRow(
+        id=ref.id,
+        document_id=ref.document_id,
+        version_no=ref.version_no,
+        sha256=ref.sha256,
+        blob_key=ref.blob_key,
+        size=ref.size,
+    )
+    return data, row, ref.filename, ref.kind
+
+
+def _upload_document(
+    context: ApiContext, project: str, kind: str, upload: UploadFile, data: bytes
+) -> DocumentUploadResponse:
+    filename = (upload.filename or "").strip()
+    if not filename:
+        raise ApiError(400, "filename_required", "Имя файла обязательно.")
+    lowered = filename.lower()
+    if kind == "vor" and not lowered.endswith(VOR_EXTENSIONS):
+        raise ApiError(
+            400,
+            "unsupported_vor_extension",
+            "ВОР принимает только .xlsx и .csv.",
+        )
+    if kind == "pdf" and not lowered.endswith(PDF_EXTENSION):
+        raise ApiError(400, "unsupported_pdf_extension", "ПД принимает только .pdf.")
+    if not data:
+        raise ApiError(400, "empty_upload", "Загруженный файл пуст.")
+    if kind == "vor":
+        try:
+            positions, _ = load_vor_positions(data, filename)
+        except ValueError as exc:
+            raise ApiError(
+                400, "invalid_vor", f"Не удалось прочитать ВОР: {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ApiError(
+                400,
+                "invalid_vor",
+                f"Не удалось прочитать ВОР: {type(exc).__name__}: {str(exc)[:300]}",
+            ) from exc
+        if not positions:
+            raise ApiError(400, "empty_vor", "В ВОР нет позиций для проверки.")
+    else:
+        try:
+            with fitz.open(stream=bytes(data), filetype="pdf") as doc:
+                if doc.page_count < 1:
+                    raise ApiError(400, "empty_pdf", "PDF не содержит страниц.")
+        except ApiError:
+            raise
+        except Exception as exc:
+            raise ApiError(
+                400,
+                "invalid_pdf",
+                f"Не удалось прочитать PDF: {type(exc).__name__}: {str(exc)[:200]}",
+            ) from exc
+    stored_project = context.repository.get_or_create_project(project)
+    try:
+        version = context.repository.add_document_version(
+            stored_project.id, bytes(data), filename=filename, kind=kind
+        )
+    except Exception as exc:
+        raise ApiError(
+            500, "storage_error", f"Не удалось сохранить документ: {exc}"
+        ) from exc
+    return DocumentUploadResponse(
+        version_id=str(version.id),
+        document_id=str(version.document_id),
+        version_no=version.version_no,
+        sha256=version.sha256,
+        size=version.size,
+    )
+
+
+def _preflight_for_versions(
+    context: ApiContext, vor_version_id: UUID, pdf_version_ids: list[UUID]
+) -> PreflightResponse:
+    vor_bytes, _, vor_filename, vor_kind = _read_version_bytes(context, vor_version_id)
+    if vor_kind != "vor":
+        raise ApiError(400, "not_vor_version", "Указанная версия — не ВОР.")
+    pool_keys: dict[str, str] = {}
+    for pdf_id in pdf_version_ids:
+        _, _, filename, kind = _read_version_bytes(context, pdf_id)
+        if kind != "pdf":
+            raise ApiError(400, "not_pdf_version", "Указанная версия — не PDF.")
+        pool_keys[_clean_pool_key(filename)] = str(pdf_id)
+    try:
+        positions, meta = load_vor_positions(vor_bytes, vor_filename)
+    except Exception as exc:
+        raise ApiError(400, "invalid_vor", f"Не удалось прочитать ВОР: {exc}") from exc
+    rows, has_critical_error = preflight_bindings(
+        {vor_filename: vor_bytes}, [vor_filename], pool_keys.keys()
+    )
+    return PreflightResponse(
+        rows=[
+            PreflightRow(
+                vor=str(row.get("Ведомость (ВОР)", vor_filename)),
+                refs=str(row.get("Путь в ячейке ВОР", "")),
+                status=str(row.get("Статус привязки", "")),
+                pdf=str(row.get("Фактический PDF", "")),
+            )
+            for row in rows
+        ],
+        has_critical_error=bool(has_critical_error or not positions or not meta),
+    )
+
+
+def _run_record(run: dict[str, Any]) -> AuditStatusResponse:
+    return AuditStatusResponse(
+        run_id=str(run["id"]),
+        status=str(run.get("status", "")),
+        vor_filename=str(run.get("vor_filename", "")),
+        position_count=len(run.get("results") or []),
+        config=dict(run.get("config") or {}),
+    )
+
+
+def _load_run_record(context: ApiContext, run_id: UUID) -> dict[str, Any]:
+    try:
+        return context.repository.load_run(run_id)
+    except KeyError as exc:
+        raise ApiError(404, "run_not_found", "Запуск аудита не найден.") from exc
+
+
+def run_audit_job(
+    context: ApiContext,
+    run_id: UUID,
+    *,
+    project: str,
+    vor_filename: str,
+    vor_bytes: bytes,
+    pdf_files: dict[str, bytes],
+    pdf_versions: dict[str, DocumentVersionRow],
+) -> None:
+    """Execute one stored ``runs`` row headless; failures mark it ``failed``."""
+    pool: dict[str, Any] = {}
+    trace_run: TracingRun | None = None
+    try:
+        for name, data in pdf_files.items():
+            pool[name] = fitz.open(stream=bytes(data), filetype="pdf")
+        trace_run = TracingRun(
+            context.settings.langfuse_public_key,
+            context.settings.langfuse_secret_key,
+            context.settings.langfuse_base_url,
+            context.settings.langfuse_environment,
+        )
+        outcome = context.auditor(
+            {vor_filename: bytes(vor_bytes)},
+            [vor_filename],
+            pool,
+            api_key=context.settings.yandex_cloud_api_key,
+            folder=context.settings.yandex_cloud_folder,
+            model_name=context.settings.yandex_cloud_model,
+            trace_run=trace_run,
+            client_factory=context.client_factory,
+            sleeper=(lambda _: None),
+            store=context.repository,
+            project_name=project,
+            pdf_sources={name: bytes(data) for name, data in pdf_files.items()},
+            run_id=run_id,
+            pdf_versions=dict(pdf_versions),
+        )
+        entry = outcome["results"].get(vor_filename)
+        if entry is None:
+            details = (
+                "; ".join(outcome.get("issues") or []) or "Аудит не дал результата."
+            )
+            raise RuntimeError(details)
+    except Exception:
+        logger.exception("audit %s failed", run_id)
+        try:
+            context.repository.finish_run(run_id, "failed")
+        except Exception:
+            logger.exception("could not mark audit %s failed", run_id)
+        raise
+    finally:
+        for doc in pool.values():
+            try:
+                if not doc.is_closed:
+                    doc.close()
+            except Exception:
+                pass
+        if trace_run is not None:
+            trace_run.close()
+
+
+def create_app(context: ApiContext | None = None) -> FastAPI:
+    """Build the API; callers inject a test context or load settings from env."""
+    resolved = context
+    if resolved is None:
+        settings = AuditSettings.load()
+        if not settings.database_url or not settings.blob_store_url:
+            raise RuntimeError("DATABASE_URL and BLOB_STORE_URL are required")
+        blobs = open_blob_store(settings.blob_store_url)
+        resolved = ApiContext(
+            settings=settings,
+            repository=open_repository(settings.database_url, blob_store=blobs),
+            blob_store=blobs,
+        )
+    runner = AuditRunner(resolved)
+
+    app = FastAPI(title="smeta-checker API", version="1.0.0")
+    app.state.context = resolved
+    app.state.runner = runner
+
+    def get_context() -> ApiContext:
+        return app.state.context
+
+    def get_runner() -> AuditRunner:
+        return app.state.runner
+
+    @app.exception_handler(ApiError)
+    async def _api_error_handler(_: Request, exc: ApiError) -> JSONResponse:
+        return JSONResponse(status_code=exc.status, content=_error_payload(exc))
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_error_handler(
+        _: Request, exc: StarletteHTTPException
+    ) -> JSONResponse:
+        detail = exc.detail
+        message = detail if isinstance(detail, str) else "Ошибка запроса."
+        code = "not_found" if exc.status_code == 404 else "http_error"
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"error": {"code": code, "message": message}},
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def _validation_error_handler(
+        _: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": {
+                    "code": "validation_error",
+                    "message": "Некорректный запрос.",
+                    "details": exc.errors(),
+                }
+            },
+        )
+
+    @app.exception_handler(Exception)
+    async def _unhandled_error_handler(_: Request, exc: Exception) -> JSONResponse:
+        logger.exception("unhandled API error", exc_info=exc)
+        return JSONResponse(
+            status_code=500,
+            content={"error": {"code": "internal", "message": "Внутренняя ошибка."}},
+        )
+
+    @app.get("/healthz")
+    def healthz() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @app.post("/api/v1/documents", response_model=DocumentUploadResponse)
+    async def upload_document(
+        project: str = Form(min_length=1, max_length=256),
+        kind: str = Form(pattern="^(vor|pdf)$"),
+        file: UploadFile = File(...),
+        context: ApiContext = Depends(get_context),
+    ) -> DocumentUploadResponse:
+        _require_configured(context)
+        data = await file.read()
+        return _upload_document(context, project.strip(), kind, file, data)
+
+    @app.post("/api/v1/documents/preflight", response_model=PreflightResponse)
+    def preflight_documents(
+        payload: AuditCreateRequest,
+        context: ApiContext = Depends(get_context),
+    ) -> PreflightResponse:
+        _require_configured(context)
+        vor_id = _parse_uuid(payload.vor_version_id, field="vor_version_id")
+        pdf_ids = [
+            _parse_uuid(item, field="pdf_version_ids")
+            for item in payload.pdf_version_ids
+        ]
+        return _preflight_for_versions(context, vor_id, pdf_ids)
+
+    @app.post("/api/v1/audits", response_model=AuditCreateResponse, status_code=202)
+    def create_audit(
+        payload: AuditCreateRequest,
+        context: ApiContext = Depends(get_context),
+        audit_runner: AuditRunner = Depends(get_runner),
+    ) -> AuditCreateResponse:
+        _require_configured(context)
+        _require_llm_credentials(context.settings)
+        project = payload.project.strip()
+        if not project:
+            raise ApiError(400, "project_required", "Название проекта обязательно.")
+        vor_id = _parse_uuid(payload.vor_version_id, field="vor_version_id")
+        pdf_ids = [
+            _parse_uuid(item, field="pdf_version_ids")
+            for item in payload.pdf_version_ids
+        ]
+        vor_bytes, _, vor_filename, vor_kind = _read_version_bytes(context, vor_id)
+        if vor_kind != "vor":
+            raise ApiError(400, "not_vor_version", "Указанная версия — не ВОР.")
+        pdf_files: dict[str, bytes] = {}
+        pdf_versions: dict[str, DocumentVersionRow] = {}
+        for pdf_id in pdf_ids:
+            data, row, filename, kind = _read_version_bytes(context, pdf_id)
+            if kind != "pdf":
+                raise ApiError(400, "not_pdf_version", "Указанная версия — не PDF.")
+            key = _clean_pool_key(filename)
+            if not key:
+                raise ApiError(400, "filename_required", "Имя PDF обязательно.")
+            pdf_files[key] = bytes(data)
+            pdf_versions[key] = row
+        preflight = _preflight_for_versions(context, vor_id, pdf_ids)
+        stored_project = context.repository.get_or_create_project(project)
+        config = {
+            "model": context.settings.yandex_cloud_model,
+            "pdf_versions": {key: str(row.id) for key, row in pdf_versions.items()},
+            "vor_filename": vor_filename,
+            "preflight": [row.model_dump() for row in preflight.rows],
+            "has_critical_error": preflight.has_critical_error,
+        }
+        try:
+            run = context.repository.create_run(stored_project.id, vor_id, config)
+        except Exception as exc:
+            raise ApiError(
+                500, "storage_error", f"Не удалось создать запуск: {exc}"
+            ) from exc
+
+        def _target() -> None:
+            run_audit_job(
+                context,
+                run.id,
+                project=project,
+                vor_filename=vor_filename,
+                vor_bytes=bytes(vor_bytes),
+                pdf_files=dict(pdf_files),
+                pdf_versions=dict(pdf_versions),
+            )
+
+        audit_runner.start(run.id, target=_target)
+        return AuditCreateResponse(run_id=str(run.id), status="running")
+
+    @app.get("/api/v1/audits/{run_id}", response_model=AuditStatusResponse)
+    def get_audit(
+        run_id: str, context: ApiContext = Depends(get_context)
+    ) -> AuditStatusResponse:
+        _require_configured(context)
+        record = _load_run_record(context, _parse_uuid(run_id, field="run_id"))
+        return _run_record(record)
+
+    @app.get("/api/v1/audits/{run_id}/results", response_model=AuditResultsResponse)
+    def get_audit_results(
+        run_id: str, context: ApiContext = Depends(get_context)
+    ) -> AuditResultsResponse:
+        _require_configured(context)
+        record = _load_run_record(context, _parse_uuid(run_id, field="run_id"))
+        if str(record.get("status")) not in POSITION_DONE_STATUSES:
+            raise ApiError(409, "audit_not_finished", "Аудит ещё выполняется.")
+        return AuditResultsResponse(
+            run_id=str(record["id"]),
+            status=str(record.get("status", "")),
+            vor_filename=str(record.get("vor_filename", "")),
+            results=[dict(item) for item in (record.get("results") or [])],
+        )
+
+    @app.get("/api/v1/audits/{run_id}/reports/{kind}")
+    def download_audit_report(
+        run_id: str, kind: str, context: ApiContext = Depends(get_context)
+    ) -> Response:
+        _require_configured(context)
+        if kind not in {"excel", "word"}:
+            raise ApiError(400, "unknown_report", "Отчёт бывает только excel или word.")
+        record = _load_run_record(context, _parse_uuid(run_id, field="run_id"))
+        if str(record.get("status")) not in POSITION_DONE_STATUSES:
+            raise ApiError(409, "audit_not_finished", "Аудит ещё выполняется.")
+        try:
+            payload = context.repository.load_run_report(record["id"], kind)
+        except KeyError as exc:
+            raise ApiError(404, "report_not_found", "Отчёт не найден.") from exc
+        except FileNotFoundError as exc:
+            raise ApiError(
+                500, "blob_missing", "Байты отчёта отсутствуют в хранилище."
+            ) from exc
+        suffix = "xlsx" if kind == "excel" else "docx"
+        media = (
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            if kind == "excel"
+            else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+        return Response(
+            content=bytes(payload),
+            media_type=media,
+            headers={
+                "Content-Disposition": f"attachment; filename=audit-{record['id']}.{suffix}"
+            },
+        )
+
+    return app
+
+
+def get_app() -> FastAPI:
+    """Uvicorn entry point: ``uvicorn api:get_app --factory``."""
+    return create_app()
+
+
+try:
+    app = create_app()
+except RuntimeError:
+    # Import stays cheap without storage env: every endpoint returns 503
+    # until DATABASE_URL/BLOB_STORE_URL are configured.
+    settings = AuditSettings.load()
+
+    class _UnconfiguredRepository:
+        def __getattr__(self, name: str) -> Any:
+            raise ApiError(
+                503,
+                "storage_not_configured",
+                "Хранилище не настроено: заполните DATABASE_URL и BLOB_STORE_URL.",
+            )
+
+    class _UnconfiguredBlobs:
+        def get(self, key: str) -> bytes:
+            raise ApiError(
+                503,
+                "storage_not_configured",
+                "Хранилище не настроено: заполните DATABASE_URL и BLOB_STORE_URL.",
+            )
+
+    app = create_app(
+        ApiContext(
+            settings=settings,
+            repository=_UnconfiguredRepository(),  # type: ignore[arg-type]
+            blob_store=_UnconfiguredBlobs(),  # type: ignore[arg-type]
+        )
+    )
