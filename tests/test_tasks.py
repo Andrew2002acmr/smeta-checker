@@ -96,6 +96,13 @@ class PositionJobTests(unittest.TestCase):
         loaded = repo.load_run(run.id)
         self.assertEqual(loaded["status"], "done")
 
+    def test_claim_finalize_wins_exactly_once(self):
+        repo = _open_repo(tempfile.mkdtemp(prefix="smeta-jobs-"))
+        run, _ = self._make_run(repo)
+        self.assertTrue(repo.claim_finalize(run.id))
+        self.assertFalse(repo.claim_finalize(run.id))
+        self.assertTrue(repo.load_run(run.id)["config"]["finalize_chained"])
+
 
 def _fake_pdf_bytes():
     import fitz
@@ -328,6 +335,48 @@ class TaskPipelineTests(unittest.TestCase):
                     )
                 ],
             )
+
+    def test_last_position_chains_finalize_exactly_once(self):
+        from unittest.mock import patch
+
+        from audit_tasks import audit_position, prepare_run
+
+        rows = (
+            "1;Copper cable;45;m;;project.pdf;1",
+            "2;Copper cable;45;m;;project.pdf;1",
+        )
+        with tempfile.TemporaryDirectory(prefix="smeta-pipe-") as tmp:
+            context, repo = self._make_context(tmp)
+            vor_bytes = _fake_vor_bytes(rows)
+            pdf_bytes = _fake_pdf_bytes()
+            run, versions = self._make_run(repo, vor_bytes, pdf_bytes)
+            with patch("audit_tracing._configured_client", return_value=None):
+                out = prepare_run(
+                    context,
+                    run.id,
+                    project="ИГДИ",
+                    vor_filename="vor.csv",
+                    vor_bytes=vor_bytes,
+                    pdf_files={"project.pdf": pdf_bytes},
+                    pdf_versions=versions,
+                    worker="pdf-test",
+                )
+            self.assertEqual(sorted(out["queued"]), [0, 1])
+            chained: list[tuple[str, dict]] = []
+            dispatch = lambda name, payload: chained.append((name, payload))  # noqa: E731
+            with patch("audit_tracing._configured_client", return_value=None):
+                audit_position(
+                    context, run.id, 0, worker="llm-1", dispatch=dispatch
+                )
+                self.assertEqual(chained, [])
+                audit_position(
+                    context, run.id, 1, worker="llm-2", dispatch=dispatch
+                )
+            self.assertEqual(len(chained), 1)
+            name, payload = chained[0]
+            self.assertEqual(name, "audit_tasks.finalize_run")
+            self.assertEqual(payload["run_id"], str(run.id))
+            self.assertTrue(repo.load_run(run.id)["config"]["finalize_chained"])
 
 
 if __name__ == "__main__":

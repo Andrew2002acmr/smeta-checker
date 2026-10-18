@@ -460,5 +460,60 @@ class ApiTests(unittest.TestCase):
                 response.json()["error"]["code"], "unsupported_media_type"
             )
 
+    def test_api_token_guards_v1_routes_when_configured(self):
+        from storage_blobs import FileBlobStore
+        from storage_db import open_repository
+
+        from api import ApiContext, create_app
+
+        with tempfile.TemporaryDirectory(prefix="smeta-api-") as tmp:
+            repo = open_repository(_postgres_url(), blob_store=FileBlobStore(tmp))
+            repo.reset_for_tests()
+            context = ApiContext(
+                settings=AuditSettings(
+                    database_url=_postgres_url(),
+                    blob_store_url=f"file://{tmp}",
+                    api_token="secret-token",
+                ),
+                repository=repo,
+                blob_store=FileBlobStore(tmp),
+            )
+            from fastapi.testclient import TestClient
+
+            client = TestClient(create_app(context), raise_server_exceptions=False)
+            self.addCleanup(client.close)
+            # Health stays open for container healthchecks.
+            self.assertEqual(client.get("/healthz").status_code, 200)
+            # No token and a wrong token both fail closed with the same code.
+            for headers in ({}, {"Authorization": "Bearer wrong"}):
+                response = client.post(
+                    "/api/v1/documents",
+                    data={"project": "ИГДИ", "kind": "pdf"},
+                    files={"file": ("a.pdf", _fake_pdf_bytes(), "application/pdf")},
+                    headers=headers,
+                )
+                self.assertEqual(response.status_code, 401, headers)
+                self.assertEqual(response.json()["error"]["code"], "unauthorized")
+            response = client.get(
+                "/api/v1/audits/00000000-0000-0000-0000-000000000000"
+            )
+            self.assertEqual(response.status_code, 401)
+            # Correct Bearer token passes auth (404 = past the guard).
+            response = client.get(
+                "/api/v1/audits/00000000-0000-0000-0000-000000000000",
+                headers={"Authorization": "Bearer secret-token"},
+            )
+            self.assertEqual(response.status_code, 404)
+            self.assertEqual(response.json()["error"]["code"], "run_not_found")
+
+    def test_api_token_empty_keeps_local_access_open(self):
+        with tempfile.TemporaryDirectory(prefix="smeta-api-") as tmp:
+            client, _ = self._open_app(tmp)
+            response = client.get(
+                "/api/v1/audits/00000000-0000-0000-0000-000000000000"
+            )
+            self.assertEqual(response.status_code, 404)
+            self.assertEqual(response.json()["error"]["code"], "run_not_found")
+
 if __name__ == "__main__":
     unittest.main()

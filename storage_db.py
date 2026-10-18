@@ -371,6 +371,27 @@ class Repository:
             run.config = config
             session.commit()
 
+    def claim_finalize(self, run_id: UUID) -> bool:
+        """Atomically claim the finalize trigger; exactly one worker wins.
+
+        Returns True only for the worker that flipped ``finalize_chained``
+        from unset to True; losers get False and must not dispatch.
+        """
+        with Session(self._engine) as session:
+            run = session.scalar(
+                select(Run).where(Run.id == run_id).with_for_update()
+            )
+            if run is None:
+                raise KeyError(str(run_id))
+            config = dict(run.config or {})
+            if config.get("finalize_chained"):
+                session.commit()
+                return False
+            config["finalize_chained"] = True
+            run.config = config
+            session.commit()
+            return True
+
     def save_position_result(
         self, run_id: UUID, position_index: int, result: dict[str, Any]
     ) -> None:

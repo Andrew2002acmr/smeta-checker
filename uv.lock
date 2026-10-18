@@ -1267,6 +1267,7 @@ dependencies = [
 dev = [
     { name = "pyright" },
     { name = "pytest" },
+    { name = "pyyaml" },
     { name = "ruff" },
 ]
 
@@ -1299,6 +1300,7 @@ requires-dist = [
 dev = [
     { name = "pyright", specifier = "==1.1.414" },
     { name = "pytest", specifier = "==9.1.1" },
+    { name = "pyyaml", specifier = "==6.0.3" },
     { name = "ruff", specifier = "==0.17.1" },
 ]
 

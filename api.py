@@ -11,6 +11,7 @@ Run locally: ``uv run uvicorn api:get_app --factory``.
 
 from __future__ import annotations
 
+import hmac
 import mimetypes
 import threading
 from dataclasses import dataclass, field
@@ -282,6 +283,22 @@ def _require_llm_credentials(settings: AuditSettings) -> None:
             503,
             "llm_not_configured",
             "LLM не настроен: заполните YANDEX_CLOUD_API_KEY в .env.",
+        )
+
+
+def _require_api_token(context: ApiContext, request: Request) -> None:
+    """Bearer-guard: with AUDIT_API_TOKEN set, /api/v1/* requires it.
+
+    Empty token keeps local/dev usage open; production compose always sets it.
+    """
+    expected = (context.settings.api_token or "").strip()
+    if not expected:
+        return
+    presented = (request.headers.get("authorization", "") or "").strip()
+    scheme, _, value = presented.partition(" ")
+    if scheme.lower() != "bearer" or not hmac.compare_digest(value.strip(), expected):
+        raise ApiError(
+            401, "unauthorized", "Требуется заголовок Authorization: Bearer <токен>."
         )
 
 
@@ -626,6 +643,7 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
         file: UploadFile = File(...),
         context: ApiContext = Depends(get_context),
     ) -> DocumentUploadResponse:
+        _require_api_token(context, request)
         _require_configured(context)
         data = await file.read()
         response = _upload_document(context, project.strip(), kind, file, data)
@@ -641,9 +659,11 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
         return response
     @app.post("/api/v1/documents/preflight", response_model=PreflightResponse)
     def preflight_documents(
+        request: Request,
         payload: AuditCreateRequest,
         context: ApiContext = Depends(get_context),
     ) -> PreflightResponse:
+        _require_api_token(context, request)
         _require_configured(context)
         vor_id = _parse_uuid(payload.vor_version_id, field="vor_version_id")
         pdf_ids = [
@@ -660,6 +680,7 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
         audit_runner: AuditRunner = Depends(get_runner),
     ) -> AuditCreateResponse:
         request_id = _request_id(request)
+        _require_api_token(context, request)
         _require_configured(context)
         _require_llm_credentials(context.settings)
         project = payload.project.strip()
@@ -764,16 +785,18 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
 
     @app.get("/api/v1/audits/{run_id}", response_model=AuditStatusResponse)
     def get_audit(
-        run_id: str, context: ApiContext = Depends(get_context)
+        request: Request, run_id: str, context: ApiContext = Depends(get_context)
     ) -> AuditStatusResponse:
+        _require_api_token(context, request)
         _require_configured(context)
         record = _load_run_record(context, _parse_uuid(run_id, field="run_id"))
         return _run_record(record)
 
     @app.get("/api/v1/audits/{run_id}/results", response_model=AuditResultsResponse)
     def get_audit_results(
-        run_id: str, context: ApiContext = Depends(get_context)
+        request: Request, run_id: str, context: ApiContext = Depends(get_context)
     ) -> AuditResultsResponse:
+        _require_api_token(context, request)
         _require_configured(context)
         record = _load_run_record(context, _parse_uuid(run_id, field="run_id"))
         if str(record.get("status")) not in POSITION_DONE_STATUSES:
@@ -787,8 +810,9 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
 
     @app.get("/api/v1/audits/{run_id}/reports/{kind}")
     def download_audit_report(
-        run_id: str, kind: str, context: ApiContext = Depends(get_context)
+        request: Request, run_id: str, kind: str, context: ApiContext = Depends(get_context)
     ) -> Response:
+        _require_api_token(context, request)
         _require_configured(context)
         if kind not in {"excel", "word"}:
             raise ApiError(400, "unknown_report", "Отчёт бывает только excel или word.")

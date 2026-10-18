@@ -347,6 +347,7 @@ def audit_position(
     pdf_files: dict[str, bytes] | None = None,
     pdf_versions: dict[str, Any] | None = None,
     request_id: str = "",
+    dispatch: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     """Network stage: audit one position through the LLM, persist its result.
 
@@ -355,6 +356,9 @@ def audit_position(
     the in-process runner), calls the same ``worker_check_row`` adapter, and
     stores the outcome in both ``position_results`` and ``position_jobs``.
     Idempotent: a finished ``done`` job returns its stored payload.
+    With ``dispatch`` set (Celery path), the last finished position enqueues
+    ``finalize_run`` on the ``pdf`` queue; without it (tests/fallback) the
+    caller runs ``finalize_run`` itself.
     """
     import fitz
 
@@ -520,6 +524,9 @@ def audit_position(
         context.repository.finish_position_job(
             run_id, position_index, "done", result=stored
         )
+        _maybe_chain_finalize(
+            context, run_id, dispatch=dispatch, request_id=resolved_request
+        )
         logger.info(
             "position audited",
             extra={
@@ -540,6 +547,47 @@ def audit_position(
         raise
     finally:
         reset(token)
+
+
+def _maybe_chain_finalize(
+    context: TaskContext,
+    run_id: UUID,
+    *,
+    dispatch: Callable[[str, dict[str, Any]], None] | None,
+    request_id: str = "",
+) -> None:
+    """Enqueue ``finalize_run`` once every position reached a terminal state.
+
+    The ``finalize_chained`` flag in ``runs.config`` makes the trigger
+    exactly-once across racing llm workers; only the worker that flips the
+    flag dispatches. Failures here never fail the position itself.
+    """
+    if dispatch is None:
+        return
+    try:
+        jobs = context.repository.list_position_jobs(run_id)
+    except Exception:
+        logger.warning("finalize chain: cannot list jobs", exc_info=True)
+        return
+    if not jobs:
+        return
+    if any(job.status not in {"done", "failed"} for job in jobs):
+        return
+    try:
+        claimed = context.repository.claim_finalize(run_id)
+    except Exception:
+        logger.warning("finalize chain: cannot claim flag", exc_info=True)
+        return
+    if not claimed:
+        return
+    payload: dict[str, Any] = {"run_id": str(run_id)}
+    if request_id:
+        payload["request_id"] = str(request_id)
+    try:
+        dispatch("audit_tasks.finalize_run", payload)
+    except Exception:
+        logger.warning("finalize chain: dispatch failed", exc_info=True)
+
 
 def _position_result_payload(
     *,
@@ -933,6 +981,7 @@ def register_tasks(app):  # type: ignore[no-untyped-def]
             int(position_index),
             worker=self.request.hostname or "llm-worker",
             request_id=str(request_id or ""),
+            dispatch=lambda name, payload: app.send_task(name, kwargs=payload),
         )
 
     @app.task(name="audit_tasks.finalize_run", bind=True)

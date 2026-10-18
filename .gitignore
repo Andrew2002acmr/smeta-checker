@@ -21,4 +21,5 @@ report_drawing.py
 /tmp/
 /.audit_cache/
 /.audit_blobs/
+/backups/
 /test_documents/
