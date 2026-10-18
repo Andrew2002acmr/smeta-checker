@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from audit_core import QuoteValidationError, parse_audit_response
 from lxml import html
-from pdf_text import PDFTextSource
+from pdf_text import CACHE_SCHEMA_VERSION, PDFTextSource
 
 
 class FakeRect:
@@ -333,6 +333,144 @@ class CacheTests(FakeSourceTests):
             self.assertEqual(len(calls2), 2)
             self.assertEqual(second.cache_hits, 0)
 
+    def test_cached_markdown_reused_without_extractor_calls(self):
+        natives = [("Кабель медный позиция %d. " % idx) * 20 for idx in range(3)]
+        with TemporaryDirectory() as cache:
+            doc1, _ = make_doc(natives)
+            first = PDFTextSource(doc1, cache_dir=cache)
+            self.assertEqual(first.extraction_hits, 0)
+            self.assertEqual(first.extraction_misses, 3)
+            doc2, _ = make_doc(natives)
+            with patch(
+                "pdf_text.pymupdf4llm.to_markdown",
+                side_effect=AssertionError("must use cache"),
+            ):
+                second = PDFTextSource(doc2, cache_dir=cache)
+            self.assertEqual(second.extraction_hits, 3)
+            self.assertEqual(second.extraction_misses, 0)
+            self.assertEqual(second.native_index.texts, first.native_index.texts)
+            self.assertEqual(second.pending_ocr, first.pending_ocr)
+
+    def test_changed_pdf_invalidates_extraction(self):
+        natives = [("Кабель медный в смете. " * 20)] * 2
+        with TemporaryDirectory() as cache:
+            doc1, _ = make_doc(natives, payload=b"pdf-version-1")
+            PDFTextSource(doc1, cache_dir=cache)
+            doc2, _ = make_doc(natives, payload=b"pdf-version-2")
+            second = PDFTextSource(doc2, cache_dir=cache)
+            self.assertEqual(second.extraction_hits, 0)
+            self.assertEqual(second.extraction_misses, 2)
+
+    def test_changed_parser_invalidates_extraction_only(self):
+        natives = [""] * 6
+        with TemporaryDirectory() as cache:
+            doc1, _ = make_doc(natives)
+            first = PDFTextSource(doc1, cache_dir=cache)
+            first.for_position([0], "Кабель", "45", max_ocr_pages=2)
+            with patch(
+                "pdf_text._parser_fingerprint",
+                return_value=("1.28.2", "9.9.9", "1.28.2"),
+            ):
+                doc2, calls2 = make_doc(natives)
+                second = PDFTextSource(doc2, cache_dir=cache)
+                snapshot = second.for_position([0], "Кабель", "45", max_ocr_pages=2)
+            self.assertEqual(second.extraction_hits, 0)
+            self.assertEqual(second.extraction_misses, 6)
+            self.assertEqual(calls2, [])
+            self.assertGreater(second.cache_hits, 0)
+            self.assertNotEqual(snapshot.texts[0], "")
+
+    def test_changed_ocr_settings_keep_markdown_but_invalidate_ocr(self):
+        natives = [""] * 6
+        with TemporaryDirectory() as cache:
+            doc1, _ = make_doc(natives)
+            PDFTextSource(doc1, cache_dir=cache, dpi=200).for_position(
+                [0], "Кабель", "45", max_ocr_pages=2)
+            doc2, calls2 = make_doc(natives)
+            second = PDFTextSource(doc2, cache_dir=cache, dpi=300)
+            second.for_position([0], "Кабель", "45", max_ocr_pages=2)
+            self.assertEqual(second.extraction_misses, 0)
+            self.assertEqual(second.extraction_hits, 6)
+            self.assertEqual(len(calls2), 2)
+            self.assertEqual(second.cache_hits, 0)
+
+    def test_corrupt_and_foreign_envelopes_are_recomputed(self):
+        natives = [("Кабель медный позиция %d. " % idx) * 20 for idx in range(3)]
+        with TemporaryDirectory() as cache:
+            doc1, _ = make_doc(natives)
+            first = PDFTextSource(doc1, cache_dir=cache)
+            cache_root = Path(cache)
+            envelopes = sorted(cache_root.rglob("page-*.json"))
+            self.assertEqual(len(envelopes), 3)
+            envelopes[0].write_bytes(b"{not-json")
+            foreign = json.loads(envelopes[1].read_text(encoding="utf-8"))
+            foreign["pdf_sha256"] = "0" * 64
+            envelopes[1].write_text(json.dumps(foreign), encoding="utf-8")
+            stale = json.loads(envelopes[2].read_text(encoding="utf-8"))
+            stale["schema"] = CACHE_SCHEMA_VERSION + 1
+            envelopes[2].write_text(json.dumps(stale), encoding="utf-8")
+            doc2, _ = make_doc(natives)
+            second = PDFTextSource(doc2, cache_dir=cache)
+            self.assertEqual(second.extraction_hits, 0)
+            self.assertEqual(second.extraction_misses, 3)
+            self.assertEqual(second.native_index.texts, first.native_index.texts)
+
+    def test_failed_markdown_is_explicit_and_not_cached(self):
+        natives = [("Кабель медный в смете. " * 20), ("Насосная станция. " * 20)]
+        doc, _ = make_doc(natives)
+        with TemporaryDirectory() as cache:
+            real_markdown = _fake_to_markdown
+
+            def failing_markdown(markdown_doc, pages=None, **kwargs):
+                if list(pages or [0])[0] == 1:
+                    raise RuntimeError("broken page")
+                return real_markdown(markdown_doc, pages=pages, **kwargs)
+
+            with patch("pdf_text.pymupdf4llm.to_markdown",
+                       side_effect=failing_markdown):
+                source = PDFTextSource(doc, cache_dir=cache)
+            self.assertEqual(source.native_index.texts[1], "")
+            self.assertIn(1, source.native_index.errors)
+            self.assertEqual(source.extraction_misses, 2)
+            envelopes = {path.name for path in Path(cache).rglob("page-*.json")}
+            self.assertEqual(envelopes, {"page-00000.json"})
+
+    def test_cached_table_rows_reused_across_source_instances(self):
+        natives = [("Кабель медный в смете. " * 20),
+                   ("Насосная станция общие данные. " * 20)]
+        tables = {0: [[["Кабель медный", "45", "м"]]]}
+        with TemporaryDirectory() as cache:
+            doc1, _ = make_doc(natives, table_pages=tables)
+            first = PDFTextSource(doc1, cache_dir=cache)
+            first.for_position([0], "Кабель", "45")
+            self.assertEqual(first.table_cache_hits, 0)
+            table_calls = []
+            doc2, _ = make_doc(natives, table_calls=table_calls, table_pages=tables)
+            second = PDFTextSource(doc2, cache_dir=cache)
+            snapshot = second.for_position([0], "Кабель", "45")
+            self.assertEqual(table_calls, [])
+            self.assertGreater(second.table_cache_hits, 0)
+            self.assertEqual(snapshot.table_rows[0], ("Кабель медный | 45 | м",))
+
+    def test_changed_table_settings_invalidate_table_cache_only(self):
+        natives = [("Кабель медный в смете. " * 20)]
+        tables = {0: [[["Кабель медный", "45", "м"]]]}
+        with TemporaryDirectory() as cache:
+            doc1, _ = make_doc(natives, table_pages=tables)
+            PDFTextSource(doc1, cache_dir=cache).for_position([0], "Кабель", "45")
+            table_calls = []
+            doc2, _ = make_doc(
+                natives, table_calls=table_calls, table_pages=tables
+            )
+            with patch("pdf_text.MAX_TABLE_CELL_CHARS", 50):
+                second = PDFTextSource(doc2, cache_dir=cache)
+                snapshot = second.for_position([0], "Кабель", "45")
+            self.assertEqual(second.extraction_hits, 1)
+            self.assertEqual(second.extraction_misses, 0)
+            self.assertEqual(second.table_cache_hits, 0)
+            self.assertIn(0, table_calls)
+            self.assertEqual(snapshot.table_rows[0], ("Кабель медный | 45 | м",))
+
     def test_failing_scans_explicit_and_not_cached(self):
         pages = [FakePage("", ocr_text="ok-%d" % i, calls=[]) for i in range(3)]
         pages[1] = FakePage("", fail=RuntimeError("Tesseract unavailable"),
@@ -343,7 +481,7 @@ class CacheTests(FakeSourceTests):
             snapshot = source.for_position([1], "Кабель", "45", max_ocr_pages=4)
             self.assertIn(1, snapshot.errors)
             self.assertIn("Tesseract", snapshot.errors[1])
-            self.assertEqual(list(Path(cache).rglob("p00001_*.txt")), [])
+            self.assertEqual(list(Path(cache).rglob("page-00001.txt")), [])
             # OCR text merged with native text where present.
             self.assertIn("ok-", snapshot.texts[0] + snapshot.texts[2])
 

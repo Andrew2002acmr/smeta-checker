@@ -134,6 +134,47 @@ usage попытки, причина ретрая. `level` отражает ис
 В конце запуска выполняется `flush()`. Ошибки доставки телеметрии не меняют
 результат аудита и журналируются отдельно.
 
+
+### Агентские знания: skills и MCP (issue #33)
+
+Репозиторий несет знания вендоров в файлах проекта: skills
+`langfuse` и `pydantic` установлены через `npx skills add` в project scope
+(CLI разложил файлы в `.agents/skills/<skill>/` как универсальное хранилище
+и добавил symlink `.claude/skills/<skill> -> ../../.agents/skills/<skill>`;
+`skills-lock.json` фиксирует источники `langfuse/skills` и `pydantic/skills`).
+Установка только `langfuse`: `migrate-to-langfuse` не нужен (миграции нет);
+из каталога `pydantic/skills` (22 скилла: AI/Logfire/migration) взят только
+`pydantic` — проект использует валидацию/сериализацию, `pydantic-ai`/`logfire`
+в `pyproject.toml` нет. Переустановка: `npx skills add langfuse/skills --skill
+langfuse`, `npx skills add pydantic/skills --skill pydantic` (без `-g`);
+обновление: `npx skills update`. Проверка: `npx skills list` показывает оба
+как project-установки.
+
+`.mcp.json` (потребитель — Claude Code; серверы project scope требуют
+одобрения в интерактивной сессии) содержит три сервера, `agent-browser`
+без изменений:
+
+- `langfuse-docs` — публичный Docs MCP, `https://langfuse.com/api/mcp`
+  (streamableHttp, без авторизации). Проверены `initialize`, `tools/list`
+  (4 инструмента: `submitFeedback`, `searchLangfuseDocs`,
+  `getLangfuseDocsPage`, `getLangfuseOverview`) и реальный вызов
+  `getLangfuseOverview` — без ключа.
+- `langfuse` — аутентифицированный Data MCP Cloud EU,
+  `https://cloud.langfuse.com/api/public/mcp` (совпадает с `LANGFUSE_BASE_URL`
+  из `.env.example`). Авторизация `Basic base64(pk:sk)`: в `.env` задайте
+  `LANGFUSE_MCP_AUTH_TOKEN` — base64 от `pk-lf-...:sk-lf-...` project-scoped
+  ключа (`echo -n "pk:sk" | base64`; имя переменной см. также в
+  `.env.example`), конфиг подставляет его через `${LANGFUSE_MCP_AUTH_TOKEN}`
+  (env-подстановка в `headers` поддерживается Claude Code; сам токен никогда
+  не коммитится). Проверены `initialize` (server `langfuse 0.3.0-unstable`),
+  `tools/list` (86 инструментов, есть `listPrompts`) и read-only вызов
+  `listPrompts` (пустой список, ключ из локального `.env`); без ключа сервер
+  отвечает 401.
+
+Приоритет по докам Langfuse: при доступном CLI/skill Data MCP — вторичный
+протокол, skill — основной инструмент агента. Data MCP по умолчанию отдаёт
+и write-инструменты — для ограничения чтением настройте allowlist на клиенте.
+
 ### Limitations трейсинга
 
 В Cloud передаются фрагменты ПД, сведения позиции ВОР, ответы и цитаты.
@@ -340,12 +381,25 @@ PDF отклоняется с явной причиной. Исходный до
 страниц. На позицию по-прежнему не больше 4 новых распознаваний. Нераспознанные страницы
 остаются `pending_ocr`; ошибка несвязанного соседнего листа не отменяет подтверждённую ссылку.
 
-Успешное распознавание сохраняется в `.audit_cache/ocr`: ключ включает SHA-256
-PDF, порядковую страницу, языки, DPI, лимиты изображения, версию движка и параметры
-файлов tessdata. Кеш используется и после повторного открытия PDF; изменение
-документа или параметров не переиспользует старый результат. Сбои не кешируются.
+Извлечение кешируется постранично в `.audit_cache/pdf/<sha256>/<ключ>/page-*.json`:
+Markdown (`page-*.json`), табличные строки (`tables-<ключ>/page-*.json`) и OCR
+(`ocr-<ключ>/page-*.txt`) лежат раздельно. Ключ Markdown включает схему конверта,
+версии `pymupdf`/`pymupdf4llm`/`pymupdf-layout`, режим таблиц, параметры вызова
+Markdown и порог скана; ключ OCR — языки, DPI, лимиты изображения, версию движка
+и параметры tessdata; ключ таблиц — версию `pymupdf` и лимит ячейки.
+Изменение PDF создаёт новый корень по SHA-256, изменение настроек инвалидирует
+только свой раздел, сбои и битые конверты не переиспользуются, а пересчитываются.
+Повторная проверка перечитывает готовые данные: конверт сверяет схему, страницу,
+SHA-256 и ключ перед использованием. Счётчики `extraction_hits`/`extraction_misses`
+видны в `index-native-pdf`, `table_cache_hits` — в `prepare-ocr-snapshot`.
 Изображения OCR и инспектора ограничены 12 млн пикселей и стороной 4096 пикселей
 **до рендера**. Исходный PDF не изменяется.
+
+Замер кеша без LLM и OCR: `uv run python tests/benchmark_pdf_cache.py --pdf <ПД.pdf>
+--output .audit_cache/pdf-bench`. Синтетический PDF на 6 страниц с таблицами
+(PyMuPDF/PyMuPDF4LLM/Layout 1.28.2): холодный прогон 0.745 с (6 промахов),
+тёплый 0.023 с (6 попаданий), тексты/ошибки/флаги сканов побайтово равны.
+Артефакты: `.audit_cache/pdf-bench/summary.json` и `cache/`.
 
 Пакеты для Linux перечислены в `packages.txt`; devcontainer устанавливает их
 при создании окружения. Для Debian/Ubuntu:
@@ -428,6 +482,11 @@ CLI устанавливается отдельно от Python-зависимо
 из этого worktree. Наличие конфигурации не означает загрузку сервера в уже запущенную сессию.
 Протокол `initialize`/`tools/list` и реальный вызов `agent_browser_get_url` проверены;
 новый браузер не скачивался — использован собственный Chrome через CDP.
+
+Langfuse MCP (Docs + Data): см. «Агентские знания: skills и MCP» выше.
+Запись HTTP-серверов использует `type: http` + `url` — синтаксис Claude Code
+(запись `url` без `type` он считает ошибкой конфигурации); Cursor/VS Code
+используют свои файлы (`mcp.json`/`servers`) и этот формат не читают.
 
 
 ### Проверка слияния в dev (2026-10-15)
