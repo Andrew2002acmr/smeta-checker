@@ -48,9 +48,10 @@ uv run streamlit run app.py
   очередь `pdf`), `audit_position` (сеть, очередь `llm`), `finalize_run` и
   `recover_run`. Без брокера API выполняет те же функции в fallback-потоке.
 * `Dockerfile`, `compose.yaml`, `scripts/backup.sh`, `scripts/restore.sh` —
-  production-деплой (issue #22): один образ для api и воркеров, Postgres +
-  Redis + pdf/llm-воркеры, бэкап/восстановление. `scripts/verify.sh` —
-  живая проверка стека (health/auth/upload/рестарт/бэкап) без квоты LLM.
+  production-деплой (issue #22): один образ для api/ui/воркеров, Postgres +
+  Redis + Streamlit UI + pdf/llm-воркеры, бэкап/восстановление.
+  `scripts/verify.sh` — живая проверка стека (health/auth/upload/рестарт/бэкап)
+  без квоты LLM.
 * `audit_core.py`, `pdf_text.py`, `pdf_binding.py`, `audit_reports.py`,
   `audit_tracing.py`, `vor_rules.py` — предметное ядро и отчёты.
 
@@ -161,24 +162,25 @@ uv run streamlit run app.py
 ## Production Compose (issue #22)
 
 Один `compose.yaml` поднимает минимальную систему на CPU-only сервере:
-`api` (uvicorn), `db` (PostgreSQL 16), `redis` (брокер Celery с AOF),
-`worker-pdf` (очередь `pdf`: подготовка/OCR/финализация) и `worker-llm`
-(очередь `llm`: сетевые запросы к Yandex Qwen). Миграции выполняет
-одноразовый сервис `migrate` (`alembic upgrade head`) до старта api
-и воркеров.
+`api` (uvicorn, `:8000`), `ui` (Streamlit, `:8501`), `db` (PostgreSQL 16),
+`redis` (брокер Celery с AOF), `worker-pdf` (очередь `pdf`:
+подготовка/OCR/финализация) и `worker-llm` (очередь `llm`: сетевые запросы к
+Yandex Qwen). Миграции выполняет одноразовый сервис `migrate`
+(`alembic upgrade head`) до старта api, ui и воркеров.
 
 ```bash
 cp .env.example .env  # заполнить POSTGRES_PASSWORD, AUDIT_API_TOKEN, YANDEX_*
 docker compose up -d --build
 docker compose ps     # все healthy
 curl -s http://localhost:8000/healthz  # {"status":"ok"}
+# UI: http://localhost:8501 (порт — UI_PORT в .env)
 set -a; . ./.env; set +a; ./scripts/verify.sh  # живая проверка без квоты LLM
 ```
 
 Конфигурация CPU-only: `worker-pdf -c 2 --max-memory-per-child 1000000`
 (OCR держит PyMuPDF-документы в памяти),
 `worker-llm -c 8` (сеть, не CPU). Переопределения — через `.env`:
-`AUDIT_PDF_CONCURRENCY`, `AUDIT_LLM_CONCURRENCY`, `API_PORT`.
+`AUDIT_PDF_CONCURRENCY`, `AUDIT_LLM_CONCURRENCY`, `API_PORT`, `UI_PORT`.
 Без `POSTGRES_PASSWORD`/`AUDIT_API_TOKEN` compose валится до старта —
 это fail-closed, а не значения по умолчанию.
 
@@ -209,20 +211,21 @@ docker compose down && docker compose up -d           # полный реста�
 ```
 
 Volumes: `pgdata` (PostgreSQL), `redisdata` (очереди Celery, AOF),
-`blobs` (общий для api и воркеров: исходники и отчёты),
-`pdfcache` (общий для воркеров: OCR/Markdown-кеш). Все долгоживущие
+`blobs` (общий для api, ui и воркеров: исходники и отчёты),
+`pdfcache` (общий для ui и воркеров: OCR/Markdown-кеш). Все долгоживущие
 сервисы — `restart: unless-stopped` + healthchecks (`/healthz`,
-`pg_isready`, `redis-cli ping`, `celery inspect ping`).
+`/_stcore/health`, `pg_isready`, `redis-cli ping`, `celery inspect ping`).
 
 ### Limitations деплоя
 
 Без брокера не работает: compose всегда стартует redis, fallback-поток
-API — только для локального запуска без compose. PDF-кеш и блобы —
-локальные volumes одного хоста, не S3 и не multi-node. TLS завершается
-выше (reverse proxy), compose слушает plain HTTP на `API_PORT`.
-`finalize_run` ставится автоматически только на Celery-пути; задачи,
-зависшие `running` при жёстком убийстве воркера, требуют ручного
-`recover_run` через `celery call`.
+API — только для локального запуска без compose. UI запускает аудит
+внутри своего процесса (`run_audit`), а не через очередь Celery: Celery-путь
+доступен только через REST API. PDF-кеш и блобы — локальные volumes одного
+хоста, не S3 и не multi-node. TLS завершается выше (reverse proxy), compose
+слушает plain HTTP на `API_PORT`/`UI_PORT`. `finalize_run` ставится
+автоматически только на Celery-пути; задачи, зависшие `running` при жёстком
+убийстве воркера, требуют ручного `recover_run` через `celery call`.
 
 ## Трейсинг в Langfuse Cloud
 
