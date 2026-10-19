@@ -17,6 +17,10 @@ from pathlib import Path
 from audit_core import PageTextIndex
 from audit_tracing import span
 
+# Layout's native GNN analysis can stall on engineering drawings. Use the
+# deterministic Markdown/table extractor; OCR remains explicitly bounded below.
+pymupdf4llm.use_layout(False)
+
 # Short text with raster content needs OCR; short native-only pages do not.
 NATIVE_MIN_CHARS = 150
 # Locally ranked candidates (plus neighbours) eligible for OCR per position.
@@ -24,6 +28,7 @@ TOP_CANDIDATES_PER_POSITION = 5
 # Structurally scanned pages per position, bounded like OCR allowances.
 MAX_TABLE_PAGES_PER_POSITION = 8
 MAX_TABLE_CELL_CHARS = 200
+MAX_VECTOR_PATHS = 5000
 # Persistent extraction cache schema; bump when envelopes or detection change.
 CACHE_SCHEMA_VERSION = 1
 # PyMuPDF4LLM table rendering; part of the Markdown cache key.
@@ -36,6 +41,9 @@ _MARKDOWN_KWARGS = {
     "write_images": False,
     "embed_images": False,
     "show_progress": False,
+    # Otherwise every single-page call rescans the entire document for font
+    # sizes: 303 pages become 303 full-document scans.
+    "hdr_info": False,
 }
 
 def _compact_text(text):
@@ -104,7 +112,8 @@ class PDFTextSource:
     """PyMuPDF4LLM Markdown index with a versioned persistent extraction cache."""
 
     def __init__(self, doc, cache_dir=".audit_cache/pdf", language="rus+eng",
-                 dpi=200, max_pixels=12000000, max_side=4096):
+                 dpi=200, max_pixels=12000000, max_side=4096, progress=None):
+        self._progress = progress
         self._owner_thread = threading.get_ident()
         if min(dpi, max_pixels, max_side) <= 0:
             raise ValueError("Параметры OCR должны быть положительными")
@@ -185,6 +194,11 @@ class PDFTextSource:
         except Exception:
             return False
 
+    @staticmethod
+    def _too_complex(page):
+        drawings = getattr(page, "get_cdrawings", None)
+        return callable(drawings) and len(drawings()) > MAX_VECTOR_PATHS
+
     def _read_native(self):
         texts, errors, scans = [], {}, []
         doc = self._doc
@@ -204,11 +218,19 @@ class PDFTextSource:
                     if is_scan:
                         scans.append(idx)
                     self.extraction_hits += 1
+                    if self._progress:
+                        self._progress(idx + 1, len(doc))
                     continue
                 try:
                     page = markdown_doc[idx]
                     # Scan eligibility uses compacted source text, not Markdown markup.
                     native = _compact_text(page.get_text(sort=True))
+                    if self._too_complex(page):
+                        texts.append(native)
+                        errors[idx] = "Сложный векторный чертёж: анализ разметки ограничен; требуется ручная проверка страницы"
+                        if self._progress:
+                            self._progress(idx + 1, len(doc))
+                        continue
                     is_scan = (
                         len(native) < NATIVE_MIN_CHARS
                         and bool(page.get_images()
@@ -224,6 +246,8 @@ class PDFTextSource:
                 except Exception as exc:
                     texts.append("")
                     errors[idx] = "Сбой чтения PDF (PyMuPDF4LLM): %s" % str(exc)[:200]
+                if self._progress:
+                    self._progress(idx + 1, len(doc))
         return tuple(texts), errors, scans
 
     @staticmethod
@@ -240,6 +264,8 @@ class PDFTextSource:
         raw = _cache_payload(
             {
                 "schema": CACHE_SCHEMA_VERSION,
+                "engine": "rag-no-layout-v1",
+                "max_vector_paths": MAX_VECTOR_PATHS,
                 "pymupdf": pymupdf_version,
                 "pymupdf4llm": extractor_version,
                 "pymupdf_layout": layout_version,
@@ -410,6 +436,8 @@ class PDFTextSource:
         return native + "\n" + ocr
 
     def _table_rows_for(self, idx):
+        if self._too_complex(self._doc[idx]):
+            return ()
         """Flattened table rows, reused from disk; vectors keep row-level matches."""
         if idx in self._table_rows:
             return self._table_rows[idx]

@@ -249,7 +249,13 @@ def prepare_run(
                         get_optimized_page_indices(doc, position.page_ref)
                     )
                     if pdf_name not in sources:
-                        sources[pdf_name] = PDFTextSource(doc)
+                        def progress(done, total):
+                            context.repository.update_run_config(run_id, {
+                                "pdf_preparation": {"done": done, "total": total},
+                            })
+
+                        progress(0, len(doc))
+                        sources[pdf_name] = PDFTextSource(doc, progress=progress)
                     # Pre-warm: one OCR allowance now, so LLM workers reuse
                     # memory/disk cache instead of repeating recognition.
                     sources[pdf_name].for_position(

@@ -1,0 +1,14 @@
+# Optional Linux local workspace. Keep the API in compose.yaml running first.
+# The local-session BFF accepts loopback; this is not a public ingress profile.
+services:
+  workspace:
+    profiles: [frontend]
+    build: ./frontend
+    network_mode: host
+    environment:
+      HOST: 127.0.0.1
+      PORT: 3000
+      NUXT_BACKEND_URL: http://127.0.0.1:${API_PORT:-8000}
+      NUXT_BACKEND_TOKEN: ${AUDIT_API_TOKEN:?Set AUDIT_API_TOKEN in .env}
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]

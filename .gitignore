@@ -23,3 +23,5 @@ report_drawing.py
 /.audit_blobs/
 /backups/
 /test_documents/
+/.pytest_cache/
+/.ruff_cache/

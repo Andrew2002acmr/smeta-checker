@@ -126,6 +126,9 @@ class VorPosition(BaseModel):
     target_indices: list[int] = Field(default_factory=list)
     location_description: str = "Страница не указана"
     primary_pages: list[int] = Field(default_factory=list)
+    sheet: str = ""
+    source_row: int | None = Field(default=None, ge=1)
+    source_cells: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("target_indices", mode="before")
     @classmethod
@@ -170,6 +173,9 @@ class VorPosition(BaseModel):
             "loc_desc": self.location_description,
             "primary_phys_pages": list(self.primary_pages),
             "file_refs": self.file_ref,
+            "sheet": self.sheet,
+            "source_row": self.source_row,
+            "source_cells": dict(self.source_cells),
         }
 
     @classmethod
@@ -184,6 +190,9 @@ class VorPosition(BaseModel):
             reference=str(task.get("w_ref", "") or ""),
             page_ref=str(task.get("w_page", "") or ""),
             file_ref=str(task.get("file_refs", task.get("file_ref", "")) or ""),
+            sheet=str(task.get("sheet", "")),
+            source_row=task.get("source_row"),
+            source_cells=dict(task.get("source_cells") or {}),
             explicit_refs=list(task.get("explicit_refs", []) or []),
             comment=str(task.get("w_comment", "") or ""),
             formula=str(task.get("w_formula", "") or ""),

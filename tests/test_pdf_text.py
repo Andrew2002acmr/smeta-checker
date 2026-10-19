@@ -149,6 +149,31 @@ class FakeSourceTests(unittest.TestCase):
         reopen.start()
         self.addCleanup(reopen.stop)
 
+    def test_preparation_reports_every_page_including_cache_hits(self):
+        with TemporaryDirectory() as tmp:
+            doc = FakeDoc([FakePage("Source text " * 20), FakePage("More text " * 20)])
+            progress = []
+            first = PDFTextSource(doc, cache_dir=tmp, progress=lambda done,total: progress.append((done,total)))
+            self.assertEqual(progress, [(1, 2), (2, 2)])
+            first.close()
+            progress.clear()
+            second = PDFTextSource(doc, cache_dir=tmp, progress=lambda done,total: progress.append((done,total)))
+            self.assertEqual(progress, [(1, 2), (2, 2)])
+            self.assertEqual(second.extraction_hits, 2)
+            second.close()
+
+    def test_dense_vector_drawing_preserves_text_but_requires_manual_review(self):
+        page = FakePage("Drawing labels " * 20)
+        page.get_cdrawings = lambda: [None] * 5001
+        with TemporaryDirectory() as tmp, patch("pdf_text.pymupdf4llm.to_markdown") as markdown:
+            source = PDFTextSource(FakeDoc([page]), cache_dir=tmp)
+            markdown.assert_not_called()
+            self.assertIn(0, source._native_errors)
+            self.assertIn("Drawing labels", source._native_texts[0])
+            self.assertEqual(source._table_rows_for(0), ())
+            self.assertEqual(page._table_calls, [])
+            source.close()
+
 
 def _insert_ruled_table(page, rows):
     """Draw a ruled grid with one text cell per column for real-PDF tests."""

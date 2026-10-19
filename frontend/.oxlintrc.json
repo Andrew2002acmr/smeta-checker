@@ -1,0 +1,14 @@
+{
+  "ignorePatterns": [
+    "app/generated/**",
+    "node_modules/**",
+    ".nuxt/**",
+    ".output/**",
+    "public/**",
+    ".api-check/**"
+  ],
+  "rules": {
+    "no-unused-vars": "error",
+    "no-debugger": "error"
+  }
+}

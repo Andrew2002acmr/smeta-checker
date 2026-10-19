@@ -22,7 +22,7 @@ def safe_calc_formula(expr_str):
     except Exception as e:
         return None, f"Ошибка вычисления формулы: {e}"
 
-def validate_vor_formatting(file_source):
+def validate_vor_formatting(file_source, sheet_name=None):
     """
     Комплексная проверка ВОР:
     1. Шапка и служебные ячейки (строки 1–16).
@@ -31,7 +31,7 @@ def validate_vor_formatting(file_source):
     4. Динамическая проверка разделов, позиций и строк привязки документов (со строки 17 до конца файла).
     """
     wb = openpyxl.load_workbook(file_source, data_only=True)
-    ws = wb.active
+    ws = wb[sheet_name] if sheet_name is not None else wb.active
     results = []
 
     def get_val(r, c):

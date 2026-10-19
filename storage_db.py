@@ -157,6 +157,41 @@ class Repository:
                 session.scalars(select(Project.name).order_by(Project.name)).all()
             )
 
+    def list_projects(self) -> list[dict[str, Any]]:
+        with Session(self._engine) as session:
+            return [{"id": str(p.id), "name": p.name}
+                    for p in session.scalars(select(Project).order_by(Project.created_at.desc(), Project.id))]
+
+    def load_project(self, project_id: UUID) -> ProjectRow:
+        with Session(self._engine) as session:
+            project = session.get(Project, project_id)
+            if project is None:
+                raise KeyError(str(project_id))
+            return ProjectRow(id=project.id, name=project.name)
+
+    def list_versions(self, project_id: UUID) -> list[dict[str, Any]]:
+        with Session(self._engine) as session:
+            rows = session.execute(
+                select(Document, DocumentVersion).join(
+                    DocumentVersion, DocumentVersion.document_id == Document.id
+                ).where(Document.project_id == project_id).order_by(
+                    Document.created_at, Document.id, DocumentVersion.version_no.desc()
+                )
+            ).all()
+            return [{"id": str(v.id), "project_id": str(d.project_id),
+                     "document_id": str(d.id), "filename": d.filename, "kind": d.kind,
+                     "number": v.version_no, "sha256": v.sha256, "size": v.size,
+                     "created_at": v.created_at} for d, v in rows]
+
+    def version_project_id(self, version_id: UUID) -> UUID:
+        with Session(self._engine) as session:
+            value = session.scalar(select(Document.project_id).join(
+                DocumentVersion, DocumentVersion.document_id == Document.id
+            ).where(DocumentVersion.id == version_id))
+            if value is None:
+                raise KeyError(str(version_id))
+            return value
+
     def persist_vor_run(
         self,
         *,
@@ -240,6 +275,8 @@ class Repository:
                 "comment_confirmed": bool(result.get("comment_confirmed")),
                 "found_volume": result.get("Фактический объем", "-"),
                 "found_unit": track.get("found_unit", "-"),
+                "found_page": track.get("found_page"),
+                "volume_calculation": track.get("volume_calculation"),
                 "found_pages": list(track.get("found_pages") or []),
                 "vor_pages": list(track.get("vor_pages") or []),
                 "evidence": [dict(item) for item in track.get("evidence") or []],
@@ -620,6 +657,58 @@ class Repository:
             session.commit()
         return sorted(recovered)
 
+    def run_progress_records(
+        self, *, project_id: UUID | None = None, run_id: UUID | None = None,
+        offset: int = 0, limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        """Read only metadata and grouped counts, never job/result JSON payloads."""
+        page = select(
+            Run.id, Run.project_id, Run.vor_version_id, Run.status,
+            Run.created_at, Run.finished_at,
+            func.jsonb_array_length(Run.config["position_inputs"]).label("input_total"),
+            Run.config["prepare_seconds"].as_float().label("prepare_seconds"),
+            Run.config["pdf_preparation"].label("pdf_preparation"),
+        )
+        if project_id is not None:
+            page = page.where(Run.project_id == project_id)
+        if run_id is not None:
+            page = page.where(Run.id == run_id)
+        page = page.order_by(Run.created_at.desc(), Run.id.desc()).offset(offset).limit(limit).subquery()
+        jobs = select(
+            PositionJob.run_id, PositionJob.queue, PositionJob.status,
+            func.count().label("count"),
+        ).where(PositionJob.run_id.in_(select(page.c.id))).group_by(
+            PositionJob.run_id, PositionJob.queue, PositionJob.status,
+        ).subquery()
+        results = select(
+            PositionResult.run_id, func.count().label("count"),
+        ).where(PositionResult.run_id.in_(select(page.c.id))).group_by(PositionResult.run_id).subquery()
+        query = select(
+            page, Document.filename, jobs.c.queue, jobs.c.status.label("job_status"),
+            jobs.c.count.label("job_count"), results.c.count.label("result_count"),
+        ).join(DocumentVersion, DocumentVersion.id == page.c.vor_version_id).join(
+            Document, Document.id == DocumentVersion.document_id,
+        ).outerjoin(jobs, jobs.c.run_id == page.c.id).outerjoin(
+            results, results.c.run_id == page.c.id,
+        ).order_by(page.c.created_at.desc(), page.c.id.desc())
+        with Session(self._engine) as session:
+            records: dict[UUID, dict[str, Any]] = {}
+            for row in session.execute(query).mappings():
+                record = records.setdefault(row["id"], {
+                    **{key: row[key] for key in (
+                        "id", "project_id", "vor_version_id", "status", "created_at", "finished_at",
+                        "input_total", "prepare_seconds", "pdf_preparation",
+                    )},
+                    "vor_filename": row["filename"], "result_count": row["result_count"] or 0,
+                    "job_counts": {}, "pdf_jobs": 0,
+                })
+                if row["job_status"]:
+                    counts = record["job_counts"]
+                    counts[row["job_status"]] = counts.get(row["job_status"], 0) + row["job_count"]
+                    if row["queue"] == "pdf":
+                        record["pdf_jobs"] += row["job_count"]
+            return list(records.values())
+
     def list_runs(self, project_id: UUID) -> list[RunRow]:
         with Session(self._engine) as session:
             rows = session.scalars(
@@ -659,6 +748,10 @@ class Repository:
                 "vor_filename": document.filename if document else "",
                 "vor_sha256": version.sha256 if version else "",
                 "results": [dict(item.result) for item in results],
+                "indexed_results": [{"position_index": item.position_index,
+                                     "result": dict(item.result)} for item in results],
+                "created_at": run.created_at,
+                "finished_at": run.finished_at,
             }
 
     def load_run_report(self, run_id: UUID, kind: str) -> bytes:

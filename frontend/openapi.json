@@ -1,0 +1,2228 @@
+{
+  "components": {
+    "schemas": {
+      "AuditCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "pdf_version_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Pdf Version Ids",
+            "type": "array"
+          },
+          "project": {
+            "default": "",
+            "maxLength": 256,
+            "title": "Project",
+            "type": "string"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "vor_version_id": {
+            "minLength": 1,
+            "title": "Vor Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vor_version_id"
+        ],
+        "title": "AuditCreateRequest",
+        "type": "object"
+      },
+      "AuditCreateResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "run_id": {
+            "minLength": 1,
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "minLength": 1,
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "status"
+        ],
+        "title": "AuditCreateResponse",
+        "type": "object"
+      },
+      "AuditResultsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "results": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "run_id": {
+            "minLength": 1,
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "minLength": 1,
+            "title": "Status",
+            "type": "string"
+          },
+          "vor_filename": {
+            "default": "",
+            "title": "Vor Filename",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "status"
+        ],
+        "title": "AuditResultsResponse",
+        "type": "object"
+      },
+      "AuditStatus": {
+        "description": "Machine-checked audit outcome; ``ОК`` requires all confirmations.",
+        "enum": [
+          "ОК",
+          "Ошибка",
+          "Неполная проверка",
+          "Технический сбой"
+        ],
+        "title": "AuditStatus",
+        "type": "string"
+      },
+      "AuditStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "config": {
+            "additionalProperties": true,
+            "title": "Config",
+            "type": "object"
+          },
+          "position_count": {
+            "minimum": 0.0,
+            "title": "Position Count",
+            "type": "integer"
+          },
+          "run_id": {
+            "minLength": 1,
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "minLength": 1,
+            "title": "Status",
+            "type": "string"
+          },
+          "vor_filename": {
+            "default": "",
+            "title": "Vor Filename",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "status",
+          "position_count"
+        ],
+        "title": "AuditStatusResponse",
+        "type": "object"
+      },
+      "Body_upload_document_api_v1_documents_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "kind": {
+            "pattern": "^(vor|pdf)$",
+            "title": "Kind",
+            "type": "string"
+          },
+          "project": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Project",
+            "type": "string"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          }
+        },
+        "required": [
+          "project",
+          "kind",
+          "file"
+        ],
+        "title": "Body_upload_document_api_v1_documents_post",
+        "type": "object"
+      },
+      "DocumentUploadResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "document_id": {
+            "minLength": 1,
+            "title": "Document Id",
+            "type": "string"
+          },
+          "sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size": {
+            "minimum": 0.0,
+            "title": "Size",
+            "type": "integer"
+          },
+          "version_id": {
+            "minLength": 1,
+            "title": "Version Id",
+            "type": "string"
+          },
+          "version_no": {
+            "minimum": 1.0,
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version_id",
+          "document_id",
+          "version_no",
+          "sha256",
+          "size"
+        ],
+        "title": "DocumentUploadResponse",
+        "type": "object"
+      },
+      "ErrorKind": {
+        "description": "Explicit failure taxonomy; messages stay human-readable.",
+        "enum": [
+          "bind",
+          "prep",
+          "validation",
+          "provider",
+          "budget",
+          "internal"
+        ],
+        "title": "ErrorKind",
+        "type": "string"
+      },
+      "EvidenceDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": {
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PdfRegionDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version_id": {
+            "title": "Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version_id",
+          "filename",
+          "page",
+          "quote",
+          "kind",
+          "region",
+          "confirmed"
+        ],
+        "title": "EvidenceDTO",
+        "type": "object"
+      },
+      "ExcelCellDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "column_span": {
+            "default": 1,
+            "title": "Column Span",
+            "type": "integer"
+          },
+          "coordinate": {
+            "title": "Coordinate",
+            "type": "string"
+          },
+          "highlight": {
+            "default": false,
+            "title": "Highlight",
+            "type": "boolean"
+          },
+          "row_span": {
+            "default": 1,
+            "title": "Row Span",
+            "type": "integer"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "coordinate",
+          "value"
+        ],
+        "title": "ExcelCellDTO",
+        "type": "object"
+      },
+      "ExcelDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ExcelRowDTO"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "sheet": {
+            "title": "Sheet",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sheet",
+          "columns",
+          "rows"
+        ],
+        "title": "ExcelDTO",
+        "type": "object"
+      },
+      "ExcelRowDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "cells": {
+            "items": {
+              "$ref": "#/components/schemas/ExcelCellDTO"
+            },
+            "title": "Cells",
+            "type": "array"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "selected": {
+            "title": "Selected",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "number",
+          "selected",
+          "cells"
+        ],
+        "title": "ExcelRowDTO",
+        "type": "object"
+      },
+      "FormatDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/FormatIssueDTO"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "version_id": {
+            "title": "Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version_id",
+          "issues"
+        ],
+        "title": "FormatDTO",
+        "type": "object"
+      },
+      "FormatIssueDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "actual": {
+            "title": "Actual",
+            "type": "string"
+          },
+          "coord": {
+            "title": "Coord",
+            "type": "string"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "expected": {
+            "title": "Expected",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "coord",
+          "type",
+          "expected",
+          "actual",
+          "status",
+          "error"
+        ],
+        "title": "FormatIssueDTO",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HighlightDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "bbox": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Bbox",
+            "type": "array"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bbox",
+          "kind",
+          "text"
+        ],
+        "title": "HighlightDTO",
+        "type": "object"
+      },
+      "PdfRegionDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "number"
+          },
+          "highlights": {
+            "items": {
+              "$ref": "#/components/schemas/HighlightDTO"
+            },
+            "title": "Highlights",
+            "type": "array"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "number"
+          }
+        },
+        "required": [
+          "width",
+          "height",
+          "highlights",
+          "reason"
+        ],
+        "title": "PdfRegionDTO",
+        "type": "object"
+      },
+      "PreflightResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "has_critical_error": {
+            "title": "Has Critical Error",
+            "type": "boolean"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/PreflightRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rows",
+          "has_critical_error"
+        ],
+        "title": "PreflightResponse",
+        "type": "object"
+      },
+      "PreflightRow": {
+        "additionalProperties": false,
+        "properties": {
+          "pdf": {
+            "title": "Pdf",
+            "type": "string"
+          },
+          "refs": {
+            "title": "Refs",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "vor": {
+            "title": "Vor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vor",
+          "refs",
+          "status",
+          "pdf"
+        ],
+        "title": "PreflightRow",
+        "type": "object"
+      },
+      "ProjectCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ProjectCreate",
+        "type": "object"
+      },
+      "ProjectDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "ProjectDTO",
+        "type": "object"
+      },
+      "ReportStatus": {
+        "description": "User-facing report bucket; derived from flags, never invented.",
+        "enum": [
+          "Обнаружено расхождение",
+          "Требуется ручная проверка",
+          "Проверка не выполнена",
+          "ОК"
+        ],
+        "title": "ReportStatus",
+        "type": "string"
+      },
+      "ResultDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "audit_status": {
+            "$ref": "#/components/schemas/AuditStatus"
+          },
+          "cells": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Cells",
+            "type": "object"
+          },
+          "comment_confirmed": {
+            "title": "Comment Confirmed",
+            "type": "boolean"
+          },
+          "declared_quantity": {
+            "title": "Declared Quantity",
+            "type": "string"
+          },
+          "details": {
+            "title": "Details",
+            "type": "string"
+          },
+          "formula": {
+            "title": "Formula",
+            "type": "string"
+          },
+          "found_quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Found Quantity"
+          },
+          "found_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Found Unit"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "position_index": {
+            "title": "Position Index",
+            "type": "integer"
+          },
+          "problem": {
+            "title": "Problem",
+            "type": "string"
+          },
+          "queue": {
+            "enum": [
+              "fix",
+              "review",
+              "missing",
+              "ok"
+            ],
+            "title": "Queue",
+            "type": "string"
+          },
+          "report_status": {
+            "$ref": "#/components/schemas/ReportStatus"
+          },
+          "sheet": {
+            "title": "Sheet",
+            "type": "string"
+          },
+          "source_row": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Row"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "unit_confirmed": {
+            "title": "Unit Confirmed",
+            "type": "boolean"
+          },
+          "volume_confirmed": {
+            "title": "Volume Confirmed",
+            "type": "boolean"
+          },
+          "work_found": {
+            "title": "Work Found",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "position_index",
+          "number",
+          "name",
+          "unit",
+          "declared_quantity",
+          "found_quantity",
+          "found_unit",
+          "formula",
+          "sheet",
+          "source_row",
+          "cells",
+          "audit_status",
+          "report_status",
+          "queue",
+          "problem",
+          "action",
+          "work_found",
+          "volume_confirmed",
+          "unit_confirmed",
+          "comment_confirmed",
+          "details"
+        ],
+        "title": "ResultDTO",
+        "type": "object"
+      },
+      "RowsDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ResultDTO"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_id",
+          "total",
+          "offset",
+          "limit",
+          "rows"
+        ],
+        "title": "RowsDTO",
+        "type": "object"
+      },
+      "RunDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "done": {
+            "title": "Done",
+            "type": "integer"
+          },
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "preparation_done": {
+            "default": 0,
+            "title": "Preparation Done",
+            "type": "integer"
+          },
+          "preparation_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preparation Total"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "queued": {
+            "title": "Queued",
+            "type": "integer"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "running": {
+            "title": "Running",
+            "type": "integer"
+          },
+          "stage": {
+            "enum": [
+              "preparing",
+              "auditing",
+              "finalizing",
+              "done",
+              "failed"
+            ],
+            "title": "Stage",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "running",
+              "done",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          },
+          "vor_filename": {
+            "title": "Vor Filename",
+            "type": "string"
+          },
+          "vor_version_id": {
+            "title": "Vor Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "project_id",
+          "vor_version_id",
+          "vor_filename",
+          "status",
+          "stage",
+          "total",
+          "done",
+          "failed",
+          "running",
+          "queued",
+          "created_at",
+          "finished_at"
+        ],
+        "title": "RunDTO",
+        "type": "object"
+      },
+      "StructureDTO": {
+        "properties": {
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/StructureNodeDTO"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "ocr_dispatched": {
+            "const": false,
+            "default": false,
+            "title": "Ocr Dispatched",
+            "type": "boolean"
+          },
+          "page_count": {
+            "title": "Page Count",
+            "type": "integer"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/StructurePageDTO"
+            },
+            "title": "Pages",
+            "type": "array"
+          },
+          "quantity_confirmation": {
+            "const": false,
+            "default": false,
+            "title": "Quantity Confirmation",
+            "type": "boolean"
+          },
+          "roots": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Roots",
+            "type": "array"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sha256",
+          "page_count",
+          "roots",
+          "nodes",
+          "pages"
+        ],
+        "title": "StructureDTO",
+        "type": "object"
+      },
+      "StructureNodeDTO": {
+        "properties": {
+          "children": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Children",
+            "type": "array"
+          },
+          "confidence": {
+            "enum": [
+              "high",
+              "medium"
+            ],
+            "title": "Confidence",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "section",
+              "appendix",
+              "table"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "level": {
+            "title": "Level",
+            "type": "integer"
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number"
+          },
+          "parent_id": {
+            "title": "Parent Id",
+            "type": "string"
+          },
+          "physical_end": {
+            "title": "Physical End",
+            "type": "integer"
+          },
+          "physical_start": {
+            "title": "Physical Start",
+            "type": "integer"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "start_bbox": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Start Bbox",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "parent_id",
+          "title",
+          "kind",
+          "number",
+          "level",
+          "physical_start",
+          "physical_end",
+          "start_bbox",
+          "children",
+          "confidence",
+          "sources"
+        ],
+        "title": "StructureNodeDTO",
+        "type": "object"
+      },
+      "StructurePageDTO": {
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "number"
+          },
+          "node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Node Ids",
+            "type": "array"
+          },
+          "physical_page": {
+            "title": "Physical Page",
+            "type": "integer"
+          },
+          "printed_page": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Printed Page"
+          },
+          "width": {
+            "title": "Width",
+            "type": "number"
+          }
+        },
+        "required": [
+          "physical_page",
+          "printed_page",
+          "width",
+          "height",
+          "node_ids"
+        ],
+        "title": "StructurePageDTO",
+        "type": "object"
+      },
+      "SummaryDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/VersionDTO"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "project": {
+            "$ref": "#/components/schemas/ProjectDTO"
+          },
+          "queues": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Queues",
+            "type": "object"
+          },
+          "run": {
+            "$ref": "#/components/schemas/RunDTO"
+          }
+        },
+        "required": [
+          "run",
+          "project",
+          "queues",
+          "documents"
+        ],
+        "title": "SummaryDTO",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "VersionDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "document_id": {
+            "title": "Document Id",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "vor",
+              "pdf"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "document_id",
+          "filename",
+          "kind",
+          "number",
+          "sha256",
+          "size",
+          "created_at"
+        ],
+        "title": "VersionDTO",
+        "type": "object"
+      },
+      "VorPosition": {
+        "description": "One validated VOR row plus its derived binding references.\n\nRuntime handles (``PageTextIndex``, ``PositionTrace``) are intentionally\nexcluded: they are thread-bound and never serialized.",
+        "properties": {
+          "bind_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bind Error"
+          },
+          "bind_error_kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comment": {
+            "default": "",
+            "title": "Comment",
+            "type": "string"
+          },
+          "document_id": {
+            "default": "",
+            "title": "Document Id",
+            "type": "string"
+          },
+          "explicit_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Explicit Refs",
+            "type": "array"
+          },
+          "file_ref": {
+            "default": "",
+            "title": "File Ref",
+            "type": "string"
+          },
+          "formula": {
+            "default": "",
+            "title": "Formula",
+            "type": "string"
+          },
+          "index": {
+            "minimum": 0.0,
+            "title": "Index",
+            "type": "integer"
+          },
+          "location_description": {
+            "default": "Страница не указана",
+            "title": "Location Description",
+            "type": "string"
+          },
+          "number": {
+            "default": "",
+            "title": "Number",
+            "type": "string"
+          },
+          "page_ref": {
+            "default": "",
+            "title": "Page Ref",
+            "type": "string"
+          },
+          "prep_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prep Error"
+          },
+          "prep_error_kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "primary_pages": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Primary Pages",
+            "type": "array"
+          },
+          "reference": {
+            "default": "",
+            "title": "Reference",
+            "type": "string"
+          },
+          "sheet": {
+            "default": "",
+            "title": "Sheet",
+            "type": "string"
+          },
+          "source_cells": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Source Cells",
+            "type": "object"
+          },
+          "source_row": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Row"
+          },
+          "target_indices": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Target Indices",
+            "type": "array"
+          },
+          "unit": {
+            "minLength": 1,
+            "title": "Unit",
+            "type": "string"
+          },
+          "volume": {
+            "minLength": 1,
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_name": {
+            "minLength": 1,
+            "title": "Work Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "work_name",
+          "volume",
+          "unit"
+        ],
+        "title": "VorPosition",
+        "type": "object"
+      },
+      "WorkspaceDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceDTO"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "excel": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExcelDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "$ref": "#/components/schemas/VorPosition"
+          },
+          "row": {
+            "$ref": "#/components/schemas/ResultDTO"
+          },
+          "vor_version_id": {
+            "title": "Vor Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "row",
+          "position",
+          "vor_version_id",
+          "excel",
+          "evidence"
+        ],
+        "title": "WorkspaceDTO",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "smeta-checker API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/audits": {
+      "post": {
+        "operationId": "create_audit_api_v1_audits_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditCreateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Audit"
+      }
+    },
+    "/api/v1/audits/{run_id}": {
+      "get": {
+        "operationId": "get_audit_api_v1_audits__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Audit"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/workspace": {
+      "get": {
+        "operationId": "workspace_api_v1_audits__run_id__positions__position_index__workspace_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Workspace"
+      }
+    },
+    "/api/v1/audits/{run_id}/progress": {
+      "get": {
+        "operationId": "progress_api_v1_audits__run_id__progress_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Progress"
+      }
+    },
+    "/api/v1/audits/{run_id}/reports/{kind}": {
+      "get": {
+        "operationId": "download_audit_report_api_v1_audits__run_id__reports__kind__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Audit Report"
+      }
+    },
+    "/api/v1/audits/{run_id}/results": {
+      "get": {
+        "operationId": "get_audit_results_api_v1_audits__run_id__results_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditResultsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Audit Results"
+      }
+    },
+    "/api/v1/audits/{run_id}/rows": {
+      "get": {
+        "operationId": "rows_api_v1_audits__run_id__rows_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "focus",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "pattern": "^(all|fix|review|missing|ok)$",
+              "title": "Focus",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 500,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RowsDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rows"
+      }
+    },
+    "/api/v1/audits/{run_id}/summary": {
+      "get": {
+        "operationId": "summary_api_v1_audits__run_id__summary_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Summary"
+      }
+    },
+    "/api/v1/documents": {
+      "post": {
+        "operationId": "upload_document_api_v1_documents_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_document_api_v1_documents_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentUploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Document"
+      }
+    },
+    "/api/v1/documents/preflight": {
+      "post": {
+        "operationId": "preflight_documents_api_v1_documents_preflight_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreflightResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preflight Documents"
+      }
+    },
+    "/api/v1/documents/{version_id}/content": {
+      "get": {
+        "operationId": "content_api_v1_documents__version_id__content_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "download",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Download",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Content"
+      }
+    },
+    "/api/v1/documents/{version_id}/format-checks": {
+      "post": {
+        "operationId": "formatting_api_v1_documents__version_id__format_checks_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sheet",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sheet"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormatDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Formatting"
+      }
+    },
+    "/api/v1/documents/{version_id}/structure": {
+      "get": {
+        "operationId": "structure_api_v1_documents__version_id__structure_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StructureDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Structure"
+      }
+    },
+    "/api/v1/projects": {
+      "get": {
+        "operationId": "projects_api_v1_projects_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectDTO"
+                  },
+                  "title": "Response Projects Api V1 Projects Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Projects"
+      },
+      "post": {
+        "operationId": "create_project_api_v1_projects_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Project"
+      }
+    },
+    "/api/v1/projects/{project_id}/audits": {
+      "get": {
+        "operationId": "history_api_v1_projects__project_id__audits_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RunDTO"
+                  },
+                  "title": "Response History Api V1 Projects  Project Id  Audits Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "History"
+      }
+    },
+    "/api/v1/projects/{project_id}/documents": {
+      "get": {
+        "operationId": "documents_api_v1_projects__project_id__documents_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/VersionDTO"
+                  },
+                  "title": "Response Documents Api V1 Projects  Project Id  Documents Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Documents"
+      }
+    },
+    "/healthz": {
+      "get": {
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Healthz Healthz Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Healthz"
+      }
+    }
+  }
+}

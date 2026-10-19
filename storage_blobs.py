@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 from urllib.request import url2pathname
 
 
@@ -76,5 +77,15 @@ def open_blob_store(url: str) -> BlobStore:
     parsed = urlparse(url)
     if parsed.scheme != "file":
         raise ValueError(f"unsupported blob store scheme: {parsed.scheme or url!r}")
-    root = url2pathname(parsed.path) or "."
+    raw = url[len("file://"):]
+    if re.match(r"^[A-Za-z]:[\\/]", raw) or raw.startswith(("./", ".\\")):
+        # Existing Windows settings use file://C:\...; urlparse treats that
+        # drive/path as an authority and otherwise silently opens cwd instead.
+        root = unquote(raw)
+    elif parsed.netloc == ".":
+        root = "." + url2pathname(parsed.path)
+    elif parsed.netloc and parsed.netloc != "localhost":
+        root = "//" + parsed.netloc + url2pathname(parsed.path)
+    else:
+        root = url2pathname(parsed.path) or "."
     return FileBlobStore(root)

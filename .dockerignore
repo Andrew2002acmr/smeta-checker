@@ -1,0 +1,14 @@
+.git
+.venv
+.audit_cache
+.audit_blobs
+.pytest_cache
+.ruff_cache
+__pycache__
+**/__pycache__
+.env
+.env.*
+frontend
+backups
+test_documents
+tmp

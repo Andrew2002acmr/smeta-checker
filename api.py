@@ -88,7 +88,8 @@ class PreflightResponse(BaseModel):
 class AuditCreateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    project: str = Field(min_length=1, max_length=256)
+    project: str = Field(default="", max_length=256)
+    project_id: str | None = None
     vor_version_id: str = Field(min_length=1)
     pdf_version_ids: list[str] = Field(default_factory=list)
 
@@ -329,7 +330,8 @@ def _read_version_bytes(
 
 
 def _upload_document(
-    context: ApiContext, project: str, kind: str, upload: UploadFile, data: bytes
+    context: ApiContext, project: str, kind: str, upload: UploadFile, data: bytes,
+    project_id: UUID | None = None,
 ) -> DocumentUploadResponse:
     filename = _safe_filename(upload.filename or "")
     _check_upload_limits(context, data)
@@ -375,7 +377,8 @@ def _upload_document(
                 "invalid_pdf",
                 f"Не удалось прочитать PDF: {type(exc).__name__}: {str(exc)[:200]}",
             ) from exc
-    stored_project = context.repository.get_or_create_project(project)
+    stored_project = (context.repository.load_project(project_id) if project_id else
+                      context.repository.get_or_create_project(project))
     try:
         version = context.repository.add_document_version(
             stored_project.id, bytes(data), filename=filename, kind=kind
@@ -441,6 +444,38 @@ def _load_run_record(context: ApiContext, run_id: UUID) -> dict[str, Any]:
         return context.repository.load_run(run_id)
     except KeyError as exc:
         raise ApiError(404, "run_not_found", "Запуск аудита не найден.") from exc
+
+
+def _project_for_payload(context: ApiContext, payload: AuditCreateRequest):
+    if payload.project_id:
+        try:
+            return context.repository.load_project(_parse_uuid(payload.project_id, field="project_id"))
+        except KeyError as exc:
+            raise ApiError(404, "project_not_found", "Проект не найден") from exc
+    name = payload.project.strip()
+    if not name:
+        raise ApiError(400, "project_required", "Название проекта обязательно")
+    return context.repository.get_or_create_project(name)
+
+
+def _check_project_versions(context: ApiContext, project_id: UUID, version_ids: list[UUID]):
+    for version_id in version_ids:
+        try:
+            owner = context.repository.version_project_id(version_id)
+        except KeyError as exc:
+            raise ApiError(404, "version_not_found", "Версия документа не найдена") from exc
+        if owner != project_id:
+            raise ApiError(400, "project_version_mismatch", "Версия документа принадлежит другому проекту")
+
+
+def _check_pdf_names(context: ApiContext, version_ids: list[UUID]):
+    names = set()
+    for version_id in version_ids:
+        ref = context.repository.load_version(version_id)
+        name = _clean_pool_key(ref.filename)
+        if name in names:
+            raise ApiError(400, "duplicate_pdf_name", "Выберите одну версию каждого PDF; имена PDF должны различаться")
+        names.add(name)
 
 
 def _celery_dispatch(
@@ -641,12 +676,19 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
         project: str = Form(min_length=1, max_length=256),
         kind: str = Form(pattern="^(vor|pdf)$"),
         file: UploadFile = File(...),
+        project_id: str | None = Form(None),
         context: ApiContext = Depends(get_context),
     ) -> DocumentUploadResponse:
         _require_api_token(context, request)
         _require_configured(context)
-        data = await file.read()
-        response = _upload_document(context, project.strip(), kind, file, data)
+        data = await file.read(context.settings.max_upload_bytes + 1)
+        owner_id = _parse_uuid(project_id, field="project_id") if project_id else None
+        if owner_id:
+            try:
+                context.repository.load_project(owner_id)
+            except KeyError as exc:
+                raise ApiError(404, "project_not_found", "Проект не найден") from exc
+        response = _upload_document(context, project.strip(), kind, file, data, owner_id)
         logger.info(
             "document uploaded",
             extra={
@@ -670,6 +712,9 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             _parse_uuid(item, field="pdf_version_ids")
             for item in payload.pdf_version_ids
         ]
+        owner = _project_for_payload(context, payload)
+        _check_project_versions(context, owner.id, [vor_id, *pdf_ids])
+        _check_pdf_names(context, pdf_ids)
         return _preflight_for_versions(context, vor_id, pdf_ids)
 
     @app.post("/api/v1/audits", response_model=AuditCreateResponse, status_code=202)
@@ -683,14 +728,15 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
         _require_api_token(context, request)
         _require_configured(context)
         _require_llm_credentials(context.settings)
-        project = payload.project.strip()
-        if not project:
-            raise ApiError(400, "project_required", "Название проекта обязательно.")
+        stored_project = _project_for_payload(context, payload)
+        project = stored_project.name
         vor_id = _parse_uuid(payload.vor_version_id, field="vor_version_id")
         pdf_ids = [
             _parse_uuid(item, field="pdf_version_ids")
             for item in payload.pdf_version_ids
         ]
+        _check_project_versions(context, stored_project.id, [vor_id, *pdf_ids])
+        _check_pdf_names(context, pdf_ids)
         allowed = max(1, int(context.settings.max_uploads_per_request or 1))
         if len(pdf_ids) + 1 > allowed:
             raise ApiError(
@@ -713,7 +759,7 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             pdf_files[key] = bytes(data)
             pdf_versions[key] = row
         preflight = _preflight_for_versions(context, vor_id, pdf_ids)
-        stored_project = context.repository.get_or_create_project(project)
+        positions, _ = load_vor_positions(vor_bytes, vor_filename)
         config = {
             "model": context.settings.yandex_cloud_model,
             "pdf_versions": {key: str(row.id) for key, row in pdf_versions.items()},
@@ -721,6 +767,7 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             "preflight": [row.model_dump() for row in preflight.rows],
             "has_critical_error": preflight.has_critical_error,
             "request_id": request_id,
+            "position_inputs": [p.model_dump(mode="json") for p in positions],
         }
         try:
             run = context.repository.create_run(stored_project.id, vor_id, config)
@@ -764,6 +811,11 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
         log_fields.update({"audit_run_id": str(run.id), "stage": "fallback"})
 
         def _target() -> None:
+            if context.client_factory is None:
+                from scripts.audit_worker import run_isolated
+
+                run_isolated(context.settings, run.id)
+                return
             run_audit_job(
                 context,
                 run.id,
@@ -841,6 +893,8 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             },
         )
 
+    from workspace_api import workspace_router
+    app.include_router(workspace_router(get_context))
     return app
 
 

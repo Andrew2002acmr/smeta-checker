@@ -65,3 +65,52 @@ jobs:
         run: uv run pytest
         env:
           TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@localhost:5432/smeta_test
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install frontend
+        run: npm install --global pnpm@11.25.0 && pnpm --dir frontend install --frozen-lockfile
+
+      - name: Frontend checks and build
+        working-directory: frontend
+        env:
+          PYTHON: ${{ github.workspace }}/.venv/bin/python
+        run: pnpm run fmt:check && pnpm run lint && pnpm run typecheck && pnpm run test:unit && pnpm run api:check && pnpm run build
+
+      - name: Install browser
+        run: pnpm --dir frontend exec playwright install --with-deps chromium
+
+      - name: Start isolated workspace fixture
+        env:
+          TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@localhost:5432/smeta_test_ui
+          NUXT_BACKEND_URL: http://127.0.0.1:8116
+          NUXT_BACKEND_TOKEN: synthetic-e2e-only
+          HOST: 127.0.0.1
+          PORT: 3016
+        run: |
+          uv run python -c "import psycopg; psycopg.connect('postgresql://postgres:postgres@localhost:5432/postgres', autocommit=True).execute('CREATE DATABASE smeta_test_ui')"
+          mkdir -p .audit_cache
+          uv run python tests/workspace_server.py --root .audit_cache/e2e-fixture --port 8116 > .audit_cache/e2e-api.log 2>&1 &
+          node frontend/.output/server/index.mjs > .audit_cache/e2e-frontend.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8116/healthz > /dev/null && curl -fsS http://127.0.0.1:3016/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Workspace browser tests
+        run: pnpm --dir frontend run test:e2e
+        env:
+          FRONTEND_URL: http://127.0.0.1:3016
+          E2E_FIXTURE_ROOT: ${{ github.workspace }}/.audit_cache/e2e-fixture
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: workspace-diagnostics
+          path: |
+            .audit_cache/*.log
+            .audit_cache/e2e-results.jpg
+            frontend/test-results/
