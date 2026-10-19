@@ -37,7 +37,7 @@ USER app
 ENV PATH="/srv/smeta/.venv/bin:$PATH" \
     BLOB_STORE_URL="file:///srv/smeta/.audit_blobs"
 
-EXPOSE 8000
+EXPOSE 8000 8501
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD curl -fsS http://127.0.0.1:8000/healthz || exit 1
 CMD ["uvicorn", "api:get_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

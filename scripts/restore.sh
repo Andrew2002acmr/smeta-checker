@@ -12,8 +12,8 @@ test -f "$SRC/manifest.txt" || { echo "no manifest.txt in $SRC" >&2; exit 1; }
 echo "==> manifest:"
 cat "$SRC/manifest.txt"
 
-echo "==> stopping api + workers"
-docker compose stop api worker-pdf worker-llm
+echo "==> stopping api + ui + workers"
+docker compose stop api ui worker-pdf worker-llm
 
 echo "==> restoring db (drop + pg_restore)"
 docker compose cp "$SRC/db.dump" db:/tmp/restore.dump
@@ -28,6 +28,6 @@ docker compose cp "$SRC/blobs/." api:/srv/smeta/.audit_blobs/
 docker compose exec -T -u root api chown -R app:app /srv/smeta/.audit_blobs
 
 echo "==> restarting stack"
-docker compose up -d api worker-pdf worker-llm
+docker compose up -d api ui worker-pdf worker-llm
 docker compose ps
 echo "==> restore done from $SRC"
