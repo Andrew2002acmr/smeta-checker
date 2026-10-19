@@ -30,7 +30,7 @@ class BaselineTests(unittest.TestCase):
     def test_statuses_pages_volumes_units(self):
         expected = [
             ("ОК", "Стр. 2", "45", "m", [2]),
-            ("Ошибка", "Стр. 2", "45", "m", [2]),
+            ("ОК", "Стр. 2", "45", "m", [2]),
             ("Ошибка", "Стр. 3", "2", "pcs", [3]),
             ("Неполная проверка", "-", "-", "-", []),
             ("Технический сбой", "-", "-", "-", []),
@@ -71,7 +71,6 @@ class BaselineTests(unittest.TestCase):
             quotes = " ".join(e["quote"] for e in evidence)
             self.assertIn("Copper cable", quotes)
             self.assertIn("45", quotes)
-        self.assertIn("вне ссылки", by_pos["2"]["details"])
         evidence = by_pos["3"]["evidence"]
         self.assertTrue(all(e["page"] == 3 for e in evidence))
         quotes = " ".join(e["quote"] for e in evidence)
@@ -84,7 +83,7 @@ class BaselineTests(unittest.TestCase):
         self.assertIn("Simulated provider failure", by_pos["5"]["details"])
 
     def test_user_exports_match_and_prioritize(self):
-        expected = {"1": "ОК", "2": DISCREPANCY, "3": DISCREPANCY,
+        expected = {"1": "ОК", "2": "ОК", "3": DISCREPANCY,
                     "4": MANUAL, "5": NOT_CHECKED}
         for case in self.summary["cases"]:
             with self.subTest(position=case["position"]):

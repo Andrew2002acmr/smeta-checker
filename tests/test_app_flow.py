@@ -17,6 +17,19 @@ import pandas as pd
 import docx
 from streamlit.testing.v1 import AppTest
 
+from audit_models import AuditSettings
+
+
+def _yandex_only_settings(*args, **kwargs):
+    """UI tests pin the Yandex backend: the real local .env may hold AnyModel."""
+    return AuditSettings(
+        yandex_cloud_folder="test-folder",
+        yandex_cloud_api_key="test-only",
+        allowed_llm_hosts=("ai.api.cloud.yandex.net",),
+        database_url=os.environ.get("DATABASE_URL", ""),
+        blob_store_url=os.environ.get("BLOB_STORE_URL", ""),
+    )
+
 
 class FakeClient:
     def __init__(self, **kwargs):
@@ -36,8 +49,8 @@ class FakeClient:
             "found_page": "1",
             "evidence": [
                 {"source_id": "p1q1", "kind": "work"},
-                {"source_id": "p2q1", "kind": "volume"},
-                {"source_id": "p2q1", "kind": "unit"},
+                {"source_id": "p2q2", "kind": "volume"},
+                {"source_id": "p2q2", "kind": "unit"},
             ],
             "discrepancy_details": "Confirmed with multi-page evidence",
         }
@@ -45,6 +58,55 @@ class FakeClient:
 
     def close(self):
         pass
+
+
+class PipelineTests(unittest.TestCase):
+    def test_first_request_overlaps_second_preparation_without_pdf_cross_thread_access(self):
+        import threading
+        from audit_service import run_audit
+        from pdf_text import PDFTextSource
+        started, prepared = threading.Event(), threading.Event()
+        owner = threading.get_ident()
+        preparation_threads, progress_threads = [], []
+        snapshots = []
+        test = self
+        class Client(FakeClient):
+            def create(self, **kwargs):
+                if "Проверяемая работа: Copper cable" in kwargs["input"]:
+                    started.set()
+                    if not prepared.wait(5):
+                        raise RuntimeError("Preparation did not overlap request")
+                return super().create(**kwargs)
+        with tempfile.TemporaryDirectory() as cache, fitz.open() as pdf:
+            for content in ("Copper cable specification. " * 20, "Copper cable 45 m. " * 20):
+                pdf.new_page().insert_textbox(fitz.Rect(50, 50, 500, 600), content)
+            class Source(PDFTextSource):
+                def __init__(self, doc):
+                    super().__init__(doc, cache_dir=cache)
+                def for_position(self, *args, **kwargs):
+                    preparation_threads.append(threading.get_ident())
+                    if snapshots:
+                        test.assertTrue(started.wait(5), "First request must start before remaining preparation")
+                    result = super().for_position(*args, **kwargs)
+                    snapshots.append(result)
+                    if len(snapshots) == 2:
+                        prepared.set()
+                    return result
+            vor = io.BytesIO(("№ п.п.;Наименование работ;Объём работ / Количество;Ед. изм.;"
+                              "Ссылка на ПД;Наименование файла;Номер страниц (через пробел)\n"
+                              "1;Copper cable;45;m;;project.pdf;1\n"
+                              "2;Pump station;1;шт;;project.pdf;2\n").encode("utf-8-sig"))
+            with patch("audit_service.PDFTextSource", Source):
+                output = run_audit({"vor.csv": vor}, ["vor.csv"], {"project.pdf": pdf},
+                                   api_key="test", folder="test", model_name="test",
+                                   client_factory=Client,
+                                   progress=lambda *_: progress_threads.append(threading.get_ident()))
+            self.assertEqual(output["issues"], [])
+            table = output["results"]["vor.csv"]["df"]
+            self.assertEqual(table["Статус аудита"].tolist(), ["ОК", "Технический сбой"])
+            self.assertEqual(preparation_threads, [owner, owner])
+            self.assertTrue(all(thread == owner for thread in progress_threads))
+            self.assertIsInstance(snapshots[0].texts, tuple)
 
 
 class AppFlowTests(unittest.TestCase):
@@ -73,6 +135,7 @@ class AppFlowTests(unittest.TestCase):
         with patch.dict(os.environ, env), \
                 patch("openai.OpenAI", FakeClient), \
                 patch("audit_tracing._configured_client", return_value=None), \
+                patch("app.AuditSettings.load", side_effect=_yandex_only_settings), \
                 patch("pdf_text.PDFTextSource.for_position", _maybe_flaky):
             at = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app.py"), default_timeout=30)
             at.run()
@@ -98,7 +161,7 @@ class AppFlowTests(unittest.TestCase):
                  [3, "Copper cable", 45, "m", "", "project.pdf", 2]])
             saved = at.session_state["audit_results"]["vor.csv"]
             table = saved["df"]
-            self.assertEqual(table["Статус аудита"].tolist(), ["ОК", "Технический сбой", "Ошибка"])
+            self.assertEqual(table["Статус аудита"].tolist(), ["ОК", "Технический сбой", "ОК"])
             self.assertEqual(table["[ПД] Фактическая страница"].tolist(), ["Стр. 1, 2", "-", "Стр. 1, 2"])
             self.assertEqual(table["[ПД] Найденная единица"].tolist(), ["m", "-", "m"])
             self.assertEqual(table["[ПД] Найденные страницы"].tolist(), ["1, 2", "-", "1, 2"])
@@ -113,15 +176,15 @@ class AppFlowTests(unittest.TestCase):
             self.assertEqual(len(tracking[0]["evidence"]), 3)
             self.assertEqual(len(tracking[2]["evidence"]), 3)
             excel = pd.read_excel(io.BytesIO(saved["excel_bytes"]))
-            self.assertEqual(excel["№"].tolist(), [3, 2, 1])
+            self.assertEqual(excel["№"].tolist(), [2, 1, 3])
             self.assertEqual(excel["Статус аудита"].tolist(),
-                             ["Обнаружено расхождение", "Проверка не выполнена", "ОК"])
+                             ["Проверка не выполнена", "ОК", "ОК"])
             self.assertEqual(excel["Где проверить"].tolist(),
-                             ["стр. 1, 2", "Место не установлено; ссылка ВОР: стр. 2", "стр. 1, 2"])
+                             ["Место не установлено; ссылка ВОР: стр. 2", "стр. 1, 2", "стр. 1, 2"])
             self.assertFalse(any(str(col).startswith("[ПД]") for col in excel.columns))
             word = docx.Document(io.BytesIO(saved["word_bytes"]))
-            self.assertEqual([r.cells[0].text for r in word.tables[0].rows[1:]], ["3", "2", "1"])
-            self.assertIn("стр. 1, 2", word.tables[0].rows[1].cells[3].text)
+            self.assertEqual([r.cells[0].text for r in word.tables[0].rows[1:]], ["2", "1", "3"])
+            self.assertIn("стр. 1, 2", word.tables[0].rows[2].cells[3].text)
             self.assertNotIn("Simulated provider failure", str(excel.values))
             self.assertNotIn("Simulated provider failure", word.tables[0].rows[2].cells[3].text)
             for pdf in at.session_state["pdf_pool"].values():
@@ -252,7 +315,7 @@ class AppFlowTests(unittest.TestCase):
                 saved = at.session_state["audit_results"]["vor.csv"]
                 table = saved["df"]
                 self.assertEqual(table["Статус аудита"].tolist(),
-                                 ["ОК", "Технический сбой", "Ошибка"])
+                                 ["ОК", "Технический сбой", "ОК"])
                 self.assertIn("Simulated preparation failure",
                               table["Детали расхождений"].iloc[1])
                 self.assertEqual(table["[ПД] Запросов"].iloc[1], 0)
@@ -262,7 +325,7 @@ class AppFlowTests(unittest.TestCase):
                 excel = pd.read_excel(io.BytesIO(saved["excel_bytes"]))
                 statuses = dict(zip(excel["№"], excel["Статус аудита"]))
                 self.assertEqual(statuses, {1: "ОК", 2: "Проверка не выполнена",
-                                            3: "Обнаружено расхождение"})
+                                            3: "ОК"})
             finally:
                 for pdf in at.session_state["pdf_pool"].values():
                     pdf.close()

@@ -171,6 +171,7 @@ class Repository:
         model_name: str,
         project_name: str = "default",
         pdf_sources: dict[str, Any] | None = None,
+        provider: str = "Yandex Cloud (Qwen)",
     ) -> UUID:
         """Persist one VOR audit as a new run; returns the run id.
 
@@ -197,6 +198,7 @@ class Repository:
             vor_version.id,
             {
                 "model": model_name,
+                "provider": provider,
                 "pdf_versions": {
                     key: str(version.id) for key, version in pdf_versions.items()
                 },
@@ -240,6 +242,13 @@ class Repository:
                 "comment_confirmed": bool(result.get("comment_confirmed")),
                 "found_volume": result.get("Фактический объем", "-"),
                 "found_unit": track.get("found_unit", "-"),
+                "found_page": track.get("found_page"),
+                "volume_calculation": track.get("volume_calculation"),
+                "technology": track.get("technology", {}),
+                "quantity_basis": track.get("quantity_basis", "unknown"),
+                "consumption": track.get("consumption"),
+                "workbook_calculation": track.get("workbook_calculation", {}),
+                "position_type": task.get("position_type", ""),
                 "found_pages": list(track.get("found_pages") or []),
                 "vor_pages": list(track.get("vor_pages") or []),
                 "evidence": [dict(item) for item in track.get("evidence") or []],

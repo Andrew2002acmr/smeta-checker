@@ -28,6 +28,7 @@ MAX_TABLE_CELL_CHARS = 200
 CACHE_SCHEMA_VERSION = 1
 # PyMuPDF4LLM table rendering; part of the Markdown cache key.
 TABLE_OUTPUT = "html"
+_EMPTY_OCR = "\0smeta-empty-ocr-v1\n"
 # Exact Markdown call parameters; the cache key reuses them so call changes invalidate.
 _MARKDOWN_KWARGS = {
     "page_chunks": True,
@@ -43,8 +44,8 @@ def _compact_text(text):
     lines = (re.sub(r"[^\S\n]+", " ", line).strip() for line in text.splitlines())
     return "\n".join(line for line in lines if line)
 
-def _engine_fingerprint():
-    """Practical OCR engine version / tessdata fingerprint for the cache key."""
+def _engine_fingerprint(language="rus+eng"):
+    """Fingerprint active OCR language contents, not installation timestamps."""
     engine = pymupdf.VersionBind
     tessdata_dir = os.environ.get("TESSDATA_PREFIX", "")
     if not tessdata_dir and shutil.which("tesseract"):
@@ -54,9 +55,14 @@ def _engine_fingerprint():
             tessdata_dir = ""
     entries = []
     if tessdata_dir:
-        for path in sorted(Path(tessdata_dir).glob("*.traineddata")):
-            stat = path.stat()
-            entries.append((path.name, stat.st_size, stat.st_mtime_ns))
+        for name in sorted(set(language.split("+"))):
+            path = Path(tessdata_dir) / f"{name}.traineddata"
+            if path.is_file():
+                with path.open("rb") as data:
+                    digest = hashlib.file_digest(data, "sha256").hexdigest()
+                entries.append((path.name, path.stat().st_size, digest))
+            else:
+                entries.append((path.name, None, None))
     return engine, repr((tessdata_dir, entries))
 
 
@@ -252,7 +258,7 @@ class PDFTextSource:
 
     @staticmethod
     def _settings_key_for(language, dpi, max_pixels, max_side):
-        engine, tess_fp = _engine_fingerprint()
+        engine, tess_fp = _engine_fingerprint(language)
         raw = repr((language, dpi, max_pixels, max_side, engine, tess_fp))
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
@@ -354,12 +360,15 @@ class PDFTextSource:
         try:
             path = self._cache_path(idx)
             if path.is_file():
-                text = _compact_text(path.read_text(encoding="utf-8"))
+                raw = path.read_text(encoding="utf-8")
+                if raw == _EMPTY_OCR:
+                    return ""
+                text = _compact_text(raw)
                 if text.strip():
                     return text
         except Exception:
             pass
-        return ""
+        return None
 
     def _peek_cached_ocr(self, idx):
         """Populate memory from reusable cache without new OCR or hit accounting.
@@ -371,7 +380,7 @@ class PDFTextSource:
         if idx in self._ocr_texts:
             return self._ocr_texts[idx]
         text = self._read_cached_ocr(idx)
-        if text.strip():
+        if text is not None:
             self._ocr_texts[idx] = text
             return text
         return ""
@@ -382,7 +391,7 @@ class PDFTextSource:
             self.cache_hits += 1
             return self._ocr_texts[idx]
         text = self._read_cached_ocr(idx)
-        if text.strip():
+        if text is not None:
             self._ocr_texts[idx] = text
             self.cache_hits += 1
             return text
@@ -397,8 +406,7 @@ class PDFTextSource:
                 % (self.language, str(exc)[:200]))
             return ""
         self._ocr_texts[idx] = text
-        if text:
-            self._write_cache_bytes(self._cache_path(idx), text.encode("utf-8"))
+        self._write_cache_bytes(self._cache_path(idx), (text or _EMPTY_OCR).encode("utf-8"))
         return text
 
     @staticmethod
@@ -526,7 +534,7 @@ class PDFTextSource:
             # neighbourhood is already known, so do not burn more budget.
             for idx in discovery:
                 remaining = self._ocr_one(idx, remaining, allow_deferred_skip=True)
-        self._pending.difference_update(idx for idx, text in self._ocr_texts.items() if text.strip())
+        self._pending.difference_update(self._ocr_texts)
         texts = [self._merge_text(native, self._ocr_texts.get(idx, ""))
                  for idx, native in enumerate(self._native_texts)]
         errors = dict(self._native_errors)
@@ -555,7 +563,7 @@ class PDFTextSource:
             text = self._get_ocr_text(idx, allow_ocr=remaining > 0)
             error = self._ocr_errors.get(idx)
             cache_hit = self.cache_hits > before
-            deferred = not text and not error and remaining <= 0
+            deferred = idx not in self._ocr_texts and not error and remaining <= 0
             if error:
                 outcome = error
             elif cache_hit:
@@ -572,6 +580,6 @@ class PDFTextSource:
                                status_message=outcome)
         if self.cache_hits == before and remaining > 0:
             remaining -= 1
-        if self._ocr_texts.get(idx, "").strip():
+        if idx in self._ocr_texts:
             self._pending.discard(idx)
         return remaining

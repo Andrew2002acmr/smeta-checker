@@ -4,9 +4,11 @@ import json
 from decimal import Decimal
 from pathlib import Path
 import random
+import re
 import sys
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from audit_core import (BudgetExceeded, INCOMPLETE, PageTextIndex, RequestBudget,
@@ -94,6 +96,25 @@ class ResponseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.parse({**self.data, "found_volume": "46"})
 
+    def test_volume_from_foreign_table_row_rejected(self):
+        ctx = {88: ("<table><tr><th>Поз.</th><th>Наименование и техническая характеристика</th><th>Поставщик</th></tr>"
+                    "<tr><td>1.4</td><td>Зажим для троса</td><td>шт.</td><td>328</td></tr>"
+                    "<tr><td>2.1</td><td>Геотекстиль Дорнит</td><td>м2</td><td>2254,8</td></tr></table>")}
+        data = response("88", "2254,8", "м2", True, True, evidence=[
+            proof(88, ctx[88]), proof(88, ctx[88], "volume"),
+            proof(88, ctx[88], "unit")])
+        result = parse_audit_response(json.dumps(data), ctx, comment_required=False,
+                                      position_type="Материал",
+                                      expected_work="Геотекстиль Дорнит")
+        self.assertEqual(result["status"], "ОК")
+        foreign = response("88", "328", "шт.", True, True, evidence=[
+            proof(88, ctx[88]), proof(88, ctx[88], "volume"),
+            proof(88, ctx[88], "unit")])
+        with self.assertRaises(ValueError):
+            parse_audit_response(json.dumps(foreign), ctx, comment_required=False,
+                                 position_type="Материал",
+                                 expected_work="Геотекстиль Дорнит")
+
     def test_volume_quote_can_prove_unit_with_worded_quantity(self):
         data = response("3", "10", "пункт", True, True, evidence=[
             {"page": "3", "quote": "Опорная сеть", "kind": "work"},
@@ -112,9 +133,38 @@ class ResponseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.parse({**self.data, "evidence": [proof(3, "45 m", "volume"), proof(3, "m", "unit")]})
 
-    def test_comment_confirmation_requires_its_own_quote(self):
-        with self.assertRaises(ValueError):
-            parse_audit_response(json.dumps({**self.data, "comment_confirmed": True}), self.context)
+    def test_material_ignores_broken_technology_block(self):
+        data = {**self.data, "technology": {"status": "confirmed",
+                "expected": "не из ВОР", "actual": "выдуманный способ"}}
+        result = parse_audit_response(json.dumps(data), self.context,
+                                      comment_required=False,
+                                      position_type="Материал")
+        self.assertEqual(result["status"], "ОК")
+        self.assertEqual(result["technology"]["status"], "not_applicable")
+
+    def test_model_cross_pages_are_discarded(self):
+        data = {**self.data, "technology": {"status": "confirmed",
+                "expected": "Copper", "actual": "Copper cable",
+                "cross_pages": [99]}}
+        data["evidence"] = [*self.data["evidence"],
+                            proof(3, "Copper cable", "technology")]
+        result = parse_audit_response(json.dumps(data), self.context,
+                                      comment_required=False,
+                                      position_type="Работа",
+                                      expected_work="Copper cable")
+        self.assertEqual(result["technology"].get("cross_pages"), [])
+    def test_unquoted_comment_claim_downgrades_without_reject(self):
+        data = {**self.data, "comment_confirmed": True}
+        result = parse_audit_response(json.dumps(data), self.context)
+        self.assertEqual(result["status"], "ОК")
+        self.assertFalse(result["comment_confirmed"])
+        self.assertIn("Примечание ВОР", result["discrepancy_details"])
+
+    def test_unconfirmed_comment_is_advisory_with_preserved_proof(self):
+        result = parse_audit_response(json.dumps(self.data), self.context)
+        self.assertFalse(result["comment_confirmed"])
+        self.assertEqual(result["evidence"], self.data["evidence"])
+        self.assertIn("Примечание ВОР", result["discrepancy_details"])
 
     def test_thinking_and_markdown_are_not_source_evidence(self):
         raw = '<think>reason</think>```json\n' + json.dumps(self.data) + '\n```'
@@ -171,11 +221,11 @@ class CalculatedVolumeTests(unittest.TestCase):
             self.parse(formula="527*0,15")
 
     def test_forged_quote_unsent_page_and_wrong_dimension_are_rejected(self):
-        for patch in ({"quote": "Плиты толщиной 0,20 м"}, {"page": 86},
+        for change in ({"quote": "Плиты толщиной 0,20 м"}, {"page": 86},
                       {"unit": "м2"}, {"value": "0"}, {"value": True}):
-            with self.subTest(patch=patch):
+            with self.subTest(patch=change):
                 original = self.data["volume_calculation"]["thickness"].copy()
-                self.data["volume_calculation"]["thickness"].update(patch)
+                self.data["volume_calculation"]["thickness"].update(change)
                 with self.assertRaises(ValueError):
                     self.parse()
                 self.data["volume_calculation"]["thickness"] = original
@@ -204,12 +254,26 @@ class SearchTests(unittest.TestCase):
         def ask(context):
             calls.append(context)
             result = found(context, 1)
-            result.update(comment_confirmed=False, status="Ошибка")
+            result.update(comment_confirmed=False)
             return result
         result = audit_text_pages(PageTextIndex(["Cable 45 m"] * 50), [0], ask, "Cable", "45", comment="Coefficient 1.2")
         self.assertEqual(len(calls), 1)
         self.assertEqual(result["found_page"], "1")
         self.assertFalse(result["comment_confirmed"])
+        self.assertEqual(result["status"], "ОК")
+
+    def test_adjacent_reference_is_advisory_but_distant_is_discrepancy(self):
+        for primary, found_page, status in (([0], 2, "ОК"), ([2], 2, "ОК"),
+                                             ([0, 3], 3, "ОК"), ([0], 4, "Ошибка")):
+            with self.subTest(primary=primary, found_page=found_page):
+                def ask(context):
+                    return found(context, found_page) if found_page in context else empty_result("Ошибка", "Not here")
+                result = audit_text_pages(PageTextIndex(["Cable 45 m"] * 5),
+                                          primary, ask, "Cable", "45")
+                self.assertEqual(result["status"], status)
+                self.assertEqual(result["found_page"], str(found_page))
+                self.assertIn("рядом" if status == "ОК" else "вне ссылки",
+                              result["discrepancy_details"])
 
     def test_one_confirmation_joins_far_quantity_without_restarting_location_search(self):
         calls = []
@@ -302,6 +366,36 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(rows[0], 1)
         self.assertNotEqual(plain[0], rows[0])
 
+    def test_formula_support_preserves_area_in_confirmation_fragment(self):
+        work = "Укладка плит толщиной 0,15 м"
+        area = "Площадь крепления 1879 м2"
+        index = PageTextIndex([work] + ["Укладка плит количество 4"] * 4
+                              + ["Введение\n" * 3000 + area])
+        calls = []
+        def ask(context):
+            calls.append(context)
+            data = response("1", evidence=[proof(1, work)], details="")
+            if len(calls) > 1:
+                self.assertIn(area, context[6])
+                data["volume_calculation"] = {
+                    "area": {"value": "1879", "unit": "м2", "page": 6, "quote": area},
+                    "thickness": {"value": "0,15", "unit": "м", "page": 1, "quote": work}}
+            return parse_audit_response(json.dumps(data), context, False,
+                                        expected_volume="281.85", expected_unit="м3",
+                                        formula="1879*0,15")
+        result = audit_text_pages(index, [0], ask, "Укладка плит", "281.85", unit="м3",
+                                  formula="1879*0,15", max_pages=2, max_context_chars=1000)
+        self.assertEqual(result["status"], "ОК")
+        self.assertEqual(result["found_volume"], "281.85")
+        self.assertEqual(result["found_pages"], [1, 6])
+
+    def test_formula_candidate_bonus_needs_quantity_context(self):
+        from decimal import Decimal
+        index = PageTextIndex(["Плиты количество 8", "Площадь 1879 м²", "1879"])
+        self.assertEqual(index.support_candidates("Плиты", "281.85", "м3"), [0, 1])
+        self.assertEqual(index.support_candidates("Плиты", "281.85", "м3",
+                                                 formula_numbers={Decimal("1879")}), [1, 0])
+
     def test_far_location_preserved_on_wrong_reference(self):
         index = PageTextIndex(["Title", "Contents"] + ["Introduction"] * 20 + ["Copper cable 45 m"])
         def ask(context):
@@ -311,6 +405,65 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(result["status"], "Ошибка")
         self.assertTrue(result["work_found"])
 
+    def test_technology_wording_found_outside_context_softens_verdict(self):
+        section = "Заполнение зазоров между блоками щебнем"
+        order = "Зазоры между блоками засыпаются вручную щебнем"
+        index = PageTextIndex([section, "Введение", order])
+        def ask(context):
+            quote = context[1]
+            data = response("1", "45", "m", True, True,
+                evidence=[proof(1, quote), proof(1, quote, "volume"),
+                          proof(1, quote, "unit"), proof(1, quote, "technology")],
+                details="Найдено")
+            data["technology"] = {"status": "different",
+                "expected": "засыпаются вручную", "actual": "заполнение зазоров"}
+            return parse_audit_response(json.dumps(data), context,
+                comment_required=False, position_type="Работа",
+                expected_work="Засыпка зазоров засыпаются вручную")
+        result = audit_text_pages(index, [0], ask, "Засыпка", "45")
+        self.assertEqual(result["technology"]["status"], "unconfirmed")
+        self.assertEqual(result["status"], INCOMPLETE)
+        self.assertIn("стр. 3", result["discrepancy_details"])
+        self.assertEqual(result["technology"]["cross_pages"], [3])
+    def test_technology_absent_everywhere_keeps_difference(self):
+        section = "Заполнение зазоров между блоками щебнем"
+        index = PageTextIndex([section, "Введение", "Другое введение"])
+        def ask(context):
+            quote = context[1]
+            data = response("1", "45", "m", True, True,
+                evidence=[proof(1, quote), proof(1, quote, "volume"),
+                          proof(1, quote, "unit"), proof(1, quote, "technology")],
+                details="Найдено")
+            data["technology"] = {"status": "different",
+                "expected": "засыпаются вручную", "actual": "заполнение зазоров"}
+            return parse_audit_response(json.dumps(data), context,
+                comment_required=False, position_type="Работа",
+                expected_work="Засыпка зазоров засыпаются вручную")
+        result = audit_text_pages(index, [0], ask, "Засыпка", "45")
+        self.assertEqual(result["technology"]["status"], "different")
+        self.assertEqual(result["status"], INCOMPLETE)
+        self.assertNotIn("также встречается на стр.", result["discrepancy_details"])
+
+    def test_material_schedule_answer_accepted_despite_comment_claim(self):
+        section = "Сечение 3-3. Геотекстиль Дорнит как противосуффозионный экран."
+        schedule = ("Спецификация. Наименование и техническая характеристика. Поставщик. "
+                    "Геотекстиль Дорнит плотностью 500 г/м2 631,2 м2.")
+        index = PageTextIndex(["Титул", section, schedule])
+        def ask(context):
+            quote = context[3]
+            data = response("3", "631,2", "м2", True, True, comment_ok=True,
+                evidence=[proof(3, quote), proof(3, quote, "volume"),
+                          proof(3, quote, "unit")],
+                details="Найдено в спецификации")
+            return parse_audit_response(json.dumps(data), context,
+                position_type="Материал",
+                expected_work="Геотекстиль Дорнит плотностью 500")
+        result = audit_text_pages(index, [2], ask, "Геотекстиль Дорнит", "631,2",
+                                  unit="м2")
+        self.assertEqual(result["status"], "ОК")
+        self.assertEqual(result["found_volume"], "631,2")
+        self.assertEqual(result["found_page"], "3")
+        self.assertFalse(result["comment_confirmed"])
     def test_end_of_huge_page_is_locally_retrieved(self):
         text = "Introduction " * 10000 + "Copper cable 45 m"
         seen = []
@@ -402,6 +555,12 @@ class TextRankingTests(unittest.TestCase):
                 self.assertEqual(result["status"], "ОК")
                 self.assertEqual(result["evidence"][1]["quote"], text)
         self.assertEqual(_numbers("45,00 46.25"), {Decimal("45.00"), Decimal("46.25")})
+
+    def test_unit_before_number_is_not_a_thousands_separator(self):
+        self.assertEqual(
+            _numbers("Геотекстиль 500 г/м2 631,2 м2."),
+            {Decimal("500"), Decimal("631.2")})
+        self.assertEqual(_numbers("Площадь 1 879 м2"), {Decimal("1879")})
 
     def test_irrelevant_header_does_not_consume_fragment_budget(self):
         text = "Unrelated cover sheet\n" + "appendix\n" * 300 + "Copper cable 45 m\n"
@@ -576,21 +735,27 @@ class EvidenceAndRetrievalTests(unittest.TestCase):
 
     def test_retry_token_reserve_is_separate_from_attempt_limit(self):
         budget = RequestBudget(max_requests=6, max_total_tokens=100, max_output_tokens=10)
-        budget.reserve("x" * 30)
-        self.assertFalse(budget.can_retry("x" * 21))
-        budget.reserve("x" * 21)
+        budget.reserve("x" * 60)
+        self.assertFalse(budget.can_retry("x" * 42))
+        budget.reserve("x" * 42)
         self.assertEqual(budget.requests, 2)
         self.assertEqual(budget.tokens, 71)
 
     def test_retry_reserves_room_for_another_context(self):
         budget = RequestBudget(max_requests=3, max_total_tokens=100, max_output_tokens=10)
-        budget.reserve("x")
-        self.assertTrue(budget.can_retry("x"))
-        budget.reserve("x")
-        self.assertFalse(budget.can_retry("x"))
-        budget.reserve("x")
+        budget.reserve("x" * 2)
+        self.assertTrue(budget.can_retry("x" * 2))
+        budget.reserve("x" * 2)
+        self.assertFalse(budget.can_retry("x" * 2))
+        budget.reserve("x" * 2)
         with self.assertRaises(BudgetExceeded):
-            budget.reserve("x")
+            budget.reserve("x" * 2)
+
+    def test_same_context_fix_needs_room_for_one_retry_only(self):
+        budget = RequestBudget(max_requests=3, max_total_tokens=30, max_output_tokens=10)
+        budget.reserve("x" * 2)
+        self.assertTrue(budget.can_retry_same_context("x" * 2))
+        self.assertFalse(budget.can_retry("x" * 2))
 
 
     def test_fragment_budget_includes_separators_after_trimming_a_bridge(self):
@@ -625,12 +790,21 @@ class BudgetTests(unittest.TestCase):
 
     def test_actual_usage_replaces_only_current_reservation(self):
         budget = RequestBudget(max_total_tokens=25, max_output_tokens=10)
-        budget.reserve("x")  # failed request: its full reservation stays charged
-        budget.reserve("x")
+        budget.reserve("xx")
         budget.record(SimpleNamespace(total_tokens=5))
-        self.assertEqual(budget.tokens, 16)
-        with self.assertRaises(BudgetExceeded):
-            budget.reserve("x")
+        self.assertEqual(budget.tokens, 5)
+        budget.reserve("xx")
+        budget.record(SimpleNamespace(total_tokens=5))
+        self.assertEqual(budget.tokens, 10)
+
+    def test_failed_attempt_refunds_tokens_keeps_request_count(self):
+        budget = RequestBudget(max_total_tokens=25, max_output_tokens=10)
+        budget.reserve("xx")
+        budget.refund()
+        self.assertEqual(budget.tokens, 0)
+        self.assertEqual(budget.requests, 1)
+        budget.reserve("xx")
+        self.assertEqual(budget.tokens, 11)
 
 
 class FakeAPIError(Exception):
@@ -714,28 +888,183 @@ class AdapterTests(unittest.TestCase):
             output_text="", status="incomplete",
             incomplete_details=SimpleNamespace(reason="max_output_tokens"),
             usage=SimpleNamespace(total_tokens=6000))
-        result, calls = self.run_adapter([output] * 3)
+        result, calls = self.run_adapter([output])
         self.assertEqual(result["status"], INCOMPLETE)
         self.assertFalse(result["work_found"])
-        self.assertEqual(result["requests"], 3)
+        self.assertEqual(result["requests"], 1)
         self.assertIn("обрезан лимитом вывода", result["discrepancy_details"])
 
-    def test_transport_failure_does_not_reuse_previous_truncation(self):
-        truncated = SimpleNamespace(
-            output_text="", status="incomplete",
-            incomplete_details=SimpleNamespace(reason="max_output_tokens"),
-            usage=SimpleNamespace(total_tokens=6000))
-        result, calls = self.run_adapter(
-            [truncated, FakeAPIError("quota"), FakeAPIError("quota")])
-        self.assertEqual(result["status"], TECHNICAL_ERROR)
-        self.assertEqual(result["requests"], 3)
-        self.assertIn("FakeAPIError: quota", result["discrepancy_details"])
-        self.assertIn("response_status=?", result["discrepancy_details"])
 
     def test_malformed_exhausted_response_is_technical_failure(self):
         result, calls = self.run_adapter(["broken"] * 3)
         self.assertEqual(result["status"], TECHNICAL_ERROR)
         self.assertEqual(result["requests"], 3)
+
+
+class ChatAdapterTests(unittest.TestCase):
+    def run_chat(self, outputs):
+        from types import SimpleNamespace
+
+        calls = []
+
+        class FakeChatClient:
+            def __init__(self, **kwargs):
+                self.seen = kwargs
+                self.chat = SimpleNamespace(
+                    completions=SimpleNamespace(create=self.create)
+                )
+
+            def create(self, **kwargs):
+                calls.append(kwargs)
+                output = outputs.pop(0)
+                if isinstance(output, Exception):
+                    raise output
+                return output
+
+            def close(self):
+                pass
+
+        factory_calls = []
+
+        def factory(**kwargs):
+            client = FakeChatClient(**kwargs)
+            factory_calls.append(client.seen)
+            return client
+
+        result = audit_position_hybrid(
+            PageTextIndex(["Cable 45 m"]), [0],
+            "Cable", "45", "m", "", "1",
+            api_key="test", folder="", model_name="ds/deepseek-v4-flash",
+            client_factory=factory, sleeper=lambda _: None,
+            allowed_hosts=("anymodel.org",),
+            base_url="https://anymodel.org/v1")
+        return result, calls, factory_calls
+
+    @staticmethod
+    def chat_output(content, finish_reason="stop"):
+        from types import SimpleNamespace
+
+        return SimpleNamespace(
+            choices=[SimpleNamespace(
+                message=SimpleNamespace(content=content),
+                finish_reason=finish_reason)],
+            usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5,
+                                  total_tokens=15))
+
+    def test_chat_backend_sends_raw_model_id(self):
+        valid = json.dumps(response("1", "45", "m", True, True,
+            evidence=[{"source_id": "p1q1", "kind": kind} for kind in ("work", "volume", "unit")]))
+        result, calls, factory_calls = self.run_chat([self.chat_output(valid)])
+        self.assertEqual(result["status"], "ОК")
+        self.assertEqual(calls[0]["model"], "ds/deepseek-v4-flash")
+        self.assertEqual(calls[0]["messages"][0]["role"], "system")
+        self.assertNotIn("project", factory_calls[0])
+        self.assertEqual(result["usage"], {"input": 10, "output": 5, "total": 15})
+
+    def test_retry_carries_specific_fix_hint_for_wrong_volume_fragment(self):
+        from audit_core import EvidenceValidationError
+        wrong = json.dumps(response("1", "45", "m", True, True,
+            evidence=[{"source_id": "p1q1", "kind": kind} for kind in ("work", "volume", "unit")]))
+        calls_seen = []
+        real_parse = parse_audit_response
+        def flaky_parse(raw, *args, **kwargs):
+            calls_seen.append(raw)
+            if len(calls_seen) == 1:
+                raise EvidenceValidationError(
+                    "Фактический объем отсутствует в цитате",
+                    kind="volume", expected="45",
+                    hint="выбери source_id того фрагмента, где видно число 45")
+            return real_parse(raw, *args, **kwargs)
+        with patch("audit_llm.parse_audit_response", flaky_parse):
+            result, calls, _ = self.run_chat([
+                self.chat_output(wrong), self.chat_output(AdapterTests.valid())])
+        self.assertEqual(result["status"], "ОК")
+        self.assertIn("Исправление: выбери source_id того фрагмента, где видно число 45",
+                      calls[1]["messages"][1]["content"])
+
+    def test_volume_mismatch_retry_narrows_catalog_to_number_fragments(self):
+        from audit_core import EvidenceValidationError, PageTextIndex
+        from audit_llm import audit_position_hybrid
+        from types import SimpleNamespace
+        calls = []
+        class FakeChatClient:
+            def __init__(self, **kwargs):
+                self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
+            def create(self, **kwargs):
+                calls.append(kwargs)
+                if len(calls) == 1:
+                    content = "bad"
+                else:
+                    ids = re.findall(r"\[(p\d+q\d+)\]", kwargs["messages"][1]["content"])
+                    sid = ids[0]
+                    content = json.dumps(response("2", "45", "m", True, True,
+                        evidence=[{"source_id": sid, "kind": kind}
+                                  for kind in ("work", "volume", "unit")]))
+                return SimpleNamespace(
+                    choices=[SimpleNamespace(message=SimpleNamespace(content=content),
+                                             finish_reason="stop")],
+                    usage=SimpleNamespace(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+            def close(self):
+                pass
+        seen = []
+        real_parse = parse_audit_response
+        def flaky_parse(raw, *args, **kwargs):
+            seen.append(raw)
+            if len(seen) == 1:
+                raise EvidenceValidationError(
+                    "Фактический объем отсутствует в цитате",
+                    kind="volume", expected="45", hint="выбери другой фрагмент")
+            return real_parse(raw, *args, **kwargs)
+        with patch("audit_llm.parse_audit_response", flaky_parse):
+            result = audit_position_hybrid(
+                PageTextIndex(["Intro without digits here", "Cable 45 m"]), [0, 1],
+                "Cable", "45", "m", "", "1",
+                api_key="test", folder="", model_name="ds/deepseek-v4-flash",
+                client_factory=lambda **kw: FakeChatClient(**kw), sleeper=lambda _: None,
+                allowed_hosts=("anymodel.org",), base_url="https://anymodel.org/v1")
+        self.assertEqual(result["status"], "ОК")
+        retry_body = calls[1]["messages"][1]["content"]
+        self.assertIn("45", retry_body)
+        self.assertNotIn("Intro without digits", retry_body)
+
+
+    def test_valid_json_at_length_keeps_verified_evidence(self):
+        output = self.chat_output(AdapterTests.valid(), finish_reason="length")
+        result, _, _ = self.run_chat([output])
+        self.assertEqual(result["status"], "ОК")
+        self.assertEqual(result["found_pages"], [1])
+
+    def test_output_budget_exhausted_is_not_retried(self):
+        for body in ({"code": "output_budget_exhausted"},
+                     {"error": {"code": "output_budget_exhausted"}}):
+            error = FakeAPIError("output budget exhausted")
+            error.status_code = 400
+            error.body = body
+            with self.subTest(body=body):
+                result, calls, _ = self.run_chat([error])
+                self.assertEqual(result["status"], INCOMPLETE)
+                self.assertEqual(len(calls), 1)
+                self.assertFalse(result["work_found"])
+                self.assertTrue(result["recoverable"])
+
+    def test_chat_host_outside_allowlist_is_rejected(self):
+        from types import SimpleNamespace
+
+        class FakeChatClient:
+            def __init__(self, **kwargs):
+                self.chat = SimpleNamespace(
+                    completions=SimpleNamespace(create=lambda **kw: None))
+
+            def close(self):
+                pass
+
+        with self.assertRaises(ValueError):
+            audit_position_hybrid(
+                PageTextIndex(["Cable 45 m"]), [0],
+                "Cable", "45", "m", "", "1",
+                api_key="test", folder="", model_name="ds/deepseek-v4-flash",
+                client_factory=FakeChatClient, sleeper=lambda _: None,
+                base_url="https://anymodel.org/v1")
 
 
 if __name__ == "__main__":

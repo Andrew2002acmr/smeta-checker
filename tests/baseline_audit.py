@@ -200,6 +200,16 @@ def run_baseline():
     from openai.resources.responses import Responses
     from streamlit.testing.v1 import AppTest
 
+    from audit_models import AuditSettings
+
+    def _yandex_only_settings(*args, **kwargs):
+        """Baseline pins Yandex: the real local .env may hold AnyModel."""
+        return AuditSettings(
+            yandex_cloud_folder="test-folder",
+            yandex_cloud_api_key="test-only",
+            allowed_llm_hosts=("ai.api.cloud.yandex.net",),
+        )
+
     BaselineClient.calls = 0
     connection_guard, http_guard, url_guard = _block_network()
     with tempfile.TemporaryDirectory(prefix="smeta-baseline-") as folder:
@@ -211,6 +221,7 @@ def run_baseline():
                                      "LANGFUSE_SECRET_KEY": ""}), \
                 patch("openai.OpenAI", BaselineClient), \
                 patch("audit_tracing._configured_client", return_value=None), \
+                patch("app.AuditSettings.load", side_effect=_yandex_only_settings), \
                 patch.object(Responses, "create", side_effect=RuntimeError("Baseline is offline")), \
                 connection_guard, http_guard, url_guard:
             app = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60)

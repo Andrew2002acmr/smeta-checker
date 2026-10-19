@@ -324,8 +324,14 @@ def token_usage(usage):
                           ("output", ("output_tokens", "completion_tokens")),
                           ("total", ("total_tokens",))):
         for name in names:
-            value = getattr(usage, name, None)
+            value = usage.get(name) if isinstance(usage, dict) else getattr(usage, name, None)
             if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
                 result[target] = value
                 break
+    details = (usage.get("completion_tokens_details") if isinstance(usage, dict)
+               else getattr(usage, "completion_tokens_details", None))
+    reasoning = (details.get("reasoning_tokens") if isinstance(details, dict)
+                 else getattr(details, "reasoning_tokens", None))
+    if isinstance(reasoning, int) and not isinstance(reasoning, bool) and reasoning >= 0:
+        result["reasoning"] = reasoning
     return result

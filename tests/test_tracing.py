@@ -80,5 +80,24 @@ class StageDescriptionTests(unittest.TestCase):
         self.assertEqual(result_level("ОК"), "DEFAULT")
         self.assertEqual(result_level("Ошибка"), "DEFAULT")
 
+
+class TokenUsageTests(unittest.TestCase):
+    def test_reasoning_is_a_subset_not_added_to_provider_total(self):
+        from audit_tracing import token_usage
+        for usage in (
+            {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30,
+             "completion_tokens_details": {"reasoning_tokens": 17}},
+            SimpleNamespace(prompt_tokens=10, completion_tokens=20, total_tokens=30,
+                            completion_tokens_details=SimpleNamespace(reasoning_tokens=17)),
+        ):
+            self.assertEqual(token_usage(usage),
+                             {"input": 10, "output": 20, "total": 30, "reasoning": 17})
+
+    def test_unknown_reasoning_is_not_reported_as_zero(self):
+        from audit_tracing import token_usage
+        self.assertNotIn("reasoning", token_usage(SimpleNamespace(total_tokens=30)))
+        self.assertEqual(token_usage({"completion_tokens_details": {"reasoning_tokens": 0}}),
+                         {"reasoning": 0})
+
 if __name__ == "__main__":
     unittest.main()

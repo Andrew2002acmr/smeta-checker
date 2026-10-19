@@ -72,6 +72,7 @@ def show_user_guide():
     ### 3. Важные особенности
     * **Знак `/` в объемах:** Считывается как альтернатива («или»). Если в ПД `9/45`, а в ВОР заявлено `45` — объем подтверждается.
     * **Результаты:** `Ошибка` — найденная работа с расхождением данных или ссылки. `Неполная проверка` — ограниченный поиск не дал достаточных доказательств; отсутствие работы во всем PDF не установлено.
+    * **Пометки к ОК:** Неподтверждённое примечание ВОР и находка на соседней странице PDF (±1 от ссылки) сохраняются в деталях, но сами по себе не означают расхождение объёма или единицы. Примечание не считается подтверждённым без цитаты ПД.
     * **Номера страниц:** «9» означает девятую страницу PDF, независимо от колонтитула. Сначала проверяется связанный контекст ссылки ВОР, затем локально отобранные фрагменты всего текстового индекса. Поиск останавливается на найденной работе, даже при несовпадении объема или примечания.
     * **Лимиты:** Не больше 6 API-попыток на позицию, включая повторы; до 4 страниц и 10 000 символов в контексте. OCR — до 4 новых связанных сканов на позицию с кешем.
     * **Технический сбой:** API, чтение PDF, OCR или некорректный ответ модели могут оставить проверку незавершенной. Причина указана в деталях; найденные доказательства сохраняются.
@@ -101,15 +102,6 @@ def prepare_df_for_display(df):
         clean_df[col] = clean_df[col].fillna('-').astype(str)
         clean_df[col] = clean_df[col].apply(lambda x: x[:-2] if x.endswith('.0') and x[:-2].isdigit() else x)
     return clean_df
-
-
-
-
-_SETTINGS = load_settings()
-YANDEX_FOLDER = _SETTINGS.yandex_cloud_folder
-YANDEX_API_KEY = _SETTINGS.yandex_cloud_api_key
-YANDEX_MODEL_NAME = _SETTINGS.yandex_cloud_model
-
 
 def render_page(doc, page_idx, dpi=250):
     """Рендерит таблицы и чертежи без неограниченного выделения памяти."""
@@ -260,14 +252,15 @@ with main_tab1:
             st.button("⏳ Выполняется аудит (подождите)...", disabled=True, use_container_width=True)
 
             trace_run = None
+            _run_settings = load_settings()
+            _run_llm = _run_settings.llm_credentials()
             try:
-                if not YANDEX_API_KEY:
+                if not _run_llm.api_key:
                     st.error("Пожалуйста, укажите API Key в .env!")
                 elif not pdf_pool:
                     st.error("Не загружено ни одного файла PDF!")
                 else:
                     st.session_state.audit_run_issues = []
-                    _run_settings = load_settings()
                     trace_run = TracingRun(
                         _run_settings.langfuse_public_key,
                         _run_settings.langfuse_secret_key,
@@ -297,12 +290,14 @@ with main_tab1:
 
                     outcome = run_audit(
                         loaded_vors, target_vor_selection, pdf_pool,
-                        api_key=YANDEX_API_KEY, folder=YANDEX_FOLDER, model_name=YANDEX_MODEL_NAME,
+                        api_key=_run_llm.api_key, folder=_run_llm.folder, model_name=_run_llm.model_name,
                         trace_run=trace_run,
                         progress=lambda fraction, text: progress_bar.progress(fraction, text=text),
                         store=store, project_name=project_name or "default",
                         pdf_sources=pdf_local_paths,
-                        allowed_llm_hosts=_run_settings.allowed_llm_hosts)
+                        allowed_llm_hosts=_run_settings.allowed_llm_hosts,
+                        llm_base_url=_run_llm.base_url,
+                        llm_provider=_run_llm.provider)
                     st.session_state.audit_run_issues = outcome["issues"]
                     st.session_state.audit_results.update(outcome["results"])
 
@@ -415,11 +410,25 @@ with main_tab1:
                                     f"запросов: {t_info.get('requests', 0)}, "
                                     f"контекстов: {t_info.get('contexts', 0)}")
                             st.caption(conf)
+                            basis = {"direct": "напечатанное количество ПД", "derived": "расчёт по исходным данным ПД",
+                                     "unknown": "не установлено"}.get(t_info.get("quantity_basis", "unknown"), "не установлено")
+                            st.caption(f"Основание количества: {basis}")
+                            technology = t_info.get("technology") or {}
+                            if technology.get("status") == "different":
+                                st.warning(f"Технология: ВОР — «{technology.get('expected', '')}»; "
+                                           f"ПД — «{technology.get('actual', '')}». Требуется инженерная сверка.")
+                            elif technology.get("status") == "unconfirmed":
+                                st.info("Операция найдена; способ выполнения пока не подтверждён.")
+                            workbook = t_info.get("workbook_calculation") or {}
+                            if workbook:
+                                with st.expander("Формула Excel и происхождение исходных данных"):
+                                    st.caption("Ячейки ВОР и константы формулы не заменяют доказательств ПД.")
+                                    st.json(workbook)
                             if t_info.get("trace_url"):
                                 st.link_button("Открыть trace позиции в Langfuse", t_info["trace_url"])
                             elif t_info.get("trace_id"):
                                 st.caption(f"Langfuse trace: {t_info['trace_id']}")
-                            kind_ru = {"work": "работа", "volume": "объём", "unit": "ед.", "comment": "прим."}
+                            kind_ru = {"work": "работа", "volume": "объём", "unit": "ед.", "comment": "прим.", "technology": "технология"}
                             for item in evidence:
                                 quote = str(item.get("quote", ""))
                                 st.markdown(f"«{quote}» — стр. {item.get('page')} ({kind_ru.get(item.get('kind'), item.get('kind'))})")

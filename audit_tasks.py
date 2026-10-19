@@ -101,6 +101,9 @@ def _task_payload(
         "page_ref": position.page_ref,
         "comment": position.comment,
         "formula": position.formula,
+        "position_type": position.position_type,
+        "calculation": position.calculation,
+        "formula_refs": dict(getattr(position, "formula_refs", None) or {}),
         "pdf_name": pdf_name,
         "explicit_refs": list(position.explicit_refs),
         "target_indices": list(target_indices),
@@ -164,6 +167,9 @@ def _build_task_dict(
         "w_page": position.page_ref,
         "w_comment": position.comment,
         "w_formula": position.formula,
+        "position_type": position.position_type,
+        "calculation": position.calculation,
+        "formula_refs": dict(getattr(position, "formula_refs", None) or {}),
         "text_index": text_index,
         "target_pdf_name": pdf_name,
         "explicit_refs": list(position.explicit_refs),
@@ -221,6 +227,10 @@ def prepare_run(
         for name, data in pdf_files.items():
             pool[name] = fitz.open(stream=bytes(data), filetype="pdf")
         df_works, positions, meta = load_vor_frame_positions(vor_bytes, vor_filename)
+        from vor_consistency import check_scheme_divisors
+        scheme_notes: dict = {}
+        for hit in check_scheme_divisors(positions):
+            scheme_notes.setdefault(hit.get("position", ""), []).append(hit)
         pool_keys = list(pool.keys())
         for position in positions:
             index = int(position.index)
@@ -259,18 +269,28 @@ def prepare_run(
                         position.reference,
                         position.comment,
                     )
+                siblings = [
+                    {"index": int(other.index), "number": other.number,
+                     "position_type": other.position_type,
+                     "unit": other.unit, "volume": other.volume,
+                     "work_name": other.work_name, "comment": other.comment,
+                     "formula": other.formula, "calculation": other.calculation}
+                    for other in positions
+                ]
                 payload = _task_payload(
                     position,
                     pdf_name,
                     target_indices,
                     len(pool[pdf_name]) if pdf_name else 0,
                 )
+                payload["vor_positions"] = siblings
                 payload.update(
                     {
                         "bind_error": bind_error,
                         "loc_desc": loc_desc,
                         "primary_pages": primary_pages,
                         "vor_filename": vor_filename,
+                        "scheme_notes": [dict(h) for h in scheme_notes.get(position.number, [])],
                         "project": project,
                         "request_id": request_id,
                         "pdf_versions": {
@@ -452,6 +472,7 @@ def audit_position(
                 mask_prompts=context.settings.telemetry_mask_prompts,
             )
             try:
+                llm = context.settings.llm_credentials()
                 position_trace = trace_run.position(
                     input={
                         "work": w_name,
@@ -461,12 +482,14 @@ def audit_position(
                         "pages": payload.get("page_ref", ""),
                         "comment": payload.get("comment", ""),
                         "formula": payload.get("formula", ""),
+                        "position_type": payload.get("position_type", ""),
+                        "calculation": payload.get("calculation", {}),
                     },
                     metadata={
                         "vor_file": payload.get("vor_filename", ""),
                         "position_index": position_index,
-                        "provider": "Yandex Cloud (Qwen)",
-                        "model": context.settings.yandex_cloud_model,
+                        "provider": llm.provider,
+                        "model": llm.model_name,
                     },
                 )
                 from audit_models import VorPosition
@@ -481,6 +504,9 @@ def audit_position(
                         page_ref=payload.get("page_ref", ""),
                         comment=payload.get("comment", ""),
                         formula=payload.get("formula", ""),
+                        position_type=payload.get("position_type", ""),
+                        calculation=payload.get("calculation", {}),
+                        formula_refs=dict(payload.get("formula_refs") or {}),
                         explicit_refs=list(payload.get("explicit_refs") or []),
                     ),
                     pdf_name=pdf_name,
@@ -492,14 +518,25 @@ def audit_position(
                     primary_pages=list(payload.get("primary_pages") or []),
                     position_trace=position_trace,
                 )
+                from types import SimpleNamespace
+                task["vor_positions"] = [
+                    SimpleNamespace(**entry)
+                    for entry in (payload.get("vor_positions") or [])
+                    if isinstance(entry, dict)
+                ]
+                task["scheme_notes"] = [
+                    dict(h) for h in (payload.get("scheme_notes") or [])
+                    if isinstance(h, dict)
+                ]
                 audit_fn = partial(
                     context.auditor,
-                    api_key=context.settings.yandex_cloud_api_key,
-                    folder=context.settings.yandex_cloud_folder,
-                    model_name=context.settings.yandex_cloud_model,
+                    api_key=llm.api_key,
+                    folder=llm.folder,
+                    model_name=llm.model_name,
                     client_factory=context.client_factory,
                     sleeper=(lambda _: None),
                     allowed_hosts=tuple(context.settings.allowed_llm_hosts or ()),
+                    base_url=llm.base_url,
                 )
                 _, res_item, track_item = traced_worker_check_row(task, audit_fn)
                 position_trace.finish(res_item)
@@ -614,6 +651,12 @@ def _position_result_payload(
         "vor_pages": list(track_item.get("vor_pages") or []),
         "evidence": [dict(item) for item in track_item.get("evidence") or []],
         "volume_calculation": track_item.get("volume_calculation"),
+        "technology": track_item.get("technology", {}),
+        "quantity_basis": track_item.get("quantity_basis", "unknown"),
+        "consumption": track_item.get("consumption"),
+        "workbook_calculation": track_item.get("workbook_calculation", {}),
+        "workbook_notes": list(track_item.get("workbook_notes") or []),
+        "position_type": track_item.get("position_type", ""),
         "discrepancy_details": res_item.get("Детали расхождений", ""),
         "search_complete": bool(track_item.get("search_complete")),
         "requests": track_item.get("requests", 0),
@@ -803,6 +846,7 @@ def _stored_to_items(
             "volume": "объём",
             "unit": "ед.",
             "comment": "прим.",
+            "technology": "технология",
         }
         res_item = {
             "Статус аудита": stored.get("status", TECHNICAL_ERROR),
@@ -849,6 +893,12 @@ def _stored_to_items(
             "found_unit": stored.get("found_unit", "-"),
             "found_volume": stored.get("found_volume", "-"),
             "volume_calculation": stored.get("volume_calculation"),
+            "technology": stored.get("technology", {}),
+            "quantity_basis": stored.get("quantity_basis", "unknown"),
+            "consumption": stored.get("consumption"),
+            "workbook_calculation": stored.get("workbook_calculation", {}),
+            "workbook_notes": list(stored.get("workbook_notes") or []),
+            "position_type": stored.get("position_type", position.position_type),
             "search_complete": bool(stored.get("search_complete")),
             "requests": stored.get("requests", 0),
             "contexts": stored.get("contexts", 0),

@@ -1,6 +1,9 @@
 """VOR workbook parsing: header metadata, work rows, continuation refs.
 
 Pandas lives only at this import boundary; callers receive validated models.
+Numeric quantity formulas (column D, e.g. ``=ROUND(...)``) are snapshotted
+once per load via openpyxl and evaluated by ``vor_formula``; the textual
+E-column formula stays in ``VorPosition.formula`` untouched.
 """
 
 from __future__ import annotations
@@ -12,6 +15,16 @@ import pandas as pd
 
 from audit_models import VorMeta, VorPosition
 from pdf_binding import split_pdf_refs
+from vor_formula import calculate_cell, snapshot_cells
+
+
+def _col_letter(index):
+    """1-based column number to Excel letters (no openpyxl dependency)."""
+    letters = ""
+    while index > 0:
+        index, rest = divmod(index - 1, 26)
+        letters = chr(65 + rest) + letters
+    return letters
 
 
 def _read_vor_frame(file_source, filename):
@@ -53,19 +66,20 @@ def _read_vor_frame(file_source, filename):
     # Чтение метаданных из шапки
     for line in lines[:20]:
         line_clean = line.replace('"', "").replace(";", "  ")
-        if "наименование стройки" in line_clean.lower():
-            parts = [p.strip() for p in line_clean.split("  ") if p.strip()]
-            if len(parts) > 1:
-                meta["object_name"] = parts[-1]
+        cells = [part.strip() for part in line.split("\t") if part.strip()]
+        value = cells[-1] if len(cells) > 1 else ""
+        if "наименование объекта капитального строительства" in line_clean.lower():
+            if value:
+                meta["object_name"] = value
+        elif "наименование стройки" in line_clean.lower():
+            if meta["object_name"] == "Не указано" and value:
+                meta["object_name"] = value
         elif "ведомость объемов работ №" in line_clean.lower():
-            parts = [p.strip() for p in line_clean.split("  ") if p.strip()]
-            if len(parts) > 1:
-                meta["doc_number"] = parts[-1]
+            if value:
+                meta["doc_number"] = value
         elif "основание" in line_clean.lower():
-            parts = [p.strip() for p in line_clean.split("  ") if p.strip()]
-            if len(parts) > 1:
-                meta["basis_code"] = parts[-1]
-
+            if value:
+                meta["basis_code"] = value
     header_idx = -1
     for idx, line in enumerate(lines):
         ll = line.lower()
@@ -77,6 +91,7 @@ def _read_vor_frame(file_source, filename):
         header_idx = 0
 
     # 3. Чтение итоговой таблицы
+    cells_snapshot = None
     if filename.endswith(".csv"):
         delimiter = ";" if ";" in lines[header_idx] else ","
         df = pd.read_csv(
@@ -84,6 +99,20 @@ def _read_vor_frame(file_source, filename):
         )
     else:
         df = pd.read_excel(io.BytesIO(content), skiprows=header_idx)
+        import openpyxl
+
+        book_formulas = openpyxl.load_workbook(io.BytesIO(content), data_only=False)
+        try:
+            book_cached = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+            try:
+                sheet_formulas = book_formulas[book_formulas.sheetnames[0]]
+                sheet_cached = book_cached[book_cached.sheetnames[0]]
+                cells_snapshot = snapshot_cells(sheet_formulas, sheet_cached)
+            finally:
+                book_cached.close()
+        finally:
+            book_formulas.close()
+
 
     df.columns = [re.sub(r"\s+", " ", str(c)).strip() for c in df.columns]
 
@@ -156,6 +185,13 @@ def _read_vor_frame(file_source, filename):
                         df_clean.at[owner_idx, col] = current + "\n" + extra
             elif pd.notna(row.iloc[0]) or pd.notna(row.iloc[1]):
                 owner_idx = None
+    # Provenance for numeric quantity formulas: the once-per-load snapshot
+    # ({address: formula/cached/plain}) plus the skipped header offset, so a
+    # filtered row maps back to its original Excel row. Kept in attrs, never
+    # as user-visible columns. CSV loads carry no formula snapshot.
+    df_clean.attrs["vor_header_idx"] = header_idx
+    if cells_snapshot is not None:
+        df_clean.attrs["vor_cells"] = cells_snapshot
     return df_clean, meta
 
 
@@ -192,6 +228,10 @@ def _vor_positions(df):
         None,
     )
     formula_col = next((c for c in df.columns if "формула" in str(c).lower()), None)
+    type_col = next(
+        (c for c in df.columns if "тип позиции" in str(c).lower()),
+        None,
+    )
     missing = [
         label
         for label, col in (
@@ -207,8 +247,24 @@ def _vor_positions(df):
             + ", ".join(missing)
             + ". Проверьте шапку ВОР."
         )
+    # Numeric-column provenance: df.attrs carries the once-per-load snapshot
+    # ({address: formula/cached/plain}) and the skipped header offset, so a
+    # filtered row maps back to its original Excel row even with section
+    # headers and continuation rows removed.
+    cells = df.attrs.get("vor_cells") or {}
+    try:
+        header_offset = int(df.attrs.get("vor_header_idx", 0) or 0)
+    except (TypeError, ValueError):
+        header_offset = 0
+    col_letters = {col: _col_letter(idx + 1) for idx, col in enumerate(df.columns)}
+    vol_letter = col_letters.get(vol_col, "")
+    formula_letter = col_letters.get(formula_col, "") if formula_col else ""
+    orig_labels = list(df.index)
+    df_reset = df.reset_index(drop=True)
     positions = []
-    for index, (_, row) in enumerate(df.reset_index(drop=True).iterrows()):
+    for index in range(len(df_reset)):
+        row = df_reset.iloc[index]
+
         def cell(col):
             return "" if col is None else row.get(col, "")
 
@@ -221,10 +277,41 @@ def _vor_positions(df):
         file_ref = str(cell(file_col)).strip()
         comment = str(cell(comment_col)).strip()
         formula = str(cell(formula_col)).strip()
+        position_type = str(cell(type_col)).strip()
         if comment.lower() == "nan":
             comment = ""
         if formula.lower() == "nan":
             formula = ""
+        if position_type.lower() == "nan":
+            position_type = ""
+        calculation: dict = {}
+        excel_row = 0
+        if cells and vol_letter:
+            try:
+                excel_row = int(orig_labels[index]) + header_offset + 2
+            except (TypeError, ValueError):
+                excel_row = 0
+            address = f"{vol_letter}{excel_row}"
+            if excel_row >= 1 and cells.get(address, {}).get("formula"):
+                calculation = calculate_cell(address, cells)
+        formula_cell = (
+            f"{formula_letter}{excel_row}"
+            if formula_letter and excel_row >= 1 else "")
+        formula_refs: dict = {}
+        if formula_cell:
+            formula_refs = {"display_cell": formula_cell}
+            display = (cells.get(formula_cell) or {}) if cells else {}
+            if display.get("formula"):
+                formula_refs["display_formula"] = display["formula"]
+        # Generated workbooks saved without an Excel engine leave the cached
+        # quantity empty (pandas reads NaN or the raw "=..." text): fill the
+        # claimed volume only from a successful safe calculation. A present
+        # cached value always stays the caller's claim; staleness is exposed
+        # via calculation["cached_mismatch"], never by overwriting volume.
+        # On failure the raw value is left untouched (previous behaviour).
+        if volume.lower() in {"", "nan", "none", "-"} or volume.startswith("="):
+            if calculation.get("status") == "calculated" and calculation.get("value"):
+                volume = str(calculation["value"])
         positions.append(
             VorPosition(
                 index=index,
@@ -238,6 +325,12 @@ def _vor_positions(df):
                 explicit_refs=split_pdf_refs(file_ref),
                 comment=comment,
                 formula=formula,
+                formula_refs=formula_refs,
+                position_type=position_type,
+                calculation=calculation,
+                document_id="",
+                bind_error=None,
+                prep_error=None,
             )
         )
     return positions

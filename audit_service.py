@@ -104,6 +104,8 @@ def worker_check_row(task, audit_position):
             page_ref=task["w_page"],
             comment_text=task["w_comment"],
             formula_text=task["w_formula"],
+            position_type=task.get("position_type", ""),
+            calculation=task.get("calculation", {}),
         )
     validated = (
         audit
@@ -139,8 +141,87 @@ def worker_check_row(task, audit_position):
     display_page = ("Стр. " + ", ".join(map(str, found_pages))) if found_pages else "-"
     details_text = str(audit.get("discrepancy_details") or "")
     final_status = audit.get("status", "Ошибка")
+    consumption = None
+    quantity_kind, _ = ("direct", "")
+    workbook_notes: list = []
+    if task.get("calculation"):
+        from vor_consistency import check_display_consistency
+        workbook_notes = check_display_consistency(
+            task.get("calculation"), task.get("w_formula", ""),
+            task.get("formula_refs"))
+        index = task.get("text_index")
+        pages = task.get("primary_phys_pages") or []
+        if index is not None and pages:
+            from vor_consistency import check_length_operands
+            texts = getattr(index, "texts", []) or []
+            related = {p: texts[p - 1] for p in pages
+                       if 0 < p <= len(texts)}
+            workbook_notes += check_length_operands(
+                task.get("calculation"), related)
+    workbook_notes += [dict(h) for h in (task.get("scheme_notes") or [])]
+    if task.get("text_index") is not None:
+        from quantity_graph import classify_quantity, reconcile_position_schedule
+
+        quantity_kind, _ = classify_quantity(
+            task.get("w_name", ""), task.get("w_comment", ""), task.get("w_unit", ""),
+            task.get("w_formula", ""), task.get("calculation", {}))
+    if final_status not in {TECHNICAL_ERROR} and task.get("text_index") is not None:
+        consumption = reconcile_position_schedule(
+            task,
+            {"evidence": [{"page": e.get("page"), "kind": e.get("kind")}
+                          for e in evidence]},
+        )
+        if consumption is not None and consumption.get("matches") is False:
+            from audit_core import format_ru
+            final_status = "Ошибка"
+            chain = consumption.get("stock_chain") or {}
+            if chain:
+                details_text += (
+                    f" Расхождение с ПД: потребность в материале с запасом — "
+                    f"в ВОР {chain['material_volume']} {task.get('w_unit')} "
+                    f"(работа {chain['work_volume']} × {chain['factor']}, позиция №{chain['material_number']}), "
+                    f"в спецификации — {consumption['schedule_volume']} {task.get('w_unit')} "
+                    f"(стр. {consumption['schedule_page']}, {consumption['schedule_item']}). "
+                    f"Разница — {consumption['delta']} {task.get('w_unit')} "
+                    f"({consumption['delta_percent']}%). "
+                    f"В ВОР принят расход {consumption['rate']} {consumption['unit']}, "
+                    f"из количества в ПД следует {consumption['derived_rate']} {consumption['unit']}."
+                )
+            else:
+                details_text += (
+                    f" Расхождение с ПД: в ВОР {format_ru(task.get('w_vol'))} {task.get('w_unit')}, "
+                    f"в спецификации — {consumption['schedule_volume']} {task.get('w_unit')} "
+                    f"(стр. {consumption['schedule_page']}, {consumption['schedule_item']}). "
+                    f"Разница — {consumption['delta']} {task.get('w_unit')} "
+                    f"({consumption['delta_percent']}%). "
+                    f"В ВОР принят расход {consumption['rate']} {consumption['unit']}, "
+                    f"из количества в ПД следует {consumption['derived_rate']} {consumption['unit']}."
+                )
+        elif (consumption is not None and consumption.get("matches") is True
+                and (consumption.get("stock_chain") or {})):
+            chain = consumption["stock_chain"]
+            details_text += (
+                f" Потребность в материале сходится: работа {chain['work_volume']} "
+                f"× {chain['factor']} = {chain['material_volume']} {task.get('w_unit')} "
+                f"(позиция №{chain['material_number']}), в спецификации — "
+                f"{consumption['schedule_volume']} {task.get('w_unit')} "
+                f"(стр. {consumption['schedule_page']}). "
+                f"Обоснованность нормы {consumption['rate']} {consumption['unit']} "
+                f"в ПД не подтверждена — отдельный вопрос."
+            )
     # Core owns out-of-reference findings; the adapter
     # additionally preserves malformed/part-invalid input.
+    for note in workbook_notes:
+        kind = note.get("kind", "")
+        if kind in {"scheme-divisor-mismatch", "length-operand-conflicts"}:
+            details_text += f" Вопрос к исходным данным ВОР: {note['message']}."
+        else:
+            details_text += f" Внутренняя несогласованность ВОР: {note['message']}."
+    hard_notes = [n for n in workbook_notes
+                  if n.get("kind") not in {"scheme-divisor-mismatch",
+                                           "length-operand-conflicts"}]
+    if hard_notes and final_status == "ОК":
+        final_status = "Ошибка"
     vor_pages_int = task["primary_phys_pages"] if task["primary_phys_pages"] else []
     if (
         not task["target_indices"] or "недопустимые" in task["loc_desc"]
@@ -160,7 +241,7 @@ def worker_check_row(task, audit_position):
         f"Работа: {_yn(work_found)}; Объём: {_yn(vol_ok)}; "
         f"Ед.: {_yn(unit_ok)}; Прим.: {_yn(comm_ok)}"
     )
-    kind_ru = {"work": "работа", "volume": "объём", "unit": "ед.", "comment": "прим."}
+    kind_ru = {"work": "работа", "volume": "объём", "unit": "ед.", "comment": "прим.", "technology": "технология"}
     evidence_text = (
         "; ".join(
             f"[Стр. {e.get('page')}, {kind_ru.get(e.get('kind'), e.get('kind'))}] «{e.get('quote', '')}»"
@@ -193,6 +274,11 @@ def worker_check_row(task, audit_position):
         "contexts": audit.get("contexts", 0),
         "budget_tokens": audit.get("budget_tokens"),
         "usage": dict(audit.get("usage") or {}),
+        "technology": audit.get("technology", {}),
+        "quantity_basis": audit.get("quantity_basis", "unknown"),
+        "consumption": consumption if consumption is not None else audit.get("consumption"),
+        "workbook_calculation": audit.get("workbook_calculation", {}),
+        "workbook_notes": [dict(n) for n in workbook_notes],
     }
     show_p = (
         list(found_pages) if found_pages else (vor_pages_int if vor_pages_int else [1])
@@ -211,6 +297,13 @@ def worker_check_row(task, audit_position):
         "found_unit": audit.get("found_unit", "-"),
         "found_volume": audit.get("found_volume", "-"),
         "volume_calculation": audit.get("volume_calculation"),
+        "technology": audit.get("technology", {}),
+        "quantity_basis": audit.get("quantity_basis", "unknown"),
+        "consumption": consumption if consumption is not None else audit.get("consumption"),
+        "quantity_kind": quantity_kind,
+        "workbook_calculation": audit.get("workbook_calculation", {}),
+        "workbook_notes": [dict(n) for n in workbook_notes],
+        "position_type": task.get("position_type", ""),
         "search_complete": bool(audit.get("search_complete")),
         "requests": audit.get("requests", 0),
         "contexts": audit.get("contexts", 0),
@@ -336,10 +429,12 @@ def build_run_artifacts(df_works, meta, tasks, tracking, results):
     if vol_col in df_works_clean.columns:
 
         def clean_vor_val(v):
+            from audit_core import format_ru
+
             s = str(v).strip()
             if s.endswith(".0") and s[:-2].replace("-", "").isdigit():
                 return s[:-2]
-            return s
+            return format_ru(s)
 
         df_works_clean[vol_col] = df_works_clean[vol_col].apply(clean_vor_val)
 
@@ -410,7 +505,7 @@ def run_audit(
     folder,
     model_name,
     trace_run=None,
-    max_workers=5,
+    max_workers=8,
     progress=None,
     client_factory=None,
     sleeper=None,
@@ -420,6 +515,8 @@ def run_audit(
     run_id=None,
     pdf_versions=None,
     allowed_llm_hosts=("ai.api.cloud.yandex.net",),
+    llm_base_url="https://ai.api.cloud.yandex.net/v1",
+    llm_provider="Yandex Cloud (Qwen)",
 ):
     """Audit selected VORs headless.
 
@@ -435,7 +532,9 @@ def run_audit(
     rows so API payloads keep ``pdf_version_id``/``pdf_sha256`` without
     re-adding versions. ``pdf_sources`` optionally maps pool keys to
     original PDF bytes/paths so stored hashes are stable (``fitz``
-    re-serialization is not deterministic).
+    re-serialization is not deterministic). ``llm_base_url`` selects the
+    transport (Yandex Responses vs chat gateways); ``llm_provider`` labels
+    traces and stored run configs.
     """
     audit_position = partial(
         audit_position_hybrid,
@@ -445,6 +544,7 @@ def run_audit(
         client_factory=client_factory,
         sleeper=sleeper,
         allowed_hosts=tuple(allowed_llm_hosts or ()),
+        base_url=llm_base_url,
     )
     own_trace = trace_run is None
     trace_run = trace_run or TracingRun()
@@ -452,6 +552,7 @@ def run_audit(
     results = {}
     issues = []
     pdf_text_sources = {}
+    executor = ThreadPoolExecutor(max_workers=max_workers)
     try:
         vors_parsed = {}
         total_items = 0
@@ -483,7 +584,14 @@ def run_audit(
         current_row_idx = 0
 
         for v_name, (df_works, positions, meta) in vors_parsed.items():
+            from vor_consistency import check_scheme_divisors
+            scheme_notes: dict = {}
+            for hit in check_scheme_divisors(positions):
+                scheme_notes.setdefault(hit.get("position", ""), []).append(hit)
             tasks = []
+            results_list = [None] * len(positions)
+            row_page_tracking = [None] * len(positions)
+            future_to_task = {}
             for position in positions:
                 r_idx = position.index
                 w_name = position.work_name
@@ -502,11 +610,13 @@ def run_audit(
                         "pages": w_page,
                         "comment": w_comment,
                         "formula": w_formula,
+                        "position_type": position.position_type,
+                        "calculation": position.calculation,
                     },
                     metadata={
                         "vor_file": v_name,
                         "position_index": r_idx,
-                        "provider": "Yandex Cloud (Qwen)",
+                        "provider": llm_provider,
                         "model": model_name,
                     },
                 )
@@ -660,6 +770,9 @@ def run_audit(
                         "w_page": w_page,
                         "w_comment": w_comment,
                         "w_formula": w_formula,
+                        "position_type": position.position_type,
+                        "calculation": position.calculation,
+                        "formula_refs": dict(position.formula_refs or {}),
                         "text_index": text_index,
                         "target_pdf_name": target_pdf_name,
                         "explicit_refs": list(explicit_refs),
@@ -668,38 +781,33 @@ def run_audit(
                         "target_indices": target_indices,
                         "loc_desc": loc_desc,
                         "primary_phys_pages": primary_phys_pages,
+                        "vor_positions": list(positions),
+                        "scheme_notes": [dict(h) for h in scheme_notes.get(position.number, [])],
                     }
                 )
+                task = tasks[-1]
+                future_to_task[executor.submit(traced_worker_check_row, task, audit_position)] = task
 
-            results_list = [None] * len(tasks)
-            row_page_tracking = [None] * len(tasks)
+            for future in as_completed(future_to_task):
+                try:
+                    r_idx, res_item, track_item = future.result()
+                except Exception as exc:
+                    task = future_to_task[future]
+                    r_idx = task["idx"]
+                    res_item, track_item = _failure_items(exc, task)
+                position_trace = future_to_task[future]["position_trace"]
+                position_trace.finish(res_item)
+                track_item["trace_id"] = position_trace.trace_id
+                track_item["trace_url"] = position_trace.url()
+                results_list[r_idx] = res_item
+                row_page_tracking[r_idx] = track_item
 
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                future_to_task = {
-                    executor.submit(traced_worker_check_row, t, audit_position): t
-                    for t in tasks
-                }
-
-                for future in as_completed(future_to_task):
-                    try:
-                        r_idx, res_item, track_item = future.result()
-                    except Exception as exc:
-                        task = future_to_task[future]
-                        r_idx = task["idx"]
-                        res_item, track_item = _failure_items(exc, task)
-                    position_trace = future_to_task[future]["position_trace"]
-                    position_trace.finish(res_item)
-                    track_item["trace_id"] = position_trace.trace_id
-                    track_item["trace_url"] = position_trace.url()
-                    results_list[r_idx] = res_item
-                    row_page_tracking[r_idx] = track_item
-
-                    current_row_idx += 1
-                    pct = current_row_idx / total_items
-                    notify(
-                        pct,
-                        f"Многопоточная проверка [{current_row_idx}/{total_items}]: {v_name} (5 потоков)...",
-                    )
+                current_row_idx += 1
+                pct = current_row_idx / total_items
+                notify(
+                    pct,
+                    f"Многопоточная проверка [{current_row_idx}/{total_items}]: {v_name} ({max_workers} потоков)...",
+                )
 
             artifacts = build_run_artifacts(
                 df_works, meta, tasks, row_page_tracking, results_list
@@ -734,6 +842,7 @@ def run_audit(
                     model_name=model_name,
                     project_name=project_name,
                     pdf_sources=pdf_sources,
+                    provider=llm_provider,
                 )
 
             results[v_name] = {
@@ -748,6 +857,7 @@ def run_audit(
 
         return {"results": results, "issues": issues}
     finally:
+        executor.shutdown(wait=True)
         for source in list(pdf_text_sources.values()):
             try:
                 source.close()

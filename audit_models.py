@@ -8,10 +8,22 @@ historical ``run_audit``/``tracking`` shapes for the UI, baseline and scripts.
 
 from __future__ import annotations
 
+import copy
 from enum import StrEnum
-from typing import Any
+from typing import Any, NamedTuple
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator
+
+
+class LlmCredentials(NamedTuple):
+    """Resolved provider: key/folder/model plus the transport/backend to use."""
+
+    api_key: str
+    folder: str
+    model_name: str
+    base_url: str
+    provider: str
 
 
 class AuditStatus(StrEnum):
@@ -39,6 +51,7 @@ class EvidenceKind(StrEnum):
     VOLUME = "volume"
     UNIT = "unit"
     COMMENT = "comment"
+    TECHNOLOGY = "technology"
 
 
 class ErrorKind(StrEnum):
@@ -118,6 +131,9 @@ class VorPosition(BaseModel):
     explicit_refs: list[str] = Field(default_factory=list)
     comment: str = ""
     formula: str = ""
+    formula_refs: dict[str, Any] = Field(default_factory=dict)
+    position_type: str = ""
+    calculation: dict[str, Any] = Field(default_factory=dict)
     document_id: str = ""
     bind_error: str | None = None
     prep_error: str | None = None
@@ -162,6 +178,9 @@ class VorPosition(BaseModel):
             "w_page": self.page_ref,
             "w_comment": self.comment,
             "w_formula": self.formula,
+            "position_type": self.position_type,
+            "calculation": copy.deepcopy(self.calculation),
+            "formula_refs": copy.deepcopy(self.formula_refs),
             "target_pdf_name": self.document_id,
             "explicit_refs": list(self.explicit_refs),
             "bind_error": self.bind_error,
@@ -187,6 +206,9 @@ class VorPosition(BaseModel):
             explicit_refs=list(task.get("explicit_refs", []) or []),
             comment=str(task.get("w_comment", "") or ""),
             formula=str(task.get("w_formula", "") or ""),
+            position_type=str(task.get("position_type", "") or ""),
+            calculation=copy.deepcopy(task.get("calculation", {}) or {}),
+            formula_refs=copy.deepcopy(task.get("formula_refs", {}) or {}),
             document_id=str(task.get("target_pdf_name", "") or ""),
             bind_error=task.get("bind_error"),
             prep_error=task.get("prep_error"),
@@ -286,6 +308,42 @@ class VolumeCalculation(BaseModel):
     thickness: VolumeOperand
 
 
+class TechnologyStatus(StrEnum):
+    NOT_CHECKED = "not_checked"
+    NOT_APPLICABLE = "not_applicable"
+    CONFIRMED = "confirmed"
+    UNCONFIRMED = "unconfirmed"
+    DIFFERENT = "different"
+
+
+class TechnologyAssessment(BaseModel):
+    """Technology is independent of operation presence and quantity."""
+
+    model_config = ConfigDict(extra="forbid")
+    status: TechnologyStatus = TechnologyStatus.NOT_CHECKED
+    expected: str = ""
+    actual: str = ""
+    cross_pages: list[int] = Field(default_factory=list)
+
+
+class ConsumptionAssessment(BaseModel):
+    """V = S × q reconciliation: workbook rate vs schedule-derived q_pd."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rate: str = ""
+    unit: str = ""
+    area: str = ""
+    schedule_volume: str = ""
+    schedule_page: int | None = None
+    schedule_item: str = ""
+    derived_rate: str = ""
+    delta: str = ""
+    delta_percent: str = ""
+    matches: bool | None = None
+    uncertainties: list[str] = Field(default_factory=list)
+
+
 class AuditResult(BaseModel):
     """Validated per-position outcome; ``status`` never overrides evidence."""
 
@@ -308,6 +366,10 @@ class AuditResult(BaseModel):
     budget_tokens: int | None = Field(default=None, ge=0)
     usage: dict[str, int] = Field(default_factory=dict)
     volume_calculation: VolumeCalculation | None = None
+    technology: TechnologyAssessment = Field(default_factory=TechnologyAssessment)
+    quantity_basis: str = "unknown"
+    consumption: ConsumptionAssessment | None = None
+    workbook_calculation: dict[str, Any] = Field(default_factory=dict)
     recoverable: bool | None = None
     error: AuditError | None = None
 
@@ -319,7 +381,7 @@ class AuditResult(BaseModel):
         if not isinstance(value, dict):
             raise ValueError("usage must be a mapping")
         cleaned: dict[str, int] = {}
-        for key in ("input", "output", "total"):
+        for key in ("input", "output", "total", "reasoning"):
             item = value.get(key)
             if item is None:
                 continue
@@ -373,9 +435,12 @@ class AuditResult(BaseModel):
             self.work_found
             and self.volume_confirmed
             and self.unit_confirmed
-            and self.comment_confirmed
         ):
             raise ValueError("ОК requires all confirmations")
+        if self.status == AuditStatus.OK and self.technology.status in {
+            TechnologyStatus.DIFFERENT, TechnologyStatus.UNCONFIRMED,
+        }:
+            raise ValueError("ОК requires a resolved technology assessment")
         if not self.work_found:
             # Absence of proof is not absence of work; keep explicit unknowns.
             object.__setattr__(self, "found_page", "-")
@@ -468,6 +533,7 @@ class LlmAuditResponse(BaseModel):
     evidence: list[dict[str, Any]]
     discrepancy_details: str | int | float | None
     volume_calculation: dict[str, Any] | None = None
+    technology: TechnologyAssessment = Field(default_factory=TechnologyAssessment)
 
     @field_validator("found_volume", "found_unit", "discrepancy_details", mode="before")
     @classmethod
@@ -510,6 +576,12 @@ class AuditSettings(BaseModel):
     yandex_cloud_folder: str = ""
     yandex_cloud_api_key: str = ""
     yandex_cloud_model: str = "qwen3.6-35b-a3b/latest"
+    # Generic OpenAI-compatible backend (AnyModel gateway). Empty values keep
+    # the historical Yandex path: base_url defaults to Yandex, the model keeps
+    # the ``gpt://`` shape and the folder rides the ``project`` slot.
+    llm_base_url: str = "https://ai.api.cloud.yandex.net/v1"
+    llm_api_key: str = ""
+    llm_model: str = ""
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
     langfuse_base_url: str = "https://cloud.langfuse.com"
@@ -545,6 +617,43 @@ class AuditSettings(BaseModel):
 
         llm_hosts = _csv("AUDIT_ALLOWED_LLM_HOSTS") or ("ai.api.cloud.yandex.net",)
 
+        llm_api_key = get_setting(
+            "AUDIT_LLM_API_KEY",
+            get_setting(
+                "ANYMODEL_API_KEY", "",
+                file_values=file_values, secrets=secrets,
+            ),
+            file_values=file_values,
+            secrets=secrets,
+        )
+        llm_model = get_setting(
+            "AUDIT_LLM_MODEL",
+            get_setting(
+                "ANYMODEL_MODEL", "",
+                file_values=file_values, secrets=secrets,
+            ),
+            file_values=file_values,
+            secrets=secrets,
+        )
+        # AnyModel keys select the gateway default; a bare AUDIT_* override
+        # without a chat host stays on Yandex (the adapter still routes by
+        # host, so an explicit Yandex base keeps the Responses shape).
+        anymodel_base = get_setting(
+            "ANYMODEL_BASE_URL", "",
+            file_values=file_values, secrets=secrets,
+        )
+        llm_base_url = get_setting(
+            "AUDIT_LLM_BASE_URL",
+            anymodel_base
+            or (
+                "https://anymodel.org/v1"
+                if llm_api_key.strip() or llm_model.strip()
+                else "https://ai.api.cloud.yandex.net/v1"
+            ),
+            file_values=file_values,
+            secrets=secrets,
+        )
+
         return cls(
             yandex_cloud_folder=get_setting(
                 "YANDEX_CLOUD_FOLDER", "", file_values=file_values, secrets=secrets
@@ -558,6 +667,9 @@ class AuditSettings(BaseModel):
                 file_values=file_values,
                 secrets=secrets,
             ),
+            llm_base_url=llm_base_url,
+            llm_api_key=llm_api_key,
+            llm_model=llm_model,
             langfuse_public_key=get_setting(
                 "LANGFUSE_PUBLIC_KEY", "", file_values=file_values, secrets=secrets
             ),
@@ -664,3 +776,38 @@ class AuditSettings(BaseModel):
                 or 0
             ),
         )
+
+    def llm_credentials(self) -> LlmCredentials:
+        """Pick Yandex or a chat gateway; explicit keys beat implicit defaults.
+
+        AnyModel keys (``ANYMODEL_*``/``AUDIT_LLM_*``) select the chat backend
+        with the raw catalog id. Otherwise Yandex keeps the historical
+        ``gpt://folder/model`` shape.
+        """
+        if self.llm_api_key.strip() and self.llm_model.strip():
+            return LlmCredentials(
+                api_key=self.llm_api_key.strip(),
+                folder="",
+                model_name=self.llm_model.strip(),
+                base_url=self.llm_base_url.strip()
+                or "https://ai.api.cloud.yandex.net/v1",
+                provider=self._chat_provider_label(self.llm_base_url),
+            )
+        return LlmCredentials(
+            api_key=self.yandex_cloud_api_key,
+            folder=self.yandex_cloud_folder,
+            model_name=self.yandex_cloud_model,
+            base_url="https://ai.api.cloud.yandex.net/v1",
+            provider="Yandex Cloud (Qwen)",
+        )
+
+    @staticmethod
+    def _chat_provider_label(base_url: str) -> str:
+        """Human backend label; unknown chat hosts stay generic."""
+        try:
+            host = (urlparse(str(base_url)).hostname or "").lower()
+        except ValueError:
+            host = ""
+        if host == "anymodel.org":
+            return "AnyModel (chat)"
+        return f"{host or base_url} (chat)"

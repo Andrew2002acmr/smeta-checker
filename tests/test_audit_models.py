@@ -123,6 +123,15 @@ class AuditResultModelTests(unittest.TestCase):
                 comment_confirmed=True,
             )
 
+    def test_ok_accepts_advisory_comment_but_requires_work_volume_unit(self):
+        flags = dict(work_found=True, volume_confirmed=True, unit_confirmed=True,
+                     comment_confirmed=False)
+        result = AuditResult(status="ОК", **flags)
+        self.assertFalse(result.comment_confirmed)
+        for field in ("work_found", "volume_confirmed", "unit_confirmed"):
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                AuditResult(status="ОК", **{**flags, field: False})
+
     def test_missing_work_keeps_explicit_unknowns(self):
         result = AuditResult(
             status="Ошибка",
@@ -240,6 +249,47 @@ class AuditSettingsModelTests(unittest.TestCase):
                 file_values={"AUDIT_API_TOKEN": "tok-123"}, secrets=None
             )
         self.assertEqual(settings.api_token, "tok-123")
+
+    def test_llm_defaults_to_yandex(self):
+        with patch.dict(os.environ, {}, clear=True):
+            settings = AuditSettings.load(file_values={}, secrets=None)
+        self.assertEqual(settings.llm_base_url, "https://ai.api.cloud.yandex.net/v1")
+        self.assertEqual(settings.llm_api_key, "")
+        self.assertEqual(settings.llm_model, "")
+        llm = settings.llm_credentials()
+        self.assertEqual(llm.base_url, "https://ai.api.cloud.yandex.net/v1")
+        self.assertEqual(llm.provider, "Yandex Cloud (Qwen)")
+
+    def test_anymodel_settings_select_chat_backend(self):
+        with patch.dict(os.environ, {}, clear=True):
+            settings = AuditSettings.load(
+                file_values={
+                    "ANYMODEL_API_KEY": "am-key",
+                    "ANYMODEL_MODEL": "ds/deepseek-v4-flash",
+                },
+                secrets=None,
+            )
+        llm = settings.llm_credentials()
+        self.assertEqual(llm.api_key, "am-key")
+        self.assertEqual(llm.folder, "")
+        self.assertEqual(llm.model_name, "ds/deepseek-v4-flash")
+        self.assertEqual(llm.base_url, "https://anymodel.org/v1")
+        self.assertEqual(llm.provider, "AnyModel (chat)")
+
+    def test_anymodel_key_without_model_keeps_yandex(self):
+        with patch.dict(os.environ, {}, clear=True):
+            settings = AuditSettings.load(
+                file_values={
+                    "ANYMODEL_API_KEY": "am-key",
+                    "YANDEX_CLOUD_API_KEY": "ya-key",
+                    "YANDEX_CLOUD_FOLDER": "ya-folder",
+                },
+                secrets=None,
+            )
+        llm = settings.llm_credentials()
+        self.assertEqual(llm.api_key, "ya-key")
+        self.assertEqual(llm.folder, "ya-folder")
+        self.assertEqual(llm.provider, "Yandex Cloud (Qwen)")
 
     def test_error_kinds_are_explicit(self):
         self.assertEqual(

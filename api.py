@@ -278,11 +278,11 @@ def _require_configured(context: ApiContext) -> None:
 
 
 def _require_llm_credentials(settings: AuditSettings) -> None:
-    if not settings.yandex_cloud_api_key:
+    if not settings.llm_credentials().api_key:
         raise ApiError(
             503,
             "llm_not_configured",
-            "LLM не настроен: заполните YANDEX_CLOUD_API_KEY в .env.",
+            "LLM не настроен: заполните YANDEX_CLOUD_API_KEY или ANYMODEL_API_KEY в .env.",
         )
 
 
@@ -714,8 +714,10 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             pdf_versions[key] = row
         preflight = _preflight_for_versions(context, vor_id, pdf_ids)
         stored_project = context.repository.get_or_create_project(project)
+        llm = context.settings.llm_credentials()
         config = {
-            "model": context.settings.yandex_cloud_model,
+            "model": llm.model_name,
+            "provider": llm.provider,
             "pdf_versions": {key: str(row.id) for key, row in pdf_versions.items()},
             "vor_filename": vor_filename,
             "preflight": [row.model_dump() for row in preflight.rows],

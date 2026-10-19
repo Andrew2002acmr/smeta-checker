@@ -15,7 +15,7 @@ import pandas as pd
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-from audit_core import INCOMPLETE, TECHNICAL_ERROR
+from audit_core import INCOMPLETE, TECHNICAL_ERROR, format_ru
 from audit_models import AuditResult, VorPosition
 from pdf_binding import split_pdf_refs
 
@@ -26,7 +26,7 @@ STATUS_ORDER = {DISCREPANCY: 0, MANUAL: 1, NOT_CHECKED: 2, "ОК": 3}
 STATUS_COLORS = {DISCREPANCY: "FEE2E2", MANUAL: "FEF3C7",
                  NOT_CHECKED: "E5E7EB", "ОК": "DCFCE7"}
 REPORT_COLUMNS = ["№", "Наименование работ", "Статус аудита", "Что не так",
-                  "Наименование файла", "Где проверить", "Что сделать"]
+                  "Наименование файла", "Где проверить"]
 
 
 def _text(value):
@@ -39,7 +39,7 @@ def _basename(value):
 
 
 def _quantity(value, unit):
-    value, unit = _text(value), _text(unit)
+    value, unit = format_ru(_text(value)), _text(unit)
     return value if not unit or value.endswith(unit) else f"{value} {unit}".strip()
 
 
@@ -85,73 +85,154 @@ def build_user_report(df, tracking, tasks):
         location = ("стр. " + ", ".join(map(str, pages))) if pages else "Место не установлено"
         if not pages and source.get("vor_pages"):
             location += "; ссылка ВОР: стр. " + ", ".join(map(str, source["vor_pages"]))
-        problems, actions = [], []
+        consumption = source.get("consumption") or {}
+        if consumption.get("schedule_page") and consumption["schedule_page"] not in pages:
+            extra = f"стр. {consumption['schedule_page']}"
+            location = extra if location == "Место не установлено" else location + "; " + extra
+        remarks, notes = [], []
         raw_status = row.get("Статус аудита")
         status = MANUAL
         expected_volume, expected_unit = _text(task.get("w_vol")), _text(task.get("w_unit"))
         actual_volume, actual_unit = _text(source.get("found_volume")), _text(source.get("found_unit"))
         if task.get("bind_error"):
             status = NOT_CHECKED
-            problems.append("Не удалось однозначно определить исходный документ для позиции.")
-            actions.append("Проверьте имя файла в ВОР и наличие документа; укажите один исходный файл и повторите проверку.")
+            remarks.append("Непонятно, к какому файлу относится позиция: имя в ВОР не совпало ни с одним PDF.")
         elif not source.get("work_found"):
             if raw_status == TECHNICAL_ERROR:
                 status = NOT_CHECKED
-                problems.append("Проверку не удалось завершить. Соответствие проекту не установлено.")
-                actions.append("Повторите проверку; при повторном сбое сверьте позицию с исходным документом вручную.")
+                remarks.append("Проверка сорвалась: документ не дочитан или модель не ответила.")
             else:
-                problems.append("Недостаточно подтверждений работы в ПД. Это не доказывает её отсутствие в документе.")
-                actions.append("Найдите работу в исходном документе и сверьте позицию ВОР вручную.")
+                remarks.append("Работа в проекте не нашлась — но это ещё не значит, что её там нет.")
         else:
             before = _number(expected_volume, expected_unit)
             after = _number(actual_volume, actual_unit)
             same_unit = expected_unit.casefold().replace("³", "3").replace("²", "2") == actual_unit.casefold().replace("³", "3").replace("²", "2")
             calculation = source.get("volume_calculation")
-            actual_description = _quantity(actual_volume, actual_unit)
-            if calculation:
-                area, thickness = calculation["area"], calculation["thickness"]
-                actual_description += (
-                    f" (расчёт по ПД: {area['value']} {area['unit']} × "
-                    f"{thickness['value']} {thickness['unit']})")
-            if not source.get("volume_confirmed"):
+            if consumption.get("matches") is False:
+                status = DISCREPANCY
+                chain = consumption.get("stock_chain") or {}
+                if chain:
+                    remarks.append(
+                        f"Потребность в материале с запасом не сошлась: в ВОР {chain['material_volume']} {expected_unit} "
+                        f"(работа {chain['work_volume']} × {chain['factor']}, позиция №{chain['material_number']}), "
+                        f"а в спецификации — {_quantity(consumption.get('schedule_volume'), expected_unit)} "
+                        f"(стр. {consumption.get('schedule_page')}, {consumption.get('schedule_item')}). "
+                        f"Разница — {_quantity(consumption.get('delta'), expected_unit)} "
+                        f"({consumption.get('delta_percent')}%).")
+                else:
+                    remarks.append(
+                        f"В ВОР {_quantity(expected_volume, expected_unit)}, "
+                        f"а в спецификации — {_quantity(consumption.get('schedule_volume'), expected_unit)} "
+                        f"(стр. {consumption.get('schedule_page')}, {consumption.get('schedule_item')}). "
+                        f"Разница — {_quantity(consumption.get('delta'), expected_unit)} "
+                        f"({consumption.get('delta_percent')}%). "
+                        f"Норма в ВОР — {consumption.get('rate')} {consumption.get('unit')}, "
+                        f"а из спецификации получается {consumption.get('derived_rate')} {consumption.get('unit')}.")
+            elif consumption.get("matches") is True:
+                chain = consumption.get("stock_chain") or {}
+                if chain:
+                    notes.append(
+                        f"Потребность в материале сходится: {chain['work_volume']} × {chain['factor']} = "
+                        f"{chain['material_volume']} {expected_unit} (позиция №{chain['material_number']}), "
+                        f"в спецификации — {consumption.get('schedule_volume')} {expected_unit} "
+                        f"(стр. {consumption.get('schedule_page')}).")
+                else:
+                    notes.append(
+                        f"Норма {consumption.get('rate')} {consumption.get('unit')} сошлась "
+                        f"со спецификацией (стр. {consumption.get('schedule_page')}).")
+            elif not source.get("volume_confirmed"):
                 if before is not None and after is not None and before != after and same_unit:
                     status = DISCREPANCY
-                    delta = format(abs(before - after), "f")
-                    origin = "по расчёту из ПД" if calculation else "в ПД"
-                    problems.append(f"В ВОР указано {_quantity(expected_volume, expected_unit)}, {origin} — {actual_description}. Разница — {delta} {expected_unit}.")
+                    delta = format_ru(abs(before - after))
+                    origin = "по расчёту" if calculation else "в проекте"
+                    remarks.append(
+                        f"В ВОР {_quantity(expected_volume, expected_unit)}, {origin} — "
+                        f"{_quantity(actual_volume, actual_unit)}. Разница — {delta} {expected_unit}.")
+                elif source.get("quantity_basis") == "consumption":
+                    remarks.append(
+                        f"Объём {_quantity(expected_volume, expected_unit)} посчитан по норме расхода — "
+                        "в проекте готового числа нет, сверяйтесь со спецификацией.")
+                elif (before is not None and after is not None and before == after and same_unit):
+                    notes.append(
+                        f"Число {_quantity(expected_volume, expected_unit)} в проекте есть, "
+                        "но как объём позиции не подтверждено — нужна сверка.")
                 else:
-                    problems.append(f"Объём ВОР ({_quantity(expected_volume, expected_unit)}) не подтверждён ПД" + (f"; найдено {actual_description}." if actual_volume else "."))
-                actions.append("Сверьте объём и расчёт по ПД; при подтверждении расхождения уточните ВОР.")
+                    remarks.append(f"Объём {_quantity(expected_volume, expected_unit)} в проекте не нашёлся" + (f" — есть {_quantity(actual_volume, actual_unit)}." if actual_volume else "."))
             if not source.get("unit_confirmed"):
-                problems.append(f"Единица ВОР «{expected_unit}» не подтверждена ПД" + (f"; найдена «{actual_unit}»." if actual_unit else "."))
                 if actual_unit and expected_unit and not same_unit and "/" not in actual_unit and "/" not in expected_unit:
                     status = DISCREPANCY
-                actions.append("Проверьте единицы и необходимость пересчёта количества.")
+                    remarks.append(f"В ВОР единица «{expected_unit}», а в проекте — «{actual_unit}».")
+                else:
+                    notes.append(f"Единица «{expected_unit}» в проекте прямо не подтверждена.")
+            technology = source.get("technology") or {}
+            tech_applies = str(source.get("position_type", "Работа") or "Работа").casefold() == "работа"
+            if technology.get("status") == "different" and tech_applies:
+                quantities_ok = bool(source.get("volume_confirmed") and source.get("unit_confirmed"))
+                if quantities_ok:
+                    notes.append(f"Способ выполнения различается: в ВОР — «{technology.get('expected', '')}», "
+                                 f"а в проекте — «{technology.get('actual', '')}»; нужна инженерная сверка.")
+                else:
+                    status = DISCREPANCY
+                    remarks.append(f"В ВОР — «{technology.get('expected', '')}», "
+                                   f"а в проекте — «{technology.get('actual', '')}».")
+            elif technology.get("status") == "unconfirmed" and tech_applies:
+                cross = [p for p in (technology.get("cross_pages") or [])
+                         if isinstance(p, int)]
+                if cross:
+                    pages = ", ".join(map(str, cross))
+                    notes.append(f"Способ выполнения в проекте не нашёлся — сама работа есть. "
+                                 f"Формулировка ВОР также встречается на стр. {pages} — сверьте там.")
+                else:
+                    notes.append("Способ выполнения в проекте не нашёлся — сама работа есть.")
+            workbook = source.get("workbook_calculation") or {}
+            if workbook.get("status") in {"error", "unsupported"}:
+                remarks.append("Формула в Excel не сошлась: " + str(workbook.get("error", workbook["status"])) + ".")
+            for note in source.get("workbook_notes") or []:
+                kind = (note or {}).get("kind", "")
+                message = str((note or {}).get("message", "")).strip()
+                if not message:
+                    continue
+                if kind in {"scheme-divisor-mismatch", "length-operand-conflicts"}:
+                    notes.append("Вопрос к исходным данным: " + message + ".")
+                else:
+                    status = DISCREPANCY
+                    remarks.append("В самой ведомости противоречие: " + message + ".")
+            for code in consumption.get("uncertainties") or []:
+                notes.append({"schedule-row-unlinked": "Строку спецификации под эту норму выбрать однозначно не вышло.",
+                             "scope-unresolved": "Непонятно, к какому участку относится норма.",
+                             "area-unconfirmed": "Площадь под нормой не подтверждена.",
+                             "rate-differs-from-schedule": "Норма ВОР не совпадает с нормой из спецификации.",
+                             "claimed-volume-ambiguous": "Объём в ВОР записан неоднозначно.",
+                             "schedule-volume-missing": "В спецификации нет количества.",
+                             "schedule-text-unavailable": "Текст спецификации недоступен.",
+                             "rate-justification-open": "Обоснованность нормы расхода в ПД не подтверждена.",
+                             "chain-arithmetic-failed": "Цепочка «работа × запас = материал» не сошлась.",
+                             "chain-mismatch": "Цепочка «работа × запас = материал» не сошлась.",
+                             }.get(code, code))
             if not source.get("comment_confirmed"):
-                comment = _text(task.get("w_comment"))
-                problems.append(f"Условие ВОР{(' «' + comment + '»') if comment else ''} не подтверждено ПД.")
-                actions.append("Сверьте условие с описанием работы в ПД; не меняйте ВОР без подтверждения.")
+                notes.append("Примечание из ВОР в проекте не нашлось.")
             found_page = source.get("found_page")
             if found_page and source.get("vor_pages") and found_page not in source["vor_pages"]:
-                status = DISCREPANCY
-                problems.append("Работа найдена вне страниц, указанных в ВОР (стр. " + ", ".join(map(str, source["vor_pages"])) + ").")
-                actions.append("Проверьте и уточните ссылку на страницы в ВОР.")
+                if any(abs(found_page - page) == 1 for page in source["vor_pages"]):
+                    notes.append(f"Нашлось на стр. {found_page} — рядом со ссылкой ВОР.")
+                else:
+                    notes.append("Нашлось не на тех страницах, что указаны в ВОР "
+                                 f"(стр. {', '.join(map(str, source['vor_pages']))}) — "
+                                 "навигационная пометка, не противоречие количества.")
             if not task.get("target_indices") or "недопустимые" in task.get("loc_desc", ""):
-                status = DISCREPANCY
-                problems.append("Ссылка ВОР на страницы отсутствует или содержит недопустимые номера: " + (_text(task.get("w_page")) or "не указана") + ".")
-                actions.append("Укажите действительные номера страниц исходного PDF.")
+                notes.append("В ВОР нет годной ссылки на страницы: " + (_text(task.get("w_page")) or "не указана") + " — "
+                             "дефект ведомости, расхождение с ПД не доказано.")
             if raw_status in {INCOMPLETE, TECHNICAL_ERROR}:
-                problems.append("Проверка завершена не полностью; остальные сведения требуют ручной сверки.")
-                actions.append("Сверьте недостающие сведения вручную или повторите проверку.")
-            if not problems and raw_status == "ОК":
+                notes.append("Проверка неполная — часть сведений осталась за кадром.")
+            if not remarks and not notes and raw_status == "ОК":
                 status = "ОК"
-            elif not problems:
-                problems.append("Соответствие позиции проекту требует ручного подтверждения.")
-                actions.append("Сверьте описание работы и ссылку на ПД.")
+            elif not remarks and not notes:
+                notes.append("Нужно глянуть глазами: соответствие не очевидно.")
+            elif not remarks and raw_status == "ОК":
+                status = "ОК"
         records.append(dict(zip(REPORT_COLUMNS, [row.iloc[0], task["w_name"], status,
-            " ".join(problems) if problems else "Расхождений не обнаружено.",
-            "\n".join(files) or "Не указан", location,
-            " ".join(dict.fromkeys(actions)) if actions else "Не требуется."])))
+            " ".join(remarks + notes) if remarks or notes else "Расхождений не обнаружено.",
+            "\n".join(files) or "Не указан", location])))
     report = pd.DataFrame(records, columns=REPORT_COLUMNS)
     return report.sort_values("Статус аудита", key=lambda col: col.map(STATUS_ORDER), kind="stable").reset_index(drop=True)
 
@@ -187,7 +268,7 @@ def generate_excel_report(report):
             if link:
                 sheet.cell(i, 5).hyperlink = link
                 sheet.cell(i, 5).font = Font(color="0563C1", underline="single")
-        for i, width in enumerate((8, 48, 28, 65, 32, 35, 60), 1):
+        for i, width in enumerate((8, 48, 28, 65, 32, 35), 1):
             sheet.column_dimensions[get_column_letter(i)].width = width
         sheet.freeze_panes = "C2"
         sheet.auto_filter.ref = sheet.dimensions
@@ -243,7 +324,6 @@ def generate_word_report(report, meta):
         else:
             paragraph.add_run(row["Наименование файла"])
         paragraph.add_run("; " + row["Где проверить"] + ".")
-        cells[3].add_paragraph("Что сделать: " + row["Что сделать"])
     for word_row in table.rows:
         for cell, width in zip(word_row.cells, (0.4, 1.5, 1.2, 3.9)):
             cell.width = Inches(width)

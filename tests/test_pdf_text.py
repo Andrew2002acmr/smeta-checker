@@ -309,6 +309,51 @@ class CacheTests(FakeSourceTests):
             self.assertGreater(second.cache_hits, 0)
             self.assertNotEqual(snapshot.texts[0], "")
 
+    def test_empty_ocr_is_reused_across_runs_without_hiding_failures(self):
+        with TemporaryDirectory() as cache:
+            doc, calls = make_doc([""], ocr_texts=[""])
+            first = PDFTextSource(doc, cache_dir=cache)
+            snapshot = first.for_position([0], "Кабель", "45", max_ocr_pages=1)
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(pending_of(snapshot), ())
+            self.assertEqual(snapshot.texts, ("",))
+            doc2, calls2 = make_doc([""], ocr_texts=["must not be used"])
+            second = PDFTextSource(doc2, cache_dir=cache)
+            snapshot2 = second.for_position([0], "Кабель", "45", max_ocr_pages=0)
+            self.assertEqual(calls2, [])
+            self.assertEqual(second.ocr_count, 0)
+            self.assertEqual(second.cache_hits, 1)
+            self.assertEqual(pending_of(snapshot2), ())
+            self.assertEqual(snapshot2.texts, ("",))
+
+    def test_empty_cache_file_is_not_a_successful_empty_ocr(self):
+        with TemporaryDirectory() as cache:
+            doc, calls = make_doc([""], ocr_texts=["Кабель 45"])
+            source = PDFTextSource(doc, cache_dir=cache)
+            path = source._cache_path(0)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("")
+            snapshot = source.for_position([0], "Кабель", "45", max_ocr_pages=1)
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(snapshot.texts, ("Кабель 45",))
+
+    def test_fingerprint_ignores_mtime_but_detects_same_size_content_change(self):
+        from pdf_text import _engine_fingerprint
+        with TemporaryDirectory() as tessdata, patch.dict(os.environ, {"TESSDATA_PREFIX": tessdata}):
+            language = Path(tessdata) / "rus.traineddata"
+            language.write_bytes(b"aaaa")
+            original = _engine_fingerprint("rus")
+            stat = language.stat()
+            os.utime(language, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1000000000))
+            self.assertEqual(_engine_fingerprint("rus"), original)
+            language.write_bytes(b"bbbb")
+            os.utime(language, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+            self.assertNotEqual(_engine_fingerprint("rus"), original)
+            inactive = Path(tessdata) / "deu.traineddata"
+            current = _engine_fingerprint("rus")
+            inactive.write_bytes(b"unused")
+            self.assertEqual(_engine_fingerprint("rus"), current)
+
     def test_changed_pdf_invalidates_cache(self):
         natives = [""] * 6
         with TemporaryDirectory() as cache:
