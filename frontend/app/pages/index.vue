@@ -445,190 +445,183 @@ onBeforeUnmount(() => {
           <p>По запросу «{{ query }}» нет проектов или ведомостей.</p>
           <UButton color="neutral" variant="outline" @click="query = ''">Сбросить поиск</UButton>
         </div>
-        <UTable
-          sticky="header"
-          v-else
-          :data="filtered"
-          :columns="indexColumns"
-          :on-select="
-            (e, row) => {
-              const target = e.target as HTMLElement | null
-              if (target && target.closest('button,input,a')) return
-              openProject(row.original)
-            }
-          "
-          :ui="{
-            base: 'table-fixed',
-            tr: 'data-[selectable=true]:cursor-pointer',
-            th: 'text-muted font-normal',
-            td: 'whitespace-normal',
-          }"
-          class="dashboard-table max-h-[60vh] overflow-auto"
-        >
-          <template #caption>
-            {{ showArchived ? 'Архив проектов' : 'Активные проекты' }}
-          </template>
-          <template #project-cell="{ row }">
-            <div class="dashboard-identity">
-              <div
-                v-if="renamingId === row.original.id"
-                class="dashboard-rename"
-                @click.stop
-                @keydown.enter.stop
-              >
-                <UInput
-                  v-model="renamingName"
-                  aria-label="Новое название проекта"
-                  :disabled="renamingBusy"
-                  autofocus
-                  class="rename-input"
-                  @keydown.enter="saveRename(row.original)"
-                  @keydown.escape="cancelRename"
-                />
-                <UButton
-                  icon="i-lucide-check"
-                  aria-label="Сохранить название"
-                  color="neutral"
-                  variant="outline"
-                  :disabled="!renamingName.trim()"
-                  :loading="renamingBusy"
-                  @click="saveRename(row.original)"
-                />
-                <UButton
-                  icon="i-lucide-x"
-                  aria-label="Отменить переименование"
-                  color="neutral"
-                  variant="ghost"
-                  :disabled="renamingBusy"
-                  @click="cancelRename"
-                />
+        <div v-else class="dashboard-grid">
+          <UPageCard
+            v-for="project in filtered"
+            :key="project.id"
+            variant="outline"
+            class="dashboard-card"
+            @click="openProject(project)"
+          >
+            <template #header>
+              <div class="dashboard-card-header">
+                <div class="dashboard-card-title">
+                  <NuxtLink
+                    v-if="renamingId !== project.id"
+                    :to="`/projects/${project.id}`"
+                    class="dashboard-name"
+                    :aria-label="`Открыть проект ${project.name}`"
+                    @click.stop
+                    >{{ project.name }}</NuxtLink
+                  >
+                  <div v-else class="dashboard-rename" @click.stop @keydown.enter.stop>
+                    <UInput
+                      v-model="renamingName"
+                      aria-label="Новое название проекта"
+                      :disabled="renamingBusy"
+                      autofocus
+                      class="rename-input"
+                      @keydown.enter="saveRename(project)"
+                      @keydown.escape="cancelRename"
+                    />
+                    <UButton
+                      icon="i-lucide-check"
+                      aria-label="Сохранить название"
+                      color="neutral"
+                      variant="outline"
+                      :disabled="!renamingName.trim()"
+                      :loading="renamingBusy"
+                      @click="saveRename(project)"
+                    />
+                    <UButton
+                      icon="i-lucide-x"
+                      aria-label="Отменить переименование"
+                      color="neutral"
+                      variant="ghost"
+                      :disabled="renamingBusy"
+                      @click="cancelRename"
+                    />
+                  </div>
+                </div>
+                <div class="dashboard-actions" @click.stop>
+                  <UDropdownMenu
+                    :items="[
+                      {
+                        label: 'Переименовать',
+                        icon: 'i-lucide-pencil',
+                        disabled: renamingBusy,
+                        onSelect: () => startRename(project),
+                      },
+                      {
+                        label: project.archived ? 'Восстановить' : 'Архивировать',
+                        icon: project.archived ? 'i-lucide-archive-restore' : 'i-lucide-archive',
+                        disabled: archiveBusy || restoringId !== null,
+                        onSelect: () => (project.archived ? restore(project) : askArchive(project)),
+                      },
+                    ]"
+                    :content="{ align: 'end' }"
+                  >
+                    <UButton
+                      color="neutral"
+                      variant="ghost"
+                      icon="i-lucide-ellipsis"
+                      :loading="restoringId === project.id"
+                      :aria-label="`Действия проекта ${project.name}`"
+                    />
+                  </UDropdownMenu>
+                </div>
               </div>
-              <NuxtLink
-                v-else
-                :to="`/projects/${row.original.id}`"
-                class="dashboard-name"
-                :aria-label="`Открыть проект ${row.original.name}`"
-                @click.stop
-                >{{ row.original.name }}</NuxtLink
-              >
-              <p
+              <div
                 class="dashboard-meta"
                 role="group"
-                :aria-label="`Документов: ${row.original.documents}, проверок: ${row.original.runs}`"
+                :aria-label="`Документов: ${project.documents}, проверок: ${project.runs}`"
               >
-                <span>ВОР {{ row.original.vorCount }}</span>
-                <span>ПД {{ row.original.pdfCount }}</span>
-                <span>Проверок: {{ row.original.runs }}</span>
-              </p>
-            </div>
-          </template>
-          <template #lastCheck-cell="{ row }">
-            <div class="dashboard-last-check" :class="{ 'no-check': !row.original.lastRun }">
-              <template v-if="row.original.lastRun">
-                <p class="dashboard-date">{{ formatDate(row.original.lastRun.created_at) }}</p>
-                <p class="dashboard-file" :title="row.original.lastRun.vor_filename">
-                  {{ row.original.lastRun.vor_filename }}
-                </p>
-              </template>
-              <span v-else class="dashboard-muted" aria-label="Проверок ещё не было">-</span>
-            </div>
-          </template>
-          <template #result-cell="{ row }">
-            <div class="dashboard-result">
-              <template v-if="!row.original.lastRun">
-                <p class="dashboard-muted">Проверок пока нет</p>
-                <p class="dashboard-detail">Откройте проект для подготовки проверки</p>
-              </template>
-              <template v-else-if="row.original.lastRun.status === 'done'">
-                <div v-if="row.original.queues" class="dashboard-queues">
-                  <template v-for="q in ['fix', 'review', 'missing'] as const" :key="q">
-                    <p v-if="row.original.queues[q]" :class="`result-${q}`">
-                      {{ queueLabels[q] }}: {{ positionCount(row.original.queues[q]) }}
-                    </p>
-                  </template>
-                  <p v-if="row.original.queues.ok" class="result-ok">
-                    {{ confirmedLabel(row.original.queues.ok) }}
+                <span>ВОР {{ project.vorCount }}</span>
+                <span>ПД {{ project.pdfCount }}</span>
+                <span>Проверок: {{ project.runs }}</span>
+              </div>
+            </template>
+            <div class="dashboard-card-body">
+              <div class="dashboard-last-check" :class="{ 'no-check': !project.lastRun }">
+                <template v-if="project.lastRun">
+                  <p class="dashboard-date">{{ formatDate(project.lastRun.created_at) }}</p>
+                  <p class="dashboard-file" :title="project.lastRun.vor_filename">
+                    {{ project.lastRun.vor_filename }}
                   </p>
-                  <p
-                    v-if="!Object.values(row.original.queues).some(Boolean)"
-                    class="dashboard-muted"
-                  >
-                    Проверка без позиций
-                  </p>
-                </div>
-                <div v-else class="dashboard-summary-error" @click.stop>
-                  <p>Результат недоступен</p>
-                  <UButton
-                    color="neutral"
-                    variant="link"
-                    :loading="row.original.summaryBusy"
-                    :aria-label="`Повторить загрузку результата ${row.original.name}`"
-                    @click="retrySummary(row.original)"
-                    >Повторить</UButton
-                  >
-                </div>
-              </template>
-              <template v-else>
-                <p :class="{ 'result-fix': row.original.lastRun.status === 'failed' }">
-                  {{ runLabel(row.original.lastRun.status) }}
-                </p>
-                <template v-if="row.original.lastRun.status === 'running'">
-                  <p class="dashboard-detail">
-                    {{
-                      row.original.lastRun.total
-                        ? `Обработано ${row.original.lastRun.done + row.original.lastRun.failed} из ${row.original.lastRun.total}`
-                        : 'Подготовка проверки'
-                    }}
-                  </p>
-                  <UProgress
-                    v-if="row.original.lastRun.total"
-                    :model-value="
-                      Math.floor(
-                        ((row.original.lastRun.done + row.original.lastRun.failed) /
-                          row.original.lastRun.total) *
-                          100,
-                      )
-                    "
-                    color="neutral"
-                    size="xs"
-                    class="dashboard-progress"
-                    :get-value-label="progressLabel"
-                  />
                 </template>
-              </template>
+                <span v-else class="dashboard-muted" aria-label="Проверок ещё не было">-</span>
+              </div>
+              <div class="dashboard-result">
+                <template v-if="!project.lastRun">
+                  <p class="dashboard-muted">Проверок пока нет</p>
+                  <p class="dashboard-detail">Откройте проект для подготовки проверки</p>
+                </template>
+                <template v-else-if="project.lastRun.status === 'done'">
+                  <div v-if="project.queues" class="dashboard-queues">
+                    <template v-for="q in ['fix', 'review', 'missing'] as const" :key="q">
+                      <p v-if="project.queues[q]" :class="`result-${q}`">
+                        {{ queueLabels[q] }}: {{ positionCount(project.queues[q]) }}
+                      </p>
+                    </template>
+                    <p v-if="project.queues.ok" class="result-ok">
+                      {{ confirmedLabel(project.queues.ok) }}
+                    </p>
+                    <p v-if="!Object.values(project.queues).some(Boolean)" class="dashboard-muted">
+                      Проверка без позиций
+                    </p>
+                  </div>
+                  <div v-else class="dashboard-summary-error" @click.stop>
+                    <p>Результат недоступен</p>
+                    <UButton
+                      color="neutral"
+                      variant="link"
+                      :loading="project.summaryBusy"
+                      :aria-label="`Повторить загрузку результата ${project.name}`"
+                      @click="retrySummary(project)"
+                      >Повторить</UButton
+                    >
+                  </div>
+                </template>
+                <template v-else>
+                  <p :class="{ 'result-fix': project.lastRun.status === 'failed' }">
+                    {{ runLabel(project.lastRun.status) }}
+                  </p>
+                  <template v-if="project.lastRun.status === 'running'">
+                    <p class="dashboard-detail">
+                      {{
+                        project.lastRun.total
+                          ? `Обработано ${project.lastRun.done + project.lastRun.failed} из ${project.lastRun.total}`
+                          : 'Подготовка проверки'
+                      }}
+                    </p>
+                    <UProgress
+                      v-if="project.lastRun.total"
+                      :model-value="
+                        Math.floor(
+                          ((project.lastRun.done + project.lastRun.failed) /
+                            project.lastRun.total) *
+                            100,
+                        )
+                      "
+                      color="neutral"
+                      size="xs"
+                      class="dashboard-progress"
+                      :get-value-label="progressLabel"
+                    />
+                  </template>
+                </template>
+              </div>
             </div>
-          </template>
-          <template #actions-cell="{ row }">
-            <div class="dashboard-actions" @click.stop>
-              <UDropdownMenu
-                :items="[
-                  {
-                    label: 'Переименовать',
-                    icon: 'i-lucide-pencil',
-                    disabled: renamingBusy,
-                    onSelect: () => startRename(row.original),
-                  },
-                  {
-                    label: row.original.archived ? 'Восстановить' : 'Архивировать',
-                    icon: row.original.archived ? 'i-lucide-archive-restore' : 'i-lucide-archive',
-                    disabled: archiveBusy || restoringId !== null,
-                    onSelect: () =>
-                      row.original.archived ? restore(row.original) : askArchive(row.original),
-                  },
-                ]"
-                :content="{ align: 'end' }"
-              >
-                <UButton
-                  color="neutral"
-                  variant="ghost"
-                  icon="i-lucide-ellipsis"
-                  :loading="restoringId === row.original.id"
-                  :aria-label="`Действия проекта ${row.original.name}`"
-                />
-              </UDropdownMenu>
-            </div>
-          </template>
-        </UTable>
+            <template #footer>
+              <div class="dashboard-card-footer">
+                <UBadge
+                  :color="
+                    project.queues && Object.values(project.queues).some(Boolean)
+                      ? 'error'
+                      : 'neutral'
+                  "
+                  variant="subtle"
+                >
+                  {{
+                    project.queues && Object.values(project.queues).some(Boolean)
+                      ? 'Есть замечания'
+                      : 'Без замечаний'
+                  }}
+                </UBadge>
+              </div>
+            </template>
+          </UPageCard>
+        </div>
 
         <p v-if="busy && !projects.length && !error" class="visually-hidden" role="status">
           Загружаем проекты…
@@ -769,8 +762,34 @@ onBeforeUnmount(() => {
 }
 .dashboard-name:hover {
   text-decoration: underline;
-}
-.dashboard-meta {
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+  }
+  .dashboard-card {
+    cursor: pointer;
+  }
+  .dashboard-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .dashboard-card-title {
+    min-width: 0;
+    flex: 1;
+  }
+  .dashboard-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .dashboard-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   display: flex;
   flex-wrap: wrap;
   gap: 4px 12px;
