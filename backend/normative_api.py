@@ -21,7 +21,8 @@ def register_normative_routes(router, guarded, available):
 
     def call(operation):
         try:
-            return operation()
+            from normative_public_sources import public_sources
+            return public_sources(operation())
         except KeyError as exc:
             raise ApiError(404, "normative_not_found", "Позиция или сохранённый нормативный поиск не найдены.") from exc
         except (FileNotFoundError, OSError) as exc:

@@ -13,7 +13,55 @@ import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-VERSION = "physical-cells-v3-frame-recovery"
+VERSION = "physical-cells-v10-frame-recovery"
+
+
+def recover_unit_headers(tables, words):
+    """Recover literal unit labels from independent OCR inside physical headers."""
+    import unicodedata
+    for table in tables:
+        for cell in table['cells']:
+            if cell.get('role') != 'header' or cell.get('colspan',1) != 1:
+                continue
+            x0,y0,x1,y1=cell['bbox']
+            inside=[w['text'] for w in words if w.get('conf',0)>=75
+                and x0 <= (w['bbox'][0]+w['bbox'][2])/2 <= x1
+                and y0 <= (w['bbox'][1]+w['bbox'][3])/2 <= y1]
+            label=unicodedata.normalize('NFKC',''.join(inside)).casefold().replace(' ','')
+            match=re.fullmatch(r'[мm]([23])',label)
+            if match:
+                cell['text'] += '\nЕдиница по Tesseract: м'+match[1]
+
+
+def verify_numeric_cells(tables, words):
+    """Confirm numerical cells only when two OCR engines agree geometrically."""
+    from decimal import Decimal, InvalidOperation
+    def number(text):
+        text = str(text).strip().replace(' ', '').replace(',', '.')
+        if len(text) > 40 or not re.fullmatch(r'[+-]?\d+(?:\.\d+)?', text):
+            return None
+        try:
+            return Decimal(text)
+        except InvalidOperation:
+            return None
+    for table in tables:
+        for cell in table['cells']:
+            cell['numeric_verified'] = False
+            value = number(cell['text'])
+            if value is None or cell.get('quality') != 'usable' or not cell.get('header_ids'):
+                continue
+            rapid = cell.get('words') or []
+            if not rapid or any(w.get('confidence', 0) < .9 for w in rapid):
+                continue
+            x0, y0, x1, y1 = cell['bbox']
+            matches = []
+            for word in words:
+                box = word['bbox']
+                if x0 <= (box[0]+box[2])/2 <= x1 and y0 <= (box[1]+box[3])/2 <= y1:
+                    candidate = number(word['text'])
+                    if candidate is not None and word.get('conf', 0) >= 90:
+                        matches.append(candidate)
+            cell['numeric_verified'] = bool(matches) and set(matches) == {value}
 
 
 def finish_table(cells, *, table_id, page, bbox, origin, header_rows, reasons=()):
@@ -261,6 +309,57 @@ def raster_engine():
     return ocr, table
 
 
+def warm_raster_engine():
+    """Materialize lazy Cyrillic weights while the image still builds as root."""
+    ocr, _ = raster_engine()
+    ocr._load_rec_model()
+
+
+def physical_table_regions(grid, width, height):
+    """Find the grid inside a drawing frame, rather than its enclosing frame."""
+    import cv2
+    contours, hierarchy = cv2.findContours(grid, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    if hierarchy is None:
+        return []
+    children = {}
+    for i, item in enumerate(hierarchy[0]):
+        children.setdefault(int(item[3]), []).append(i)
+    regions = []
+    for index, contour in enumerate(contours):
+        if len(children.get(index, [])) < 4:
+            continue
+        x,y,w,h = cv2.boundingRect(contour)
+        if w >= width*.2 and h >= height*.08:
+            regions.append((max(0,x-4),max(0,y-4),min(width,x+w+4),min(height,y+h+4)))
+    return sorted(set(regions),key=lambda box:(box[1],box[0]))[:8]
+
+
+def station_value(text):
+    """A literal station/range is body data even when adjacent OCR is blank."""
+    compact=re.sub(r'\s+','',text).upper().replace('K','К').replace('O','О')
+    station=r'(?:ПК)?[\dО]+\+\d+(?:[.,]\d+)?'
+    return bool(re.fullmatch(station+r'(?:[-–—]'+station+r')?',compact))
+
+
+def physical_data_value(text):
+    return bool(re.fullmatch(r'[+-]?\d+(?:[.,]\d+)?',text.strip())) or station_value(text)
+
+
+def physical_header_rows(cells):
+    """Conservative first numeric data row; h=0.12/unit headers are not data."""
+    candidates=[]
+    for row in sorted({c['row'] for c in cells}):
+        values = [c['text'].strip() for c in cells if c['row']==row and c['text'].strip()]
+        numeric = sum(bool(re.fullmatch(r'[+-]?\d+(?:[.,]\d+)?', value)) for value in values)
+        station=any(c['row']==row and c.get('column')==0 and c.get('colspan',1)==1
+            and station_value(c['text']) for c in cells)
+        if 0 < row <= 12 and station and numeric>=1:
+            return row
+        if 0 < row <= 12 and numeric >= 2 and numeric >= len(values)*.5:
+            candidates.append(row)
+    return candidates[0] if candidates else None
+
+
 def ruled_geometry(grid):
     """Recover closed physical cells; accept only a complete rectangular tiling."""
     import cv2
@@ -394,6 +493,7 @@ def _recognize_crop(image, ocr, engine, geometry=None):
             continue
         # A neural grid alone cannot establish whether leading prose is a header.
         # Keep it uncertain; the first textual row is a header candidate, not proof.
+        header_rows = physical_header_rows(cells) if geometry is not None else None
         tables.append(
             finish_table(
                 cells,
@@ -406,10 +506,10 @@ def _recognize_crop(image, ocr, engine, geometry=None):
                     max(c["bbox"][3] for c in cells),
                 ],
                 origin="ocr",
-                header_rows=max(
+                header_rows=header_rows or max(
                     (cell["rowspan"] for cell in cells if cell["row"] == 0), default=1
                 ),
-                reasons=["ocr_header_requires_review"],
+                reasons=[] if header_rows is not None else ["ocr_header_requires_review"],
             )
         )
         tables[-1]["unassigned_words"] = unassigned
@@ -438,7 +538,10 @@ def recognize_image(image_path):
         cv2.MORPH_OPEN,
         cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(30, height // 25))),
     )
-    grid = cv2.bitwise_or(horizontal, vertical)
+    # Rasterised thin lines leave small gaps at intersections. Close only
+    # sub-cell gaps before physical tiling; never synthesize missing numbers.
+    grid = cv2.morphologyEx(cv2.bitwise_or(horizontal, vertical), cv2.MORPH_CLOSE,
+        np.ones((5, 5), dtype=np.uint8))
     contours, _ = cv2.findContours(grid, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     regions = []
     for contour in contours:
@@ -456,7 +559,7 @@ def recognize_image(image_path):
                     min(height, y + h + 4),
                 )
             )
-    regions = sorted(regions, key=lambda box: (box[1], box[0]))[:8]
+    regions = physical_table_regions(grid, width, height) or sorted(regions, key=lambda box: (box[1], box[0]))[:8]
     # Unruled tables remain candidates, never asserted as a reliable grid.
     regions = regions or [(0, 0, width, height)]
     ocr, engine = raster_engine()
@@ -525,12 +628,16 @@ def raster_tables(page, *, rotation=0, timeout=90):
             cell["bbox"] = mapped(cell["bbox"])
             for word in cell.get("words", []):
                 word["bbox"] = mapped(word["bbox"])
-    return tables
+    # Separate embedded tables can have different column grids. Reuse the
+    # words already recognised above, but restore closed physical cells before
+    # independent numeric/header verification. Recovery never confirms OCR.
+    from pdf_ruled_recovery import recover_page
+    return recover_page(page, tables, rotation=rotation)['tables']
 
 
 if __name__ == "__main__":
     if sys.argv[1:] == ["--warm"]:
-        raster_engine()
+        warm_raster_engine()
     else:
         Path(sys.argv[2]).write_text(
             json.dumps(recognize_image(sys.argv[1]), ensure_ascii=False)

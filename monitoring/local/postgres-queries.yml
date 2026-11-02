@@ -1,0 +1,17 @@
+smeta_runs:
+  query: "SELECT status, count(*)::float AS count FROM runs GROUP BY status"
+  metrics:
+    - status: {usage: LABEL, description: Run status}
+    - count: {usage: GAUGE, description: Persisted runs by status}
+smeta_position_jobs:
+  query: "SELECT j.queue, j.status, r.status AS run_status, count(*)::float AS count FROM position_jobs j JOIN runs r ON r.id=j.run_id GROUP BY j.queue,j.status,r.status"
+  metrics:
+    - queue: {usage: LABEL, description: Worker queue}
+    - status: {usage: LABEL, description: Durable job status}
+    - run_status: {usage: LABEL, description: Owning audit run status; cancelled jobs are historical}
+    - count: {usage: GAUGE, description: Persisted position jobs by queue and status}
+smeta_stale_jobs:
+  query: "SELECT j.queue, count(*)::float AS count FROM position_jobs j JOIN runs r ON r.id=j.run_id WHERE r.status='running' AND j.status='running' AND j.updated_at < now() - interval '10 minutes' GROUP BY j.queue"
+  metrics:
+    - queue: {usage: LABEL, description: Worker queue}
+    - count: {usage: GAUGE, description: Running jobs without DB update for ten minutes; investigate rather than assume failure}

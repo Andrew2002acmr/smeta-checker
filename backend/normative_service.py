@@ -101,12 +101,17 @@ def project_context(context, record, index):
         ref = context.repository.load_version(UUID(version_id))
         project_citations.append(dict(version_id=version_id, filename=ref.filename, page=page,
             quote=str(evidence.get("quote") or "")[:4000], origin="machine"))
-    return position, NormativeFacts(**facts), origins, project_citations[:20]
+    return position, NormativeFacts.model_validate(facts), origins, project_citations[:20]
 
 
 def state(context, record, index):
+    from copy import deepcopy
+    from normative_verdict import readable_review
     position, facts, origins, citations = project_context(context, record, index)
-    rows = context.repository.normative_reviews(record["id"], index)
+    rows = deepcopy(context.repository.normative_reviews(record["id"], index))
+    for row in rows:
+        if row['kind']=='check' and row['payload'].get('position_check'):
+            row['payload']['position_check']=readable_review(row['payload']['position_check'])
     kb = corpus(profile=profile_for(record))
     with kb.connect() as db:
         sources = [dict(row) for row in db.execute("SELECT s.id,s.designation,s.pages, (SELECT count(*) FROM pages p WHERE p.source_id=s.id AND length(trim(p.clean_text))>50) AS readable_pages FROM sources s ORDER BY s.kind,s.designation")]

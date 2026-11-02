@@ -13,6 +13,7 @@ services:
   api:
     logging: *local-logging
     environment:
+      LANGFUSE_PUBLIC_URL: ${LANGFUSE_PUBLIC_URL:-}
       NORMATIVE_AUTO_ENABLED: ${NORMATIVE_AUTO_ENABLED:-1}
       NORMATIVE_KB_ROOT: /knowledge/electrical-norms
       NORMATIVE_ROAD_KB_ROOT: /knowledge/road-norms
@@ -37,10 +38,14 @@ services:
     image: smeta-checker-local-backend:dev
   worker-pdf:
     logging: *local-logging
+    environment:
+      LANGFUSE_PUBLIC_URL: ${LANGFUSE_PUBLIC_URL:-}
     image: smeta-checker-local-backend:dev
     command: ["celery", "-A", "audit_tasks:worker", "worker", "-Q", "pdf", "-c", "${AUDIT_PDF_CONCURRENCY:-2}", "--loglevel=INFO", "--max-memory-per-child", "1000000", "--max-tasks-per-child", "${AUDIT_MAX_TASKS_PER_CHILD:-50}", "-n", "pdf-worker@%h", "--pidfile", "/tmp/celery-pdf.pid"]
   worker-normative:
     logging: *local-logging
+    environment:
+      LANGFUSE_PUBLIC_URL: ${LANGFUSE_PUBLIC_URL:-}
     image: smeta-checker-local-backend:dev
     volumes:
       - type: bind
@@ -57,6 +62,8 @@ services:
           create_host_path: false
   worker-llm:
     logging: *local-logging
+    environment:
+      LANGFUSE_PUBLIC_URL: ${LANGFUSE_PUBLIC_URL:-}
     image: smeta-checker-local-llm:dev
     command: ["celery", "-A", "audit_tasks:worker", "worker", "-Q", "llm", "-c", "${AUDIT_LLM_CONCURRENCY:-2}", "--loglevel=INFO", "--max-tasks-per-child", "${AUDIT_MAX_TASKS_PER_CHILD:-50}", "-n", "llm-worker@%h", "--pidfile", "/tmp/celery-llm.pid"]
   task-relay:

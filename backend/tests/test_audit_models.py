@@ -275,6 +275,27 @@ class AuditSettingsModelTests(unittest.TestCase):
         self.assertEqual(llm.folder, "ya-folder")
         self.assertEqual(llm.provider, "Yandex Cloud (Qwen)")
 
+    def test_routerai_uses_own_credentials_and_model_with_priority_over_anymodel(self):
+        with patch.dict(os.environ, {}, clear=True):
+            settings = AuditSettings.load(file_values={
+                'ROUTERAI_API_KEY': 'router-test-key', 'ROUTERAI_MODEL': 'vendor/test-model',
+                'ANYMODEL_API_KEY': 'old-key', 'ANYMODEL_MODEL': 'old-model'}, secrets=None)
+        llm = settings.llm_credentials()
+        self.assertEqual((llm.api_key, llm.model_name), ('router-test-key', 'vendor/test-model'))
+        self.assertEqual(llm.base_url, 'https://routerai.ru/api/v1')
+        self.assertEqual(llm.provider, 'RouterAI (chat)')
+        self.assertIn('routerai.ru', settings.allowed_llm_hosts)
+
+    def test_partial_routerai_setup_does_not_fall_back_or_mix_provider_secrets(self):
+        for values in ({'ROUTERAI_API_KEY':'router-test-key'}, {'ROUTERAI_MODEL':'vendor/test-model'}):
+            with self.subTest(values=list(values)), patch.dict(os.environ, {}, clear=True):
+                settings = AuditSettings.load(file_values={**values,
+                    'ANYMODEL_API_KEY':'old-key', 'ANYMODEL_MODEL':'old-model',
+                    'YANDEX_CLOUD_API_KEY':'old-yandex-key'}, secrets=None)
+            llm = settings.llm_credentials()
+            self.assertEqual(llm.provider, 'RouterAI (chat)')
+            self.assertEqual(llm.api_key, '')
+
     def test_error_kinds_are_explicit(self):
         self.assertEqual(
             {kind.value for kind in ErrorKind},

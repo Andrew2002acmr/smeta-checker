@@ -48,20 +48,163 @@ def _measurement(text):
                              + str(atom.value), unit=atom.unit)
 
 
+def _machine_name_clause(part):
+    """Split only a complete action/class/name clause with no engineering limits."""
+    if (iter_measurements(part) or re.search(r'типоразмер|мощност|температур|производительност|'
+            r'ширин|глубин|скорост|масс|вес|давлен|частот|амплитуд|проход|'
+            r'обязател|только|не\s+менее|не\s+более|ГОСТ|ГЭСН|\d\s*(?:кВт|°|%|кПа)',part,re.I)):
+        return None
+    match=re.fullmatch(r'((?:Уплотнение|Укладка)(?:\s+(?:основания|покрытия|смеси))?'
+        r'(?:\s+производится)?\s+(?:(?:тандемным|самоходным)\s+)?'
+        r'(?:виброкатком|катком|асфальтоукладчиком|а/укладчиком))\s+(.+)',part)
+    if (not match or not re.search(r'\d',match[2])
+            or re.search(r'\b(?:при|без|с|не|и|или|для)\b',match[2],re.I)):
+        return None
+    # Every designation token must be a name/model token. Lowercase prose,
+    # punctuation and engineering clauses are not silently discarded.
+    tokens=match[2].split()
+    if not all(re.fullmatch(r'[^\W\d_][\w.–-]*|\d[\w.–-]*',token)
+            and (token[0].isupper() or token[0].isdigit()) for token in tokens):
+        return None
+    if any(any(char.islower() for char in token) for token in tokens[1:]):
+        return None
+    return match[1]
+
+
+def comment_machine_clauses(text):
+    """Keep every unknown/technical clause; separate literal machine-name lines."""
+    retained=[]
+    machines=[]
+    for raw in re.split(r'\n+|;\s*',text):
+        clause=raw.strip(' .;')
+        method=_machine_name_clause(clause)
+        if method is None:
+            retained.append(raw)
+        else:
+            machines.append((clause,method))
+    return '\n'.join(retained),machines
+
+
+def comment_metadata(text):
+    """Recognize only complete metadata/name-only clauses, never engineering limits."""
+    parts=[p.strip(' .;') for p in re.split(r'\n+|;\s*',text) if p.strip(' .;')]
+    equipment=[]
+    if not parts:
+        return None
+    for part in parts:
+        # Units, technical constraints and unknown clauses keep their old gate.
+        if (iter_measurements(part) or re.search(r'ГОСТ|ГЭСН|СНиП|\bСП\s*\d|\bТУ\s*\d|'
+                r'типоразмер|мощност|температур|производительност|ширин|глубин|скорост|'
+                r'обязател|только|не\s+менее|не\s+более|\d\s*(?:кВт|°|%|кПа)',part,re.I)):
+            return None
+        software=re.fullmatch(r'(?:Автоматизированная\s+система\s+расч[её]та|'
+            r'Расч[её]т(?:\s+выполнен)?|Проектирование(?:\s+выполнено)?)\s+'
+            r'программным\s+(?:продуктом|комплексом)\s+(.+)',part,re.I)
+        if (software and all(re.fullmatch(r'[A-ZА-ЯЁ][A-Za-zА-Яа-яЁё0-9.–-]*|\d[\w.–-]*',token)
+                for token in software[1].strip(' "«»').split())):
+            continue
+        machine=_machine_name_clause(part)
+        if machine is not None:
+            equipment.append(machine)
+            continue
+        model=re.fullmatch(r'((?:Агрегат|Машина|Установка)\s+для\s+[а-яё]+(?:\s+[а-яё]+){0,2})'
+            r'\s+([A-ZА-ЯЁ][\w .–-]*\d[\w .–-]*)',part)
+        if (not model or re.search(r'\b(?:при|без|с|не)\b',model[2],re.I)
+                or any(not re.fullmatch(r'[A-ZА-ЯЁ][A-Za-zА-Яа-яЁё0-9.–-]*|\d[\w.–-]*',token)
+                    for token in model[2].split())):
+            return None
+        equipment.append(model[1])
+    return equipment
+
+
+def typed_paver_comment(name, comment):
+    """Separate a model only when one literal paver class is fully retained.
+
+    Engineering tails are deliberately outside this grammar. A disagreement
+    with the class in the work name keeps the original comment gate intact.
+    """
+    clause = comment.strip(' .;')
+    match = re.fullmatch(
+        r'(?P<named>Укладка\s+(?:а/укладчиком|асфальтоукладчиком)\s+.+)\s+'
+        r'(?P<class>[123])(?P<ending>[-‑–]?(?:го|ого|й))?\s+типоразмера', clause)
+    if (not match or '\n' in clause or ';' in clause
+            or re.search(r'\d\s*[-‑–—]\s*$', match['named'])):
+        return None
+    method = _machine_name_clause(match['named'])
+    if method is None:
+        return None
+    if re.search(r'типоразмер', name, re.I):
+        declared = list(re.finditer(
+            r'(?:асфальтоукладчиком|а/укладчиком)\s+([123])'
+            r'(?:[-‑–]?(?:го|ого|й))?\s+типоразмера\b', name, re.I))
+        if (len(declared) != 1 or len(re.findall('типоразмер', name, re.I)) != 1
+                or declared[0][1] != match['class']
+                or re.search(r'\b(?:не|без|кроме|либо|или|только)\b', name, re.I)):
+            return None
+    return method + ' ' + match['class'] + (match['ending'] or '') + ' типоразмера'
+
+
+def paver_class_condition(comment):
+    return bool(re.search(r'Укладка\s+(?:а/укладчиком|асфальтоукладчиком)\b', comment)
+        and re.search(r'типоразмер', comment, re.I))
+
+
 def technical_specs(name, comment, position_type, cells, formula=""):
     """Extract only explicit property spans; unknown technical clauses stay open."""
     result = []
     for origin, text in (("name", name), ("comment", comment)):
         if not text:
             continue
+        typed_method = typed_paver_comment(name, text) if origin == 'comment' else None
+        if typed_method is not None:
+            result.append(ClaimSpec(claim_id='attribute:comment:condition', kind=ClaimKind.ATTRIBUTE,
+                label=text, cells=cells, expected_text=text, predicate='advisory', required=False))
+            result.append(ClaimSpec(claim_id='method:comment:equipment:1', kind=ClaimKind.METHOD,
+                label=typed_method, cells=cells, expected_text=typed_method, predicate='text', required=True))
+            continue
+        if origin == 'comment' and paver_class_condition(text):
+            # A later width/power predicate must not swallow the class or an
+            # unknown qualifier before it. Preserve the full unresolved clause.
+            result.append(ClaimSpec(claim_id='attribute:comment:condition', kind=ClaimKind.ATTRIBUTE,
+                label=text, cells=cells, expected_text=text, predicate='text', required=True))
+        metadata=comment_metadata(text) if origin=='comment' else None
+        if metadata is not None:
+            result.append(ClaimSpec(claim_id='attribute:comment:condition',kind=ClaimKind.ATTRIBUTE,
+                label=text,cells=cells,expected_text=text,predicate='advisory',required=False))
+            for number,equipment in enumerate(metadata,1):
+                result.append(ClaimSpec(claim_id=f'method:comment:equipment:{number}',kind=ClaimKind.METHOD,
+                    label=equipment,cells=cells,expected_text=equipment,predicate='text',required=True))
+            continue
+        if origin=='comment':
+            remainder,machines=comment_machine_clauses(text)
+            if machines:
+                result.append(ClaimSpec(claim_id='attribute:comment:equipment_names',kind=ClaimKind.ATTRIBUTE,
+                    label='\n'.join(clause for clause,_ in machines),cells=cells,
+                    expected_text='\n'.join(clause for clause,_ in machines),predicate='advisory',required=False))
+                for number,(_,method) in enumerate(machines,1):
+                    result.append(ClaimSpec(claim_id=f'method:comment:equipment:{number}',kind=ClaimKind.METHOD,
+                        label=method,cells=cells,expected_text=method,predicate='text',required=True))
+                text=remainder
         labels = list(_LABEL_RE.finditer(text))
         covered = []
         for number, label in enumerate(labels):
             end = labels[number + 1].start() if number + 1 < len(labels) else len(text)
             clause = text[label.start():end].strip(" ,;.\n")
-            prop = label.lastgroup
+            prop = label.lastgroup or ''
             tail = clause[label.end() - label.start():].strip(" :=,()")
             measurements = iter_measurements(tail)
+            if prop=='area' and len(measurements)==1 and measurements[0].dimension!='area':
+                height=re.search(r'(?<!\w)h\s*=\s*(\d+(?:[.,]\d+)?)\s*(мм|см|м)\b',tail,re.I)
+                if height and measurements[0].dimension=='length':
+                    # "планировка площади ... h=0,20 м" describes a layer,
+                    # not an area of 0.20 metres. Keep the explicit h requirement.
+                    prop='thickness'
+                    clause=height[0]
+                    tail=height[1]+' '+height[2]
+                    measurements=iter_measurements(tail)
+                else:
+                    # An explicit but dimensionally invalid area stays open.
+                    measurements=[]
             kind = (ClaimKind.GEOMETRY if prop in {"thickness", "length", "width", "height", "area"}
                     else ClaimKind.BASIS if prop == "consumption" else ClaimKind.ATTRIBUTE)
             directed = re.search(r"\d+(?:[.,]\d+)?\s*/\s*\d+(?:[.,]\d+)?", tail)
@@ -103,7 +246,8 @@ def technical_specs(name, comment, position_type, cells, formula=""):
                 predicate="advisory", required=False))
         # A nonempty technical comment cannot disappear just because the bounded
         # parser does not understand it. Plain informational notes are advisory.
-        if origin == "comment" and not labels and not any(s.claim_id.startswith("attribute:comment") for s in result):
+        if origin == "comment" and not labels and not any(s.claim_id.startswith("attribute:comment")
+                and s.claim_id!='attribute:comment:equipment_names' for s in result):
             technical = bool(re.search(r"\d|соедин|креплен|уклад|засып|уплотн|вручн|материал|анкер|геотекст|бетон", text, re.I))
             result.append(ClaimSpec(
                 claim_id="attribute:comment:condition", kind=ClaimKind.ATTRIBUTE,

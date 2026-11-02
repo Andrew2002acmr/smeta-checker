@@ -62,7 +62,7 @@ class PositionCheckTests(unittest.TestCase):
     setUp = fixtures.NormativeApiTests.setUp
     def test_background_layer_calls_model_once_and_preserves_matching(self):
         from normative_background import review_position
-        from normative_position_check import CheckAnswer
+        from normative_position_check import AgentAnswer
         repo = self.app.state.context.repository
         context = self.app.state.context
         context.settings.llm_api_key = 'synthetic-only'
@@ -72,13 +72,27 @@ class PositionCheckTests(unittest.TestCase):
         context = replace(context, client_factory=lambda **_: SimpleNamespace(close=lambda: None))
         before = repo.load_run(UUID(self.run))['indexed_results']
         repo.update_run_config(UUID(self.run), {'normative_after_match': True})
-        response = CheckAnswer(summary='Synthetic automatic normative review', items=[CheckedItem(
-            topic='Source check', state='needs_facts', explanation='Synthetic response only.', project_source_ids=['p1'], normative_source_ids=['n0'])])
-        with patch.dict(os.environ, {'NORMATIVE_ROAD_KB_ROOT': str(ROAD)}), patch('normative_service.profile_for', return_value='roads'), patch('normative_position_check._ask', return_value=response) as ask:
+        # This is an orchestration test with the shared Copper cable fixture.
+        # Its synthetic answer expects a normative source, so provide one
+        # explicitly; road search must not invent a hit from the default prompt.
+        normative_fixture = Corpus(ROAD).search('27-04-003-06')[0]
+        def response(_client, _credentials, _instructions, supplied, *_args):
+            project = next(s['id'] for s in supplied['sources'] if s['kind']=='project')
+            norm = next(s['id'] for s in supplied['sources'] if s['kind']=='normative')
+            return AgentAnswer(summary='Synthetic automatic normative review', items=[CheckedItem(
+                topic='Source check', state='needs_facts', explanation='Synthetic response only.',
+                claim_ids=['normative:applicability'], project_source_ids=[project], normative_source_ids=[norm])],
+                parameters=[], requests=[])
+        with patch.dict(os.environ, {'NORMATIVE_ROAD_KB_ROOT': str(ROAD)}), patch('normative_service.profile_for', return_value='roads'), patch('normative_preflight.preflight_candidates', return_value=[normative_fixture]) as retrieval, patch('normative_position_check._ask', side_effect=response) as ask:
             first = review_position(context, UUID(self.run), 0)
             assert first['review_id']
+            saved = repo.normative_review(UUID(self.run), 0, first['review_id'])['payload']['position_check']
+            assert saved['pipeline_version'] == 4
+            assert saved['execution_state'] == 'complete'
+            assert saved['state'] == 'needs_facts'
             assert review_position(context, UUID(self.run), 0) == {'skipped': 'already_reviewed'}
             assert ask.call_count == 1
+            retrieval.assert_called_once()
         assert repo.load_run(UUID(self.run))['indexed_results'] == before
 
     def test_only_one_position_is_reviewed_and_batch_result_survives(self):
@@ -90,8 +104,12 @@ class PositionCheckTests(unittest.TestCase):
             calls.append(kwargs)
             data = json.loads(kwargs["messages"][1]["content"])
             norm = next(s for s in data["sources"] if s["kind"] == "normative")
-            answer = dict(summary="Синтетическая проверка одной позиции; исходный прогон сохранён.", items=[dict(topic="Площадь", state="confirmed", explanation="Сверено по переданным источникам.", project_source_ids=["p1"], normative_source_ids=[norm["id"]])])
-            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=json.dumps(answer)))], usage=SimpleNamespace(prompt_tokens=120, completion_tokens=30, total_tokens=150))
+            project_id = next(s['id'] for s in data['sources'] if s['kind'] == 'project')
+            answer = dict(summary="Синтетическая проверка одной позиции; исходный прогон сохранён.",
+                parameters=[], requests=[], items=[dict(topic="Площадь", state="confirmed",
+                explanation="Сверено по переданным источникам.", claim_ids=['normative:applicability'],
+                project_source_ids=[project_id], normative_source_ids=[norm["id"]])])
+            return SimpleNamespace(choices=[SimpleNamespace(finish_reason='stop', message=SimpleNamespace(content=json.dumps(answer)))], usage=SimpleNamespace(prompt_tokens=120, completion_tokens=30, total_tokens=150))
 
         context = self.app.state.context
         context.settings.llm_api_key = "synthetic-key"
@@ -110,12 +128,18 @@ class PositionCheckTests(unittest.TestCase):
             assert data["kind"] == "check"
             check = data["payload"]["position_check"]
             assert len(calls) == 1
-            assert check["telemetry"]["requests"] == 0  # The versioned local follow-up adds no paid call.
-            raw_id = UUID(check['telemetry']['warnings'][0].rsplit(': ',1)[1].rstrip('.'))
-            raw = repo.normative_review(UUID(self.run),0,raw_id)['payload']['position_check']
-            assert raw['telemetry']['requests'] == 1
-            assert raw['telemetry']['usage']['total'] == 150
+            assert check['pipeline_version'] == 4
+            assert check['execution_state'] == 'complete'
+            assert check['telemetry']['requests'] == 1
+            assert check['telemetry']['usage']['total'] == 150
             assert check["items"][0]["state"] == "confirmed"
+            reference = check['coverage']['agent_evidence_snapshot']
+            artifact = repo.analysis_artifact(repo.load_run(UUID(self.run))['project_id'], reference['key'])
+            assert artifact['payload']['sha256'] == reference['sha256']
+            from normative_evidence_snapshot import read_answer
+            raw = read_answer(artifact['payload'], artifact['payload']['content']['binding'])
+            assert raw['answer']['items'][0]['state'] == 'confirmed'
+            assert raw['unresolved_source_ids'] == []
             assert self.client.get(self.base).json()["latest_check"]["id"] == data["id"]
             published = self.client.get(f'/api/v1/audits/{self.run}/rows').json()['rows'][0]
             assert published['queue'] == 'review'  # A generic confirmed aspect cannot clear all claims.
@@ -126,4 +150,32 @@ class PositionCheckTests(unittest.TestCase):
             from normative_background import review_position
             repo.update_run_config(UUID(self.run), {"normative_after_match": True})
             assert review_position(self.app.state.context, UUID(self.run), 0) == {"skipped": "already_reviewed"}
+            assert len(calls) == 1
+            with patch('normative_position_check._ask', side_effect=AssertionError('Local replay must not call model')),\
+                    patch('normative_context._ask', side_effect=AssertionError('Local replay must not call model')):
+                replay = self.client.post(self.base + '/' + data['id'] + '/validate')
+                assert replay.status_code == 200, replay.text
+                replayed = replay.json()
+                assert replayed['id'] != data['id']
+                assert replayed['payload']['position_check']['telemetry']['requests'] == 0
+                assert replayed['payload']['position_check']['state'] == 'needs_facts'
+                second = self.client.post(self.base + '/' + replayed['id'] + '/validate')
+                assert second.status_code == 200, second.text
+                assert second.json()['payload']['position_check']['state'] == 'needs_facts'
+                assert self.client.post(self.base + '/' + data['id'] + '/validate').status_code >= 400
+            assert len(calls) == 1
+            assert repo.load_run(UUID(self.run))['indexed_results'] == before
+            import analysis_replay
+            original_algorithm = analysis_replay.algorithm
+            def changed_verdict(stage):
+                return 'changed-verdict-only' if stage == 'normative' else original_algorithm(stage)
+            with patch('analysis_replay.algorithm', side_effect=changed_verdict),\
+                    patch('normative_position_check._ask', side_effect=AssertionError('Automatic replay must not call model')),\
+                    patch('normative_context._ask', side_effect=AssertionError('Automatic replay must not call model')):
+                automatic = self.client.post(self.base + '/check', json=dict(pages=[1], question='Проверить 1.27.18'))
+                assert automatic.status_code == 200, automatic.text
+                auto_check = automatic.json()['payload']['position_check']
+                assert auto_check['telemetry']['requests'] == 0
+                assert auto_check['state'] == 'needs_facts'
+                assert any(e['kind']=='original_agent_evidence_replay' for e in auto_check['evidence_trace'])
             assert len(calls) == 1

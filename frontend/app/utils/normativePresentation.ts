@@ -46,7 +46,20 @@ export function evidenceRects(rects?: number[][]): number[][] {
     .map((r) => [...r])
 }
 
+export function workbookOperandCard(card: NormativeParameterCard): boolean {
+  return (
+    card.id.startsWith('factor:') &&
+    [
+      'Расход из примечания ВОР',
+      'Исходная площадь расчёта',
+      'Перевод литров и масса',
+      'Перевод кг в тонны',
+    ].includes(card.label)
+  )
+}
+
 export function cardTitle(card: NormativeParameterCard): string {
+  if (workbookOperandCard(card)) return card.label
   if (card.role === 'calculation') return `Расчёт${card.row ? ` · строка ${card.row}` : ''}`
   if (card.role === 'coefficient') return `Параметр ${exactValue(card.declared_value, card.unit)}`
   if (card.role === 'unit_scale') return 'Измеритель нормы'
@@ -55,6 +68,7 @@ export function cardTitle(card: NormativeParameterCard): string {
 }
 
 export function cardExplanation(card: NormativeParameterCard): string {
+  if (workbookOperandCard(card)) return compactText(evidenceText(card.reason), 260)
   if (card.role === 'calculation' && card.state === 'confirmed')
     return 'Расчёт совпадает с объёмом ВОР.'
   if (card.role === 'coefficient' && card.state === 'needs_facts' && !card.quote)

@@ -1,0 +1,10 @@
+<clickhouse>
+  <max_server_memory_usage>1073741824</max_server_memory_usage>
+  <max_thread_pool_size>512</max_thread_pool_size>
+  <max_io_thread_pool_size>32</max_io_thread_pool_size>
+  <background_pool_size>4</background_pool_size>
+  <background_merges_mutations_concurrency_ratio>8</background_merges_mutations_concurrency_ratio>
+  <background_schedule_pool_size>8</background_schedule_pool_size>
+  <background_fetches_pool_size>4</background_fetches_pool_size>
+  <logger><level>information</level><size>20M</size><count>2</count></logger>
+</clickhouse>

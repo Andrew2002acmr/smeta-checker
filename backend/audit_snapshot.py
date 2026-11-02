@@ -1,7 +1,8 @@
 """Frozen preparation boundary: content-addressed PageTextIndex snapshots.
 
 ``prepare_run`` (CPU queue) owns every PDF handle and persists one compressed
-canonical snapshot per bound position through ``BlobStore.put``. The LLM
+canonical snapshot per fully prepared document through ``BlobStore.put``.
+All positions bound to that document share its immutable reference. The LLM
 worker only restores that snapshot via ``PageTextIndex.from_snapshot`` and
 never reopens, re-extracts, or OCRs a PDF. The direct runner uses the same
 encode/decode contract in memory.

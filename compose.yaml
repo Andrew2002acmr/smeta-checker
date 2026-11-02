@@ -2,7 +2,7 @@
 # One file starts api + workspace (Nuxt) + postgres + redis + pdf/llm workers.
 # Secrets: copy .env.example to .env and fill POSTGRES_PASSWORD, AUDIT_API_TOKEN,
 # WORKSPACE_LOGIN + WORKSPACE_PASSWORD (local mode) or LDAP settings (ldap mode),
-# LLM keys (YANDEX_* or ANYMODEL_*). Compose reads .env automatically.
+# LLM keys (ROUTERAI_*, ANYMODEL_* or YANDEX_*). Compose reads .env automatically.
 name: smeta-checker
 
 services:
@@ -74,6 +74,9 @@ services:
       YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
       YANDEX_CLOUD_FOLDER: ${YANDEX_CLOUD_FOLDER:-}
       YANDEX_CLOUD_MODEL: ${YANDEX_CLOUD_MODEL:-qwen3.6-35b-a3b/latest}
+      ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
+      ROUTERAI_BASE_URL: ${ROUTERAI_BASE_URL:-https://routerai.ru/api/v1}
+      ROUTERAI_MODEL: ${ROUTERAI_MODEL:-}
       ANYMODEL_API_KEY: ${ANYMODEL_API_KEY:-}
       ANYMODEL_BASE_URL: ${ANYMODEL_BASE_URL:-https://anymodel.org/v1}
       ANYMODEL_MODEL: ${ANYMODEL_MODEL:-}
@@ -184,6 +187,9 @@ services:
       YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
       YANDEX_CLOUD_FOLDER: ${YANDEX_CLOUD_FOLDER:-}
       YANDEX_CLOUD_MODEL: ${YANDEX_CLOUD_MODEL:-qwen3.6-35b-a3b/latest}
+      ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
+      ROUTERAI_BASE_URL: ${ROUTERAI_BASE_URL:-https://routerai.ru/api/v1}
+      ROUTERAI_MODEL: ${ROUTERAI_MODEL:-}
       ANYMODEL_API_KEY: ${ANYMODEL_API_KEY:-}
       ANYMODEL_BASE_URL: ${ANYMODEL_BASE_URL:-https://anymodel.org/v1}
       ANYMODEL_MODEL: ${ANYMODEL_MODEL:-}
@@ -269,6 +275,9 @@ services:
       YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
       YANDEX_CLOUD_FOLDER: ${YANDEX_CLOUD_FOLDER:-}
       YANDEX_CLOUD_MODEL: ${YANDEX_CLOUD_MODEL:-qwen3.6-35b-a3b/latest}
+      ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
+      ROUTERAI_BASE_URL: ${ROUTERAI_BASE_URL:-https://routerai.ru/api/v1}
+      ROUTERAI_MODEL: ${ROUTERAI_MODEL:-}
       ANYMODEL_API_KEY: ${ANYMODEL_API_KEY:-}
       ANYMODEL_BASE_URL: ${ANYMODEL_BASE_URL:-https://anymodel.org/v1}
       ANYMODEL_MODEL: ${ANYMODEL_MODEL:-}

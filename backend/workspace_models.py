@@ -152,6 +152,7 @@ class NormativeProjectCitation(DTO):
 
 
 class NormativeContextAnalysis(DTO):
+    responses: list[dict[str, Any]] = Field(default_factory=list, max_length=3)
     interpretation: str = ""
     queries: list[str] = Field(default_factory=list)
     missing_facts: list[str] = Field(default_factory=list)
@@ -166,6 +167,10 @@ class NormativeContextAnalysis(DTO):
 
 
 class NormativeCheckSource(DTO):
+    numeric_verified: bool = False
+    unit_verified: bool = False
+    unit: str = ''
+    rects: list[list[float]] = Field(default_factory=list, max_length=40)
     id: str
     kind: Literal["project", "normative"]
     label: str
@@ -198,11 +203,15 @@ class NormativeNumericCondition(DTO):
 
 
 class NormativeParameterProposal(DTO):
+    operation: Literal['direct', 'sum'] = 'direct'
+    operand_source_ids: list[str] = Field(default_factory=list, max_length=12)
+    scope_state: Literal['verified', 'unresolved'] = 'unresolved'
+    scope_quote: str = Field(default='', max_length=900)
     parameter: Literal['quantity', 'thickness', 'coefficient', 'unit_scale']
     value: str = Field(max_length=40)
     unit: str = Field(max_length=30)
-    source_id: str = Field(max_length=80)
-    quote: str = Field(max_length=900)
+    source_id: str = Field(default='', max_length=80)
+    quote: str = Field(default='', max_length=900)
     conditions: list[NormativeNumericCondition] = Field(default_factory=list, max_length=6)
 
 
@@ -262,6 +271,10 @@ class QuantityComposition(DTO):
 
 
 class NormativePositionCheck(DTO):
+    pipeline_version: int = 1
+    execution_state: Literal['complete', 'technical_failure'] = 'complete'
+    evidence_trace: list[dict[str, Any]] = Field(default_factory=list)
+    coverage: dict[str, Any] = Field(default_factory=dict)
     local_rules_version: int = 0
     quantity_composition: QuantityComposition | None = None
     local_validation_version: int = 0
@@ -437,7 +450,6 @@ class NormativeCatalogTypeDTO(DTO):
 class NormativeManagerDTO(DTO):
     profiles: list[NormativeCorpusAdminDTO]
     collections: list[NormativeCatalogTypeDTO]
-
 
 class ProjectDTO(DTO):
     id: str

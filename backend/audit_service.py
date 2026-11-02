@@ -708,6 +708,7 @@ def run_audit(
     results = {}
     issues = []
     pdf_text_sources = {}
+    prepared_documents = {}
     executor = ThreadPoolExecutor(max_workers=max_workers)
     try:
         vors_parsed = {}
@@ -736,6 +737,12 @@ def run_audit(
             vors_parsed[v_name] = (df_w, positions_w, meta)
             total_items += len(positions_w)
 
+        # Complete ALL documents before submitting even the first position.
+        for name, document in pdf_pool.items():
+            notify(0, f"Полная подготовка ПД, OCR и таблиц: {name}")
+            source = PDFTextSource(document, full_document=True)
+            pdf_text_sources[name] = source
+            prepared_documents[name] = source.prepare_full()
         notify(0, "Инициализация многопоточной проверки...")
         current_row_idx = 0
 
@@ -819,46 +826,6 @@ def run_audit(
                                     status_message=loc_desc[:200],
                                     level="DEFAULT" if target_indices else "WARNING",
                                 )
-                            if target_pdf_name not in pdf_text_sources:
-                                notify(
-                                    current_row_idx / max(total_items, 1),
-                                    f"Подготовка Markdown и таблиц PDF: {target_pdf_name}",
-                                )
-                                with position_trace.stage(
-                                    "index-native-pdf",
-                                    input={
-                                        "pdf_name": target_pdf_name,
-                                        "extractor": "pymupdf4llm",
-                                    },
-                                ) as observation:
-                                    source = PDFTextSource(target_pdf_doc)
-                                    pdf_text_sources[target_pdf_name] = source
-                                    observation.update(
-                                        output={
-                                            "pages": source.page_count,
-                                            "page_chars": [
-                                                len(t)
-                                                for t in source.native_index.texts
-                                            ],
-                                            "pending_ocr": [
-                                                i + 1 for i in source.pending_ocr
-                                            ],
-                                            "errors": source.native_index.errors,
-                                            "extraction_hits": source.extraction_hits,
-                                            "extraction_misses": source.extraction_misses,
-                                            "table_cache_hits": source.table_cache_hits,
-                                        },
-                                        status_message=(
-                                            f"Страниц: {source.page_count}; "
-                                            f"сканов: {len(source.pending_ocr)}; "
-                                            f"сбоев чтения: {len(source.native_index.errors)}; "
-                                            f"Markdown из кеша: {source.extraction_hits}; "
-                                            f"заново: {source.extraction_misses}"
-                                        ),
-                                        level="ERROR"
-                                        if source.native_index.errors
-                                        else "DEFAULT",
-                                    )
                             source = pdf_text_sources[target_pdf_name]
                             before_ocr, before_hits, before_tables = (
                                 source.ocr_count,
@@ -869,11 +836,7 @@ def run_audit(
                                 "prepare-ocr-snapshot",
                                 input={"pages": primary_phys_pages, "work": w_name},
                             ) as observation:
-                                prepared = source.for_position(
-                                    target_indices, w_name, w_vol, w_ref, w_comment,
-                                    expected_scope=expected_scope_hint(
-                                        position.position_source),
-                                )
+                                prepared = prepared_documents[target_pdf_name]
                                 # Frozen boundary: workers receive only the
                                 # restored snapshot, same contract as Celery.
                                 text_index = decode_snapshot(encode_snapshot(prepared))

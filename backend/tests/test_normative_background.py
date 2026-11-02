@@ -9,6 +9,19 @@ from test_durable_tasks import pipeline as pipeline
 NAME = "audit_tasks.normative_position"
 
 
+def test_technical_failure_survives_database_projection_and_is_not_manual_review(pipeline):
+    from normative_verdict import publish
+    p = pipeline
+    p.repo.save_normative_review(p.run.id, 0, 'check', dict(position_key='test-key', position_check=dict(
+        execution_state='technical_failure', summary='Исчерпан лимит ответа',
+        items=[], parameter_cards=[])), 'synthetic-model')
+    validation = p.repo.normative_validation_context(p.run.id)[0]
+    assert validation['review']['execution_state'] == 'technical_failure'
+    result = publish({'Статус аудита':'Обнаружено расхождение'}, {}, 'test-key', validation, enabled=True)
+    assert result['Статус аудита'] == 'Проверка не выполнена'
+    assert result['Что не так'] == 'Исчерпан лимит ответа'
+
+
 def test_standalone_relay_uses_the_same_normative_queue_as_workers():
     from scripts.dispatch_tasks import queue_for_task
     assert queue_for_task(NAME) == DEFAULT_TASK_ROUTES[NAME]['queue'] == 'normative'

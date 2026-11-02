@@ -118,6 +118,17 @@ def _chat_completion_text(response):
     content = getattr(message, "content", None)
     return content if isinstance(content, str) else ""
 
+
+def chat_generation_options(base_url, model_name):
+    """Explicit reasoning profiles for bounded JSON audit tasks."""
+    host = (urlparse(base_url).hostname or '').lower()
+    if host == 'routerai.ru' and model_name.startswith('deepseek/'):
+        # The Decart endpoint advertises `reasoning`, not the flat alias.
+        return {'extra_body': {'reasoning': {'effort': 'low'}}, 'response_format': {'type': 'json_object'}}
+    if host == 'anymodel.org' and model_name == 'ds/deepseek-v4-flash':
+        return {'reasoning_effort': 'none', 'response_format': {'type': 'json_object'}}
+    return {}
+
 def audit_position_hybrid(
     text_index,
     target_indices,
@@ -148,13 +159,9 @@ def audit_position_hybrid(
     snooze = time.sleep if sleeper is None else sleeper
     _check_llm_host(base_url, allowed_hosts)
     use_chat = _is_chat_backend(base_url)
-    provider_label = "AnyModel (chat)" if use_chat else "Yandex Cloud (Qwen)"
-    chat_options = {}
-    if (urlparse(base_url).hostname or "").lower() == "anymodel.org" and model_name == "ds/deepseek-v4-flash":
-        chat_options = {
-            "reasoning_effort": "none",
-            "response_format": {"type": "json_object"},
-        }
+    from audit_models import AuditSettings
+    provider_label = AuditSettings._chat_provider_label(base_url) if use_chat else "Yandex Cloud (Qwen)"
+    chat_options = chat_generation_options(base_url, model_name)
     instructions = """Ты — эксперт-аудитор проектно-сметной документации.
 Сопоставь требования ВОР с фрагментами ПД как единым контекстом. Ты только предлагаешь факты и связи с источниками; решения принимает программа.
 1. Для каждого переданного требования (claim_id) выбери фрагменты, где видно соответствующее сведение. presence: базовая операция для того же объекта и участка; совпадения одного числа, общей темы или похожей работы недостаточно. quantity/unit: число и единица, относящиеся к этой работе. method/attribute: способ выполнения или характеристика материала. claim_id переписывай ДОСЛОВНО из списка требований, целиком (например attribute:name:density:1, а не attribute). Сокращённые claim_id (attribute, geometry, basis) запрещены и будут отклонены. Отсутствующее предложение означает отсутствие находки в контексте, не отрицание работы.

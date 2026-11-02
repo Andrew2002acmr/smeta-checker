@@ -1,0 +1,3859 @@
+{
+  "provenance": {
+    "purpose": "Exact saved59 review and immutable matching for full-versus-batch publication parity; no source text regenerated",
+    "review_id": "a58508b9-89ce-41ad-978b-5476fd17aa18",
+    "export_sha256": "1dfa4af213cdd8a358213e7fea474a7ea19c270993bf93c6ec9a33d23c3d2824",
+    "matching_export_sha256": "8555f272e6a0ccfef0133f36c08a3d93f594702c02edb42e02ac082a18b22d89"
+  },
+  "position": {
+    "unit": "м2",
+    "index": 59,
+    "number": "",
+    "volume": "874.42",
+    "comment": "Укладка а/укладчиком Vögele SUPER 1600 2 типоразмера",
+    "formula": "",
+    "file_ref": "",
+    "page_ref": "",
+    "reference": "",
+    "work_name": "Устройство нижнего слоя покрытия из асфальтобетонной смеси, асфальтоукладчиком 2 типоразмера, h = 8 см",
+    "bind_error": null,
+    "prep_error": null,
+    "calculation": {},
+    "document_id": "",
+    "formula_refs": {
+      "display_cell": "E81"
+    },
+    "explicit_refs": [],
+    "position_type": "Работа",
+    "primary_pages": [],
+    "target_indices": [],
+    "bind_error_kind": null,
+    "position_source": {
+      "row": 81,
+      "cells": {
+        "B81": "Устройство нижнего слоя покрытия из асфальтобетонной смеси, асфальтоукладчиком 2 типоразмера, h = 8 см",
+        "C81": "м2",
+        "D81": "874.42",
+        "I81": "Укладка а/укладчиком Vögele SUPER 1600 2 типоразмера",
+        "K81": "Работа"
+      },
+      "sheet": "Дорожная одежда",
+      "format": "xlsx",
+      "sections": [
+        {
+          "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+          "address": "A70"
+        }
+      ],
+      "scope_key": "",
+      "header_row": 15,
+      "position_id": "4b5d03827ea0ce64:Дорожная одежда:81",
+      "scope_reason": "unknown",
+      "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+      "continuation_rows": []
+    },
+    "prep_error_kind": null,
+    "designation_refs": [],
+    "location_description": "Страница не указана"
+  },
+  "position_key": "38a799b89ebd11de886fe9835a153c7046c9bb8cf28480bfeaa98afccda2ddaf",
+  "matching": {
+    "usage": {
+      "input": 13471,
+      "total": 20518,
+      "output": 7047,
+      "reasoning": 5838
+    },
+    "checks": [
+      {
+        "kind": "attribute",
+        "facts": [],
+        "state": "not_found",
+        "reasons": [
+          "no_proposal"
+        ],
+        "claim_id": "attribute:comment:condition",
+        "required": true
+      },
+      {
+        "kind": "attribute",
+        "facts": [
+          {
+            "unit": "",
+            "value": "**<u>006/26-ТКР1</u>**\n Основание — Щебёночно-песчаная смесь для оснований по ГОСТ Р 70458-2022 при\nмаксимальном размере зёрен 0/31,5 мм, по гранулометрическому составу соответствующие\nтипу 0/16, категории K90, марке M1, h=20 см;\n**_Тип III – Конструкция_** **_дорожных_** **_одежд_** **_съездов_**\n Верхний слой покрытия — А16Вл Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=6 см\n Нижний слой покрытия — А22Нл Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=8 см\n Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см\n Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см\n**_Тип IV – Конструкция_** **_ровиков_** **_уширения:_**\n**Трехслойное покрытие:**\n Верхний слой покрытия (слой усиления) — ЩМА-16 Щебёночно-мастичный",
+            "claim_id": "attribute:name:unparsed",
+            "locators": [
+              {
+                "bbox": [],
+                "page": 50,
+                "role": "block",
+                "text": "**<u>006/26-ТКР1</u>**\n Основание — Щебёночно-песчаная смесь для оснований по ГОСТ Р 70458-2022 при\nмаксимальном размере зёрен 0/31,5 мм, по гранулометрическому составу соответствующие\nтипу 0/16, кат",
+                "origin": "native",
+                "row_id": "",
+                "members": [
+                  {
+                    "bbox": [],
+                    "page": 50,
+                    "role": "block",
+                    "text": "**<u>006/26-ТКР1</u>**\n Основание — Щебёночно-песчаная смесь для оснований по ГОСТ Р 70458-2022 при\nмаксимальном размере зёрен 0/31,5 мм, по гранулометрическому составу соответствующие\nтипу 0/16, кат",
+                    "origin": "native",
+                    "row_id": "",
+                    "quality": "usable",
+                    "group_id": "",
+                    "rotation": 0,
+                    "table_id": "",
+                    "column_id": "",
+                    "scope_key": "",
+                    "source_id": "bfdbba43339e39b11",
+                    "header_ids": [],
+                    "document_id": "pdf-092229c4218b"
+                  }
+                ],
+                "quality": "usable",
+                "group_id": "",
+                "rotation": 0,
+                "table_id": "",
+                "column_id": "",
+                "scope_key": "",
+                "source_id": "bfdbba43339e39b11",
+                "header_ids": [],
+                "document_id": "pdf-092229c4218b"
+              }
+            ],
+            "source_ids": [
+              "sde2a988ffa2cf2dd6e27276a"
+            ],
+            "unit_source_id": "",
+            "value_source_id": "",
+            "subject_source_ids": [],
+            "relation_source_ids": []
+          }
+        ],
+        "state": "not_applicable",
+        "reasons": [
+          "informational_note"
+        ],
+        "claim_id": "attribute:name:unparsed",
+        "required": false
+      },
+      {
+        "kind": "attribute",
+        "facts": [],
+        "state": "review_required",
+        "reasons": [
+          "comment_predicates_evaluated"
+        ],
+        "claim_id": "comment",
+        "required": false
+      },
+      {
+        "kind": "method",
+        "facts": [],
+        "state": "review_required",
+        "reasons": [
+          "method_terms_missing"
+        ],
+        "claim_id": "method",
+        "required": true
+      },
+      {
+        "kind": "presence",
+        "facts": [
+          {
+            "unit": "",
+            "value": "**<u>006/26-ТКР1</u>**\n Основание — Щебёночно-песчаная смесь для оснований по ГОСТ Р 70458-2022 при\nмаксимальном размере зёрен 0/31,5 мм, по гранулометрическому составу соответствующие\nтипу 0/16, категории K90, марке M1, h=20 см;\n**_Тип III – Конструкция_** **_дорожных_** **_одежд_** **_съездов_**\n Верхний слой покрытия — А16Вл Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=6 см\n Нижний слой покрытия — А22Нл Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 3313",
+            "claim_id": "presence",
+            "locators": [
+              {
+                "bbox": [],
+                "page": 50,
+                "role": "block",
+                "text": "**<u>006/26-ТКР1</u>**\n Основание — Щебёночно-песчаная смесь для оснований по ГОСТ Р 70458-2022 при\nмаксимальном размере зёрен 0/31,5 мм, по гранулометрическому составу соответствующие\nтипу 0/16, кат",
+                "origin": "native",
+                "row_id": "",
+                "members": [
+                  {
+                    "bbox": [],
+                    "page": 50,
+                    "role": "block",
+                    "text": "**<u>006/26-ТКР1</u>**\n Основание — Щебёночно-песчаная смесь для оснований по ГОСТ Р 70458-2022 при\nмаксимальном размере зёрен 0/31,5 мм, по гранулометрическому составу соответствующие\nтипу 0/16, кат",
+                    "origin": "native",
+                    "row_id": "",
+                    "quality": "usable",
+                    "group_id": "",
+                    "rotation": 0,
+                    "table_id": "",
+                    "column_id": "",
+                    "scope_key": "",
+                    "source_id": "bfdbba43339e39b11",
+                    "header_ids": [],
+                    "document_id": "pdf-092229c4218b"
+                  }
+                ],
+                "quality": "usable",
+                "group_id": "",
+                "rotation": 0,
+                "table_id": "",
+                "column_id": "",
+                "scope_key": "",
+                "source_id": "bfdbba43339e39b11",
+                "header_ids": [],
+                "document_id": "pdf-092229c4218b"
+              }
+            ],
+            "source_ids": [
+              "sde2a988ffa2cf2dd6e27276a"
+            ],
+            "unit_source_id": "",
+            "value_source_id": "",
+            "subject_source_ids": [
+              "sde2a988ffa2cf2dd6e27276a"
+            ],
+            "relation_source_ids": []
+          }
+        ],
+        "state": "confirmed",
+        "reasons": [
+          "work_cited"
+        ],
+        "claim_id": "presence",
+        "required": true
+      },
+      {
+        "kind": "quantity",
+        "facts": [
+          {
+            "unit": "",
+            "value": "<tr><td></td><td>Всего: 874,42</td><td></td><td></td><td></td><td>Устройство тротуаров, тех.тротуаров и лестничных маршев. Улица.</td><td></td><td></td><td></td><td></td><td>7,42</td><td>279</td></tr>",
+            "claim_id": "quantity",
+            "locators": [
+              {
+                "bbox": [
+                  40.4248046875,
+                  17.61435890197754,
+                  514.2108764648438,
+                  817.0865478515625
+                ],
+                "page": 90,
+                "origin": "ocr",
+                "row_id": "t1:r14",
+                "members": [
+                  {
+                    "row": 0,
+                    "bbox": [
+                      475.5538635253906,
+                      19.18634796142578,
+                      511.838623046875,
+                      96.41427612304688
+                    ],
+                    "page": 90,
+                    "role": "header",
+                    "text": "",
+                    "words": [],
+                    "column": 0,
+                    "origin": "ocr",
+                    "row_id": "t1:r1",
+                    "cell_id": "t1:cell1",
+                    "colspan": 2,
+                    "quality": "usable",
+                    "rowspan": 3,
+                    "table_id": "t1",
+                    "column_id": "t1:c1",
+                    "source_id": "t1:cell1",
+                    "header_ids": [],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 0,
+                    "bbox": [
+                      503.2448425292969,
+                      107.2673568725586,
+                      514.2108764648438,
+                      668.4158325195312
+                    ],
+                    "page": 90,
+                    "role": "header",
+                    "text": "",
+                    "words": [],
+                    "column": 2,
+                    "origin": "ocr",
+                    "row_id": "t1:r1",
+                    "cell_id": "t1:cell2",
+                    "colspan": 9,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c3",
+                    "source_id": "t1:cell2",
+                    "header_ids": [],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 1,
+                    "bbox": [
+                      499.1381530761719,
+                      91.09944915771484,
+                      505.6382141113281,
+                      491.3830261230469
+                    ],
+                    "page": 90,
+                    "role": "header",
+                    "text": "",
+                    "words": [],
+                    "column": 2,
+                    "origin": "ocr",
+                    "row_id": "t1:r2",
+                    "cell_id": "t1:cell3",
+                    "colspan": 9,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c3",
+                    "source_id": "t1:cell3",
+                    "header_ids": [],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 2,
+                    "bbox": [
+                      467.8177185058594,
+                      70.9310531616211,
+                      488.35888671875,
+                      185.80130004882812
+                    ],
+                    "page": 90,
+                    "role": "header",
+                    "text": "А16Вл на БНД",
+                    "words": [
+                      {
+                        "bbox": [
+                          469.7480773925781,
+                          122.83983612060547,
+                          480.53118896484375,
+                          187.1194305419922
+                        ],
+                        "text": "А16Вл на БНД",
+                        "confidence": 0.98321
+                      }
+                    ],
+                    "column": 2,
+                    "origin": "ocr",
+                    "row_id": "t1:r3",
+                    "cell_id": "t1:cell4",
+                    "colspan": 2,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c3",
+                    "source_id": "t1:cell4",
+                    "header_ids": [],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 2,
+                    "bbox": [
+                      461.52490234375,
+                      187.15553283691406,
+                      499.1712646484375,
+                      324.9132995605469
+                    ],
+                    "page": 90,
+                    "role": "header",
+                    "text": "Покрытие\nА22Нл на БНД\n70/100",
+                    "words": [
+                      {
+                        "bbox": [
+                          488.5187072753906,
+                          177.8211212158203,
+                          500.8993225097656,
+                          222.695556640625
+                        ],
+                        "text": "Покрытие",
+                        "confidence": 0.99794
+                      },
+                      {
+                        "bbox": [
+                          469.7480773925781,
+                          213.80152893066406,
+                          480.53118896484375,
+                          278.8896484375
+                        ],
+                        "text": "А22Нл на БНД",
+                        "confidence": 0.99177
+                      },
+                      {
+                        "bbox": [
+                          456.1693115234375,
+                          230.3767547607422,
+                          468.9493408203125,
+                          263.12298583984375
+                        ],
+                        "text": "70/100",
+                        "confidence": 0.99948
+                      }
+                    ],
+                    "column": 4,
+                    "origin": "ocr",
+                    "row_id": "t1:r3",
+                    "cell_id": "t1:cell5",
+                    "colspan": 3,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c5",
+                    "source_id": "t1:cell5",
+                    "header_ids": [],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 2,
+                    "bbox": [
+                      457.901123046875,
+                      375.6315002441406,
+                      500.71527099609375,
+                      519.9552001953125
+                    ],
+                    "page": 90,
+                    "role": "header",
+                    "text": "Основание\nЩебеночно-песчаная\nсмесь типа 0/31,5 мм",
+                    "words": [
+                      {
+                        "bbox": [
+                          489.31744384765625,
+                          372.6812744140625,
+                          501.2987060546875,
+                          421.19415283203125
+                        ],
+                        "text": "Основание",
+                        "confidence": 0.99976
+                      },
+                      {
+                        "bbox": [
+                          475.73870849609375,
+                          400.1719055175781,
+                          487.320556640625,
+                          495.9848937988281
+                        ],
+                        "text": "Щебеночно-песчаная",
+                        "confidence": 0.99928
+                      },
+                      {
+                        "bbox": [
+                          462.95867919921875,
+                          398.9591064453125,
+                          473.7418212890625,
+                          497.60198974609375
+                        ],
+                        "text": "смесь типа 0/31,5 мм",
+                        "confidence": 0.97887
+                      }
+                    ],
+                    "column": 7,
+                    "origin": "ocr",
+                    "row_id": "t1:r3",
+                    "cell_id": "t1:cell6",
+                    "colspan": 2,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c8",
+                    "source_id": "t1:cell6",
+                    "header_ids": [],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 2,
+                    "bbox": [
+                      457.62591552734375,
+                      503.1827087402344,
+                      498.5059814453125,
+                      638.6769409179688
+                    ],
+                    "page": 90,
+                    "role": "header",
+                    "text": "Покрытие\nЩМА-16 на ПБВ 60",
+                    "words": [
+                      {
+                        "bbox": [
+                          488.5187072753906,
+                          605.9474487304688,
+                          500.8993225097656,
+                          651.2261352539062
+                        ],
+                        "text": "Покрытие",
+                        "confidence": 0.99725
+                      },
+                      {
+                        "bbox": [
+                          463.35809326171875,
+                          522.6669921875,
+                          474.1412048339844,
+                          607.9688720703125
+                        ],
+                        "text": "ЩМА-16 на ПБВ 60",
+                        "confidence": 0.95231
+                      }
+                    ],
+                    "column": 9,
+                    "origin": "ocr",
+                    "row_id": "t1:r3",
+                    "cell_id": "t1:cell7",
+                    "colspan": 2,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c10",
+                    "source_id": "t1:cell7",
+                    "header_ids": [],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 2,
+                    "bbox": [
+                      452.19781494140625,
+                      659.7807006835938,
+                      494.30609130859375,
+                      773.633056640625
+                    ],
+                    "page": 90,
+                    "role": "header",
+                    "text": "А22Нт на БНД 70/100",
+                    "words": [
+                      {
+                        "bbox": [
+                          463.35809326171875,
+                          642.7363891601562,
+                          474.1412048339844,
+                          741.3793334960938
+                        ],
+                        "text": "А22Нт на БНД 70/100",
+                        "confidence": 0.99669
+                      }
+                    ],
+                    "column": 11,
+                    "origin": "ocr",
+                    "row_id": "t1:r3",
+                    "cell_id": "t1:cell8",
+                    "colspan": 1,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c12",
+                    "source_id": "t1:cell8",
+                    "header_ids": [],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 13,
+                    "bbox": [
+                      278.4244689941406,
+                      18.520124435424805,
+                      287.3450927734375,
+                      103.10594177246094
+                    ],
+                    "page": 90,
+                    "role": "cell",
+                    "text": "",
+                    "words": [],
+                    "column": 0,
+                    "origin": "ocr",
+                    "row_id": "t1:r14",
+                    "cell_id": "t1:cell126",
+                    "colspan": 1,
+                    "quality": "uncertain",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c1",
+                    "source_id": "t1:cell126",
+                    "header_ids": [],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 13,
+                    "bbox": [
+                      280.8139343261719,
+                      73.17825317382812,
+                      289.90948486328125,
+                      364.02435302734375
+                    ],
+                    "page": 90,
+                    "role": "cell",
+                    "text": "Всего:\n874,42",
+                    "words": [
+                      {
+                        "bbox": [
+                          282.4411926269531,
+                          77.15685272216797,
+                          296.01995849609375,
+                          109.49878692626953
+                        ],
+                        "text": "Всего:",
+                        "confidence": 0.96004
+                      },
+                      {
+                        "bbox": [
+                          282.840576171875,
+                          116.77572631835938,
+                          295.22119140625,
+                          147.9048309326172
+                        ],
+                        "text": "874,42",
+                        "confidence": 0.97465
+                      }
+                    ],
+                    "column": 1,
+                    "origin": "ocr",
+                    "row_id": "t1:r14",
+                    "cell_id": "t1:cell127",
+                    "colspan": 1,
+                    "quality": "uncertain",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c2",
+                    "source_id": "t1:cell127",
+                    "header_ids": [],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 13,
+                    "bbox": [
+                      275.669189453125,
+                      147.68597412109375,
+                      291.5422668457031,
+                      222.04331970214844
+                    ],
+                    "page": 90,
+                    "role": "cell",
+                    "text": "",
+                    "words": [],
+                    "column": 2,
+                    "origin": "ocr",
+                    "row_id": "t1:r14",
+                    "cell_id": "t1:cell128",
+                    "colspan": 1,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c3",
+                    "source_id": "t1:cell128",
+                    "header_ids": [
+                      "t1:cell4"
+                    ],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 13,
+                    "bbox": [
+                      270.4184265136719,
+                      192.86524963378906,
+                      289.4951171875,
+                      242.52908325195312
+                    ],
+                    "page": 90,
+                    "role": "cell",
+                    "text": "",
+                    "words": [],
+                    "column": 3,
+                    "origin": "ocr",
+                    "row_id": "t1:r14",
+                    "cell_id": "t1:cell129",
+                    "colspan": 1,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c4",
+                    "source_id": "t1:cell129",
+                    "header_ids": [
+                      "t1:cell4"
+                    ],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 13,
+                    "bbox": [
+                      270.3370056152344,
+                      241.548095703125,
+                      287.6424865722656,
+                      284.09405517578125
+                    ],
+                    "page": 90,
+                    "role": "cell",
+                    "text": "",
+                    "words": [],
+                    "column": 4,
+                    "origin": "ocr",
+                    "row_id": "t1:r14",
+                    "cell_id": "t1:cell130",
+                    "colspan": 1,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c5",
+                    "source_id": "t1:cell130",
+                    "header_ids": [
+                      "t1:cell5"
+                    ],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 13,
+                    "bbox": [
+                      270.013916015625,
+                      287.8076477050781,
+                      285.24505615234375,
+                      331.4403076171875
+                    ],
+                    "page": 90,
+                    "role": "cell",
+                    "text": "Устройство тротуаров, тех.тротуаров и лестничных маршев. Улица.",
+                    "words": [
+                      {
+                        "bbox": [
+                          268.8624572753906,
+                          144.67063903808594,
+                          280.84368896484375,
+                          495.1763610839844
+                        ],
+                        "text": "Устройство тротуаров, тех.тротуаров и лестничных маршев. Улица.",
+                        "confidence": 0.9985
+                      }
+                    ],
+                    "column": 5,
+                    "origin": "ocr",
+                    "row_id": "t1:r14",
+                    "cell_id": "t1:cell131",
+                    "colspan": 1,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c6",
+                    "source_id": "t1:cell131",
+                    "header_ids": [
+                      "t1:cell5"
+                    ],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 13,
+                    "bbox": [
+                      270.7301025390625,
+                      333.31195068359375,
+                      285.3800048828125,
+                      393.1891784667969
+                    ],
+                    "page": 90,
+                    "role": "cell",
+                    "text": "",
+                    "words": [],
+                    "column": 6,
+                    "origin": "ocr",
+                    "row_id": "t1:r14",
+                    "cell_id": "t1:cell132",
+                    "colspan": 1,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c7",
+                    "source_id": "t1:cell132",
+                    "header_ids": [
+                      "t1:cell5"
+                    ],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 13,
+                    "bbox": [
+                      272.7877502441406,
+                      395.65771484375,
+                      284.7640686035156,
+                      457.5061340332031
+                    ],
+                    "page": 90,
+                    "role": "cell",
+                    "text": "",
+                    "words": [],
+                    "column": 7,
+                    "origin": "ocr",
+                    "row_id": "t1:r14",
+                    "cell_id": "t1:cell133",
+                    "colspan": 1,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c8",
+                    "source_id": "t1:cell133",
+                    "header_ids": [
+                      "t1:cell6"
+                    ],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 13,
+                    "bbox": [
+                      273.1111145019531,
+                      465.7618713378906,
+                      286.6644287109375,
+                      537.7203369140625
+                    ],
+                    "page": 90,
+                    "role": "cell",
+                    "text": "",
+                    "words": [],
+                    "column": 8,
+                    "origin": "ocr",
+                    "row_id": "t1:r14",
+                    "cell_id": "t1:cell134",
+                    "colspan": 1,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c9",
+                    "source_id": "t1:cell134",
+                    "header_ids": [
+                      "t1:cell6"
+                    ],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 13,
+                    "bbox": [
+                      272.4706726074219,
+                      543.5750122070312,
+                      287.4072265625,
+                      609.9653930664062
+                    ],
+                    "page": 90,
+                    "role": "cell",
+                    "text": "",
+                    "words": [],
+                    "column": 9,
+                    "origin": "ocr",
+                    "row_id": "t1:r14",
+                    "cell_id": "t1:cell135",
+                    "colspan": 1,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c10",
+                    "source_id": "t1:cell135",
+                    "header_ids": [
+                      "t1:cell7"
+                    ],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 13,
+                    "bbox": [
+                      266.392822265625,
+                      625.7779541015625,
+                      290.0829772949219,
+                      736.2774047851562
+                    ],
+                    "page": 90,
+                    "role": "cell",
+                    "text": "7,42",
+                    "words": [
+                      {
+                        "bbox": [
+                          281.6424560546875,
+                          713.080078125,
+                          295.22119140625,
+                          734.9109497070312
+                        ],
+                        "text": "7,42",
+                        "confidence": 0.96898
+                      }
+                    ],
+                    "column": 10,
+                    "origin": "ocr",
+                    "row_id": "t1:r14",
+                    "cell_id": "t1:cell136",
+                    "colspan": 1,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c11",
+                    "source_id": "t1:cell136",
+                    "header_ids": [
+                      "t1:cell7"
+                    ],
+                    "numeric_verified": false
+                  },
+                  {
+                    "row": 13,
+                    "bbox": [
+                      266.5244140625,
+                      737.4561767578125,
+                      295.5213317871094,
+                      816.6328125
+                    ],
+                    "page": 90,
+                    "role": "cell",
+                    "text": "279",
+                    "words": [
+                      {
+                        "bbox": [
+                          282.04180908203125,
+                          797.5734252929688,
+                          295.6205749511719,
+                          817.787109375
+                        ],
+                        "text": "279",
+                        "confidence": 0.99967
+                      }
+                    ],
+                    "column": 11,
+                    "origin": "ocr",
+                    "row_id": "t1:r14",
+                    "cell_id": "t1:cell137",
+                    "colspan": 1,
+                    "quality": "usable",
+                    "rowspan": 1,
+                    "table_id": "t1",
+                    "column_id": "t1:c12",
+                    "source_id": "t1:cell137",
+                    "header_ids": [
+                      "t1:cell8"
+                    ],
+                    "numeric_verified": true
+                  }
+                ],
+                "quality": "uncertain",
+                "table_id": "t1",
+                "header_ids": [
+                  "t1:cell4",
+                  "t1:cell5",
+                  "t1:cell6",
+                  "t1:cell7",
+                  "t1:cell8"
+                ]
+              }
+            ],
+            "source_ids": [
+              "p90q8"
+            ],
+            "unit_source_id": "",
+            "value_source_id": "p90q8",
+            "subject_source_ids": [],
+            "relation_source_ids": []
+          }
+        ],
+        "state": "review_required",
+        "reasons": [
+          "unusable_ocr"
+        ],
+        "claim_id": "quantity",
+        "required": true
+      },
+      {
+        "kind": "unit",
+        "facts": [],
+        "state": "not_found",
+        "reasons": [
+          "unit_not_bound"
+        ],
+        "claim_id": "unit",
+        "required": true
+      }
+    ],
+    "status": "Неполная проверка",
+    "contexts": 4,
+    "evidence": [
+      {
+        "kind": "work",
+        "page": 50,
+        "quote": "**<u>006/26-ТКР1</u>**\n Основание — Щебёночно-песчаная смесь для оснований по ГОСТ Р 70458-2022 при\nмаксимальном размере зёрен 0/31,5 мм, по гранулометрическому составу соответствующие\nтипу 0/16, категории K90, марке M1, h=20 см;\n**_Тип III – Конструкция_** **_дорожных_** **_одежд_** **_съездов_**\n Верхний слой покрытия — А16Вл Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=6 см\n Нижний слой покрытия — А22Нл Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=8 см\n Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см\n Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см\n**_Тип IV – Конструкция_** **_ровиков_** **_уширения:_**\n**Трехслойное покрытие:**\n Верхний слой покрытия (слой усиления) — ЩМА-16 Щебёночно-мастичный",
+        "document_id": "006_26_раздел пд №3.1.pdf"
+      },
+      {
+        "kind": "technology",
+        "page": 50,
+        "quote": "**<u>006/26-ТКР1</u>**\n Основание — Щебёночно-песчаная смесь для оснований по ГОСТ Р 70458-2022 при\nмаксимальном размере зёрен 0/31,5 мм, по гранулометрическому составу соответствующие\nтипу 0/16, категории K90, марке M1, h=20 см;\n**_Тип III – Конструкция_** **_дорожных_** **_одежд_** **_съездов_**\n Верхний слой покрытия — А16Вл Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=6 см\n Нижний слой покрытия — А22Нл Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=8 см\n Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см\n Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см\n**_Тип IV – Конструкция_** **_ровиков_** **_уширения:_**\n**Трехслойное покрытие:**\n Верхний слой покрытия (слой усиления) — ЩМА-16 Щебёночно-мастичный",
+        "document_id": "006_26_раздел пд №3.1.pdf"
+      },
+      {
+        "kind": "comment",
+        "page": 50,
+        "quote": "**<u>006/26-ТКР1</u>**\n Основание — Щебёночно-песчаная смесь для оснований по ГОСТ Р 70458-2022 при\nмаксимальном размере зёрен 0/31,5 мм, по гранулометрическому составу соответствующие\nтипу 0/16, категории K90, марке M1, h=20 см;\n**_Тип III – Конструкция_** **_дорожных_** **_одежд_** **_съездов_**\n Верхний слой покрытия — А16Вл Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=6 см\n Нижний слой покрытия — А22Нл Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=8 см\n Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см\n Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см\n**_Тип IV – Конструкция_** **_ровиков_** **_уширения:_**\n**Трехслойное покрытие:**\n Верхний слой покрытия (слой усиления) — ЩМА-16 Щебёночно-мастичный",
+        "document_id": "006_26_раздел пд №3.1.pdf"
+      },
+      {
+        "kind": "volume",
+        "page": 90,
+        "quote": "<tr><td></td><td>Всего: 874,42</td><td></td><td></td><td></td><td>Устройство тротуаров, тех.тротуаров и лестничных маршев. Улица.</td><td></td><td></td><td></td><td></td><td>7,42</td><td>279</td></tr>",
+        "document_id": "006_26_раздел пд №3.1.pdf"
+      }
+    ],
+    "pdf_name": "006_26_раздел пд №3.1.pdf",
+    "requests": 4,
+    "trace_id": null,
+    "corpus_id": "",
+    "trace_url": null,
+    "vor_pages": [],
+    "work_name": "Устройство нижнего слоя покрытия из асфальтобетонной смеси, асфальтоукладчиком 2 типоразмера, h = 8 см",
+    "found_page": 50,
+    "found_unit": "-",
+    "pdf_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+    "technology": {
+      "actual": "",
+      "status": "unconfirmed",
+      "expected": "Устройство нижнего слоя покрытия из асфальтобетонной смеси, асфальтоукладчиком 2 типоразмера, h = 8 см",
+      "cross_pages": []
+    },
+    "work_found": true,
+    "consumption": null,
+    "found_pages": [
+      50,
+      90
+    ],
+    "found_volume": "-",
+    "budget_tokens": 20518,
+    "position_type": "Работа",
+    "quantity_kind": "direct",
+    "estimated_cost": null,
+    "pdf_version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+    "quantity_basis": "unknown",
+    "unit_confirmed": false,
+    "workbook_notes": [],
+    "position_source": {
+      "row": 81,
+      "cells": {
+        "B81": "Устройство нижнего слоя покрытия из асфальтобетонной смеси, асфальтоукладчиком 2 типоразмера, h = 8 см",
+        "C81": "м2",
+        "D81": "874.42",
+        "I81": "Укладка а/укладчиком Vögele SUPER 1600 2 типоразмера",
+        "K81": "Работа"
+      },
+      "sheet": "Дорожная одежда",
+      "format": "xlsx",
+      "sections": [
+        {
+          "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+          "address": "A70"
+        }
+      ],
+      "scope_key": "",
+      "header_row": 15,
+      "position_id": "4b5d03827ea0ce64:Дорожная одежда:81",
+      "scope_reason": "unknown",
+      "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+      "continuation_rows": []
+    },
+    "search_complete": true,
+    "execution_errors": [],
+    "volume_confirmed": false,
+    "comment_confirmed": false,
+    "evaluation_version": "evidence-claims-v1",
+    "volume_calculation": null,
+    "discrepancy_details": "В ПД для Типа III указан нижний слой покрытия А22Нл h=8 см, но не найден объём 874.42 м2 и не подтверждена укладка асфальтоукладчиком Vögele SUPER 1600 2 типоразмера; OCR-таблица на стр. 76 не используется. Объем 874,42 м2 найден в OCR-строке p90q8 как итоговое значение; нижний слой покрытия h=8 см подтверждается фрагментом sde2a988ffa2cf2dd6e27276a. Упоминание укладчика Vögele SUPER 1600 2 типоразмера в тексте ПД не обнаружено.",
+    "workbook_calculation": {}
+  },
+  "position_check": {
+    "items": [
+      {
+        "state": "confirmed",
+        "topic": "Наличие работы в ПД и ВОР",
+        "required": true,
+        "claim_ids": [
+          "presence"
+        ],
+        "explanation": "В ВОР ряд 81 раздела 4 «Съезды» присутствует устройство нижнего слоя покрытия асфальтоукладчиком 2 типоразмера h=8 см; ПД (тип III, съезды) предусматривает нижний слой покрытия А22Нл h=8 см.",
+        "project_source_ids": [
+          "agent:p50:0",
+          "agent:p90:0"
+        ],
+        "normative_source_ids": []
+      },
+      {
+        "state": "confirmed",
+        "topic": "Количество и единица измерения (874,42 м2)",
+        "required": true,
+        "claim_ids": [
+          "quantity",
+          "unit"
+        ],
+        "explanation": "Итоговая ячейка таблицы по столбцу «Покрытие А22Нл на БНД 70/100 h=0,08m Площадь» = 874,42 м2 (число и единица независимо подтверждены OCR); совпадает с количеством ВОР 874,42 м2.",
+        "project_source_ids": [
+          "agent:p90:cell:9daf30e9f69f8ce43d1ba515",
+          "agent:p90:0"
+        ],
+        "normative_source_ids": []
+      },
+      {
+        "state": "confirmed",
+        "topic": "Состав работ и способ (асфальтоукладчик 2 типоразмера)",
+        "required": true,
+        "claim_ids": [
+          "method",
+          "method:comment:equipment:1"
+        ],
+        "explanation": "Норма 27-06-029-01 прямо предусматривает устройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками второго типоразмера; состав работ включает укладку смеси асфальтоукладчиком. Это подтверждает функцию/класс машины «2 типоразмер», но не конкретную марку Vögele SUPER 1600.",
+        "project_source_ids": [
+          "agent:p50:0"
+        ],
+        "normative_source_ids": [
+          "n2"
+        ]
+      },
+      {
+        "state": "confirmed",
+        "topic": "Нормативная применимость и поправка на толщину слоя",
+        "required": true,
+        "claim_ids": [
+          "normative:applicability"
+        ],
+        "explanation": "Базовая норма 27-06-029-01 имеет толщину слоя 4 см и измеритель 1000 м2; таблица 27-06-030-01 корректирует её при изменении толщины на 0,5 см. Проектная толщина 8 см → +8 шагов. Применимость поправки по техчасти сборника требует инженерного подтверждения; редакция базы не подтверждена.",
+        "project_source_ids": [
+          "agent:p50:0"
+        ],
+        "normative_source_ids": [
+          "n2",
+          "n7"
+        ]
+      },
+      {
+        "state": "needs_facts",
+        "topic": "Расход дочернего материала related:60:rate (А22Нл)",
+        "required": false,
+        "claim_ids": [
+          "related:60:rate"
+        ],
+        "explanation": "В ВОР расход 197,12 т/1000 м2 получен по прил. 27.1 ГЭСН 27 (98,56+12,32*8). В переданных источниках нет буквальной строки ресурса нормы 27-06-029-01 с расходом асфальтобетонной смеси, поэтому коэффициент/расход дочерней строки не подтверждён; это не доказательство ошибки.",
+        "project_source_ids": [
+          "agent:p90:0"
+        ],
+        "normative_source_ids": [
+          "n2"
+        ]
+      },
+      {
+        "state": "needs_facts",
+        "topic": "Уточнение требований из ВОР",
+        "required": false,
+        "claim_ids": [
+          "attribute:comment:condition"
+        ],
+        "explanation": "Исправлена классификация исходного текста ВОР: служебная информация о ПО и марке не требует буквального совпадения в ПД; явно указанная h проверяется как толщина. Способ работы и технические характеристики проверяются отдельно.",
+        "project_source_ids": [],
+        "normative_source_ids": []
+      },
+      {
+        "state": "confirmed",
+        "topic": "Количество и единица по проверенным источникам",
+        "required": true,
+        "claim_ids": [
+          "quantity",
+          "unit"
+        ],
+        "explanation": "Количество 874.42 м2 подтверждено буквальными источниками ПД; значение ВОР сопоставлено с учётом единиц и точности записи. Измеритель выбранной нормы проверен по нормативному источнику.",
+        "project_source_ids": [
+          "agent:p90:cell:9daf30e9f69f8ce43d1ba515"
+        ],
+        "normative_source_ids": [
+          "n2"
+        ]
+      }
+    ],
+    "state": "confirmed",
+    "sources": [
+      {
+        "id": "n0",
+        "kind": "normative",
+        "page": 26,
+        "text": "ГОСТ Р 58406.2-2020 Дороги автомобильные общего пользования. Смеси горячие асфальтобетонные и асфальтобетон.          Страница 26\nТехнические условия\nПрименяется с 01.06.2020.Заменяет ПНСТ 184-2019,ГОСТ 9128-2009\n\n                БНД 50/70                                От 155 до 170\n\n               БНД 70/100                                От 150 до 165\n               БНД 100/130                                От 145 до 160\n               БНД 130/200                                От 135 до 150\n\n    Рекомендуемые температурные интервалы смешивания и уплотнения для асфальтобетонных смесей,\n изготавливаемых на полимерно-битумных вяжущих и битумных вяжущих с модификаторами, выбираются\n исходя из рекомендаций производителя битумного вяжущего и проведения опытно-производственных\n замесов.\n\n    Рекомендуемые температурные интервалы смешивания и уплотнения для асфальтобетонных смесей,\n изготавливаемых с применением модификаторов асфальтобетона, выбираются исходя из рекомендаций\n производителей данного модификатора.\n\n     Допускается изменение температурных интервалов в случае, если этого требует технология применения\n вяжущих, при условии соответствия показателей асфальтобетонов требованиям настоящего стандарта.\n\n     В.2 Методика определения температурных интервалов смешивания и уплотнения\n\n     В.2.1 Исходные данные\n\n    Данная методика распространяется на битумные вяжущие материалы, применяемые в асфальтобетонных\n смесях, и предназначена для определения температурных интервалов смешивания и уплотнения расчетным\n способом.\n\n    Примечание  - Температурные интервалы уплотнения определяются для приготовления образцов в\n лабораторных условиях.\n\n\n\n    Для определения интервалов смешивания и уплотнения используют значения динамической вязкости,\n определенной по ГОСТ 33137 при двух различных температурах испытаний. Данные температуры испытаний\n должны находиться в интервале от 100°С до 175°С, а разница между ними должна быть не менее 10°С.\n Рекомендованные температуры испытания 135°С и 165°С.\n\n    Для  определения  интервалов  смешивания  и  уплотнения  допускается  использование  значения\n динамической вязкости по ГОСТ 33137 при температуре в интервале от 100°С до 175°С и значения\n сдвиговой устойчивости  (            ) исходного битумного вяжущего по ГОСТ Р 58400.10, при температуре\n испытаний от 34°С до 88°С (рекомендуется выбирать температуру численно равную верхн",
+        "label": "ГОСТ Р 58406.2-2020 · page-26-offset-0",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-ce51ce70720c495b4138af04"
+      },
+      {
+        "id": "n1",
+        "kind": "normative",
+        "page": 28,
+        "text": "ГОСТ Р 58406.2-2020 Дороги автомобильные общего пользования. Смеси горячие асфальтобетонные и асфальтобетон.          Страница 28\nТехнические условия\nПрименяется с 01.06.2020.Заменяет ПНСТ 184-2019,ГОСТ 9128-2009\n        - электроплитка, баня песчаная или горелка газовая;\n\n        - сетка асбестовая;\n\n        - вода дистиллированная по ГОСТ Р 58144;\n\n        - бумага фильтровальная.\n\n     Г.2 Порядок подготовки к проведению испытания\n\n    Из средней пробы применяемого щебня отбирают шесть зерен размером не менее 8,0 мм и промывают под\n струей воды, затем высушивают их в сушильном шкафу при температуре от 105°С до 110°С.\n\n    Каждое зерно щебня обвязывают ниткой или тонкой проволокой (диаметром не более  0,5 мм) и\n прогревают в течение не менее 1 ч в сушильном шкафу при температуре смешивания асфальтобетонной\n смеси.\n\n    Нагретые зерна поочередно погружают на 15  с в битумное вяжущее нагретое до температуры\n смешивания асфальтобетонной смеси, после чего вынимают и подвешивают на штативе для стекания лишнего\n битумного вяжущего.\n\n     Г.3 Порядок проведения испытания\n\n    Испытание проводят не ранее чем через 1 ч после обработки зерен щебня вяжущим.\n\n    Химический стакан заполняют на 2/3 объема дистиллированной водой, устанавливают на электроплитку\n песчаную баню или на асбестовую сетку над пламенем горелки и доводят воду до кипения (не допуская\n бурного кипения). Зерна, подвешенные на штативе, поочередно опускают в середину стакана таким образом,\n чтобы они не касались ни дна, ни стенок стакана, ни друг друга, и выдерживают в кипящей воде (не допуская\n бурное кипение) в течение (30±1) мин.\n\n    Битумное вяжущее, отделившееся от поверхности щебня  в процессе кипячения и всплывшее на\n поверхность воды, удаляют фильтровальной бумагой.\n\n    Зерна щебня вынимают из стакана и погружают в стакан с холодной дистиллированной водой на (2±1) мин\n для охлаждения и закрепления оставшейся на поверхности щебня пленки битумного вяжущего.\n\n    Остывшие зерна щебня вынимают из воды и помещают на фильтровальную бумагу.\n\n     Г.4 Обработка результатов испытания\n\n     Поверхность зерен щебня осматривают и проводят оценку качества сцепления битумного вяжущего со\n щебнем по степени сохранности пленки вяжущего в соответствии с таблицей Г.1.\n\n\n\n Таблица Г.1\n\n    Характеристика пленки битумного вяжущего на поверхности зерен щебня    Оценка качества сцепления\n  Пленка битумного вяжущ",
+        "label": "ГОСТ Р 58406.2-2020 · page-28-offset-0",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-ce51ce70720c495b4138af04"
+      },
+      {
+        "id": "n2",
+        "kind": "normative",
+        "page": 57,
+        "text": "Таблица ГЭСН 27-06-029 Устройство покрытия из горячих асфальтобетонных смесей\nасфальтоукладчиками второго типоразмера\nИзмеритель: 1000 м2\n27-06-029-01 Устройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками второго типоразмера,\nтолщина слоя 4 см\nСостав работ:\n01. Очистка, промывка и просушка основания.\n02. Установка и снятие копирной струны.\n03. Срезка кромок продольного и поперечного шва в ранее уложенном асфальтобетоне.\n04. Разборка покрытия за линией шва, погрузка и вывоз полученного лома.\n05. Очистка, промывка и просушка продольного и поперечного шва.\n06. Обработка торца битумной эмульсией.\n07. Установка асфальтоукладчика в рабочее положение.\n08. Прием асфальтобетонной смеси в перегружатель.\n09. Подача асфальтобетонной смеси в асфальтоукладчик и ее укладка.\n10. Переход асфальтоукладчика на смежную полосу.\n11. Предварительное уплотнение гладковальцевым катком 7т.\n12. Основное уплотнение пневмокатком 12т и гладковальцевым катком 10т.\n13. Окончательное уплотнение гладковальцевым катком 14т.\n14. Вырубка образцов и заделка вырубок.",
+        "label": "ГЭСН 27 ФСНБ-2022 · 27-06-029-01",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+      },
+      {
+        "id": "n2:resources:57",
+        "kind": "normative",
+        "page": 57,
+        "text": "Ресурсы нормы 27-06-029-01; Измеритель: 1000 м2\n1-100-32 Средний разряд работы 3,2; чел.-ч: 20,86\n2 Затраты труда машинистов; чел.-ч: 18,85\n91.06.03-049 Лебедки ручные и рычажные тяговым усилием до 9,81 кН (1 т); маш.-ч: 2,44\n91.06.05-011 Погрузчики одноковшовые универсальные фронтальные пневмоколесные, номинальная вместимость основного ковша 2,6 м3, грузоподъемность 5 т; маш.-ч: 0,55\n91.08.01-004 Асфальтоукладчики гусеничные, максимальная ширина укладки 5 м, скорость укладки до 30 м/мин, производительность 350 т/ч; маш.-ч: 2,04\n91.08.03-017 Катки самоходные гладкие вибрационные, масса 10 т; маш.-ч: 2,14\n91.08.03-045 Катки самоходные гладкие вибрационные, масса 7 т; маш.-ч: 1,51\n91.08.03-047 Катки самоходные пневмоколесные статические, масса 12 т; маш.-ч: 2,59\n91.08.03-049 Катки самоходные гладкие вибрационные, масса 14 т; маш.-ч: 0,97\n91.08.06-001 Нарезчики швов, максимальная глубина резки 240 мм, мощность 17,7 кВт (24 л.с.); маш.-ч: 1,52\n91.08.11-031 Перегружатели асфальтовой смеси, емкость бункера до 25 т; маш.-ч: 2,04\n91.08.11-041 Разогреватели швов инфракрасные; маш.-ч: 2,04\n91.13.01-038 Машины поливомоечные, вместимость цистерны 6 м3; маш.-ч: 3,1\n91.13.03-112 Спецавтомобили-вездеходы, грузоподъемность до 1,5 т; маш.-ч: 0,2\n91.18.01-013 Компрессоры передвижные, давление 2,0 МПа, производительность 60 м3/мин; маш.-ч: 3,71\n91.21.10-002 Молотки отбойные пневматические при работе от передвижных компрессоров; маш.-ч: 1,15\n01.2.03.07-0023 Эмульсия битумно-дорожная; т: 0,004\n01.7.03.01-0002 Вода водопроводная; м3: 20,52\n01.7.07.26-0032 Шнур полиамидный крученый, диаметр 2 мм; т: 0,0024\n01.7.15.02-0051 Болты анкерные; т: 0,012\n01.7.17.06-0061 Круг алмазный отрезной сегментный, диаметр 350 мм, толщина алмазной кромки 3,2 мм, высота алмазной кромки 8 мм; шт: 0,782\n04.2.01.01 Смеси асфальтобетонные; т: П\n08.1.02.11-0001 Поковки из квадратных заготовок, масса 1,5-4,5 кг; т: 0,0008\n08.4.03.02-0002 Сталь арматурная горячекатаная гладкая, класс A-I, диаметр 6-22 мм; т: 0,0008",
+        "label": "ГЭСН 27 ФСНБ-2022 · 27-06-029-01 · ресурсы",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+      },
+      {
+        "id": "n4",
+        "kind": "normative",
+        "page": 57,
+        "text": "                                                ГЭСН 81-02-27-2022 Автомобильные дороги\nТаблицаТаблица ГЭСН 27-06-029 Устройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками второго типоразмера ГЭСН 27-06-029   Устройство покрытия из горячих асфальтобетонных смесей\n                        асфальтоукладчиками второго типоразмера\nСостав работ:\n       01. Очистка, промывка и просушка основания.\n       02. Установка и снятие копирной струны.\n       03. Срезка кромок продольного и поперечного шва в ранее уложенном асфальтобетоне.\n       04. Разборка покрытия за линией шва, погрузка и вывоз полученного лома.\n       05. Очистка, промывка и просушка продольного и поперечного шва.\n       06. Обработка торца битумной эмульсией.\n       07. Установка асфальтоукладчика в рабочее положение.\n       08. Прием асфальтобетонной смеси в перегружатель.\n       09. Подача асфальтобетонной смеси в асфальтоукладчик и ее укладка.\n       10. Переход асфальтоукладчика на смежную полосу.\n       11. Предварительное уплотнение гладковальцевым катком 7т.\n       12. Основное уплотнение пневмокатком 12т и гладковальцевым катком 10т.\n       13. Окончательное уплотнение гладковальцевым катком 14т.\n       14. Вырубка образцов и заделка вырубок.\n  Измеритель:   1000 м2\n27-06-029-01       Устройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками второго типоразмера,\n                 толщина слоя 4 см\n                                                                                                                      27-06-\n   Код ресурса                           Наименование элемента затрат                             Ед. изм.                                                                                                               029-01\n        1      ЗАТРАТЫ ТРУДА РАБОЧИХ\n1-100-32         Средний разряд работы 3,2                                                                  чел.-ч      20,86\n        2        Затраты труда машинистов                                                                  чел.-ч      18,85\n        3    МАШИНЫ И МЕХАНИЗМЫ\n91.06.03-049      Лебедки ручные и рычажные тяговым усилием до 9,81 кН (1 т)                         маш.-ч      2,44\n91.06.05-011      Погрузчики одноковшовые универсальные фронтальные пневмоколесные, номинальная   маш.-ч      0,55\n                 вместимость основного ковша 2,6 м3, грузоподъемность 5 т\n91",
+        "label": "ГЭСН 27 ФСНБ-2022 · page-57-offset-0",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+      },
+      {
+        "id": "n5",
+        "kind": "normative",
+        "page": 80,
+        "text": "Таблица ГЭСН 27-07-006 Устройство покрытия дорожек и тротуаров из горячих\nасфальтобетонных смесей асфальтоукладчиками первого типоразмера,\nтолщина слоя 4 см\nИзмеритель: 1000 м2\n27-07-006-01 Устройство покрытия дорожек и тротуаров из горячих асфальтобетонных смесей асфальтоукладчиками\nпервого типоразмера, толщина слоя 4 см\nСостав работ:\n01. Разбивочные работы.\n02. Очистка основания.\n03. Проливка битумом.\n04. Укладка асфальтобетонной смеси с приведением асфальтоукладчика в рабочее положение, обрубкой краев, устранением\nдефектов.\n05. Укатка.\n06. Вырубка образцов и заделка вырубок.",
+        "label": "ГЭСН 27 ФСНБ-2022 · 27-07-006-01",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+      },
+      {
+        "id": "n5:resources:80",
+        "kind": "normative",
+        "page": 80,
+        "text": "Ресурсы нормы 27-07-006-01; Измеритель: 1000 м2\n1-100-36 Средний разряд работы 3,6; чел.-ч: 18,58\n2 Затраты труда машинистов; чел.-ч: 7,98\n91.08.01-021 Асфальтоукладчики гусеничные, ширина укладки от 1,8 до 4,5 м, скорость укладки 30 м/мин, производительность 400 т/ч; маш.-ч: 1,68\n91.08.02-002 Автогудронаторы, емкость цистерны 7000 л; маш.-ч: 0,16\n91.08.02-011 Гудронаторы ручные; маш.-ч: 0,1\n91.08.03-024 Катки самоходные комбинированные вибрационные, масса 3,5 т; маш.-ч: 1,71\n91.08.03-027 Катки самоходные гладкие вибрационные, масса 3,5 т; маш.-ч: 2,12\n91.08.11-031 Перегружатели асфальтовой смеси, емкость бункера до 25 т; маш.-ч: 1,68\n91.13.01-038 Машины поливомоечные, вместимость цистерны 6 м3; маш.-ч: 0,47\n01.2.01.01 Битум; т: 0,65\n01.7.03.01-0001 Вода; м3: 0,92\n04.2.01.01 Смеси асфальтобетонные; т: П",
+        "label": "ГЭСН 27 ФСНБ-2022 · 27-07-006-01 · ресурсы",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+      },
+      {
+        "id": "n7",
+        "kind": "normative",
+        "page": 57,
+        "text": "Таблица ГЭСН 27-06-030 Нормы для корректировки таблицы 27-06-029\nИзмеритель: 1000 м2 (норма 27-06-030-01); 1000 м (норма 27-06-030-02)\nПри изменении толщины покрытия на 0,5 см добавлять или исключать:\n27-06-030-01 к норме 27-06-029-01",
+        "label": "ГЭСН 27 ФСНБ-2022 · 27-06-030-01",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+      },
+      {
+        "id": "n7:resources:57",
+        "kind": "normative",
+        "page": 57,
+        "text": "Ресурсы нормы 27-06-030-01; Измеритель: 1000 м2 (норма 27-06-030-01); 1000 м (норма 27-06-030-02)\n1-100-38 Средний разряд работы 3,8; чел.-ч: 0,35",
+        "label": "ГЭСН 27 ФСНБ-2022 · 27-06-030-01 · ресурсы",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+      },
+      {
+        "id": "agent:p50:0",
+        "kind": "project",
+        "page": 50,
+        "text": "**<u>006/26-ТКР1</u>**\n Основание — Щебёночно-песчаная смесь для оснований по ГОСТ Р 70458-2022 при\nмаксимальном размере зёрен 0/31,5 мм, по гранулометрическому составу соответствующие\nтипу 0/16, категории K90, марке M1, h=20 см;\n**_Тип III – Конструкция_** **_дорожных_** **_одежд_** **_съездов_**\n Верхний слой покрытия — А16Вл Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=6 см\n Нижний слой покрытия — А22Нл Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=8 см\n Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см\n Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см\n**_Тип IV – Конструкция_** **_ровиков_** **_уширения:_**\n**Трехслойное покрытие:**\n Верхний слой покрытия (слой усиления) — ЩМА-16 Щебёночно-мастичный\nасфальтобетон по ГОСТ Р 58406.1-2020 на ПБВ 60 по ГОСТ Р 52056-2003, h=5 см;\n Средний слой покрытия — А22Нт Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=7 см;\n Верхний слой основания — А32От асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=10 см;\n Средний слой основания — щебёночно-песчаная смесь для оснований фр. 0/63 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=20 см;\n- Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=24 см.\n**_Тип V - тротуар_**\n Покрытие — А5Вл Асфальтобетон по ГОСТ 58406.2-2020 на битумном вяжущем\nмарки БНД 70/100 по ГОСТ 33133-2014, с максимальным размером зёрен 5 мм, h=5 см;\n Основание — Щебёночно-песчаная смесь для оснований по ГОСТ Р 70458-2022 при\nмаксимальном размере зёрен 0/31,5 мм, по гранулометрическому составу соответствующие\nтипу 0/16, категории K90, марке M1, h=20 см;\nКонструкция трамваев?\n«Мост через р. Искитимка (Большая Камышная) по ул. Автозаводская с подъездными путями»\n49",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "origin": "native",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+      },
+      {
+        "id": "agent:p90:0",
+        "kind": "project",
+        "page": 90,
+        "text": "\"Мост через р. ‚ Искитимка [Большая по ул. Автозаводская с подъездными путями\nШифр 006/26- TKP ТКР 1- В,2-3\nВедомость радот по о устройству do odexdsi\nПокрытие Основание снобание Покрытие\nЩеденочно-песчаная ая | | Щебеночно-песчаная Щеденочно-песчаная\nTuxem Пикет A16Ba на na BHA А22Нл wa на GHA BHA\nсмесь типа 0/63 мм им | смесь типа 0/ 0/31,5 мм ЩМА-16 на ПБВ ПЬВ 60 А22Нт на БНД 70/100 Бортовой\n20/100 70/100 70/100 20/100\nM800 M800 камень БР\nh=0,08m h=0,20M h=0,22m h=0,07m 100,30,18, м\nПлощадь, | Объем, Площадь, |Площадь,| Объем, Площадь, Объем, Площадь, 0. Объем, Площадь, Объем, Площадь, Объем,\nначала конца 2 2 3 3 2 3 м? м 2\nм м м м м м м\nСъезд №1 104,18\nул. Пролетарская - | 6,25 - - 8,33 - 120,05 - 22,61 - 108,11 - 25,47 - 78,53 3,93 78,53 5,50 | 35,7516,47\nСъезд №2 177,31 10,64 177,31 14,18 204,04 39,63 185,25 43,76 63,76\n(Съезд №3 173,24 10,39 173,24 | 13,66 - - | 192,69 - | 36,88 - - 178,14 - | 42,17 - 27,47 137 27,47 1,92 44,9811,03\nСъезд №4 - - - -\nСъезд №5 257,61 15,46 257,61 20,61 279,04 54,39 264,06 62,48 50,11\nСъезд ive №6 59,58 3,57 59,58 4,77 69,21 12,89 61,72 | | 14,56 - 19,67\nСъезд №7 66,54 3,99 66,54 5,32 76,69 14,51 69,17 16,28 24,13\n(Съезд №8 35,96 2,16 35,96 2,86 40,93 7,83 | 36,35 | 8,80 12,82\nВсего: 874,42 52,46 874,42 69,95 982,64 188,74 904,80 : 213,51 106,00 5,30 106,00 7,42 279\nУстройство mpomyapo6, mex.mpomyapo6 и лестничных ничных mapweé. Улица.\nТротуар, Tpomyap, тех.тротуар р и лестничные марши\nПК+ Покрытие А5Вл, м? Покрытие А5Вл, A5Ba, м? | Основание - ЩПС 0/31,5, Основание - ЩПС\n(5cm) (Scm) м? (20cm) 0/31,5, м? (20cm)\n11K0+00,00 -ПКО+22,43 79,60 3,98 79,60 15,92\nПК 0+22,43 - ПК 581,34 29,07 581,34 116,27\nПК - ПК 2+50,80 254,78 12,74 254,78 50,96\nПК 2 +50,80 - ПК 4+20,29 642,62 32,13 642,62 128,52\nЛК _4+20,29 - ПК 5+59,80 701,50 35,08 701,50 140,30\nПК 5+ 5+ 59,8059,80 - - 1K ПК 6+45,88 - - - - -\nПК 6+45,88 - ПК 6+70,55 73,06 3,65 73,06 14,61\nПК 6+70,55 - ПК 7+22,85 181,69 9,08 181,69 36,34\nПК 7+22,65 - ПК 8+07,68 328,41 16,42 328,41 65,68\nВсего: 142,15 568,60\nСоставил А.В. Гайворонский\nПикет |  |  |  |  |  |  |  |  |  |  |  |  |  | \n |  | Покрытие |  |  |  | Основание |  |  |  | Покрытие |  |  |  | Бортовой\nкамень БР\n100.30.18, м\n |  | А16Вл на БНД\n70/100 |  | А22Нл на БНД\n70/100 |  | Щебеночно-песчаная\nсмесь типа 0/63 мм\nM800 |  | Щебеночно-песчаная\nсмесь типа 0/31,5 мм\nM800 |  | ЩМА-16 на ПБВ 60 |  | А22Нт на БНД 70/100 |  | \n |  | h=0,06м |  | h=0,08m |  | h=0,20m |  | h=0,22m |  | h=0,05m |  | h=0,07m |  | \nначала | конца | Площадь, | Объем, | Площадь, | Объем, | Площадь, | Объем, | Площадь, | Объем, | Площадь, | Объем, | Площадь, | Объем, | \nСъезд №1 |  | 104,18 | 6,25 | 104,18 | 8,33 | 120,05 | 22,61 | 108,11 | 25,47 |  | – |  |  | 35,75\nул. Пролетарская |  |  | – |  |  |  |  |  |  | 78,53 | 3,93 | 78,53 | 5,50 | 16,47\nСъезд №2 |  | 177,31 | 10,64 | 177,31 | 14,18 | 204,04 | 39,63 | 185,25 | 43,76 |  | – | – | - | 63,76\nСъезд №3 |  | 173,24 | 10,39 | 173,24 | 13,86 | 192,69 | 36,88 | 178,14 | 42,17 | – | – | – | - | 44,98\nСъезд №4 |  |  |  |  |  |  |  | – |  | 27,47 | 1,37 | 27,47 | 1,92 | 11,03\nСъезд №5 |  | 257,61 |  | 257,61 | 20,61 | 279,04 | 54,39 | 264,06 | 62,48 | – | – | – |  | 50,11\nСъезд №6 |  | 59,58 | 3,57 | 59,58 | 4,77 | 69,21 | 12,89 | 61,72 | 14,56 | – | – | – | – | 19,67\nСъезд № 7 |  | 66,54 |  | 66,54 |  | 76,69 |  | 69,17 | 16,28 | – | – | – | – | 24,13\nСъезд №8 |  | 35,96 |  | 35,96 |  | 40,93 | 7,83 | 38,35 | 8,80 | – | – | – | – | 12,82\nВсего: |  | 874,42 | 52,46 | 874,42 | 69,95",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "origin": "ocr_unverified",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+      },
+      {
+        "id": "agent:p77:4000",
+        "kind": "project",
+        "page": 77,
+        "text": "Мост через р. Искитимка подъездными (Большая Камышная) путями [ Стадия ) по ло | | ул. ул. Лист Автозаводская _| | с |\n© заполнипелем с ¢\nНижний слой основания — Щефеночно\nфр. 0/315 по ГОСТ\ngp. 0/63 no по ГОСТ P P 70458-2022, — Щеденочно категории xamecopuu -песчаная смесь для оснований\nВерхний слой слой основания\n: слой слод покрытия — A22Hn Асфальтодетон по no марке TO сн pp. . 0/315 вяжущем — no по ГОСТ марки P F 70458-2022, 70456-2022, БНД 70/100 категории капегорш no по no по ТОСТ ГОСТ ГОСТ K90, марке на с си на ‘асфальтодетон Верхний BHA слой 70/100 покрытия no по по ГОСТ ГОСТ — P P 33133- ЩМА 58406,1-2020 [ебёночно на ПБВ -мастичный 60 no по ГОСТ P битумном бипумном фр. Токрытие 0/315 Baxywem = — по ГОСТ марки Асфальтодетон P Асфальпобетон 70458-2022, BAA 70/100 категории no по no по ГОСТ ГОСТ 54062-2020 K90, 33133-2014, марке на с h=20cm | | Улица Ш 2\nна BHA 70/100 no ГОСТ 33133-2014, h= сн\nВерхний слой покрытия — А Вл Асфальтодетон no по ТОСТ 2-2020 си 52056-2025, h=5 cm см. размером зёрен 5\n= BHA 70/100 no по 33133-2014, h=6 | Kaen K п\nмаксимальным размером зёрен им,\n= | одежбы <q ИНЖИНИРИНГ\nна дорожной\nпрофиля конструкций\n|\nФормат А\nКонструкция дорожной одежды\nКонструкция дорожной одежды на участках усиления\nЛевая и Правая оси\nс ровиком уширения\nм 1:100\nм 1100\n3,75\n3,8\n3,25\n3,75\n1,00\n(00\n3,50\n3,56\nТехоочесной хролуар\n1,00\n3,75\n3,75\nТрочбой пут\nGP 3MMN\n6P 100208\n3,25M\n125M\n5000,208\n7,50π\n68228\nEPM0.208\n6P 0030,8\nSP 00,20,8\n6,02,32.\n∠20\n22\n28/\nж\n∠20\n220\n128\nλ=15 cM\n1=15 cH\nд     –  \nТ     \nТе    \nзаломнинелен с примесыя ореническоо дедеса\nД   \n-Д -0 с 3 ос\nDtnodanae\n0,0/35 nO F0CT P 70458-2022 K K90 M M N20\n  2  \n10C1 58406,2-2020  6 79/10 010CT 3303-205,10084\nH с-422 107 594062-2025\nдам 6ем mр 5H2 7070 п0 10C7 33133-204, с\n1p = A580 Acpdw л0 70C7 58405,2-2020 н\n   5\nN 5HA 70/N00 N 10CT 33133-20%, 67\nбм б  Б 200 10Т 3303-20с\nB    -\n5\n52056-2025, N5 CM\n58606,2-2020 w 6H 70/100 n0 10CT 33133-2014, n=7Cm\nВр с  --8 -\n5256-225, N5 c\nCoemcotows\nКонструкция дорожной одежды\nКонструкция дорожной одежды съездов\nнТ - пK 5+00\nКонструкция дорожной одежды\nКонструкция дорожной одежды на участках усиления\nЛевая и Правая оси\nс ровиком уширения\nм 100\n   p\nм 100\nТехой вре\n3,75\n3,,25\n3,25\n3,75\n100\n100\nТехнчесай срооддр\n109\n3,75\n3,,50\n3,50\n3,,75\nТранбой лу\n6PM0.208\n3,25\n5P 80,2088\n6P802,39,88\nТехническай прудр\n3,25\n7,50м\n5000228\n0\n69 000,8\n5P 80,28\n6P 1030. 88\n6P 100,30,08\nLmes6.60m\n6P 100,30,0\n220\n220\nL20\nж\n220\n∠20\n£20\n220\nГа2он\nh=15cm\n1=15cM\nса с д с  \nпримесыя срзонического дещеск\n- Дебеночно -лесчаная смесь дл оснобани\nОснобание\nφ0. 6/3(5 no 70C7 P 70458-2022 KaNe20pu K90, MpKe M n=20M\n5 п70T P 70458-2022 N2 K90 1M\n0н6н 60 0/315 n 10CT P 70658-2022, ке2 K90,\nПокр -4581000101 584052-2020 а\n820cr\nmopкe M. N= 24CM\nH 02240T 542-22\nбивннм 0жен нри 5НД 70/00 ло ГС7 3133-205, с\nСребни сли оснодония - Дебеночно -оесчомае снесь дое оснобни\nH 5HD 70/00 n 10CT 33133-20N, 1=7M\nбаом 8 мр 5 7000 107 33133204 \n60,0/63 n0 10CTP 70458-2022. 20 K90, Mp M1 0=20\n07Р381-202  158 6  \n584062-2020 H 6H4 70/100 N10C1 3383-201, B\n52055-2025,6a5 cm\n58406,2-2920 nG 6HG 7V00 n70CT 33133-20%, B=7M\n52056-2025, H=5 CN\nКонструкция дорожной одежды\nКонструкция дорожной одежды съездов\nнТ - ПK 5+00\nм 1:100\nм 1100\n,50 ,00,208\nТелничесхий працдо\nТехнический лрауо\nКонструкция дорожной одежды\nКонструкция дорожной одежды на участках усиления\nЛевая и Правая оси\nс ровиком уширения\n0011 н\nТехнический пролудр\n38\n3,25\n3,25\n3,75\n1,00\n100\n3,75\nТромбойный пуль\n3,50\n3,75\nТехнический лровудр\n1,0",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "origin": "ocr_unverified",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+      },
+      {
+        "id": "agent:p43:0",
+        "kind": "project",
+        "page": 43,
+        "text": "**<u>006/26-ТКР1</u>**\n**13 ОБОСНОВАНИЕ ТРЕБОВАНИЙ К ГРУНТАМ ОТСЫПКИ**\n**(ВЛАЖНОСТЬ И ГРАНУЛОМЕТРИЧЕСКИЙ СОСТАВ)**\nДля отсыпки насыпи газонов используется грунт от разработки выемки съездов,\nтротуаров, ровиков уширения:\n- _<u>ИГЭ-1б – Техногенный грунт - грунт щебенистый серый неоднородный средней</u>_\n_<u>степени водонасыщения с суглинистым твердым заполнителем с примесью органического</u>_\n_<u>вещества.</u>_ Вскрыт с поверхности, под асфальтобетоном и под ИГЭ-1а на глубинах от 0,0 до\n5,4 м в виде слоя мощностью от 0,8 до 4,6 м.\n- При замачивании заполнитель меняет свойства значительно (переходит из твердого в\nмягкопластичное состояние).\n- По результатам гранулометрического анализа в грунте в среднем содержание\nобломков щебенистой фракции размером 80-10 мм – 55,8 %, дресвяной фракции – обломков\nразмером 10-2 мм – 21,8 %, песчаной фракции – частиц размером 2-0,05 мм – 10,4 %,\nглинистой и пылеватой фракции – частиц размером менее 0,05 мм – 12,0 %.\n- По результатам лабораторных испытаний, относительная деформация пучения **εfn**\nравна 0,0211 д.ед., грунт классифицируется как слабопучинистый (табл. Б.24 ГОСТ 25100\n2020).\n- Категория грунта по сейсмическим свойствам – II (табл. 1 СП 14.13330.2018).\n- Рекомендуемый для расчетов модуль деформации принять равным 26,0 МПа (по\nметодике ДальНИИС).\n- Условное расчетное сопротивление грунта основания составляет 980 кПа\n(приложение 2 СП 35.13330.).\nВ соответствии с требованием СП 34.13330.2012 для отсыпки земляного полотна\nавтомобильных дорог разрешается использовать грунты, мало меняющие его прочность и\nустойчивость под воздействием погодно-климатических факторов.\nПроектом предусмотрено досыпка земляного полотна тротуаров и технических\nтротуаров щебеночно-песчаной смесью фр. 0-20 (первичный отсев дробления).\nСтепень уплотнения грунта насыпи земляного полотна определяется величиной\nкоэффициента уплотнения. Согласно СП 34.13330.2012 п. 7.16 степень уплотнения грунта\nрабочего слоя при капитальном типе дорожной одежды и в третьей дорожно-климатической\nзоне составляет для нежесткой дорожной одежды:\n-при глубине расположения рабочего слоя от поверхности покрытия до 1.5 м должно\nиметь наименьший коэффициент уплотнения - 1.00 - 0.98;\n«Мост через р. Искитимка (Большая Камышная) по ул. Автозаводская с подъездными путями»\n42",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "origin": "native",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+      },
+      {
+        "id": "agent:p49:0",
+        "kind": "project",
+        "page": 49,
+        "text": "**<u>006/26-ТКР1</u>**\n**<u>Таблица 17.2 Исходные данные</u>**\n<table><tr><th>Выполняемые расчёты</th><th colspan=\"3\">На упругий прогиб, сдвиг, изгиб</th></tr><tr><th>Техническая категория дороги</th><th>Магистральная<br/>улица районного<br/>движения</th><th>Дорожно-<br/>климатическая зона</th><th>III - подзона 1</th></tr><tr><th>Тип дорожной одежды</th><th>Капитальный</th><th>Схема увлажнения</th><th>Схема 1</th></tr><tr><td>Число полос движения (в обе<br/>стороны)</td><td>1</td><td>Коэффициент<br/>уплотнения грунта</td><td>0,95</td></tr><tr><td>Номер расчётной полосы от<br/>обочины</td><td>1</td><td>Требуемый<br/>поверхностный<br/>модуль упругости,<br/>МПа</td><td>429</td></tr><tr><td>Расчётная влажность грунта Wр</td><td>0,70</td><td>Суммарное число<br/>приложений<br/>нагрузки</td><td>9286457</td></tr><tr><td>Нагрузка, кН / Давление, МПа /<br/>D штампа, см</td><td>115 / 0,80 / 35</td><td>Расчётное<br/>количество дней в<br/>году Tрдг</td><td>140</td></tr><tr><td>Заданная надёжность Kн</td><td>0,92</td><td>Срок службы между<br/>кап. ремонтами Tсл,<br/>лет</td><td>24</td></tr></table>\nТолщина слоёв дорожной одежды назначена по результатам расчётов на прочность.\nНормативный межремонтный срок проведения работ по капитальному ремонту\nжестких дорожных одежд Тсл принят 24 года, нормативный межремонтный срок проведения\nработ по ремонту Трсл принят 12 лет в соответствии с таблицей 1 ГОСТ Р 58861-2020. Тип\nдорожной одежды улицы и съездах принят капитальный усовершенствованный, на\nавтомобильной дороге на очистные сооружения облегченный усовершенствованный.\nИнтенсивность движения на расчетный год службы покрытия составит 23355 авт/сут.\n**_ТипI -_** **_Конструкция_** **_дорожной_** **_одежды_** **_проезжей_** **_части_** **_по_** **_ул._** **_Автозаводская,_**\n**_примыкания_** **_ул. Пролетарская, съезд 4 – конструкция_** **_усиления_** **_автомобильных_** **_дорог_**\n**Трехслойное покрытие:**\n Верхний слой покрытия (слой усиления) — ЩМА-16 Щебёночно-мастичный\nасфальтобетон по ГОСТ Р 58406.1-2020 на ПБВ 60 по ГОСТ Р 52056-2003, h=5 см;\n Нижний слой покрытия (слой усиления) — А22Нт Асфальтобетон по ГОСТ 58406.2\n2020 на БНД 70/100 по ГОСТ 33133-2014, h=7 см;\n Выравнивающий слой покрытия — А22Нт Асфальтобетон по ГОСТ 58406.2-2020 на\nБНД 70/100 по ГОСТ 33133-2014, hmin= 8 см.\n**_Тип II - Конструкция_** **_дорожной_** **_одежды_** **_технических_** **_тротуаров_** **:**\n Покрытие — А5Вл Асфальтобетон по ГОСТ 58406.2-2020 на битумном вяжущем\nмарки БНД 70/100 по ГОСТ 33133-2014, с максимальным размером зёрен 5 мм, h=5 см;\n«Мост через р. Искитимка (Большая Камышная) по ул. Автозаводская с подъездными путями»\n48\nВыполняемые расчёты | На упругий прогиб, сдвиг, изгиб |  | \nТехническая категория дороги | Магистральная\nулица районного\nдвижения | Дорожно-\nклиматическая зона | III - подзона 1\nТип дорожной одежды | Капитальный | Схема увлажнения | Схема 1\nЧисло полос движения (в обе\nстороны) | 1 | Коэффициент\nуплотнения грунта | 0,95\nНомер расчётной полосы от\nобочины | 1 | Требуемый\nповерхностный\nмодуль упругости,\nМПа | 429\nРасчётная влажность грунта Wр | 0,70 | Суммарное число\nприложений\nнагрузки | 9286457\nНагрузка, кН / Давление, МПа /\nD штампа, см | 115 / 0,80 / 35 | Расчётное\nколичество дней в\nгоду Tрдг | 140\nЗаданная надёжность Kн | 0,92 | Срок службы между\nкап. ремонтами Tсл,\nлет | 24",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "origin": "native",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+      },
+      {
+        "id": "agent:p25:0",
+        "kind": "project",
+        "page": 25,
+        "text": "**<u>006/26-ТКР1</u>**\nлабораторных условиях. Необходимо учесть особенности проектирования строительства\nсооружений на просадочных грунтах (п.6.1. СП 22.13330.2016).\n**_Конструкция_** **_тела_** **_насыпи_** **_существующей_** **_автомобильной_** **_дороги._**\nОбследование конструктивных слоев дорожной одежды существующей автодороги\nбыло произведено бурением скважин диаметром 127 мм по покрытию автодороги и\nавтомобильных парковок, согласно разрешенной и утвержденной схеме организации\nдорожного движения и производства дорожных работ.\n**_Ниже_** **_приводится_** **_характеристика_** **_конструктивных_** **_слоев_** **_дорожной_** **_одежды:_**\n_Покрытие:_\n- асфальтобетон – 0,1-0,4 м;\n_Основание:_\n- щебенистый грунт (ИГЭ-1б) - техногенный грунт - грунт щебенистый серый\nнеоднородный средней степени водонасыщения с суглинистым твердым заполнителем с\nпримесью органического вещества. По результатам гранулометрического анализа в грунте в\nсреднем содержание обломков щебенистой фракции размером 80-10 мм – 55,8 %, дресвяной\nфракции – обломков размером 10-2 мм – 21,8 %, песчаной фракции – частиц размером 2\n0,05 мм – 10,4 %, глинистой и пылеватой фракции – частиц размером менее 0,05 мм – 12,0 %.\nМощность слоя составляет от 0,8 до 4,1 м. Группа грунта по трудности разработки – 41б.\n_Ниже приводится характеристика конструктивных слоев земляного полотна:_\n- глинистый грунт с щебнем (ИГЭ-1а) - техногенный грунт - суглинок щебенистый\nсерый твердый тяжелый пылеватый с примесью органического вещества. Мощность слоя\nсоставляет от 0,5 до 5,8 м. Группа грунта по трудности разработки – 35г;\nГруппы грунтов в зависимости от трудности разработки приведены в соответствии с\nГЭСН-01-2020. Частные значения показателей физико-механических свойств\nвышеперечисленных грунтов приведены в ведомости лабораторных исследований свойств\nгрунтов (Приложение Е).\nРаспространение и наименование слоев, их мощности, группы грунта в зависимости от\nтрудности разработки и консистенция показаны на продольных профилях автомобильной\nдороги, инженерно-геологических разрезах (006/26-ИГИ-Г.2; 006/26-ИГИ-Г.3).\n«Мост через р. Искитимка (Большая Камышная) по ул. Автозаводская с подъездными путями»\n24",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "origin": "native",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+      },
+      {
+        "id": "agent:p88:0",
+        "kind": "project",
+        "page": 88,
+        "text": "“Мост через р. Искитимка [Большая по no ул. Автозаводская с подъездными путями ”\nШифр 006/26- ТКР TKP 1- 1-В,2-1 В,2-1\nВедомость радот padom адот по устройству Go борожной одежды\nПокрытие Основание Основание\nПикет Слева Справа (Справа Слева\nУсиление Усиление Ровик уширения / Срезка обочины Ровик уширения / Срезка обочины\nА22 НТ на А22Нт на А22 НТ на А22Нт на A320m на Щебеночно-песчаная Щебеночно-песчаная Щеденочно-песчаная А320т A320m на Щебеночно-песчаная | Щебеночно-песчаная Щеденочно-песчаная\nЩМА-16 на ПБВ 60 ЩМА-16 на ПБВ 60\nБНД 70/100 BHA 70/100 БНД 70/100 БНД 70/100 БНД 70/100 смесь фр. 0/31,5 смесь фр. 0/63 BHA БНД 70/100 смесь фр. 0/31,5 смесь фр. 0/63\nначала конца h=0,08m h=0,05m h=0,08m h=0,10M h=0,24m h=0,20m h=0,24m h=0,20m\nПлощадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем, | Площадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем,\nм м м м м м м м м м м м м м м м м м м м м м м м |\n2 2 3 2 3 2 3 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3\n0+00 | 0+20 | 7769 77,69 [388 3,88 | 77,69 | 546 5,44 84,64 4,23 84,64 | 5,92\n0+20 | 0+40 | 75,01 | 3,75 | 75,0375,01 | 5,255,25 | 76,5275,01 3,833,75 | 76,5275,01 | 5,365,25\n0+40 | 0+60 0+80 | 7502 75,0375,02 | a7 3,753,75 | 75,02 5,25 75,01 3,75 75,01 5,25\n0+60\n0+80 1+00 75,01 3,75 75,01 5,25 37,51 75,01 3,75 75,01 5,25 37,51 | | | | | | |\nИтого no по О\n377,76 18,88 377,76 26,44 37,51 366,2 19,31 386,2 27,03 37,51 0\nnukemy:\n1+00 1+20 75,01 3,75 75,01 5,25 56,26 75,01 3,75 75,01 5,25 56,26 | 4,5\n1+40 | 1+60 1+80 | | ви 75,0175,0175,01 3,753,753,75 | 75,0175,0175,01 | 5,255,255,25 | | 16, 75,0175,0175 | 6 15 6 | | ви ви 75,0175,0175,01 | | a7 3,753,753,75 | | 75,0175,0175,01 | | 5,255,255,25 | | 18,7575,0175,01 | | 15 6 || ПО\n1+20 1+40\n1+60\n1+80 2+00 75,01 3,75 75,01 5,25 18,75 15 75,01 3,75 75,01 5,25 18,75 15\nИтого no |5 19,5 0\n375,07 18,75 375,07 26,25 243,6 19,5 375,07 18,75 375,07 26,25 243,6\nnukemy:\n2+00 | | 2+20 2+40 | 75,0175,2 | | am 3,753,76 | | 75,0175,2 | | 5,255,26 | | 74,8675,01 3,753,74 | | 74,8675,01 | sm 5,255,24 |\n2+20\n2+40 2+60 78,7 3,93 78,7 5,51 78,7 6,3 106,45 5,32 106,45 745 106,45 8,51\n2+60 2+80 88,08 44 88,08 6,16 88,08 7,04 139,05 6,95 139,05 9,73 139,05 11,12 И\n2+80 3+00 109,55 5,48 109,55 767 109,55 8, 76 139,95 139,95 9,79 139,95 11,19\nИтого no\n426,55 426,55 29,85 276,33 22,1 535,33 26,76 535,33 3747 385,45 30,83 0 0 0\nпикету:\n[360 3+60 | 3+80 140,03140,03 | | 140,03140,03140,03 | | 98 9,739,898 9,8 | | | | moor 138,99140,03140,03140,03 | | | | nw па и? 1,1211,21,21,2 | | | | woos moos moor 140,03140,03140,03140,03 | | | | 7? ? | | | | moor 140,03140,03140,03140,03 | | | | 96 98 9,89,89,8 | | | | moos woos moos 140,03140,03140,03140,03 | | | | 12| | |\n3+00 | 3+20 138,99 | 6,95 | 138,99 |\n3+20 | 3+40 140,03 | 7 |\n3+40 3+60\n3+80 4+00 | moos 140,03 | | moos 140,03 | 9,8 | moos 140,03 | 11,2 | moor 140,03 | 7 | 140,03 | 98 9,8 | 140,03 |\nИтого no по\n34,95 699,1 48,93 699,1 55,92 700,14 35 700,14 49 700,14 56 0 0 0\nпикету:\n4+40 4+60 140,03 | 7 | № 140,03140,03 | 9,89,8 | 140,0370,01 | 5,6 | 140,03140,03 | | 140,03140,03 | 96 9,898 | №0 140,0370,01 | n2_ 5,6112 3,88 0,39 3,88 | 0s 0,070,93 | | a3 3,880,30,3 | | om 0,060,060,78 |\n4+00 | 4+20 4+40 140,03140,03 | | 140,03140,03 | 9,89,8 | 140,0370,01 5,61,2 | 140,04140,05 | moos 140,05 | 98 9,8 | 70,03 5,6 | 0,30,3 0,030,03 0,30,3 | 0,07\n4+20\n4+60 4+80 140,03 | on 0,71 | 713 | an 171 | ae 7,13 | ws 143 | |\n4+80 | 5-00 5+00 | moor 140,01 | | 140,01 | 98 ",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "origin": "ocr_unverified",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+      },
+      {
+        "id": "agent:p89:0",
+        "kind": "project",
+        "page": 89,
+        "text": "“Мост через р. Искитимка [Большая (Большая по yn. ул. Автозаводская с подъездными путями\nШифр 006/26- ТКР 1- В,2-2\nВедомость радот padom адот по устройству do одежбы\nПокрытие Основание Основание\nПикет Слева Справа (Справа Слева\nУсиление Усиление Ровик уширения / Срезка обочины Ровик уширения / Срезка обочины\nА22 НТ на А22Нт на А22 НТ на А22Нт на А320т A320m на Щеденочно-песчаная Щебеночно-песчаная | Щебеночно-песчаная A320m А320т на Щебеночно-песчаная Щеденочно-песчаная | Щеденочно-песчаная Щебеночно-песчаная\nЩМА-16 на ПЬВ ПБВ 60 ЩМА-16 на ПЬВ ПБВ 60\nБНД BHA 70/100 БНД BHA 70/100 BHA БНД 70/100 BHA БНД 70/100 БНД E 70/100 смесь фр. 0/31,5 смесь фр. pp. 0/63 БНД 70/100 смесь фр. 0/31,5 смесь фр. 0/63\nначала | конца h=0,05m h=0,07m h=0,08m h=0,05m h=0,07m h=0,08m h=0,20m h=0,10M h=0,20m\nПлощадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем, Площадь, Объем,\n2 3 2 2 3 2 2 2 3 2 3 2 3 2 2 3 2 3 2 3\nм м м м м м м м м м м м м м м м м м м м м м м\n5+00 5+20 70,12 3,51 70,12 4,91 70,12 5,61 91,62 4,58 91,62 6,41 91,62 | Правая 7,33 ось | 64,32 | 6,43 | 64,32 | 15,43 64,32 | 12,86 | |\n5+20 5+80 233 11,65 233 16,31 166 13,28 233 11,65 233 16,31 166 13,28 | 236,62 | v 23,664 | 236,62 | v 56,795656,7956 | 236,62 47,328\nИ Итого no 21,22 236,12 18,89 324,62 16,23 32462 324,62 | 22,72 | 25762 257,62 | 20,61 300,943 30,094 300,94 72,2256 300,94 60,188\n303,12 15, 15,1616 303,12 21,22\nпикету: nukemy:\n6+42 6+60 64,06 3,2 64,06 4,48 64,06 5,12 93,62 4,68 93,62 6,55 93,62 | 749 6,06749 | | 33,2133 | 332 3,32 | 33,21 | 7,97 | 33,21 6,64 ПО\n6+60 6+80 70,01 3,5 7001 70,01 4,9 70,01 5,6 3,79 75,74 5,3\n6+80 7+00 70,0170,01 3,5 70,01 49 4,9 | | 75,01 3,75 75,01 525 5,25 | |\nИтого по | 244,37 12,221222 | 244,37 17,1 169,36 13,55 33,21 3,321 33,21 7,9704 33,21 6,642\n204,08 10,2 204,08 14,28 134,07 10,72\nпикету:\n7+00 7+20 70,01 35 wor 70,01 | 49 4,9 | | 75,01 3,75 75,01 525 5,25 | ПО\n7+20 7+40 70,01 70,01 | 49 4,9 | | 75,01 3,75 75,01 525 5,25 |\n7+40 7+60 70,01 3,5 70,01 49 4,9 | | 75,01 3,75 75,01 525 5,25 |\n7+60 7+80 70,01 35 70,01 | 49 4,9 | | 75,01 3,75 75,01 525 5,25 | ПО\n7+80 8+00 70,0170,01 70,01 | 49 4,9 | | 75,01 3,75 75,01 525 5,25 | |\nИ Итого по pe 0 0 0 0 fe\n350,07 17,5 350,07 24,5 375,07 18,75 375,07 26,25\nпикету:\n8+00 8+05 18,98 0,95 18,98 в | 133 | 20,33 102 20,33 142 [|\nи Итого того no по\n18,98 0,95 18,98 133 0 0 20,33 102 20,33 142 0 0 0 0 0 0 0 0\nпикету:\nИтог. 876,25 | 4381 43,81 | 876,25 | 61,336133 | 370,19 | 29,612967 | 964,39 | 48,22 | 964,39 | 6749 67,49 | 426,98 | 34,16 | 334,15334 33,415 334,15 80,196 334,15 66,83\n5+00 5+20 72,0872,08 3,6 72,0872,08 5,04 72,08 72,08 5,77 70,01 3,5 70,01 4,9 70,01 Левая 5,6 ось 12,263 12263 | 12,263 12,263 | 2,4526 |\n5+20 5+80 233 233 16,31 166 13,28 233 233 16,31 168 13,28 36,789 3,6789 | 36,789 | 8,82936 | | 36,78949,05212,263 | | 2,45269,81047,3578 |\nИтого no | 15,25 | 305,08 | 21,352135 | 238,0823808 | 19,05 | 30301 303,01 | 15,15 | 303,0130301 | 21,21 | 238,0129801 | 18,88 49,052 4,9052 49,052 11,77248\n305,08\n6+48 6+60 62,37 3,12 62,37 4,36 62,37 4,99 4146 2,07 29 4146 3,32 12,263 12,263 |\n6+60 6+80 78,6 3,93 78,6 5,5 78,6 6,29 70,01 3,5 70,01 4,9 70,0170,0 5,6 12,263 12,263 | 12,263 | 2488 2,4526 |\nГ\n6+80 7+00 75,01 3,75 75,01 5,25 16,88 70,01 3,5 70,01 4,9 12,94 | 1,26 12,263 Т 12,263 | 12,263 | 2,4526 |\n7+00 7+20 75,01 3,75 75,01 5,25 | 70,01 35 70,01 4,9 | | 73576\nИтого по\n215,99 10,",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "origin": "ocr_unverified",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+      },
+      {
+        "id": "agent:p97:0",
+        "kind": "project",
+        "page": 97,
+        "text": "“Мост через р. Искитимка [Большая (Бо, (Большая по ул. yn. Автозаводская с подъездными\nШифр 006/26- ТКР TKP 1- В,6-1\nВедомость выравнивания и фрезерования of\nЛевая граница Рабочая Радочая Правая ая граница\nвыравнивания отметка Выравнивания\nПикет Фрезерование Выравнивающий слой\nпо оси,\n(фрезерования) [фрезерования] зерования)\nм\nРасстояние Рабочая Рабочая | Расстояние р тах, Площадь, Объем, min, р тах, Площадь, Объем,\nначала конца\nот оси, м | отметка, м отметка, a, | om от оси, ocu, м M м M | M 2 mM? M 3 M м M м M 2 mM? M 3\nВедомость выравнивания и фрезерования\nТолщина усиления, м |\n0+00 0+20 4,28 | o 0 | o | o | 46 4,16 0,15 [0 162,32 | 19,49949 | | o | o | |\n0+20 | 0+40 3,75 0,01 0,01 | 4,06 0,13 | 151,55 | 15,75 | | o | o | |\n0+40 0+60 3,75 0,02 0,02 0,03 | 3,75 on 0 0,11 | 150,04 | 13,63363 | | o | o |\n0+60 | 0+80 | 3,75 | 0,06 0,03 | 004 0,04 | 3,75 | 0,1 @ | 15003 150,03 | 076 10, 78 | o | o | o | o |\n0+80 | 1+00 3,75 | 0,06 0,06 | 006 0,06 | 3,75 0,15 [0 [| 150,07 | 11,39 | | o | o | |\n1+20 1+40 3,75 0,03 0,07 0,1 | 3,75 | 0,160 | 150,07 | 969 9,69 | | | | |\n2+00 2+20 3,75 0,04 0,05 0,11 | 3,75 | 009 0,090 | 150,08 | 98 9,18 | | o | o | |\n2+20 2+40 3,75 0,03 0,03 0,11 3,75 | on 0 0,11 | m937 4937 149,37 | 10,48 | 0 | 002 0,02 | 07 0,75 |0 |\n4+40 4+60 0,06 | 0,05 | 005 0,05 | 649 6,43 0,19 [|0 | | 27305 273,05 | 24,912497 | | o | o | |\nИтого: 1466,57 | 125,31 | | 0, 75 |\nТолщина усиления ‚м\n1+00 1+20 3,75 0,05 0,1 0,2 3,75 | 0,16 | 149,77 | 13,85 | | oor 0,01 | 032 0,32 |\n1+40 1+60 3,75 0,04 009 0,09 | 08 0,13 | 3,75 | 0,16 [|0 | 150,09 | 18,89 | | o | o |\n1+60 1+80 3,75 0,02 0,06 0, 14 3,75 | 0,18 | 150,1 or | 19,13 | o | o | |\n1+80 2+00 3,75 0,03 0,07 0,13 3,75 | 0,17 | 150,07 | 10,8 | | o | | o\n2+40 2+60 3,6 0,01 0,03 0, 14 3, 72 | 0,21 | 185,21 | 25,17 | | | 005 0,05 | Oo\n2+60 2+80 4,12 -0,01 0,04 0,2 6, 94 | 0,21 | 2272 | 2799 27,99 | | | 003 0,03 |\n| 2+80 | 3+00 | 4,74 -0,01 | 0,06 0,18 6,98 | |0 0,23 | 249,5 | 30,82 | | o | |\n| 3+00 | 3+20 | 6,53 -0,03 | 006 0,06 0,15 | | [0 0,29 | 278,53 | 407% 76 | | o | |\n3+20 3+40 -0,04 | 0,06 0,15 [7 7 | 0,3 [0 | 280,18 | 3909 39,09 | | o | |\n3+40 3+60 -0,1 0,05 0,15 | 0, 0,43 278,68 | 43,57 | |\n3+60 3+80 -0,21 0,04 0,12 | 0,41 | 275,65 | 38,8 | | o | |\n3+80 4+00 -0,18 0,07 0,16 | 0, 0,38 248,95 | 24,67 | | 0,02 | 26,26 | 0,26\n4+00 4+20 -0,12 0,13 0,22 | 0, 0,34 200,18 | 15,45 | 0,09 76,47 2,16\n4+20 4+40 0,11 0, 14 0,29 | 0,12 | 26763 267,63 | 17,15 | 0,08 6,1 0,15\n4+60 4+80 0,13 0,11 0,03 | 0,17 254,9 | 17,31 | 0,05 25,15 0,45\n| 4+80 5+00 | | 0,16 | 008 0,08 | 0,09 | 7 | 0,21 [|0 | 274,7 | 36 | o | o | |\nИтого: 3621,55 | 419,44 134,39 3,01 |\nПикет |  | Левая граница\nвыравнивания\n(фрезерования) |  | Рабочая\nотметка\nпо оси,\nМ | Правая граница\nвыравнивания\n(фрезерования) |  | Фрезерование |  |  | Выравнивающий слой |  |  | \nначала | конца | Расстояние от оси м | Радочая отметка, м |  | Радочая отметка, | Расстояние от оси м | һ тах,\nW | Площадь,\n2\nм | Объем, | h min, М | р тах, М | Площадь,\n2\nм | Объем,\nз\nм\nвыравнивания и фрезерования ПКО+00-ПК5+00\nВедомость  |  |  |  |  |  |  |  |  |  |  |  |  | \nТолщина усиления, м |  | 0,12 |  |  |  |  |  |  |  |  |  |  | \n0+00 | 0+20 |  | 0 | 0 | 0 |  | 0,15 |  |  |  | 0 | 0 | 0\n0+20 | 0+40 | 3,75 |  |  | 0 |  |  | 151,55 |  | 0 | 0 | 0 | 0\n0+40 | 0+60 | 3,75 |  |  |  |  |  |  |  | 0 | 0 | 0 | 0\n0+60 | 0+80 | 3,75 | 0,06 |  |  | 3,75 | 0,1 |  |  | 0 | 0 | 0 | 0\n0+80 | 1+00 | 3,75 | 0,06 | 0,06 | 0,06 | 3,75 | 0,15 |  | 11,39 | 0 | 0 | 0 | 0\n1+20 | 1+40",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "origin": "ocr_unverified",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+      },
+      {
+        "id": "agent:p98:0",
+        "kind": "project",
+        "page": 98,
+        "text": "“Мост \"Мост через р. Искитимка [Большая (Бо, по no ул. Автозаводская с подъездными\nШифр 006/26- TKP ТКР 1- В,6-2\nЛевая граница Радочая Правая | граница\nотметка Выравнивания нив\nПикет Фрезерование Выравнивающий слой\nпо оси,\n(фрезерования) (фрезерования) рования]\nРасстояние р № тах, |Площадь, Площадь, | Обьем, h min, р max, тах, Площадь, |Площадь,| Объем, Одъем,\nначала конца\nот оси, м | отметка, м отметка, | от оси, м M м M м? M м? 3 м M M м M м? M\nВедомость ния и фрезерования фрезерова. ПК0+00-ПК5+00\nТолщина усиления, м\n0+00 0+20 4,28 0 4,16 0,15 162,32 | 19,49 | |\n0+20 0+40 3,75 0,01 0,01 4,06 | 0,13 | 151,55 | 15,751575 | | | | |\n0+40 0+60 3,75 0,02 0,02 0,03 3,75 0,11 150,04 | 13,63 | 0 | | o | |\n0+60 0+80 | 3,75 | 006 0,06 |009 0,03 | 0,04 3,75 0,1 150,03 | 10, 78 | 0 | | | |\n0+80 | 1+00 | 3,75 | 006 0,06 [|006 0,06 | 006 0,06 3,75 | 0,15 | 150,07 | 11,39 | 0 | | o | |\n1+20 1+40 3,75 0,03 0,07 0,1 3,75 0,16 | 150,07 | 969 9,69 | 0 | o | | |\n2+00 2+20 3,75 0,04 0,05 0,11 3,75 0,09 | 150,08 | 9,18 | | | 0,02 o | | am 0,75 | |\n2+20 [460 | 2+40 4+60 | 3,757 | 006 0,030,06 | 005 0,030,05 | 005 0,050,11 | | 643 6,433,75 | 0,190,11 | | 273,05149,37 | | 24,912491 ms 10,48 | | | | o | o | |\n4+40 | 125,31 | 0, 75\nИтого: 1466,57\nТолщина усиления\n1+40 1+60 3,75 0,04 [006 0,090,06 om 0,130, 14 | 3,753,75 0,180,18 150,09150,1 18,89 o | 0,32 | [0\n1+00 1+20 3,75 0,05 0,1 0,2 3,75 [ов 0,16 149,77 | 13,85 [0 | oor 0,01\n2+40 2+60 3,8 0,01 0,03 0, 14 3,72 0,21 | ws2 150,07185,21 [as | 25,1719, 10,813 | o o | o o | | aos 0,05 | |\n1+60 1+80 3,75 0,02 |\n1+80 2+00 3,75 0,03 0,07 0,13 3,75 0,17\n2+60 2+80 4m 4,12 | -0,01 -0,01 | 0,040,06 0,180,2 | 6,946,96 | 0,230,21 249,5 | 27,9930,82 me | o | | o | | 0,03 |\n2+80 3+00 os 0,15 | | 0,29 276,53 40, 76 | |\n3+00 3+20 6,53 -0,03 0,06\nПикет |  | Левая граница\nвыравнивания\n(фрезерования) |  | Рабочая\nотметка\nпо оси,\nМ | Правая граница\nвыравнивания\n(фрезерования) |  | Фрезерование |  |  | Выравнивающий слой |  |  | \nначала | конца | Расстояние от оси, м | Радочая отметка, м |  | Радочая отметка, | Расстояние | h тах, М | Площадь,\n2\nм | Объем, | h min, М | h тах, М | Площадь, | Объем,\nВедомость выравнивания и фрезерования ПКО+00-ПК5+00 |  |  |  |  |  |  |  |  |  |  |  |  | \nТолщина\nа усиления, м |  |  |  |  |  |  |  |  |  |  |  |  | \n0+00 | 0+20 |  | 0 | 0 | 0 | 4,16 | 0,15 | 162,32 |  |  | 0 | 0 | 0\n0+20 | 0+40 |  | 0,01 | 0,01 | 0 |  | 0,13 | 151,55 | 15,75 | 0 | 0 | 0 | 0\n0+40 | 0+60 |  |  |  |  |  |  |  |  | 0 | 0 | 0 | 0\n0+60 | 0+80 |  | 0,06 |  | 0,04 |  |  |  |  | 0 | 0 | 0 | 0\n0+80 | 1+00 |  | 0,06 |  | 0,06 |  |  | 150,07 | 11,39 | 0 | 0 | 0 | 0\n1+20 | 1+40 |  |  |  |  |  | 0,16 |  |  | 0 | 0 | 0 | 0\n2+00 | 2+20 |  |  |  |  |  | 0,09 |  |  | 0 | 0 | 0 | 0\n2+20 | 2+40 |  |  |  | 0,11 |  | 0,11 | 149,37 | 10,48 | 0 |  |  | 0\n4+40 | 4+60 | 7 |  |  |  |  | 0,19 |  |  | 0 | 0 | 0 | 0\nИтого: |  |  |  |  |  |  |  | 1486,57 | 125.31 |  |  | 0.75 | 0\nТолщина\nі усиления , м |  | 0,2 |  |  |  |  |  |  |  |  |  |  | \n1+00 | 1+20 |  |  |  | 0,2 |  |  | 149,77 |  | 0 | 0,01 |  | 0\n1+40 | 1+60 |  |  |  | 0,13 |  | 0,18 |  |  | 0 | 0 | 0 | 0\n1+60 | 1+80 |  |  |  |  |  |  |  |  | 0 | 0 | 0 | 0\n1+80 | 2+00 |  |  |  | 0,13 |  | 0,17 |  | 10,8 | 0 | 0 | 0 | 0\n2+40 | 2+60 |  | 0,01 |  |  |  | 0,21 |  |  | 0 | 0 | 0,05 | 0\n2+60 | 2+80 |  |  |  |  |  |  |  |  | 0 | 0 |  | 0\n2+80 | 3+00 |  |  |  |  |  |  |  |  | 0 | 0 | 0 | 0\n3+00 | 3+20 |  |  | 0,06 | 0,15 | 7 |  | 278,53 |  | 0 | 0 | 0 | 0",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "origin": "ocr_unverified",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+      },
+      {
+        "id": "agent:p90:cell:9daf30e9f69f8ce43d1ba515",
+        "kind": "project",
+        "page": 90,
+        "text": "Покрытие | А22Нл на БНД\n70/100 | h=0,08m | Площадь,\nЕдиница физического столбца: м2\nВсего:\n874,42",
+        "unit": "м2",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "rects": [
+          [
+            0.2386060644989728,
+            0.5035651099995437,
+            0.292769914021959,
+            0.525336524831603
+          ]
+        ],
+        "origin": "ocr",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+        "unit_verified": true,
+        "numeric_verified": true
+      },
+      {
+        "id": "agent:p89:cell:6e8325f99d020f9b7771086c",
+        "kind": "project",
+        "page": 89,
+        "text": "Покрытие | Слева | Усиление | А22 НТ на\nБНД 70/100 | Площадь, | \nСтрока итога: Всего:\nЕдиница физического столбца: м2\nВсего:\n4388,24",
+        "unit": "м2",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "rects": [
+          [
+            0.1775984197674663,
+            0.8576419423552593,
+            0.21674090881826558,
+            0.8726083157006601
+          ]
+        ],
+        "origin": "ocr",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+        "unit_verified": true,
+        "numeric_verified": true
+      },
+      {
+        "id": "agent:p89:cell:0da667e40c331f6f98f09afc",
+        "kind": "project",
+        "page": 89,
+        "text": "Покрытие | Слева | Усиление | А22Нт на\nБНД 70/100 | h=0,08m | Площадь, | \nСтрока итога: Всего:\nЕдиница физического столбца: м2\nВсего:\n2582,95",
+        "unit": "м2",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "rects": [
+          [
+            0.2479523982120364,
+            0.8576419423552593,
+            0.28716689078585605,
+            0.8726083157006601
+          ]
+        ],
+        "origin": "ocr",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+        "unit_verified": true,
+        "numeric_verified": true
+      },
+      {
+        "id": "agent:p89:cell:44ad061d6e90913690dbbf38",
+        "kind": "project",
+        "page": 89,
+        "text": "Покрытие | Справа | Усиление | А22 НТ на\nБНД 70/100 | Площадь, | 2 M\nСтрока итога: Всего:\nЕдиница физического столбца: м2\nВсего:\n4532,73",
+        "unit": "м2",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "rects": [
+          [
+            0.3886603294680249,
+            0.8576419423552593,
+            0.42776826503038295,
+            0.8726083157006601
+          ]
+        ],
+        "origin": "ocr",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+        "unit_verified": true,
+        "numeric_verified": true
+      },
+      {
+        "id": "methodology:clause-9f014ab86a6f9e35269d7425100d46dd",
+        "kind": "normative",
+        "page": 3,
+        "text": "5. Сметные нормы разработаны на основе принципа усреднения, исходя из условий применения прогрессивных и рациональных методов организации строительного производства с использованием современных строительных машин и механизмов, строительных материалов, изделий и конструкций (далее – материальные ресурсы), обеспечивающих безопасность и потребительские свойства создаваемой строительной продукции, и не подлежат корректировке при применении, за исключением случаев, указанных в пункте 7 Методики.",
+        "label": "Приказ Минстроя России от 14.07.2022 № 571/пр. Методика применения сметных норм · п. 5",
+        "origin": "reviewed_literal_transcription",
+        "clause_id": "clause-9f014ab86a6f9e35269d7425100d46dd",
+        "source_id": "pdf-ae59b619236cb4e878a1b9ef",
+        "kb_identity": {
+          "sha256": "e7371dad6abb16c28b97c08aba247c66ffb76779857bac124c812c9907683108",
+          "profile": "roads",
+          "database": "releases/home-5a7370bcaeb18050d3d5f6a3/knowledge.sqlite",
+          "release_id": "home-5a7370bcaeb18050d3d5f6a3"
+        },
+        "source_sha256": "ae59b619236cb4e878a1b9efde11e8d082c8a82902695ebb52928b48833e02ec",
+        "citation_pages": [
+          3
+        ]
+      },
+      {
+        "id": "methodology:clause-33f8d2772aed19d29783274b50f80a4b",
+        "kind": "normative",
+        "page": 3,
+        "text": "7. При применении сметных норм следует руководствоваться положениями разделов «Общие положения», «Исчисление объемов работ» и «Приложения» соответствующего сборника сметных норм. Не допускается применение положений указанных разделов одного сборника сметных норм к сметным нормам других сборников сметных норм, положений о применении сметных норм одного отдела, раздела или подраздела к сметным нормам других отделов, разделов или подразделов одного сборника сметных норм, а также корректировка сметных норм в зависимости от способа производства работ, за исключением случаев, предусмотренных положениями разделов соответствующих сборников сметных норм.",
+        "label": "Приказ Минстроя России от 14.07.2022 № 571/пр. Методика применения сметных норм · п. 7",
+        "origin": "reviewed_literal_transcription",
+        "clause_id": "clause-33f8d2772aed19d29783274b50f80a4b",
+        "source_id": "pdf-ae59b619236cb4e878a1b9ef",
+        "kb_identity": {
+          "sha256": "e7371dad6abb16c28b97c08aba247c66ffb76779857bac124c812c9907683108",
+          "profile": "roads",
+          "database": "releases/home-5a7370bcaeb18050d3d5f6a3/knowledge.sqlite",
+          "release_id": "home-5a7370bcaeb18050d3d5f6a3"
+        },
+        "source_sha256": "ae59b619236cb4e878a1b9efde11e8d082c8a82902695ebb52928b48833e02ec",
+        "citation_pages": [
+          3,
+          4
+        ]
+      },
+      {
+        "id": "methodology:clause-d0664afac286bb9b46b121b08905b38e",
+        "kind": "normative",
+        "page": 7,
+        "text": "22. Сметные нормы, за исключением случаев, указанных в пункте 7 Методики, корректировке не подлежат, в том числе, когда проектной документацией предусмотрено:\nа) использование строительных машин и механизмов, не учтенных в сметных нормах, не меняющих принципиально технологические и организационные схемы производства работ;\nб) использование в соответствии с проектом организации строительства (далее – ПОС) машин и механизмов, технические характеристики которых отличаются от учтенных сметными нормами, но при этом принципиально не меняются технологические и организационные схемы производства работ;\nв) выполнение работ вручную и (или) с использованием средств малой механизации. При этом сметными нормами учтено применение машин и механизмов или иных технических средств;\nг) применение материальных ресурсов, характеристики которых отличаются от учтенных сметными нормами, и их применение не меняет технологические и организационные схемы производства работ, не снижает эксплуатационные характеристики конструктивных решений, принятые в проектной документации, а также безопасность и потребительские свойства создаваемой продукции.",
+        "label": "Приказ Минстроя России от 14.07.2022 № 571/пр. Методика применения сметных норм · п. 22",
+        "origin": "reviewed_literal_transcription",
+        "clause_id": "clause-d0664afac286bb9b46b121b08905b38e",
+        "source_id": "pdf-ae59b619236cb4e878a1b9ef",
+        "kb_identity": {
+          "sha256": "e7371dad6abb16c28b97c08aba247c66ffb76779857bac124c812c9907683108",
+          "profile": "roads",
+          "database": "releases/home-5a7370bcaeb18050d3d5f6a3/knowledge.sqlite",
+          "release_id": "home-5a7370bcaeb18050d3d5f6a3"
+        },
+        "source_sha256": "ae59b619236cb4e878a1b9efde11e8d082c8a82902695ebb52928b48833e02ec",
+        "citation_pages": [
+          7
+        ]
+      },
+      {
+        "id": "agent:p90:cell:4f81d1e727c3214033e896f1",
+        "kind": "project",
+        "page": 90,
+        "text": "Пикет\nВсего:\nВсего:",
+        "unit": "",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "rects": [
+          [
+            0.021665543887195743,
+            0.5035651099995437,
+            0.13027833826632532,
+            0.525336524831603
+          ]
+        ],
+        "origin": "ocr",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+        "unit_verified": false,
+        "numeric_verified": false
+      },
+      {
+        "id": "agent:p90:cell:7e10ead84ea30cf8d6ca9188",
+        "kind": "project",
+        "page": 90,
+        "text": "Покрытие | А22Нл на БНД\n70/100 | h=0,08m | Объем,\nЕдиница физического столбца: м3\nВсего:\n69,95",
+        "unit": "м3",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "rects": [
+          [
+            0.292769914021959,
+            0.5035651099995437,
+            0.3469337635449452,
+            0.525336524831603
+          ]
+        ],
+        "origin": "ocr",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+        "unit_verified": true,
+        "numeric_verified": true
+      },
+      {
+        "id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc",
+        "kind": "normative",
+        "page": 57,
+        "text": "Таблица ГЭСН 27-06-029 Устройство покрытия из горячих асфальтобетонных смесей\nасфальтоукладчиками второго типоразмера\nИзмеритель: 1000 м2\n27-06-029-01 Устройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками второго типоразмера,\nтолщина слоя 4 см\nСостав работ:\n01. Очистка, промывка и просушка основания.\n02. Установка и снятие копирной струны.\n03. Срезка кромок продольного и поперечного шва в ранее уложенном асфальтобетоне.\n04. Разборка покрытия за линией шва, погрузка и вывоз полученного лома.\n05. Очистка, промывка и просушка продольного и поперечного шва.\n06. Обработка торца битумной эмульсией.\n07. Установка асфальтоукладчика в рабочее положение.\n08. Прием асфальтобетонной смеси в перегружатель.\n09. Подача асфальтобетонной смеси в асфальтоукладчик и ее укладка.\n10. Переход асфальтоукладчика на смежную полосу.\n11. Предварительное уплотнение гладковальцевым катком 7т.\n12. Основное уплотнение пневмокатком 12т и гладковальцевым катком 10т.\n13. Окончательное уплотнение гладковальцевым катком 14т.\n14. Вырубка образцов и заделка вырубок.",
+        "label": "ГЭСН 27 ФСНБ-2022 · 27-06-029-01",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+      },
+      {
+        "id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+        "kind": "normative",
+        "page": 57,
+        "text": "Ресурсы нормы 27-06-029-01; Измеритель: 1000 м2\n1-100-32 Средний разряд работы 3,2; чел.-ч: 20,86\n2 Затраты труда машинистов; чел.-ч: 18,85\n91.06.03-049 Лебедки ручные и рычажные тяговым усилием до 9,81 кН (1 т); маш.-ч: 2,44\n91.06.05-011 Погрузчики одноковшовые универсальные фронтальные пневмоколесные, номинальная вместимость основного ковша 2,6 м3, грузоподъемность 5 т; маш.-ч: 0,55\n91.08.01-004 Асфальтоукладчики гусеничные, максимальная ширина укладки 5 м, скорость укладки до 30 м/мин, производительность 350 т/ч; маш.-ч: 2,04\n91.08.03-017 Катки самоходные гладкие вибрационные, масса 10 т; маш.-ч: 2,14\n91.08.03-045 Катки самоходные гладкие вибрационные, масса 7 т; маш.-ч: 1,51\n91.08.03-047 Катки самоходные пневмоколесные статические, масса 12 т; маш.-ч: 2,59\n91.08.03-049 Катки самоходные гладкие вибрационные, масса 14 т; маш.-ч: 0,97\n91.08.06-001 Нарезчики швов, максимальная глубина резки 240 мм, мощность 17,7 кВт (24 л.с.); маш.-ч: 1,52\n91.08.11-031 Перегружатели асфальтовой смеси, емкость бункера до 25 т; маш.-ч: 2,04\n91.08.11-041 Разогреватели швов инфракрасные; маш.-ч: 2,04\n91.13.01-038 Машины поливомоечные, вместимость цистерны 6 м3; маш.-ч: 3,1\n91.13.03-112 Спецавтомобили-вездеходы, грузоподъемность до 1,5 т; маш.-ч: 0,2\n91.18.01-013 Компрессоры передвижные, давление 2,0 МПа, производительность 60 м3/мин; маш.-ч: 3,71\n91.21.10-002 Молотки отбойные пневматические при работе от передвижных компрессоров; маш.-ч: 1,15\n01.2.03.07-0023 Эмульсия битумно-дорожная; т: 0,004\n01.7.03.01-0002 Вода водопроводная; м3: 20,52\n01.7.07.26-0032 Шнур полиамидный крученый, диаметр 2 мм; т: 0,0024\n01.7.15.02-0051 Болты анкерные; т: 0,012\n01.7.17.06-0061 Круг алмазный отрезной сегментный, диаметр 350 мм, толщина алмазной кромки 3,2 мм, высота алмазной кромки 8 мм; шт: 0,782\n04.2.01.01 Смеси асфальтобетонные; т: П\n08.1.02.11-0001 Поковки из квадратных заготовок, масса 1,5-4,5 кг; т: 0,0008\n08.4.03.02-0002 Сталь арматурная горячекатаная гладкая, класс A-I, диаметр 6-22 мм; т: 0,0008",
+        "label": "ГЭСН 27 ФСНБ-2022 · 27-06-029-01 · ресурсы",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+      },
+      {
+        "id": "agent:n:clause-2db486a5228b71b34f95e8cd13a067b2",
+        "kind": "normative",
+        "page": 5,
+        "text": "1.27.74. Нормой 27-06-030-02 предусмотрено устройство асфальтобетонных лотков вдоль кромки проезжей части\nпри устройстве покрытия из горячих асфальтобетонных смесей асфальтоукладчиками второго, третьего и четвертого\nтипоразмеров. Норма 27-06-030-02 применяется одновременно с нормами табл. 27-06-029 и 27-06-031.\n   Затраты на устройство водоотводных асфальтобетонных лотков вдоль кромки проезжей части существующих\nпокрытий предусмотрены нормой 27-06-069-01.",
+        "label": "ГЭСН 27 ФСНБ-2022 · 1.27.74",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+      },
+      {
+        "id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71",
+        "kind": "normative",
+        "page": 58,
+        "text": "Таблица ГЭСН 27-06-031 Устройство покрытия из горячих асфальтобетонных смесей\nасфальтоукладчиками третьего и четвертого типоразмеров\nИзмеритель: 1000 м2\nУстройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками:\n27-06-031-02 четвертого типоразмера, ширина укладки более 6 м, толщина слоя 4 см\nСостав работ:\n01. Разбивочные работы.\n02. Очистка основания.\n03. Проливка битумом.\n04. Прием асфальтобетонной смеси в перегружатель, укладка смеси с обрубкой краев, устранением дефектов, трамбованием\nмест, недоступных укатке.\n05. Укатка.\n06. Вырубка образцов и заделка вырубок.",
+        "label": "ГЭСН 27 ФСНБ-2022 · 27-06-031-02",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+      },
+      {
+        "id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58",
+        "kind": "normative",
+        "page": 58,
+        "text": "Ресурсы нормы 27-06-031-02; Измеритель: 1000 м2\n1-100-37 Средний разряд работы 3,7; чел.-ч: 15,04\n2 Затраты труда машинистов; чел.-ч: 6,38\n91.08.01-003 Асфальтоукладчики гусеничные, максимальная ширина укладки 11 м, скорость укладки до 25 м/мин, производительность 900 т/ч; маш.-ч: 0,68\n91.08.02-002 Автогудронаторы, емкость цистерны 7000 л; маш.-ч: 0,33\n91.08.02-011 Гудронаторы ручные; маш.-ч: 0,1\n91.08.03-025 Катки самоходные комбинированные вибрационные, масса 7 т; маш.-ч: 2,05\n91.08.03-045 Катки самоходные гладкие вибрационные, масса 7 т; маш.-ч: 1,6\n91.08.11-031 Перегружатели асфальтовой смеси, емкость бункера до 25 т; маш.-ч: 0,68\n91.13.01-038 Машины поливомоечные, вместимость цистерны 6 м3; маш.-ч: 0,71\n01.2.01.01 Битумы нефтяные дорожные; т: 1\n01.3.01.03-0002 Керосин для технических целей; т: 0,0028\n01.7.03.01-0001 Вода; м3: 3,2\n04.2.01.01 Смеси асфальтобетонные; т: П",
+        "label": "ГЭСН 27 ФСНБ-2022 · 27-06-031-02 · ресурсы",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+      }
+    ],
+    "summary": "Позиция 59 (ряд 81, раздел 4 «Съезды»): работа «Устройство нижнего слоя покрытия … асфальтоукладчиком 2 типоразмера, h=8 см» подтверждена ПД (тип III съездов: нижний слой А22Нл h=8 см) и ВОР; площадь 874,42 м2 совпадает с итогом таблицы по А22Нл h=0,08 м. Норма 27-06-029-01 (асфальтоукладчик второго типоразмера, измеритель 1000 м2) технически применима с поправкой 27-06-030-01 на толщину: база 4 см, шаг 0,5 см, +8 шагов до 8 см. Марка Vögele SUPER 1600 и расход дочернего материала (related:60:rate) отдельно не подтверждены. Редакция базы не подтверждена — предупреждение.",
+    "coverage": {
+      "pages": 99,
+      "state": "prepared",
+      "error_pages": [],
+      "available_tables": [
+        {
+          "page": 1,
+          "rows": 2,
+          "columns": 1,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 2,
+          "rows": 11,
+          "columns": 1,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 3,
+          "rows": 3,
+          "columns": 4,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 6,
+          "rows": 12,
+          "columns": 6,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 17,
+          "rows": 2,
+          "columns": 13,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 17,
+          "rows": 2,
+          "columns": 12,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 17,
+          "rows": 2,
+          "columns": 13,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 17,
+          "rows": 2,
+          "columns": 10,
+          "table_id": "t4",
+          "total_rows": []
+        },
+        {
+          "page": 17,
+          "rows": 2,
+          "columns": 13,
+          "table_id": "t5",
+          "total_rows": []
+        },
+        {
+          "page": 40,
+          "rows": 4,
+          "columns": 3,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 41,
+          "rows": 23,
+          "columns": 3,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 42,
+          "rows": 3,
+          "columns": 3,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 48,
+          "rows": 7,
+          "columns": 4,
+          "table_id": "t1",
+          "total_rows": [
+            6
+          ]
+        },
+        {
+          "page": 49,
+          "rows": 8,
+          "columns": 4,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 58,
+          "rows": 11,
+          "columns": 6,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 64,
+          "rows": 28,
+          "columns": 1,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 65,
+          "rows": 19,
+          "columns": 13,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 65,
+          "rows": 11,
+          "columns": 7,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 65,
+          "rows": 10,
+          "columns": 7,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 65,
+          "rows": 8,
+          "columns": 23,
+          "table_id": "t4",
+          "total_rows": []
+        },
+        {
+          "page": 66,
+          "rows": 17,
+          "columns": 33,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 66,
+          "rows": 18,
+          "columns": 31,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 66,
+          "rows": 7,
+          "columns": 29,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 66,
+          "rows": 10,
+          "columns": 11,
+          "table_id": "t4",
+          "total_rows": []
+        },
+        {
+          "page": 67,
+          "rows": 11,
+          "columns": 16,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 67,
+          "rows": 16,
+          "columns": 12,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 67,
+          "rows": 16,
+          "columns": 31,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 67,
+          "rows": 9,
+          "columns": 19,
+          "table_id": "t4",
+          "total_rows": []
+        },
+        {
+          "page": 68,
+          "rows": 8,
+          "columns": 15,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 68,
+          "rows": 65,
+          "columns": 5,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 68,
+          "rows": 14,
+          "columns": 21,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 68,
+          "rows": 10,
+          "columns": 23,
+          "table_id": "t4",
+          "total_rows": []
+        },
+        {
+          "page": 69,
+          "rows": 27,
+          "columns": 12,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 69,
+          "rows": 25,
+          "columns": 8,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 69,
+          "rows": 17,
+          "columns": 19,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 69,
+          "rows": 12,
+          "columns": 19,
+          "table_id": "t4",
+          "total_rows": []
+        },
+        {
+          "page": 70,
+          "rows": 15,
+          "columns": 12,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 70,
+          "rows": 12,
+          "columns": 13,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 70,
+          "rows": 14,
+          "columns": 11,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 71,
+          "rows": 46,
+          "columns": 9,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 71,
+          "rows": 20,
+          "columns": 13,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 71,
+          "rows": 27,
+          "columns": 11,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 71,
+          "rows": 8,
+          "columns": 11,
+          "table_id": "t4",
+          "total_rows": []
+        },
+        {
+          "page": 72,
+          "rows": 14,
+          "columns": 7,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 72,
+          "rows": 10,
+          "columns": 6,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 72,
+          "rows": 4,
+          "columns": 4,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 73,
+          "rows": 11,
+          "columns": 2,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 73,
+          "rows": 1,
+          "columns": 1,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 73,
+          "rows": 11,
+          "columns": 2,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 73,
+          "rows": 12,
+          "columns": 18,
+          "table_id": "t4",
+          "total_rows": []
+        },
+        {
+          "page": 74,
+          "rows": 7,
+          "columns": 6,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 74,
+          "rows": 6,
+          "columns": 3,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 74,
+          "rows": 1,
+          "columns": 2,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 75,
+          "rows": 5,
+          "columns": 1,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 75,
+          "rows": 1,
+          "columns": 1,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 75,
+          "rows": 1,
+          "columns": 1,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 75,
+          "rows": 6,
+          "columns": 5,
+          "table_id": "t4",
+          "total_rows": []
+        },
+        {
+          "page": 76,
+          "rows": 35,
+          "columns": 12,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 76,
+          "rows": 1,
+          "columns": 1,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 76,
+          "rows": 7,
+          "columns": 16,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 76,
+          "rows": 13,
+          "columns": 8,
+          "table_id": "t4",
+          "total_rows": []
+        },
+        {
+          "page": 76,
+          "rows": 6,
+          "columns": 4,
+          "table_id": "t5",
+          "total_rows": []
+        },
+        {
+          "page": 77,
+          "rows": 1,
+          "columns": 1,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 77,
+          "rows": 1,
+          "columns": 1,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 77,
+          "rows": 1,
+          "columns": 1,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 78,
+          "rows": 21,
+          "columns": 16,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 78,
+          "rows": 1,
+          "columns": 2,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 78,
+          "rows": 8,
+          "columns": 19,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 78,
+          "rows": 10,
+          "columns": 6,
+          "table_id": "t4",
+          "total_rows": []
+        },
+        {
+          "page": 79,
+          "rows": 6,
+          "columns": 4,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 79,
+          "rows": 1,
+          "columns": 2,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 79,
+          "rows": 9,
+          "columns": 14,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 79,
+          "rows": 9,
+          "columns": 14,
+          "table_id": "t4",
+          "total_rows": []
+        },
+        {
+          "page": 80,
+          "rows": 8,
+          "columns": 11,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 80,
+          "rows": 17,
+          "columns": 7,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 80,
+          "rows": 11,
+          "columns": 10,
+          "table_id": "t3",
+          "total_rows": []
+        },
+        {
+          "page": 80,
+          "rows": 6,
+          "columns": 13,
+          "table_id": "t4",
+          "total_rows": []
+        },
+        {
+          "page": 81,
+          "rows": 7,
+          "columns": 1,
+          "table_id": "t1",
+          "total_rows": []
+        },
+        {
+          "page": 81,
+          "rows": 20,
+          "columns": 4,
+          "table_id": "t2",
+          "total_rows": []
+        },
+        {
+          "page": 81,
+          "rows": 8,
+          "columns": 18,
+          "table_id": "t3",
+          "total_rows": []
+        }
+      ],
+      "pending_ocr_pages": [],
+      "available_table_count": 111,
+      "table_catalog_truncated": true
+    },
+    "evidence_trace": [
+      {
+        "kind": "normative_resource_consumption_candidates",
+        "rules": [],
+        "checks": [
+          {
+            "label": "Единица ВОР",
+            "state": "match",
+            "actual": "м2",
+            "expected": "1000 м2",
+            "norm_quantity": "0.87442"
+          }
+        ],
+        "norm_id": "norm-8e1c23cb941cbb8d4539b934702ef5fc",
+        "norm_code": "27-06-029-01",
+        "resources": [
+          {
+            "name": "Средний разряд работы 3,2",
+            "page": 57,
+            "unit": "чел.-ч",
+            "quote": "1-100-32 Средний разряд работы 3,2; чел.-ч: 20,86",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "20.86",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "20,86",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "1-100-32"
+          },
+          {
+            "name": "Затраты труда машинистов",
+            "page": 57,
+            "unit": "чел.-ч",
+            "quote": "2 Затраты труда машинистов; чел.-ч: 18,85",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "18.85",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "18,85",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "2"
+          },
+          {
+            "name": "Лебедки ручные и рычажные тяговым усилием до 9,81 кН (1 т)",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.06.03-049 Лебедки ручные и рычажные тяговым усилием до 9,81 кН (1 т); маш.-ч: 2,44",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.44",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "2,44",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.06.03-049"
+          },
+          {
+            "name": "Погрузчики одноковшовые универсальные фронтальные пневмоколесные, номинальная вместимость основного ковша 2,6 м3, грузоподъемность 5 т",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.06.05-011 Погрузчики одноковшовые универсальные фронтальные пневмоколесные, номинальная вместимость основного ковша 2,6 м3, грузоподъемность 5 т; маш.-ч: 0,55",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.55",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "0,55",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.06.05-011"
+          },
+          {
+            "name": "Асфальтоукладчики гусеничные, максимальная ширина укладки 5 м, скорость укладки до 30 м/мин, производительность 350 т/ч",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.01-004 Асфальтоукладчики гусеничные, максимальная ширина укладки 5 м, скорость укладки до 30 м/мин, производительность 350 т/ч; маш.-ч: 2,04",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.04",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "2,04",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.01-004"
+          },
+          {
+            "name": "Катки самоходные гладкие вибрационные, масса 10 т",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.03-017 Катки самоходные гладкие вибрационные, масса 10 т; маш.-ч: 2,14",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.14",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "2,14",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.03-017"
+          },
+          {
+            "name": "Катки самоходные гладкие вибрационные, масса 7 т",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.03-045 Катки самоходные гладкие вибрационные, масса 7 т; маш.-ч: 1,51",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "1.51",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "1,51",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.03-045"
+          },
+          {
+            "name": "Катки самоходные пневмоколесные статические, масса 12 т",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.03-047 Катки самоходные пневмоколесные статические, масса 12 т; маш.-ч: 2,59",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.59",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "2,59",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.03-047"
+          },
+          {
+            "name": "Катки самоходные гладкие вибрационные, масса 14 т",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.03-049 Катки самоходные гладкие вибрационные, масса 14 т; маш.-ч: 0,97",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.97",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "0,97",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.03-049"
+          },
+          {
+            "name": "Нарезчики швов, максимальная глубина резки 240 мм, мощность 17,7 кВт (24 л.с.)",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.06-001 Нарезчики швов, максимальная глубина резки 240 мм, мощность 17,7 кВт (24 л.с.); маш.-ч: 1,52",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "1.52",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "1,52",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.06-001"
+          },
+          {
+            "name": "Перегружатели асфальтовой смеси, емкость бункера до 25 т",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.11-031 Перегружатели асфальтовой смеси, емкость бункера до 25 т; маш.-ч: 2,04",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.04",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "2,04",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.11-031"
+          },
+          {
+            "name": "Разогреватели швов инфракрасные",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.11-041 Разогреватели швов инфракрасные; маш.-ч: 2,04",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.04",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "2,04",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.11-041"
+          },
+          {
+            "name": "Машины поливомоечные, вместимость цистерны 6 м3",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.13.01-038 Машины поливомоечные, вместимость цистерны 6 м3; маш.-ч: 3,1",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "3.1",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "3,1",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.13.01-038"
+          },
+          {
+            "name": "Спецавтомобили-вездеходы, грузоподъемность до 1,5 т",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.13.03-112 Спецавтомобили-вездеходы, грузоподъемность до 1,5 т; маш.-ч: 0,2",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.2",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "0,2",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.13.03-112"
+          },
+          {
+            "name": "Компрессоры передвижные, давление 2,0 МПа, производительность 60 м3/мин",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.18.01-013 Компрессоры передвижные, давление 2,0 МПа, производительность 60 м3/мин; маш.-ч: 3,71",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "3.71",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "3,71",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.18.01-013"
+          },
+          {
+            "name": "Молотки отбойные пневматические при работе от передвижных компрессоров",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.21.10-002 Молотки отбойные пневматические при работе от передвижных компрессоров; маш.-ч: 1,15",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "1.15",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "1,15",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.21.10-002"
+          },
+          {
+            "name": "Эмульсия битумно-дорожная",
+            "page": 57,
+            "unit": "т",
+            "quote": "01.2.03.07-0023 Эмульсия битумно-дорожная; т: 0,004",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.004",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "0,004",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.2.03.07-0023"
+          },
+          {
+            "name": "Вода водопроводная",
+            "page": 57,
+            "unit": "м3",
+            "quote": "01.7.03.01-0002 Вода водопроводная; м3: 20,52",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "20.52",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "20,52",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.7.03.01-0002"
+          },
+          {
+            "name": "Шнур полиамидный крученый, диаметр 2 мм",
+            "page": 57,
+            "unit": "т",
+            "quote": "01.7.07.26-0032 Шнур полиамидный крученый, диаметр 2 мм; т: 0,0024",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.0024",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "0,0024",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.7.07.26-0032"
+          },
+          {
+            "name": "Болты анкерные",
+            "page": 57,
+            "unit": "т",
+            "quote": "01.7.15.02-0051 Болты анкерные; т: 0,012",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.012",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "0,012",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.7.15.02-0051"
+          },
+          {
+            "name": "Круг алмазный отрезной сегментный, диаметр 350 мм, толщина алмазной кромки 3,2 мм, высота алмазной кромки 8 мм",
+            "page": 57,
+            "unit": "шт",
+            "quote": "01.7.17.06-0061 Круг алмазный отрезной сегментный, диаметр 350 мм, толщина алмазной кромки 3,2 мм, высота алмазной кромки 8 мм; шт: 0,782",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.782",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "0,782",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.7.17.06-0061"
+          },
+          {
+            "name": "Смеси асфальтобетонные",
+            "page": 57,
+            "unit": "т",
+            "quote": "04.2.01.01 Смеси асфальтобетонные; т: П",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": null,
+            "source_id": "n2:resources:57",
+            "raw_quantity": "П",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "project",
+            "resource_code": "04.2.01.01"
+          },
+          {
+            "name": "Поковки из квадратных заготовок, масса 1,5-4,5 кг",
+            "page": 57,
+            "unit": "т",
+            "quote": "08.1.02.11-0001 Поковки из квадратных заготовок, масса 1,5-4,5 кг; т: 0,0008",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.0008",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "0,0008",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "08.1.02.11-0001"
+          },
+          {
+            "name": "Сталь арматурная горячекатаная гладкая, класс A-I, диаметр 6-22 мм",
+            "page": 57,
+            "unit": "т",
+            "quote": "08.4.03.02-0002 Сталь арматурная горячекатаная гладкая, класс A-I, диаметр 6-22 мм; т: 0,0008",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.0008",
+            "source_id": "n2:resources:57",
+            "raw_quantity": "0,0008",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "08.4.03.02-0002"
+          }
+        ],
+        "norm_measure": "1000 м2",
+        "norm_source_id": "n2"
+      },
+      {
+        "kind": "normative_resource_consumption_candidates",
+        "rules": [],
+        "checks": [
+          {
+            "label": "Единица ВОР",
+            "state": "match",
+            "actual": "м2",
+            "expected": "1000 м2",
+            "norm_quantity": "0.87442"
+          }
+        ],
+        "norm_id": "norm-82224a4a77b2d0b4067f7e6e06da91ee",
+        "norm_code": "27-07-006-01",
+        "resources": [
+          {
+            "name": "Средний разряд работы 3,6",
+            "page": 80,
+            "unit": "чел.-ч",
+            "quote": "1-100-36 Средний разряд работы 3,6; чел.-ч: 18,58",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "18.58",
+            "source_id": "n5:resources:80",
+            "raw_quantity": "18,58",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "1-100-36"
+          },
+          {
+            "name": "Затраты труда машинистов",
+            "page": 80,
+            "unit": "чел.-ч",
+            "quote": "2 Затраты труда машинистов; чел.-ч: 7,98",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "7.98",
+            "source_id": "n5:resources:80",
+            "raw_quantity": "7,98",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "2"
+          },
+          {
+            "name": "Асфальтоукладчики гусеничные, ширина укладки от 1,8 до 4,5 м, скорость укладки 30 м/мин, производительность 400 т/ч",
+            "page": 80,
+            "unit": "маш.-ч",
+            "quote": "91.08.01-021 Асфальтоукладчики гусеничные, ширина укладки от 1,8 до 4,5 м, скорость укладки 30 м/мин, производительность 400 т/ч; маш.-ч: 1,68",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "1.68",
+            "source_id": "n5:resources:80",
+            "raw_quantity": "1,68",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.01-021"
+          },
+          {
+            "name": "Автогудронаторы, емкость цистерны 7000 л",
+            "page": 80,
+            "unit": "маш.-ч",
+            "quote": "91.08.02-002 Автогудронаторы, емкость цистерны 7000 л; маш.-ч: 0,16",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.16",
+            "source_id": "n5:resources:80",
+            "raw_quantity": "0,16",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.02-002"
+          },
+          {
+            "name": "Гудронаторы ручные",
+            "page": 80,
+            "unit": "маш.-ч",
+            "quote": "91.08.02-011 Гудронаторы ручные; маш.-ч: 0,1",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.1",
+            "source_id": "n5:resources:80",
+            "raw_quantity": "0,1",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.02-011"
+          },
+          {
+            "name": "Катки самоходные комбинированные вибрационные, масса 3,5 т",
+            "page": 80,
+            "unit": "маш.-ч",
+            "quote": "91.08.03-024 Катки самоходные комбинированные вибрационные, масса 3,5 т; маш.-ч: 1,71",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "1.71",
+            "source_id": "n5:resources:80",
+            "raw_quantity": "1,71",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.03-024"
+          },
+          {
+            "name": "Катки самоходные гладкие вибрационные, масса 3,5 т",
+            "page": 80,
+            "unit": "маш.-ч",
+            "quote": "91.08.03-027 Катки самоходные гладкие вибрационные, масса 3,5 т; маш.-ч: 2,12",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.12",
+            "source_id": "n5:resources:80",
+            "raw_quantity": "2,12",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.03-027"
+          },
+          {
+            "name": "Перегружатели асфальтовой смеси, емкость бункера до 25 т",
+            "page": 80,
+            "unit": "маш.-ч",
+            "quote": "91.08.11-031 Перегружатели асфальтовой смеси, емкость бункера до 25 т; маш.-ч: 1,68",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "1.68",
+            "source_id": "n5:resources:80",
+            "raw_quantity": "1,68",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.11-031"
+          },
+          {
+            "name": "Машины поливомоечные, вместимость цистерны 6 м3",
+            "page": 80,
+            "unit": "маш.-ч",
+            "quote": "91.13.01-038 Машины поливомоечные, вместимость цистерны 6 м3; маш.-ч: 0,47",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.47",
+            "source_id": "n5:resources:80",
+            "raw_quantity": "0,47",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.13.01-038"
+          },
+          {
+            "name": "Битум",
+            "page": 80,
+            "unit": "т",
+            "quote": "01.2.01.01 Битум; т: 0,65",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.65",
+            "source_id": "n5:resources:80",
+            "raw_quantity": "0,65",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.2.01.01"
+          },
+          {
+            "name": "Вода",
+            "page": 80,
+            "unit": "м3",
+            "quote": "01.7.03.01-0001 Вода; м3: 0,92",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.92",
+            "source_id": "n5:resources:80",
+            "raw_quantity": "0,92",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.7.03.01-0001"
+          },
+          {
+            "name": "Смеси асфальтобетонные",
+            "page": 80,
+            "unit": "т",
+            "quote": "04.2.01.01 Смеси асфальтобетонные; т: П",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": null,
+            "source_id": "n5:resources:80",
+            "raw_quantity": "П",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "project",
+            "resource_code": "04.2.01.01"
+          }
+        ],
+        "norm_measure": "1000 м2",
+        "norm_source_id": "n5"
+      },
+      {
+        "kind": "normative_resource_consumption_candidates",
+        "rules": [],
+        "checks": [
+          {
+            "label": "Измеритель",
+            "state": "unknown",
+            "actual": "м2",
+            "expected": "1000 м2 (норма 27-06-030-01); 1000 м (норма 27-06-030-02)",
+            "norm_quantity": null
+          }
+        ],
+        "norm_id": "norm-98c7ec9e8bfc82e6fa86b6ba43f51b00",
+        "norm_code": "27-06-030-01",
+        "resources": [
+          {
+            "name": "Средний разряд работы 3,8",
+            "page": 57,
+            "unit": "чел.-ч",
+            "quote": "1-100-38 Средний разряд работы 3,8; чел.-ч: 0,35",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.35",
+            "source_id": "n7:resources:57",
+            "raw_quantity": "0,35",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "1-100-38"
+          }
+        ],
+        "norm_measure": "1000 м2 (норма 27-06-030-01); 1000 м (норма 27-06-030-02)",
+        "norm_source_id": "n7"
+      },
+      {
+        "kind": "normative_resource_consumption_candidates",
+        "rules": [],
+        "checks": [
+          {
+            "label": "Единица ВОР",
+            "state": "match",
+            "actual": "м2",
+            "expected": "1000 м2",
+            "norm_quantity": "0.87442"
+          }
+        ],
+        "norm_id": "norm-8e1c23cb941cbb8d4539b934702ef5fc",
+        "norm_code": "27-06-029-01",
+        "resources": [
+          {
+            "name": "Средний разряд работы 3,2",
+            "page": 57,
+            "unit": "чел.-ч",
+            "quote": "1-100-32 Средний разряд работы 3,2; чел.-ч: 20,86",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "20.86",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "20,86",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "1-100-32"
+          },
+          {
+            "name": "Затраты труда машинистов",
+            "page": 57,
+            "unit": "чел.-ч",
+            "quote": "2 Затраты труда машинистов; чел.-ч: 18,85",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "18.85",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "18,85",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "2"
+          },
+          {
+            "name": "Лебедки ручные и рычажные тяговым усилием до 9,81 кН (1 т)",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.06.03-049 Лебедки ручные и рычажные тяговым усилием до 9,81 кН (1 т); маш.-ч: 2,44",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.44",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "2,44",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.06.03-049"
+          },
+          {
+            "name": "Погрузчики одноковшовые универсальные фронтальные пневмоколесные, номинальная вместимость основного ковша 2,6 м3, грузоподъемность 5 т",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.06.05-011 Погрузчики одноковшовые универсальные фронтальные пневмоколесные, номинальная вместимость основного ковша 2,6 м3, грузоподъемность 5 т; маш.-ч: 0,55",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.55",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "0,55",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.06.05-011"
+          },
+          {
+            "name": "Асфальтоукладчики гусеничные, максимальная ширина укладки 5 м, скорость укладки до 30 м/мин, производительность 350 т/ч",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.01-004 Асфальтоукладчики гусеничные, максимальная ширина укладки 5 м, скорость укладки до 30 м/мин, производительность 350 т/ч; маш.-ч: 2,04",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.04",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "2,04",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.01-004"
+          },
+          {
+            "name": "Катки самоходные гладкие вибрационные, масса 10 т",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.03-017 Катки самоходные гладкие вибрационные, масса 10 т; маш.-ч: 2,14",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.14",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "2,14",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.03-017"
+          },
+          {
+            "name": "Катки самоходные гладкие вибрационные, масса 7 т",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.03-045 Катки самоходные гладкие вибрационные, масса 7 т; маш.-ч: 1,51",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "1.51",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "1,51",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.03-045"
+          },
+          {
+            "name": "Катки самоходные пневмоколесные статические, масса 12 т",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.03-047 Катки самоходные пневмоколесные статические, масса 12 т; маш.-ч: 2,59",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.59",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "2,59",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.03-047"
+          },
+          {
+            "name": "Катки самоходные гладкие вибрационные, масса 14 т",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.03-049 Катки самоходные гладкие вибрационные, масса 14 т; маш.-ч: 0,97",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.97",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "0,97",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.03-049"
+          },
+          {
+            "name": "Нарезчики швов, максимальная глубина резки 240 мм, мощность 17,7 кВт (24 л.с.)",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.06-001 Нарезчики швов, максимальная глубина резки 240 мм, мощность 17,7 кВт (24 л.с.); маш.-ч: 1,52",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "1.52",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "1,52",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.06-001"
+          },
+          {
+            "name": "Перегружатели асфальтовой смеси, емкость бункера до 25 т",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.11-031 Перегружатели асфальтовой смеси, емкость бункера до 25 т; маш.-ч: 2,04",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.04",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "2,04",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.11-031"
+          },
+          {
+            "name": "Разогреватели швов инфракрасные",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.08.11-041 Разогреватели швов инфракрасные; маш.-ч: 2,04",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.04",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "2,04",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.11-041"
+          },
+          {
+            "name": "Машины поливомоечные, вместимость цистерны 6 м3",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.13.01-038 Машины поливомоечные, вместимость цистерны 6 м3; маш.-ч: 3,1",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "3.1",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "3,1",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.13.01-038"
+          },
+          {
+            "name": "Спецавтомобили-вездеходы, грузоподъемность до 1,5 т",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.13.03-112 Спецавтомобили-вездеходы, грузоподъемность до 1,5 т; маш.-ч: 0,2",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.2",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "0,2",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.13.03-112"
+          },
+          {
+            "name": "Компрессоры передвижные, давление 2,0 МПа, производительность 60 м3/мин",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.18.01-013 Компрессоры передвижные, давление 2,0 МПа, производительность 60 м3/мин; маш.-ч: 3,71",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "3.71",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "3,71",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.18.01-013"
+          },
+          {
+            "name": "Молотки отбойные пневматические при работе от передвижных компрессоров",
+            "page": 57,
+            "unit": "маш.-ч",
+            "quote": "91.21.10-002 Молотки отбойные пневматические при работе от передвижных компрессоров; маш.-ч: 1,15",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "1.15",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "1,15",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.21.10-002"
+          },
+          {
+            "name": "Эмульсия битумно-дорожная",
+            "page": 57,
+            "unit": "т",
+            "quote": "01.2.03.07-0023 Эмульсия битумно-дорожная; т: 0,004",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.004",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "0,004",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.2.03.07-0023"
+          },
+          {
+            "name": "Вода водопроводная",
+            "page": 57,
+            "unit": "м3",
+            "quote": "01.7.03.01-0002 Вода водопроводная; м3: 20,52",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "20.52",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "20,52",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.7.03.01-0002"
+          },
+          {
+            "name": "Шнур полиамидный крученый, диаметр 2 мм",
+            "page": 57,
+            "unit": "т",
+            "quote": "01.7.07.26-0032 Шнур полиамидный крученый, диаметр 2 мм; т: 0,0024",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.0024",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "0,0024",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.7.07.26-0032"
+          },
+          {
+            "name": "Болты анкерные",
+            "page": 57,
+            "unit": "т",
+            "quote": "01.7.15.02-0051 Болты анкерные; т: 0,012",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.012",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "0,012",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.7.15.02-0051"
+          },
+          {
+            "name": "Круг алмазный отрезной сегментный, диаметр 350 мм, толщина алмазной кромки 3,2 мм, высота алмазной кромки 8 мм",
+            "page": 57,
+            "unit": "шт",
+            "quote": "01.7.17.06-0061 Круг алмазный отрезной сегментный, диаметр 350 мм, толщина алмазной кромки 3,2 мм, высота алмазной кромки 8 мм; шт: 0,782",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.782",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "0,782",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.7.17.06-0061"
+          },
+          {
+            "name": "Смеси асфальтобетонные",
+            "page": 57,
+            "unit": "т",
+            "quote": "04.2.01.01 Смеси асфальтобетонные; т: П",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": null,
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "П",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "project",
+            "resource_code": "04.2.01.01"
+          },
+          {
+            "name": "Поковки из квадратных заготовок, масса 1,5-4,5 кг",
+            "page": 57,
+            "unit": "т",
+            "quote": "08.1.02.11-0001 Поковки из квадратных заготовок, масса 1,5-4,5 кг; т: 0,0008",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.0008",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "0,0008",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "08.1.02.11-0001"
+          },
+          {
+            "name": "Сталь арматурная горячекатаная гладкая, класс A-I, диаметр 6-22 мм",
+            "page": 57,
+            "unit": "т",
+            "quote": "08.4.03.02-0002 Сталь арматурная горячекатаная гладкая, класс A-I, диаметр 6-22 мм; т: 0,0008",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.0008",
+            "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57",
+            "raw_quantity": "0,0008",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "08.4.03.02-0002"
+          }
+        ],
+        "norm_measure": "1000 м2",
+        "norm_source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc"
+      },
+      {
+        "kind": "normative_resource_consumption_candidates",
+        "rules": [],
+        "checks": [
+          {
+            "label": "Единица ВОР",
+            "state": "match",
+            "actual": "м2",
+            "expected": "1000 м2",
+            "norm_quantity": "0.87442"
+          }
+        ],
+        "norm_id": "norm-dbb1e2cd3d2a62efe17929a883bfae71",
+        "norm_code": "27-06-031-02",
+        "resources": [
+          {
+            "name": "Средний разряд работы 3,7",
+            "page": 58,
+            "unit": "чел.-ч",
+            "quote": "1-100-37 Средний разряд работы 3,7; чел.-ч: 15,04",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "15.04",
+            "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58",
+            "raw_quantity": "15,04",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "1-100-37"
+          },
+          {
+            "name": "Затраты труда машинистов",
+            "page": 58,
+            "unit": "чел.-ч",
+            "quote": "2 Затраты труда машинистов; чел.-ч: 6,38",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "6.38",
+            "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58",
+            "raw_quantity": "6,38",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "2"
+          },
+          {
+            "name": "Асфальтоукладчики гусеничные, максимальная ширина укладки 11 м, скорость укладки до 25 м/мин, производительность 900 т/ч",
+            "page": 58,
+            "unit": "маш.-ч",
+            "quote": "91.08.01-003 Асфальтоукладчики гусеничные, максимальная ширина укладки 11 м, скорость укладки до 25 м/мин, производительность 900 т/ч; маш.-ч: 0,68",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.68",
+            "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58",
+            "raw_quantity": "0,68",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.01-003"
+          },
+          {
+            "name": "Автогудронаторы, емкость цистерны 7000 л",
+            "page": 58,
+            "unit": "маш.-ч",
+            "quote": "91.08.02-002 Автогудронаторы, емкость цистерны 7000 л; маш.-ч: 0,33",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.33",
+            "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58",
+            "raw_quantity": "0,33",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.02-002"
+          },
+          {
+            "name": "Гудронаторы ручные",
+            "page": 58,
+            "unit": "маш.-ч",
+            "quote": "91.08.02-011 Гудронаторы ручные; маш.-ч: 0,1",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.1",
+            "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58",
+            "raw_quantity": "0,1",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.02-011"
+          },
+          {
+            "name": "Катки самоходные комбинированные вибрационные, масса 7 т",
+            "page": 58,
+            "unit": "маш.-ч",
+            "quote": "91.08.03-025 Катки самоходные комбинированные вибрационные, масса 7 т; маш.-ч: 2,05",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.05",
+            "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58",
+            "raw_quantity": "2,05",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.03-025"
+          },
+          {
+            "name": "Катки самоходные гладкие вибрационные, масса 7 т",
+            "page": 58,
+            "unit": "маш.-ч",
+            "quote": "91.08.03-045 Катки самоходные гладкие вибрационные, масса 7 т; маш.-ч: 1,6",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "1.6",
+            "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58",
+            "raw_quantity": "1,6",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.03-045"
+          },
+          {
+            "name": "Перегружатели асфальтовой смеси, емкость бункера до 25 т",
+            "page": 58,
+            "unit": "маш.-ч",
+            "quote": "91.08.11-031 Перегружатели асфальтовой смеси, емкость бункера до 25 т; маш.-ч: 0,68",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.68",
+            "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58",
+            "raw_quantity": "0,68",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.08.11-031"
+          },
+          {
+            "name": "Машины поливомоечные, вместимость цистерны 6 м3",
+            "page": 58,
+            "unit": "маш.-ч",
+            "quote": "91.13.01-038 Машины поливомоечные, вместимость цистерны 6 м3; маш.-ч: 0,71",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.71",
+            "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58",
+            "raw_quantity": "0,71",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.13.01-038"
+          },
+          {
+            "name": "Битумы нефтяные дорожные",
+            "page": 58,
+            "unit": "т",
+            "quote": "01.2.01.01 Битумы нефтяные дорожные; т: 1",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "1",
+            "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58",
+            "raw_quantity": "1",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.2.01.01"
+          },
+          {
+            "name": "Керосин для технических целей",
+            "page": 58,
+            "unit": "т",
+            "quote": "01.3.01.03-0002 Керосин для технических целей; т: 0,0028",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.0028",
+            "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58",
+            "raw_quantity": "0,0028",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.3.01.03-0002"
+          },
+          {
+            "name": "Вода",
+            "page": 58,
+            "unit": "м3",
+            "quote": "01.7.03.01-0001 Вода; м3: 3,2",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "3.2",
+            "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58",
+            "raw_quantity": "3,2",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "01.7.03.01-0001"
+          },
+          {
+            "name": "Смеси асфальтобетонные",
+            "page": 58,
+            "unit": "т",
+            "quote": "04.2.01.01 Смеси асфальтобетонные; т: П",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": null,
+            "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58",
+            "raw_quantity": "П",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "project",
+            "resource_code": "04.2.01.01"
+          }
+        ],
+        "norm_measure": "1000 м2",
+        "norm_source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71"
+      },
+      {
+        "result": {
+          "rows": [
+            {
+              "row": 14,
+              "bbox": [
+                282.5555725097656,
+                18.239999771118164,
+                295.51556396484375,
+                109.68000030517578
+              ],
+              "text": "Всего:",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell158",
+              "quality": "usable",
+              "source_id": "agent:p90:cell:4f81d1e727c3214033e896f1",
+              "header_ids": [
+                "ruled-cf73d43063cffeaf:cell1"
+              ],
+              "numeric_verified": false
+            },
+            {
+              "row": 14,
+              "bbox": [
+                282.5555725097656,
+                200.8800048828125,
+                295.51556396484375,
+                246.47999572753906
+              ],
+              "text": "874,42",
+              "column": 4,
+              "cell_id": "ruled-cf73d43063cffeaf:cell161",
+              "quality": "usable",
+              "source_id": "agent:p90:cell:9daf30e9f69f8ce43d1ba515",
+              "header_ids": [
+                "ruled-cf73d43063cffeaf:cell2",
+                "ruled-cf73d43063cffeaf:cell7",
+                "ruled-cf73d43063cffeaf:cell13",
+                "ruled-cf73d43063cffeaf:cell22"
+              ],
+              "numeric_verified": true
+            },
+            {
+              "row": 14,
+              "bbox": [
+                282.5555725097656,
+                246.47999572753906,
+                295.51556396484375,
+                292.0799865722656
+              ],
+              "text": "69,95",
+              "column": 5,
+              "cell_id": "ruled-cf73d43063cffeaf:cell162",
+              "quality": "usable",
+              "source_id": "agent:p90:cell:7e10ead84ea30cf8d6ca9188",
+              "header_ids": [
+                "ruled-cf73d43063cffeaf:cell2",
+                "ruled-cf73d43063cffeaf:cell7",
+                "ruled-cf73d43063cffeaf:cell13",
+                "ruled-cf73d43063cffeaf:cell23"
+              ],
+              "numeric_verified": true
+            }
+          ],
+          "cells": [
+            {
+              "source_id": "agent:p90:cell:4f81d1e727c3214033e896f1"
+            },
+            {
+              "source_id": "agent:p90:cell:9daf30e9f69f8ce43d1ba515"
+            },
+            {
+              "source_id": "agent:p90:cell:7e10ead84ea30cf8d6ca9188"
+            }
+          ],
+          "columns": [
+            {
+              "column": 0,
+              "headers": [
+                "Пикет",
+                "начала"
+              ]
+            },
+            {
+              "column": 1,
+              "headers": [
+                "Пикет",
+                "конца"
+              ]
+            },
+            {
+              "column": 2,
+              "headers": [
+                "Покрытие",
+                "А16Вл на БНД\n70/100",
+                "h=0,06м",
+                "Площадь,"
+              ]
+            },
+            {
+              "column": 3,
+              "headers": [
+                "Покрытие",
+                "А16Вл на БНД\n70/100",
+                "h=0,06м",
+                "Объем,"
+              ]
+            },
+            {
+              "column": 4,
+              "headers": [
+                "Покрытие",
+                "А22Нл на БНД\n70/100",
+                "h=0,08m",
+                "Площадь,"
+              ]
+            },
+            {
+              "column": 5,
+              "headers": [
+                "Покрытие",
+                "А22Нл на БНД\n70/100",
+                "h=0,08m",
+                "Объем,"
+              ]
+            },
+            {
+              "column": 6,
+              "headers": [
+                "Основание",
+                "Щебеночно-песчаная\nсмесь типа 0/63 мм\nM800",
+                "h=0,20m",
+                "Площадь,"
+              ]
+            },
+            {
+              "column": 7,
+              "headers": [
+                "Основание",
+                "Щебеночно-песчаная\nсмесь типа 0/63 мм\nM800",
+                "h=0,20m",
+                "Объем,"
+              ]
+            },
+            {
+              "column": 8,
+              "headers": [
+                "Основание",
+                "Щебеночно-песчаная\nсмесь типа 0/31,5 мм\nM800",
+                "h=0,22m",
+                "Площадь,"
+              ]
+            },
+            {
+              "column": 9,
+              "headers": [
+                "Основание",
+                "Щебеночно-песчаная\nсмесь типа 0/31,5 мм\nM800",
+                "h=0,22m",
+                "Объем,"
+              ]
+            },
+            {
+              "column": 10,
+              "headers": [
+                "Покрытие",
+                "ЩМА-16 на ПБВ 60",
+                "h=0,05m",
+                "Площадь,"
+              ]
+            },
+            {
+              "column": 11,
+              "headers": [
+                "Покрытие",
+                "ЩМА-16 на ПБВ 60",
+                "h=0,05m",
+                "Объем,"
+              ]
+            },
+            {
+              "column": 12,
+              "headers": [
+                "Покрытие",
+                "А22Нт на БНД 70/100",
+                "h=0,07m",
+                "Площадь,"
+              ]
+            },
+            {
+              "column": 13,
+              "headers": [
+                "Покрытие",
+                "А22Нт на БНД 70/100",
+                "h=0,07m",
+                "Объем,"
+              ]
+            },
+            {
+              "column": 14,
+              "headers": [
+                "Бортовой\nкамень БР\n100.30.18, м"
+              ]
+            }
+          ],
+          "row_count": 15,
+          "next_offset": 4,
+          "matching_rows": []
+        },
+        "request": {
+          "page": 90,
+          "tool": "read_table",
+          "unit": "",
+          "query": "",
+          "offset": 0,
+          "row_ids": [
+            14,
+            15
+          ],
+          "table_id": "ruled-cf73d43063cffeaf",
+          "source_id": "",
+          "column_ids": [
+            0,
+            1,
+            4,
+            5
+          ],
+          "operand_ids": []
+        }
+      },
+      {
+        "result": {
+          "source_id": "n2",
+          "full_length": 1065
+        },
+        "request": {
+          "page": 1,
+          "tool": "read_source",
+          "unit": "",
+          "query": "",
+          "offset": 0,
+          "row_ids": [],
+          "table_id": "",
+          "source_id": "n2",
+          "column_ids": [],
+          "operand_ids": []
+        }
+      },
+      {
+        "result": {
+          "source_id": "n7",
+          "full_length": 234
+        },
+        "request": {
+          "page": 1,
+          "tool": "read_source",
+          "unit": "",
+          "query": "",
+          "offset": 0,
+          "row_ids": [],
+          "table_id": "",
+          "source_id": "n7",
+          "column_ids": [],
+          "operand_ids": []
+        }
+      },
+      {
+        "result": {
+          "results": [
+            {
+              "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc"
+            },
+            {
+              "source_id": "agent:n:norm-8e1c23cb941cbb8d4539b934702ef5fc:resources:57"
+            },
+            {
+              "source_id": "agent:n:clause-2db486a5228b71b34f95e8cd13a067b2"
+            },
+            {
+              "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71"
+            },
+            {
+              "source_id": "agent:n:norm-dbb1e2cd3d2a62efe17929a883bfae71:resources:58"
+            }
+          ]
+        },
+        "request": {
+          "page": 1,
+          "tool": "search_norms",
+          "unit": "",
+          "query": "ГЭСН 27-06-029 асфальтоукладчик второго типоразмера толщина слоя корректировка 27-06-030",
+          "offset": 0,
+          "row_ids": [],
+          "table_id": "",
+          "source_id": "",
+          "column_ids": [],
+          "operand_ids": []
+        }
+      },
+      {
+        "kind": "answer_validation",
+        "issues": [
+          "Аспект method:comment:equipment:1 имеет точное требование «Укладка а/укладчиком 2 типоразмера». Проверь именно его по ПД и нормативу, а не дополнительную марку машины или коэффициент дочерней строки. Неизвестный расход дочернего материала оставь отдельным related:*; неизвестная марка не заменяет проверку указанной функции/класса. Если само требование не подтверждается, сохрани needs_facts с причиной по этому требованию."
+        ]
+      },
+      {
+        "kind": "norm_thickness_adjustment_proposal_v1",
+        "base_quote": "толщина слоя 4 см",
+        "signed_steps": 8,
+        "base_source_id": "n2",
+        "adjustment_quote": "Таблица ГЭСН 27-06-030 Нормы для корректировки таблицы 27-06-029\nИзмеритель: 1000 м2 (норма 27-06-030-01); 1000 м (норма 27-06-030-02)\nПри изменении толщины покрытия на 0,5 см добавлять или исключать:\n27-06-030-01 к норме 27-06-029-01",
+        "adjustment_source_id": "n7"
+      },
+      {
+        "kind": "claim-parser-corrections-v1",
+        "added": [
+          {
+            "kind": "method",
+            "cells": [],
+            "label": "Укладка а/укладчиком 2 типоразмера",
+            "claim_id": "method:comment:equipment:1",
+            "required": true,
+            "predicate": "text",
+            "expected_text": "Укладка а/укладчиком 2 типоразмера",
+            "expected_unit": "",
+            "expected_value": "",
+            "property_label": ""
+          }
+        ],
+        "inputs": {
+          "comment": "Укладка а/укладчиком Vögele SUPER 1600 2 типоразмера",
+          "formula": "",
+          "work_name": "Устройство нижнего слоя покрытия из асфальтобетонной смеси, асфальтоукладчиком 2 типоразмера, h = 8 см",
+          "position_type": "Работа"
+        },
+        "retired": {
+          "attribute:comment:condition": "parser_equipment_model_with_explicit_class"
+        },
+        "input_sha256": "fe1b890ba3938e6f68cd8a93401fabb43cd32c1996db20da3a41a2f07eb65f8b",
+        "position_key": "38a799b89ebd11de886fe9835a153c7046c9bb8cf28480bfeaa98afccda2ddaf",
+        "original_items": [
+          {
+            "state": "needs_facts",
+            "topic": "Марка асфальтоукладчика Vögele SUPER 1600",
+            "required": true,
+            "claim_ids": [
+              "attribute:comment:condition"
+            ],
+            "explanation": "Комментарий ВОР указывает Vögele SUPER 1600; в ПД марка машины не приведена, общая методика (пп. 5, 7, 22) не подтверждает пригодность конкретной модели. Требование не входит в обязательные claims, но эквивалентность марки не доказана. Не хватает достоверных ссылок для этого аспекта проверки: нужна сверка.",
+            "project_source_ids": [],
+            "normative_source_ids": [
+              "methodology:clause-9f014ab86a6f9e35269d7425100d46dd",
+              "methodology:clause-33f8d2772aed19d29783274b50f80a4b",
+              "methodology:clause-d0664afac286bb9b46b121b08905b38e"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "quantity_unit_bridge_v1",
+        "version": 1,
+        "item_fingerprint": "07351eb9ccaffa50ea94db5dd21753d1b2514fd9fd9f111643ee9dc5ad785c9a"
+      }
+    ],
+    "execution_state": "complete",
+    "parameter_cards": [
+      {
+        "id": "quantity",
+        "row": 81,
+        "role": "project_value",
+        "unit": "м2",
+        "label": "Количество по ПД",
+        "quote": "Единица физического столбца: м2\nВсего:\n874,42",
+        "state": "confirmed",
+        "reason": "Число и цитата проверены, единицы приведены; значения совпадают.",
+        "found_unit": "м2",
+        "source_ids": [
+          "agent:p90:cell:9daf30e9f69f8ce43d1ba515"
+        ],
+        "found_value": "874.42",
+        "declared_value": "874.42",
+        "source_anchors": [
+          {
+            "quote": "Единица физического столбца: м2\nВсего:\n874,42",
+            "rects": [
+              [
+                0.2386060644989728,
+                0.5035651099995437,
+                0.292769914021959,
+                0.525336524831603
+              ]
+            ],
+            "source_id": "agent:p90:cell:9daf30e9f69f8ce43d1ba515"
+          }
+        ]
+      },
+      {
+        "id": "thickness",
+        "row": 81,
+        "role": "project_value",
+        "unit": "см",
+        "label": "Толщина проектного слоя",
+        "quote": "h=8 см",
+        "state": "confirmed",
+        "reason": "Число и цитата проверены, единицы приведены; значения совпадают.",
+        "found_unit": "см",
+        "source_ids": [
+          "agent:p50:0"
+        ],
+        "found_value": "8",
+        "compared_value": "8",
+        "declared_value": "8",
+        "source_anchors": [
+          {
+            "quote": "h=8 см",
+            "rects": [],
+            "source_id": "agent:p50:0"
+          }
+        ]
+      },
+      {
+        "id": "calculation:60",
+        "row": 82,
+        "role": "calculation",
+        "unit": "т",
+        "label": "Арифметика позиции №61",
+        "state": "confirmed",
+        "reason": "Формула пересчитана программно по сохранённым значениям ячеек.",
+        "required": false,
+        "expression": "=874.42/1000*197.12",
+        "found_value": "172.3656704",
+        "declared_value": "172.3656704"
+      },
+      {
+        "id": "factor:60:1000",
+        "row": 82,
+        "role": "calculation",
+        "unit": "",
+        "label": "Исходное число формулы 1000 · позиция №61",
+        "state": "needs_facts",
+        "reason": "Делитель формулы: нужно подтвердить входную единицу и масштаб пересчёта.",
+        "required": false,
+        "declared_value": "1000"
+      },
+      {
+        "id": "factor:60:197.12",
+        "row": 82,
+        "role": "project_value",
+        "unit": "",
+        "label": "Исходное число формулы 197.12 · позиция №61",
+        "state": "needs_facts",
+        "reason": "Нужно установить назначение числа и источник: объём связанной работы, геометрический параметр, расход или перевод единиц.",
+        "required": false,
+        "declared_value": "197.12"
+      },
+      {
+        "id": "unit_scale:n2",
+        "row": 81,
+        "role": "unit_scale",
+        "unit": "м2",
+        "label": "Масштаб измерителя нормы",
+        "quote": "Измеритель: 1000 м2",
+        "state": "confirmed",
+        "reason": "Объём ВОР соответствует 0.87442 измерителя нормы; масштаб 1000 м2 учтён.",
+        "found_unit": "м2",
+        "source_ids": [
+          "n2"
+        ],
+        "found_value": "1000",
+        "declared_value": "874.42",
+        "source_anchors": [
+          {
+            "quote": "Измеритель: 1000 м2",
+            "rects": [],
+            "source_id": "n2"
+          }
+        ]
+      }
+    ],
+    "pipeline_version": 4,
+    "related_positions": [
+      {
+        "row": 74,
+        "unit": "м3",
+        "work": "Щебеночно-песчаная смесь М800 типа 0/31,5 мм",
+        "index": 52,
+        "comment": "ГОСТ Р 70458-2022 категория К90, марка М1\nКупл-1,26",
+        "formula": "107,67*1,26",
+        "quantity": "135.6642"
+      },
+      {
+        "row": 75,
+        "unit": "м2",
+        "work": "Устройство верхнего слоя основания из ЩПС , h = 10см \n(двухслойного основания - слой1) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+        "index": 53,
+        "comment": "Тех.часть ГЭСН 27 п. 1.27.18. При толщине однослойного основания или покрытия более 18 см его нормировать в два слоя\nУстройство основания производится бульдозером мощностью 79 кВт\nУплотнение основания производится тандемным виброкатком Hamm HD130",
+        "formula": "",
+        "quantity": "918.61"
+      },
+      {
+        "row": 76,
+        "unit": "м3",
+        "work": "Щебеночно-песчаная смесь М800 типа 0/63 мм",
+        "index": 54,
+        "comment": "ГОСТ Р 70458-2022 категория К90, марка М1\nКупл-1,26",
+        "formula": "91,17*1,26",
+        "quantity": "114.8742"
+      },
+      {
+        "row": 77,
+        "unit": "м2",
+        "work": "Устройство верхнего слоя основания из ЩПС , h = 10см \n(двухслойного основания - слой2) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+        "index": 55,
+        "comment": "Тех.часть ГЭСН 27 п. 1.27.18. При толщине однослойного основания или покрытия более 18 см его нормировать в два слоя\nУстройство основания производится бульдозером мощностью 79 кВт\nУплотнение основания производится тандемным виброкатком Hamm HD130",
+        "formula": "",
+        "quantity": "982.64"
+      },
+      {
+        "row": 78,
+        "unit": "м3",
+        "work": "Щебеночно-песчаная смесь М800 типа 0/63 мм",
+        "index": 56,
+        "comment": "ГОСТ Р 70458-2022 категория К90, марка М1\nКупл-1,26",
+        "formula": "97,57*1,26",
+        "quantity": "122.9382"
+      },
+      {
+        "row": 79,
+        "unit": "т",
+        "work": "Подгрунтовочные работы на верхний слой основания",
+        "index": 57,
+        "comment": "Расход 0,8 л/м2",
+        "formula": "874,42*0,8/1000",
+        "quantity": "0.699536"
+      },
+      {
+        "row": 80,
+        "unit": "т",
+        "work": "Битумная эмульсия ЭБДК Б",
+        "index": 58,
+        "comment": "Коэффициент расхода - 1,03",
+        "formula": "0,7*1,03",
+        "quantity": "0.721"
+      },
+      {
+        "row": 82,
+        "unit": "т",
+        "work": "Асфальтобетонная смесь А22НЛ Асфальтобетон по ГОСТ 58406.2-2020 с использованием полимерно-битумного вяжущего БНД 70/100 по ГОСТ Р33133-2014, с максимальным размером зёрен 22,4 мм",
+        "index": 60,
+        "comment": "Расход а/б смеси на 1000м2 Тех.часть ГЭСН 81-02-27-2022 прил. 27.1(Ү-2,7-2,9т/м3) 98,56+(12,32*8)=197,12т",
+        "formula": "874,42/1000*197,12",
+        "quantity": "172.3656704"
+      },
+      {
+        "row": 83,
+        "unit": "т",
+        "work": "Розлив битумной эмульсии на нижний слой покрытия",
+        "index": 61,
+        "comment": "Расход 0,4 л/м2",
+        "formula": "874,42*0,4/1000",
+        "quantity": "0.349768"
+      },
+      {
+        "row": 84,
+        "unit": "т",
+        "work": "Битумная эмульсия ЭБДК Б",
+        "index": 62,
+        "comment": "Коэффициент расхода - 1,03",
+        "formula": "0,35*1,03",
+        "quantity": "0.3605"
+      },
+      {
+        "row": 85,
+        "unit": "м2",
+        "work": "Устройство верхнего слоя покрытия из асфальтобетонной смеси, асфальтоукладчиком 3 типоразмера,, h = 6 см",
+        "index": 63,
+        "comment": "Укладка а/укладчиком Vögele SUPER 1600 2 типоразмера",
+        "formula": "",
+        "quantity": "874.42"
+      },
+      {
+        "row": 86,
+        "unit": "т",
+        "work": "Асфальтобетонная смесь А16ВЛ Асфальтобетон по ГОСТ 58406.2-2020 с использованием полимерно-битумного вяжущего на БНД 70/100 по ГОСТ 33133-2014, с максимальным размером зёрен 16 мм",
+        "index": 64,
+        "comment": "Расход а/б смеси на 1000м2 Тех.часть ГЭСН 81-02-27-2022 прил. 27.1 (Ү-2,7-2,9т/м3) 99,13+(12,39*4)=148,69т",
+        "formula": "874,42/1000*148,69",
+        "quantity": "130.0175098"
+      },
+      {
+        "row": 87,
+        "unit": "м",
+        "work": "Установка бортового камня",
+        "index": 65,
+        "comment": "В том числе закругление 179 м",
+        "formula": "",
+        "quantity": "279.0"
+      },
+      {
+        "row": 88,
+        "unit": "м3",
+        "work": "Камень бортовой бетонный БР100.30.18 (бетон В30)",
+        "index": 66,
+        "comment": "Класс бетона В30\nVед=0,052м3/шт., \nВес ед = 0,12т/шт.",
+        "formula": "279*0,052",
+        "quantity": "14.508"
+      }
+    ],
+    "local_rules_version": 1,
+    "parameter_proposals": [
+      {
+        "unit": "м2",
+        "quote": "Единица физического столбца: м2\nВсего:\n874,42",
+        "value": "874.42",
+        "operation": "direct",
+        "parameter": "quantity",
+        "source_id": "agent:p90:cell:9daf30e9f69f8ce43d1ba515",
+        "conditions": [],
+        "scope_quote": "Покрытие | А22Нл на БНД\n70/100 | h=0,08m | Площадь,\nЕдиница физического столбца: м2\nВсего:\n874,42",
+        "scope_state": "verified",
+        "operand_source_ids": []
+      },
+      {
+        "unit": "см",
+        "quote": "h=8 см",
+        "value": "8",
+        "operation": "direct",
+        "parameter": "thickness",
+        "source_id": "agent:p50:0",
+        "conditions": [],
+        "scope_quote": "Нижний слой покрытия — А22Нл Асфальтобетон по ГОСТ 58406.2-2020 на БНД 70/100 по ГОСТ 33133-2014, h=8 см",
+        "scope_state": "verified",
+        "operand_source_ids": []
+      },
+      {
+        "unit": "м2",
+        "quote": "Измеритель: 1000 м2",
+        "value": "1000",
+        "operation": "direct",
+        "parameter": "unit_scale",
+        "source_id": "n2",
+        "conditions": [],
+        "scope_quote": "Измеритель: 1000 м2",
+        "scope_state": "verified",
+        "operand_source_ids": []
+      },
+      {
+        "unit": "см",
+        "quote": "При изменении толщины покрытия на 0,5 см добавлять или исключать:",
+        "value": "0.5",
+        "operation": "direct",
+        "parameter": "coefficient",
+        "source_id": "n7",
+        "conditions": [
+          {
+            "unit": "см",
+            "quote": "толщина слоя 4 см",
+            "value": "4",
+            "operator": "eq",
+            "parameter": "thickness"
+          }
+        ],
+        "scope_quote": "При изменении толщины покрытия на 0,5 см добавлять или исключать:",
+        "scope_state": "verified",
+        "operand_source_ids": []
+      }
+    ],
+    "quantity_composition": null,
+    "parameter_schema_version": 8,
+    "requires_engineer_review": false
+  }
+}

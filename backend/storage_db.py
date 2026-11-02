@@ -17,8 +17,8 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import create_engine, func, select, or_, delete
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import create_engine, func, select, or_, delete, cast
+from sqlalchemy.dialects.postgresql import insert, JSONPATH
 from sqlalchemy.orm import Session
 
 from storage_blobs import BlobStore
@@ -37,6 +37,7 @@ from storage_models import (
     PositionResultVersion,
     ReviewArtifact,
     NormativeReview,
+    AnalysisArtifact,
 )
 
 
@@ -151,6 +152,41 @@ def _read_source_bytes(source: Any) -> bytes:
 
 
 class Repository:
+    supports_analysis_replay = True
+
+    def analysis_human_revision(self, project_id, vor_version_id, pdf_versions):
+        from analysis_replay import digest
+        with Session(self._engine) as session:
+            rows=session.scalars(select(HumanBasis).where(HumanBasis.project_id==UUID(str(project_id)),
+                HumanBasis.vor_version_id==UUID(str(vor_version_id)),
+                HumanBasis.pdf_version_id.in_([UUID(str(v)) for v in pdf_versions])).order_by(HumanBasis.id)).all()
+            return digest([(str(r.id),r.fingerprint,r.payload,r.revoked_at) for r in rows])
+
+    def analysis_artifact(self, project_id, key):
+        from analysis_replay import digest
+        project_id=UUID(str(project_id))
+        with Session(self._engine) as session:
+            row=session.scalar(select(AnalysisArtifact).where(AnalysisArtifact.project_id==project_id,AnalysisArtifact.key==key))
+            if row is None:
+                return None
+            identity,payload=dict(row.identity),dict(row.payload)
+            if digest(identity)!=key or digest(payload)!=row.sha256:
+                raise ValueError('Reusable analysis artifact hash mismatch')
+            return dict(identity=identity,payload=payload)
+
+    def save_analysis_artifact(self, project_id, identity, payload):
+        from analysis_replay import digest
+        project_id=UUID(str(project_id))
+        key=digest(identity)
+        with Session(self._engine) as session:
+            session.execute(insert(AnalysisArtifact).values(key=key,project_id=project_id,stage=identity['stage'],
+                identity=identity,payload=payload,sha256=digest(payload)).on_conflict_do_nothing(index_elements=['key']))
+            session.commit()
+        saved=self.analysis_artifact(project_id,key)
+        if saved is None or saved['identity']!=identity:
+            raise ValueError('Reusable analysis artifact identity mismatch')
+        return saved['payload']
+
     def __init__(self, database_url: str, blob_store: BlobStore) -> None:
         self._database_url = database_url
         self._engine = create_engine(database_url)
@@ -1200,25 +1236,55 @@ class Repository:
             return scheduled
 
     def normative_validation_context(self, run_id):
-        """Batch-read latest validation fields, without full OCR/source snapshots."""
+        """Batch-read verdict fields and replayable proofs, without OCR snapshots."""
         with Session(self._engine) as session:
             result: dict[int, dict[str, Any]] = {r.payload['position_index']: {'stage': r.status}
                 for r in session.scalars(select(TaskOutbox).where(
                     TaskOutbox.run_id == run_id, TaskOutbox.task_name == 'audit_tasks.normative_position'))
                 if type(r.payload.get('position_index')) is int and r.payload['position_index'] >= 0}
-            rows = session.execute(select(NormativeReview.position_index,
+            rows = session.execute(select(NormativeReview.id, NormativeReview.position_index,
                 NormativeReview.payload['position_key'].as_string(),
                 NormativeReview.payload['position_check']['items'],
                 NormativeReview.payload['position_check']['summary'].as_string(),
                 NormativeReview.payload['position_check']['parameter_cards'],
                 NormativeReview.payload['position_check']['parameter_schema_version'],
-                NormativeReview.payload['position_check']['local_rules_version'].as_integer()).where(
+                NormativeReview.payload['position_check']['execution_state'].as_string(),
+                NormativeReview.payload['position_check']['local_rules_version'].as_integer(),
+                NormativeReview.payload['position_check']['pipeline_version'].as_integer(),
+                # The publisher replays selected proofs. Omitting them makes
+                # retired parser claims and verified arithmetic look unresolved.
+                # Filter in PostgreSQL: tool/OCR/source traces stay in storage.
+                func.jsonb_path_query_array(
+                    NormativeReview.payload['position_check']['evidence_trace'],
+                    cast('$[*] ? (@.kind.type() == "string" && '
+                    '(@.kind == "claim-parser-corrections-v1" || '
+                    '@.kind == "workbook_arithmetic_proof_v1" || '
+                    '@.kind == "explicit_curb_column_quantity_v1" || '
+                    '@.kind == "parent_geometry_dependency_v1"))', JSONPATH))).where(
                     NormativeReview.run_id == run_id, NormativeReview.kind == 'check')
                 .distinct(NormativeReview.position_index)
                 .order_by(NormativeReview.position_index, NormativeReview.created_at.desc(), NormativeReview.id.desc()))
-            for index, key, items, summary, cards, schema, revision in rows:
+            scoped_reviews={}
+            for review_id, index, key, items, summary, cards, schema, execution, revision, pipeline, proofs in rows:
                 result.setdefault(index, {})['review'] = dict(position_key=key, items=items or [], summary=summary or '',
-                    parameter_cards=cards or [], parameter_schema_version=schema or 0, local_rules_version=revision or 0)
+                    execution_state=execution or 'complete',
+                    parameter_cards=cards or [], parameter_schema_version=schema or 0, local_rules_version=revision or 0,
+                    pipeline_version=pipeline or 0, evidence_trace=proofs or [])
+                if any(p.get('kind') in {'explicit_curb_column_quantity_v1','parent_geometry_dependency_v1'} for p in proofs or []):
+                    scoped_reviews[review_id]=index
+            if scoped_reviews:
+                # Only certified column conflicts need literal project sources
+                # and quantity proposals. Do not load full OCR/tool snapshots
+                # or every review's source registry into the result list.
+                details=session.execute(select(NormativeReview.id,
+                    func.jsonb_path_query_array(NormativeReview.payload['position_check']['sources'],
+                        cast('$[*] ? (@.kind == "project")',JSONPATH)),
+                    func.jsonb_path_query_array(NormativeReview.payload['position_check']['parameter_proposals'],
+                        cast('$[*] ? (@.parameter == "quantity" || @.parameter == "thickness")',JSONPATH)))
+                    .where(NormativeReview.id.in_(scoped_reviews)))
+                for review_id,sources,proposals in details:
+                    result[scoped_reviews[review_id]]['review'].update(sources=sources or [],
+                        parameter_proposals=proposals or [])
             return result
 
     def review_artifacts(self, run_id, index):

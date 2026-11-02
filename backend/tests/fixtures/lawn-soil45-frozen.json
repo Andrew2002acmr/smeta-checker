@@ -1,0 +1,858 @@
+{
+  "provenance": {
+    "file": "live-v7-manual-keyrows-frozen.json",
+    "sha256": "b5c33039c38489545e55aab17f244f1bf55f9b14b0a3b8c9c87f3f2b0a9a0291",
+    "review_id": "b7d473c8-83fd-44b8-98f9-75228056f245",
+    "note": "Exact current position and selected guard-input fields from the saved live answer; unrelated sources/parameters/items excluded."
+  },
+  "position": {
+    "unit": "м2",
+    "index": 45,
+    "number": "",
+    "volume": "1931.0",
+    "comment": "Агрегат для травосеяния СЗМ Ника-4. \nАвтоматизированная система расчёта программным продуктом  \"Indor CAD\".",
+    "formula": "1931",
+    "file_ref": "",
+    "page_ref": "",
+    "reference": "",
+    "work_name": "Устройство газонов с планировкой площади, с внесением растительной земли h = 0,20 м и засевом смесью из многолетних трав (механизировано)",
+    "bind_error": null,
+    "prep_error": null,
+    "calculation": {},
+    "document_id": "",
+    "formula_refs": {
+      "display_cell": "E66"
+    },
+    "explicit_refs": [],
+    "position_type": "Работа",
+    "primary_pages": [],
+    "target_indices": [],
+    "bind_error_kind": null,
+    "position_source": {
+      "row": 66,
+      "cells": {
+        "B66": "Устройство газонов с планировкой площади, с внесением растительной земли h = 0,20 м и засевом смесью из многолетних трав (механизировано)",
+        "C66": "м2",
+        "D66": "1931.0",
+        "E66": "1931",
+        "I66": "Агрегат для травосеяния СЗМ Ника-4. \nАвтоматизированная система расчёта программным продуктом  \"Indor CAD\".",
+        "K66": "Работа"
+      },
+      "sheet": "Дорожная одежда",
+      "format": "xlsx",
+      "sections": [
+        {
+          "text": "Раздел 3. Устройство газонов.",
+          "address": "A65"
+        }
+      ],
+      "scope_key": "",
+      "header_row": 15,
+      "position_id": "4b5d03827ea0ce64:Дорожная одежда:66",
+      "scope_reason": "unknown",
+      "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+      "continuation_rows": []
+    },
+    "prep_error_kind": null,
+    "designation_refs": [],
+    "location_description": "Страница не указана"
+  },
+  "result": {
+    "items": [
+      {
+        "state": "confirmed",
+        "topic": "Нормативное основание и измеритель",
+        "required": true,
+        "claim_ids": [
+          "normative:applicability"
+        ],
+        "explanation": "ГЭСН 47-01-046-03 — подготовка почвы для газона механизированным способом с внесением растительной земли слоем 15 см, измеритель 100 м2; состав работ включает планировку, вспашку и насыпку земли. Поправка 47-01-046-05 добавляет/исключает на каждые 5 см изменения толщины (1 шаг к 20 см). Посев трав — 47-01-047-01 (измеритель га). Техническая применимость по закреплённому выпуску; редакция на дату проекта не подтверждена.",
+        "project_source_ids": [
+          "agent:p39:0"
+        ],
+        "normative_source_ids": [
+          "n2",
+          "n13",
+          "n9"
+        ]
+      }
+    ],
+    "state": "needs_facts",
+    "sources": [
+      {
+        "id": "n2",
+        "kind": "normative",
+        "page": 20,
+        "text": "Таблица ГЭСН 47-01-046 Устройство газонов\nИзмеритель: 100 м2\nПодготовка почвы для устройства партерного и обыкновенного газона с внесением растительной земли слоем 15\nсм:\n47-01-046-03 механизированным способом\nСостав работ:\nДля нормы 47-01-046-03:\n01. Планировка площади механизированным способом.\n02. Вспашка почвы трактором.\n03. Подвозка и насыпка растительной земли с разравниванием.",
+        "label": "ГЭСН 47 ФСНБ-2022 · 47-01-046-03",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-2cbfd601c065a17285cf0c64"
+      },
+      {
+        "id": "n13",
+        "kind": "normative",
+        "page": 20,
+        "text": "Таблица ГЭСН 47-01-046 Устройство газонов\nИзмеритель: 100 м2\n47-01-046-05 На каждые 5 см изменения толщины слоя добавлять или исключать к нормам с 47-01-046-01 по 47-01-046-04\nСостав работ:\nДля нормы 47-01-046-05:\n01. Подвозка и насыпка растительной земли с разравниванием.",
+        "label": "ГЭСН 47 ФСНБ-2022 · 47-01-046-05",
+        "origin": "extracted_native_unreviewed",
+        "source_id": "pdf-2cbfd601c065a17285cf0c64"
+      },
+      {
+        "id": "agent:p39:0",
+        "kind": "project",
+        "page": 39,
+        "text": "**<u>006/26-ТКР1</u>**\nПроектом предусматривается для принятой категории улицы с расчетной скоростью от\n40 до 70 км/ч согласно таблице 8.2. СП 42.13330.2026 устройство покрытия – от 2-4 полос\nдвижения:\n- 1й участок по 2х3,75 м, (НТ – ПК2+92,43);\n- 2й участок четыре полосы 2х3,75 и 2х3,25 м;\n- 3 й участок 2х3,75 и 2х3,25 плюс уширение 0,6 на каждую полосу на радиусе\nзакругления 140 м;\n- 4й участок две разделенные трамвайным полотном проезжие части шириной 7,25\nкаждая (3,75 и 3,5 м);\nУклон проезжей части принят односкатным (п. 5.5.7 СП 396.1325800.2018)..\nПоперечный уклон проезжей части принят в соответствии п. 5.5.10 таблицей 5.2 СП\n396.1325800.2018 и составляет 10-30 ‰. Проезжая часть отделена от прилегающих территорий\nбортовым камнем БР100.30.18 В30 (F200) по ГОСТ 32961-2014.\n_Технический тротуар_\nТехнический тротуар прилегает к проезжей части автомобильной дороги. Ширина\nтротуара принята 1,0 м. Поперечный уклон тротуара принят 20‰ в сторону проезжей части\n(п.5.5.8 СП 396.1325800.2018). Край тротуара отделен от прилегающих территорий бортовым\nкамнем БР100.20.8 В22.5, F200 по ГОСТ 32961-2014.\n_Пешеходные тротуар_\nТротуары предусмотрены с одной стороны улицы шириной 3,25 м в соответствии с\nтаблицей 8.2 СП 42.13330.2026, поперечный уклон тротуаров принят 5-30‰ на основании п.\n11.10 СП 42.13330.2016. Край тротуара отделен от прилегающих территорий бортовым\nкамнем БР100.20.8 В22.5, F200 по ГОСТ 32961-2014.\n_Велосипедные дорожки_\n_Газоны_\nГазоны устраиваться с одной стороны ул. Автозаводская с переменной шириной с\nпоперечным уклоном до 50‰. Территория планируется. Наносится плодородный слой почвы\nтолщиной 0, 20 м и сеются многолетние травы.\n_Трамвайное_ полотно\nПроектные решения по трамвайному полотну представлены в томе -006/26-ТКР3.\n_Продольный профиль_\nОпорные точки сложились из существующих планировочных решений:\n- мостовой переход через р. Искитимская (Большая Камышная);\n- существующие отметки ул. Автозавосдкая.\n«Мост через р. Искитимка (Большая Камышная) по ул. Автозаводская с подъездными путями»\n38",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "origin": "native",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+      },
+      {
+        "id": "agent:p91:cell:152ed67c6ccaaf5ef2e6f862",
+        "kind": "project",
+        "page": 91,
+        "text": "Устройство газонов. Улица | Газон | Слой почвенно-растительный,\nM{²(20cM)\nЕдиница физического столбца: м2\nВсего: | 807,68\n1931",
+        "unit": "м2",
+        "label": "006_26_раздел пд №3.1.pdf",
+        "rects": [
+          [
+            0.4675196443663917,
+            0.4124476378794411,
+            0.7262233677519055,
+            0.4283730279775597
+          ]
+        ],
+        "origin": "ocr",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+        "unit_verified": true,
+        "numeric_verified": true
+      }
+    ],
+    "summary": "Работа «Устройство газонов с внесением растительной земли h=0,20 м и засевом многолетних трав (механизировано)» подтверждена в ПД: площадь газона 1931 м2 (ПД, стр. 91), толщина плодородного слоя 0,20 м (ПД, стр. 39). Нормативно применимы ГЭСН 47-01-046-03 (подготовка почвы механизированным способом, измеритель 100 м2) и поправка 47-01-046-05 на изменение толщины слоя (базовая 15 см, шаг 5 см → 1 шаг к 20 см); посев трав — 47-01-047-01 (измеритель га). Расход растительной земли по норме 47-01-046-03 — 15 м3/100 м2, по поправке 47-01-046-05 — 5 м3/100 м2 на каждые 5 см; семена по 47-01-047-01 — 200 кг/га. Требование «Агрегат для травосеяния» в ПД не подтверждено (в ПД только механизированный засев трав без марки агрегата). Редакции базы не подтверждены — отдельное предупреждение.",
+    "evidence_trace": [
+      {
+        "kind": "normative_resource_consumption_candidates",
+        "rules": [],
+        "checks": [
+          {
+            "label": "Единица ВОР",
+            "state": "match",
+            "actual": "м2",
+            "expected": "100 м2",
+            "norm_quantity": "19.31"
+          }
+        ],
+        "norm_id": "norm-4febe2e2b002128dc8a0a333a8041971",
+        "norm_code": "47-01-046-01",
+        "resources": [
+          {
+            "name": "Средний разряд работы 1,8",
+            "page": 20,
+            "unit": "чел.-ч",
+            "quote": "1-100-18 Средний разряд работы 1,8; чел.-ч: 4,06",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "4.06",
+            "source_id": "n0:resources:20",
+            "raw_quantity": "4,06",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "1-100-18"
+          },
+          {
+            "name": "Затраты труда машинистов",
+            "page": 20,
+            "unit": "чел.-ч",
+            "quote": "2 Затраты труда машинистов; чел.-ч: 0,05",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.05",
+            "source_id": "n0:resources:20",
+            "raw_quantity": "0,05",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "2"
+          },
+          {
+            "name": "Катки прицепные кольчатые 2 т",
+            "page": 20,
+            "unit": "маш.-ч",
+            "quote": "91.12.08-051 Катки прицепные кольчатые 2 т; маш.-ч: 0,14",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.14",
+            "source_id": "n0:resources:20",
+            "raw_quantity": "0,14",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "91.12.08-051"
+          },
+          {
+            "name": "Тракторы на пневмоколесном ходу, мощность 59 кВт (80 л.с.)",
+            "page": 20,
+            "unit": "маш.-ч",
+            "quote": "91.15.03-014 Тракторы на пневмоколесном ходу, мощность 59 кВт (80 л.с.); маш.-ч: 0,05",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.05",
+            "source_id": "n0:resources:20",
+            "raw_quantity": "0,05",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "91.15.03-014"
+          }
+        ],
+        "norm_measure": "100 м2",
+        "norm_source_id": "n0"
+      },
+      {
+        "kind": "normative_resource_consumption_candidates",
+        "rules": [],
+        "checks": [
+          {
+            "label": "Единица ВОР",
+            "state": "match",
+            "actual": "м2",
+            "expected": "100 м2",
+            "norm_quantity": "19.31"
+          }
+        ],
+        "norm_id": "norm-556d93902308dfd956b4c7305f749fb6",
+        "norm_code": "47-01-046-03",
+        "resources": [
+          {
+            "name": "Средний разряд работы 2,2",
+            "page": 20,
+            "unit": "чел.-ч",
+            "quote": "1-100-22 Средний разряд работы 2,2; чел.-ч: 26,78",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "26.78",
+            "source_id": "n2:resources:20",
+            "raw_quantity": "26,78",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "1-100-22"
+          },
+          {
+            "name": "Затраты труда машинистов",
+            "page": 20,
+            "unit": "чел.-ч",
+            "quote": "2 Затраты труда машинистов; чел.-ч: 0,05",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.05",
+            "source_id": "n2:resources:20",
+            "raw_quantity": "0,05",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "2"
+          },
+          {
+            "name": "Катки прицепные кольчатые 2 т",
+            "page": 20,
+            "unit": "маш.-ч",
+            "quote": "91.12.08-051 Катки прицепные кольчатые 2 т; маш.-ч: 0,14",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.14",
+            "source_id": "n2:resources:20",
+            "raw_quantity": "0,14",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "91.12.08-051"
+          },
+          {
+            "name": "Тракторы на пневмоколесном ходу, мощность 59 кВт (80 л.с.)",
+            "page": 20,
+            "unit": "маш.-ч",
+            "quote": "91.15.03-014 Тракторы на пневмоколесном ходу, мощность 59 кВт (80 л.с.); маш.-ч: 0,05",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.05",
+            "source_id": "n2:resources:20",
+            "raw_quantity": "0,05",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "91.15.03-014"
+          },
+          {
+            "name": "Земля растительная",
+            "page": 20,
+            "unit": "м3",
+            "quote": "16.2.01.02-0001 Земля растительная; м3: 15",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "15",
+            "source_id": "n2:resources:20",
+            "raw_quantity": "15",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "16.2.01.02-0001"
+          }
+        ],
+        "norm_measure": "100 м2",
+        "norm_source_id": "n2"
+      },
+      {
+        "kind": "normative_resource_consumption_candidates",
+        "rules": [],
+        "checks": [
+          {
+            "label": "Единица ВОР",
+            "state": "match",
+            "actual": "м2",
+            "expected": "1000 м2",
+            "norm_quantity": "1.931"
+          }
+        ],
+        "norm_id": "norm-dfd3c93e73c48c2f9f4d05138e4ec4c9",
+        "norm_code": "27-06-003-04",
+        "resources": [
+          {
+            "name": "Средний разряд работы 2,0",
+            "page": 40,
+            "unit": "чел.-ч",
+            "quote": "1-100-20 Средний разряд работы 2,0; чел.-ч: 20",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "20",
+            "source_id": "n6:resources:40",
+            "raw_quantity": "20",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "1-100-20"
+          },
+          {
+            "name": "Затраты труда машинистов",
+            "page": 40,
+            "unit": "чел.-ч",
+            "quote": "2 Затраты труда машинистов; чел.-ч: 11,2",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "11.2",
+            "source_id": "n6:resources:40",
+            "raw_quantity": "11,2",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "2"
+          },
+          {
+            "name": "Краны на гусеничном ходу, грузоподъемность 25 т",
+            "page": 40,
+            "unit": "маш.-ч",
+            "quote": "91.05.06-007 Краны на гусеничном ходу, грузоподъемность 25 т; маш.-ч: 11,2",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "11.2",
+            "source_id": "n6:resources:40",
+            "raw_quantity": "11,2",
+            "pdf_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+            "quantity_kind": "numeric",
+            "resource_code": "91.05.06-007"
+          }
+        ],
+        "norm_measure": "1000 м2",
+        "norm_source_id": "n6"
+      },
+      {
+        "kind": "normative_resource_consumption_candidates",
+        "rules": [],
+        "checks": [
+          {
+            "label": "Единица ВОР",
+            "state": "match",
+            "actual": "м2",
+            "expected": "га",
+            "norm_quantity": "0.1931"
+          }
+        ],
+        "norm_id": "norm-3a1248f5f9514859973a957a665c1445",
+        "norm_code": "47-01-047-01",
+        "resources": [
+          {
+            "name": "Тракторы на пневмоколесном ходу, мощность 59 кВт (80 л.с.)",
+            "page": 21,
+            "unit": "маш.-ч",
+            "quote": "91.15.03-014 Тракторы на пневмоколесном ходу, мощность 59 кВт (80 л.с.); маш.-ч: 1,46",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "1.46",
+            "source_id": "n9:resources:21",
+            "raw_quantity": "1,46",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "91.15.03-014"
+          },
+          {
+            "name": "Катки прицепные кольчатые 2 т",
+            "page": 21,
+            "unit": "маш.-ч",
+            "quote": "91.12.08-051 Катки прицепные кольчатые 2 т; маш.-ч: 2,92",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.92",
+            "source_id": "n9:resources:21",
+            "raw_quantity": "2,92",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "91.12.08-051"
+          },
+          {
+            "name": "Затраты труда машинистов",
+            "page": 21,
+            "unit": "чел.-ч",
+            "quote": "2 Затраты труда машинистов; чел.-ч: 1,46",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "1.46",
+            "source_id": "n9:resources:21",
+            "raw_quantity": "1,46",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "2"
+          },
+          {
+            "name": "Семена газонных трав",
+            "page": 21,
+            "unit": "кг",
+            "quote": "16.2.02.07 Семена газонных трав; кг: 200",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "200",
+            "source_id": "n9:resources:21",
+            "raw_quantity": "200",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "16.2.02.07"
+          },
+          {
+            "name": "Средний разряд работы 4,0",
+            "page": 21,
+            "unit": "чел.-ч",
+            "quote": "1-100-40 Средний разряд работы 4,0; чел.-ч: 0,65",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "0.65",
+            "source_id": "n9:resources:21",
+            "raw_quantity": "0,65",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "1-100-40"
+          },
+          {
+            "name": "Сеялки прицепные",
+            "page": 21,
+            "unit": "маш.-ч",
+            "quote": "91.12.07-021 Сеялки прицепные; маш.-ч: 1,46",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "1.46",
+            "source_id": "n9:resources:21",
+            "raw_quantity": "1,46",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "91.12.07-021"
+          }
+        ],
+        "norm_measure": "га",
+        "norm_source_id": "n9"
+      },
+      {
+        "kind": "normative_resource_consumption_candidates",
+        "rules": [],
+        "checks": [
+          {
+            "label": "Единица ВОР",
+            "state": "match",
+            "actual": "м2",
+            "expected": "100 м2",
+            "norm_quantity": "19.31"
+          }
+        ],
+        "norm_id": "norm-a27e29f25b4fe516e5ee40c33556e3fa",
+        "norm_code": "47-01-046-06",
+        "resources": [
+          {
+            "name": "Средний разряд работы 2,9",
+            "page": 20,
+            "unit": "чел.-ч",
+            "quote": "1-100-29 Средний разряд работы 2,9; чел.-ч: 5,25",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "5.25",
+            "source_id": "n11:resources:20",
+            "raw_quantity": "5,25",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "1-100-29"
+          },
+          {
+            "name": "Затраты труда машинистов",
+            "page": 20,
+            "unit": "чел.-ч",
+            "quote": "2 Затраты труда машинистов; чел.-ч: 2,74",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.74",
+            "source_id": "n11:resources:20",
+            "raw_quantity": "2,74",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "2"
+          },
+          {
+            "name": "Машины поливомоечные, вместимость цистерны 6 м3",
+            "page": 20,
+            "unit": "маш.-ч",
+            "quote": "91.13.01-038 Машины поливомоечные, вместимость цистерны 6 м3; маш.-ч: 2,74",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2.74",
+            "source_id": "n11:resources:20",
+            "raw_quantity": "2,74",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "91.13.01-038"
+          },
+          {
+            "name": "Вода",
+            "page": 20,
+            "unit": "м3",
+            "quote": "01.7.03.01-0001 Вода; м3: 10",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "10",
+            "source_id": "n11:resources:20",
+            "raw_quantity": "10",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "01.7.03.01-0001"
+          },
+          {
+            "name": "Семена газонных трав",
+            "page": 20,
+            "unit": "кг",
+            "quote": "16.2.02.07 Семена газонных трав; кг: 2",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "2",
+            "source_id": "n11:resources:20",
+            "raw_quantity": "2",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "16.2.02.07"
+          }
+        ],
+        "norm_measure": "100 м2",
+        "norm_source_id": "n11"
+      },
+      {
+        "kind": "normative_resource_consumption_candidates",
+        "rules": [],
+        "checks": [
+          {
+            "label": "Единица ВОР",
+            "state": "match",
+            "actual": "м2",
+            "expected": "100 м2",
+            "norm_quantity": "19.31"
+          }
+        ],
+        "norm_id": "norm-045a1c065d8c59510459ba6062d7a2f8",
+        "norm_code": "47-01-046-05",
+        "resources": [
+          {
+            "name": "Средний разряд работы 2,2",
+            "page": 20,
+            "unit": "чел.-ч",
+            "quote": "1-100-22 Средний разряд работы 2,2; чел.-ч: 5,47",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "5.47",
+            "source_id": "n13:resources:20",
+            "raw_quantity": "5,47",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "1-100-22"
+          },
+          {
+            "name": "Земля растительная",
+            "page": 20,
+            "unit": "м3",
+            "quote": "16.2.01.02-0001 Земля растительная; м3: 5",
+            "status": "extracted_native_geometric_row_unreviewed",
+            "quantity": "5",
+            "source_id": "n13:resources:20",
+            "raw_quantity": "5",
+            "pdf_source_id": "pdf-2cbfd601c065a17285cf0c64",
+            "quantity_kind": "numeric",
+            "resource_code": "16.2.01.02-0001"
+          }
+        ],
+        "norm_measure": "100 м2",
+        "norm_source_id": "n13"
+      },
+      {
+        "result": {
+          "source_id": "n2",
+          "full_length": 386
+        },
+        "request": {
+          "page": 1,
+          "tool": "read_source",
+          "unit": "",
+          "query": "",
+          "offset": 0,
+          "row_ids": [],
+          "table_id": "",
+          "source_id": "n2",
+          "column_ids": [],
+          "operand_ids": []
+        }
+      },
+      {
+        "result": {
+          "source_id": "n2:resources:20",
+          "full_length": 323
+        },
+        "request": {
+          "page": 1,
+          "tool": "read_source",
+          "unit": "",
+          "query": "",
+          "offset": 0,
+          "row_ids": [],
+          "table_id": "",
+          "source_id": "n2:resources:20",
+          "column_ids": [],
+          "operand_ids": []
+        }
+      },
+      {
+        "result": {
+          "source_id": "n13",
+          "full_length": 273
+        },
+        "request": {
+          "page": 1,
+          "tool": "read_source",
+          "unit": "",
+          "query": "",
+          "offset": 0,
+          "row_ids": [],
+          "table_id": "",
+          "source_id": "n13",
+          "column_ids": [],
+          "operand_ids": []
+        }
+      },
+      {
+        "result": {
+          "rows": [
+            {
+              "row": 12,
+              "bbox": [
+                393.6000061035156,
+                491.0400085449219,
+                611.4000244140625,
+                510.0
+              ],
+              "text": "1931",
+              "column": 2,
+              "cell_id": "ruled-66419802ab03cdd7:cell45",
+              "quality": "usable",
+              "source_id": "agent:p91:cell:152ed67c6ccaaf5ef2e6f862",
+              "header_ids": [
+                "ruled-66419802ab03cdd7:cell1",
+                "ruled-66419802ab03cdd7:cell4",
+                "ruled-66419802ab03cdd7:cell5"
+              ],
+              "numeric_verified": true
+            }
+          ],
+          "cells": [
+            {
+              "source_id": "agent:p91:cell:152ed67c6ccaaf5ef2e6f862"
+            }
+          ],
+          "columns": [
+            {
+              "column": 0,
+              "headers": [
+                "ПК+"
+              ]
+            },
+            {
+              "column": 1,
+              "headers": [
+                "Расстояние, м"
+              ]
+            },
+            {
+              "column": 2,
+              "headers": [
+                "Газон",
+                "Слой почвенно-растительный,\nM{²(20cM)"
+              ]
+            },
+            {
+              "column": 3,
+              "headers": [
+                "Газон",
+                "Слой почвенно-\nрастительный, м³ (20см)"
+              ]
+            }
+          ],
+          "row_count": 13,
+          "next_offset": 4,
+          "matching_rows": []
+        },
+        "request": {
+          "page": 91,
+          "tool": "read_table",
+          "unit": "",
+          "query": "",
+          "offset": 0,
+          "row_ids": [
+            12
+          ],
+          "table_id": "ruled-66419802ab03cdd7",
+          "source_id": "",
+          "column_ids": [
+            2
+          ],
+          "operand_ids": []
+        }
+      },
+      {
+        "kind": "answer_validation",
+        "issues": [
+          "Аспект method:comment:equipment:1 имеет точное требование «Агрегат для травосеяния». Проверь именно его по ПД и нормативу, а не дополнительную марку машины или коэффициент дочерней строки. Неизвестный расход дочернего материала оставь отдельным related:*; неизвестная марка не заменяет проверку указанной функции/класса. Если само требование не подтверждается, сохрани needs_facts с причиной по этому требованию."
+        ]
+      },
+      {
+        "kind": "claim-parser-corrections-v1",
+        "added": [
+          {
+            "kind": "geometry",
+            "cells": [],
+            "label": "h = 0,20 м",
+            "claim_id": "geometry:name:thickness:1",
+            "required": true,
+            "predicate": "measurement",
+            "expected_text": "0,20 м",
+            "expected_unit": "",
+            "expected_value": "",
+            "property_label": "thickness"
+          },
+          {
+            "kind": "method",
+            "cells": [],
+            "label": "Агрегат для травосеяния",
+            "claim_id": "method:comment:equipment:1",
+            "required": true,
+            "predicate": "text",
+            "expected_text": "Агрегат для травосеяния",
+            "expected_unit": "",
+            "expected_value": "",
+            "property_label": ""
+          }
+        ],
+        "inputs": {
+          "comment": "Агрегат для травосеяния СЗМ Ника-4. \nАвтоматизированная система расчёта программным продуктом  \"Indor CAD\".",
+          "formula": "1931",
+          "work_name": "Устройство газонов с планировкой площади, с внесением растительной земли h = 0,20 м и засевом смесью из многолетних трав (механизировано)",
+          "position_type": "Работа"
+        },
+        "retired": {
+          "geometry:name:area:1": "parser_area_captured_explicit_thickness",
+          "attribute:comment:condition": "parser_metadata_and_equipment_name"
+        },
+        "input_sha256": "108067969ef48ae9b85c306486332413c193d60bd160932d779f1acdeae3caca",
+        "position_key": "f90ec29bc829b8356d565112a9ba29cc698c189cfa3587b3fb1af3c776ae1ae5",
+        "original_items": []
+      },
+      {
+        "cell": "XFD1048576",
+        "kind": "workbook_arithmetic_proof_v1",
+        "unit": "м2",
+        "card_id": "calculation:45",
+        "expression": "1931",
+        "dependencies": [],
+        "declared_value": "1931.0",
+        "position_index": 45,
+        "cached_mismatch": false
+      },
+      {
+        "kind": "quantity_unit_bridge_v1",
+        "version": 1,
+        "item_fingerprint": "3c03307076879988c6dbcd8ff7bb85db635568d332c064a3a756bd26be3b03c1"
+      }
+    ],
+    "execution_state": "complete",
+    "pipeline_version": 4,
+    "related_positions": [
+      {
+        "row": 67,
+        "unit": "м3",
+        "work": "Растительная земля",
+        "index": 46,
+        "comment": "Расход 20м3/100м2",
+        "formula": "1931*20/100",
+        "quantity": "386.2"
+      },
+      {
+        "row": 68,
+        "unit": "кг",
+        "work": "Семена газонных трав (смесь)",
+        "index": 47,
+        "comment": "Расход 2кг/100м2",
+        "formula": "1931*2,0/100",
+        "quantity": "38.62"
+      },
+      {
+        "row": 69,
+        "unit": "м3",
+        "work": "Полив водой газонов, устроенных механизированным способом",
+        "index": 48,
+        "comment": "Расход воды-0,1м3/м2",
+        "formula": "1931*0,1",
+        "quantity": "193.10000000000002"
+      }
+    ],
+    "parameter_proposals": [
+      {
+        "unit": "м2",
+        "quote": "Устройство газонов. Улица | Газон | Слой почвенно-растительный,\nM{²(20cM)\nЕдиница физического столбца: м2\nВсего: | 807,68\n1931",
+        "value": "1931",
+        "operation": "direct",
+        "parameter": "quantity",
+        "source_id": "agent:p91:cell:152ed67c6ccaaf5ef2e6f862",
+        "conditions": [],
+        "scope_quote": "Устройство газонов. Улица | Газон | Слой почвенно-растительный,\nM{²(20cM)\nЕдиница физического столбца: м2\nВсего: | 807,68\n1931",
+        "scope_state": "verified",
+        "operand_source_ids": []
+      },
+      {
+        "unit": "м",
+        "quote": "толщиной 0, 20 м",
+        "value": "0.20",
+        "operation": "direct",
+        "parameter": "thickness",
+        "source_id": "agent:p39:0",
+        "conditions": [],
+        "scope_quote": "Наносится плодородный слой почвы толщиной 0, 20 м и сеются многолетние травы.",
+        "scope_state": "verified",
+        "operand_source_ids": []
+      },
+      {
+        "unit": "м2",
+        "quote": "Измеритель: 100 м2",
+        "value": "100",
+        "operation": "direct",
+        "parameter": "unit_scale",
+        "source_id": "n2",
+        "conditions": [],
+        "scope_quote": "Измеритель: 100 м2",
+        "scope_state": "verified",
+        "operand_source_ids": []
+      },
+      {
+        "unit": "поправка",
+        "quote": "На каждые 5 см изменения толщины слоя добавлять или исключать к нормам с 47-01-046-01 по 47-01-046-04",
+        "value": "1",
+        "operation": "direct",
+        "parameter": "coefficient",
+        "source_id": "n13",
+        "conditions": [
+          {
+            "unit": "см",
+            "quote": "слоем 15\nсм",
+            "value": "20",
+            "operator": "eq",
+            "parameter": "thickness"
+          }
+        ],
+        "scope_quote": "На каждые 5 см изменения толщины слоя добавлять или исключать к нормам с 47-01-046-01 по 47-01-046-04",
+        "scope_state": "verified",
+        "operand_source_ids": []
+      }
+    ]
+  }
+}

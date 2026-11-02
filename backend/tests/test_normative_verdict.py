@@ -19,6 +19,32 @@ def validation(items):
 SOURCE = dict(checks=[dict(claim_id='quantity', state='contradiction', required=True)])
 
 
+def test_saved_agent_state_agrees_with_guarded_row_verdict():
+    from normative_verdict import finalize_state
+    review=validation([item()])['review']
+    assert finalize_state(review,SOURCE,'same')['state']=='confirmed'
+    review['items'][0]['normative_source_ids']=[]
+    assert finalize_state(review,SOURCE,'same')['state']=='needs_facts'
+
+
+def test_absent_designation_is_not_a_proved_incompatibility():
+    weak=item('possible_mismatch',['attribute:grade'])
+    weak['explanation']='В ВОР марка А, в проекте марка Б. Обозначение А в ПД не найдено.'
+    checked=validation([item(),weak])
+    assert publish(report(),SOURCE,'same',checked,enabled=True)['Статус аудита']==REVIEW
+    weak['explanation']='Одно и то же свойство: проект требует класс Б; применён класс А, запрещённый приведённым нормативным пунктом.'
+    assert publish(report(),SOURCE,'same',checked,enabled=True)['Статус аудита']==FIX
+
+
+def test_model_handles_are_readable_but_literal_source_quotes_stay_immutable():
+    from normative_verdict import readable_review
+    raw=dict(summary='Сумма s0+s1',items=[],sources=[dict(id='canonical-left',kind='project',page=7,text='s0 literal'),
+        dict(id='canonical-right',kind='project',page=8,text='unchanged')])
+    result=readable_review(raw)
+    assert result['summary']=='Сумма ПД, стр. 7+ПД, стр. 8'
+    assert raw['summary']=='Сумма s0+s1' and result['sources'][0]['text']=='s0 literal'
+
+
 @pytest.mark.parametrize('stage', [None, 'pending', 'dispatched', 'running'])
 def test_matching_mismatch_is_not_published_before_normative_validation(stage):
     raw = report()
@@ -38,6 +64,16 @@ def test_requires_scoped_both_sided_evidence_and_complete_coverage():
     weak['normative_source_ids'] = []
     assert publish(report(), SOURCE, 'same', validation([weak]), enabled=True)['Статус аудита'] == REVIEW
     assert publish(report(), SOURCE, 'same', validation([item('possible_mismatch')]), enabled=True)['Статус аудита'] == FIX
+
+
+def test_quantity_may_use_pd_only_while_applicability_still_requires_normative_proof():
+    quantity=item(claims=['quantity'])
+    quantity['normative_source_ids']=[]
+    checked=validation([quantity,item(claims=['normative:applicability'])])
+    checked['review']['pipeline_version']=3
+    assert publish(report(),SOURCE,'same',checked,enabled=True)['Статус аудита']=='ОК'
+    checked['review']['items']=checked['review']['items'][:1]
+    assert publish(report(),SOURCE,'same',checked,enabled=True)['Статус аудита']==REVIEW
 
 
 def test_related_material_requires_parent_and_rate_not_just_matching_arithmetic():

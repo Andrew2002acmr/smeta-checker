@@ -822,7 +822,9 @@ class TextRankingTests(unittest.TestCase):
                 text = f"Расход {1}{space}974,71 л/с"
                 self.assertEqual(_numbers(text), {Decimal("1974.71")})
                 index = PageTextIndex(["Расход 974,71 л/с", text])
-                self.assertEqual(index.support_candidates("Расход", "1974.71", "л/с")[0], 1)
+                # Both quantities remain evidence. The expected VOR number
+                # must not choose which project value is retrieved first.
+                self.assertEqual(index.support_candidates("Расход", "1974.71", "л/с"), [0, 1])
                 quote_sources = _catalog({2: text})
                 sid = next(iter(quote_sources))
                 wire = claims(("presence", [sid]),

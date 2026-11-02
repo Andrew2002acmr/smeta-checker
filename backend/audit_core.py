@@ -676,9 +676,14 @@ class PageTextIndex:
         if qcomm:
             score += 4 * len(cinter) / len(qcomm)
         numbers = _numbers(text)
-        if numbers & _numbers(volume):
-            score += 1000 if prefer_volume else 4
-        if numbers.intersection(formula_numbers):
+        # Quantities are assertions to verify, never retrieval relevance.
+        # Otherwise a convenient number outranks the actual construction and
+        # differing project quantities disappear before the model sees them.
+        if prefer_volume and numbers:
+            score += 1000
+        if numbers.intersection(formula_numbers) and _TABLE_MARKERS.search(text):
+            # Formula operands are explicit input evidence, not the expected
+            # result; retain their surrounding quantity heading.
             score += 500
         if numbers and _TABLE_MARKERS.search(text):
             score += 5 if prefer_volume else 2
@@ -706,7 +711,6 @@ class PageTextIndex:
     def support_candidates(self, work_name, volume, unit, excluded=(), *, formula_numbers=()):
         """Find quantity-bearing pages for an already located work, not another location search."""
         query, excluded = _terms(work_name), set(excluded)
-        expected = _numbers(volume)
         ranked = []
         for idx, text in enumerate(self.texts):
             if idx in excluded:
@@ -720,13 +724,11 @@ class PageTextIndex:
                                 formula_numbers=formula_numbers, page_terms=self.terms[idx])
             if _TABLE_MARKERS.search(text):
                 score += 5
-            if numbers & expected:
-                score += 2
             if self.table_rows is not None and idx < len(self.table_rows):
                 for row in self.table_rows[idx]:
                     row_terms = _terms(row)
                     row_numbers = _numbers(row)
-                    if query & row_terms and expected & row_numbers:
+                    if query & row_terms and row_numbers:
                         score += 10
                         break
             if unit and (_terms(unit) & self.terms[idx]

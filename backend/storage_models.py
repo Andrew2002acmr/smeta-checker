@@ -295,3 +295,15 @@ class ReviewArtifact(Base):
     actor: Mapped[str] = mapped_column(String(256))
     fingerprint: Mapped[str] = mapped_column(String(64), unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AnalysisArtifact(Base):
+    """First-writer-wins content-addressed stage output, scoped to a project."""
+    __tablename__ = 'analysis_artifacts'
+    key: Mapped[str] = mapped_column(String(64),primary_key=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True),ForeignKey('projects.id',ondelete='CASCADE'),index=True)
+    stage: Mapped[str] = mapped_column(String(32))
+    identity: Mapped[dict[str,Any]] = mapped_column(JSONB)
+    payload: Mapped[dict[str,Any]] = mapped_column(JSONB)
+    sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),server_default=func.now())

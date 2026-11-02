@@ -1,0 +1,28 @@
+groups:
+  - name: smeta-local
+    rules:
+      - alert: SmetaApiDown
+        expr: up{job="api"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: "API не отвечает на сбор метрик"}
+      - alert: SmetaDatabaseDown
+        expr: pg_up == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: "Рабочая база PostgreSQL недоступна"}
+      - alert: SmetaRedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: "Redis недоступен"}
+      - alert: SmetaPositionNotUpdated
+        expr: smeta_stale_jobs_count > 0
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: "В активной проверке есть задачи без обновления более 10 минут"}
+      - alert: SmetaApiErrors
+        expr: sum(rate(smeta_http_requests_total{status=~"5.."}[5m])) > 0.1
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "Повторяющиеся ошибки 5xx в API"}

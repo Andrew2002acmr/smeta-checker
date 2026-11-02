@@ -1,0 +1,76 @@
+"""Locate symmetric grand-total columns without searching for a VOR quantity.
+
+These are evidence candidates, never an engineering verdict. OCR confidence,
+units, material and construction scope must still pass the normal validators.
+"""
+import re
+import unicodedata
+from collections import defaultdict
+from decimal import Decimal
+
+from normative_parameters import number, unit_quoted, material_fractions
+from normative_retrieval import terms
+from pdf_cell_ocr import column_unit
+
+
+def grouped_totals(table, query, *, unit='', height_cm=None, include_single=False):
+    cells = table['cells']
+    headers = {c['cell_id']: c for c in cells if c.get('role') == 'header'}
+    totals = [c['row'] for c in cells if c['text'].strip().casefold().rstrip(':') == 'всего']
+    if not totals:
+        return []  # Do not add intermediate subtotals or adjacent page totals.
+    total_row = max(totals)
+    groups = defaultdict(list)
+    for cell in cells:
+        if cell['row'] != total_row or number(cell['text']) is None:
+            continue
+        ancestry = [headers[i] for i in cell.get('header_ids', []) if i in headers]
+        signature = []
+        for header in ancestry:
+            if header.get('colspan', 1) >= table['col_count']:
+                continue  # Drawing title and axis group are not column identity.
+            text = unicodedata.normalize('NFKC', header['text'].split('\nЕдиница по Tesseract:')[0]).casefold()
+            text = re.sub(r'\b(?:справа|слева|правый|левый)\b', '', text)
+            text = re.sub(r'\s+', ' ', text).strip()
+            if not re.search(r'[а-яa-z]{2,}|\bh\s*=', text):
+                continue  # Do not treat corrupt unit glyphs as material names.
+            # Keep the sub-column offset: area and volume can share one
+            # physical header, but must never be added to each other.
+            signature.append((text.replace('m', 'м'), cell['column']-header['column'], header.get('colspan', 1)))
+        if signature:
+            groups[tuple(signature)].append((cell, ancestry))
+    wanted = terms(query)
+    fractions = material_fractions(query)
+    output = []
+    for signature, members in groups.items():
+        if not (1 if include_single else 2) <= len(members) <= 12:
+            continue
+        text = ' | '.join(dict.fromkeys(h['text'] for _, ancestry in members for h in ancestry))
+        score = len(wanted & terms(text))
+        if not score:
+            continue
+        thicknesses = [Decimal(v.replace(',', '.'))*(100 if u in {'m','м'} else 1)
+            for v,u in re.findall(r'\bh\s*=\s*(\d+(?:[.,]\d+)?)\s*(см|[мm])\b', text, re.I)]
+        found_fractions = material_fractions(text)
+        if fractions and found_fractions and fractions.isdisjoint(found_fractions):
+            continue
+        if height_cm is not None and thicknesses and number(height_cm) not in thicknesses:
+            continue
+        known_units = [column_unit(table, c) for c,_ in members]
+        if unit and any(u and not unit_quoted(unit,u) for u in known_units):
+            continue
+        if height_cm is not None and number(height_cm) in thicknesses:
+            score += 10
+        if unit and any(unit_quoted(unit, ' '.join(h['text'] for h in ancestry)) for _,ancestry in members):
+            score += 2
+        values = [number(c['text']) for c,_ in members]
+        output.append(dict(score=score, row=total_row, columns=[c['column'] for c,_ in members],
+            cell_ids=[c['cell_id'] for c,_ in members],
+            operation='direct' if len(members) == 1 else 'sum',
+            values=[c['text'] for c,_ in members],
+            calculated_sum=str(sum((v for v in values if v is not None), Decimal(0))),
+            headers=list(dict.fromkeys(s[0] for s in signature)),
+            numeric_verified=all(c.get('numeric_verified') for c,_ in members),
+            unit_verified=bool(unit) and all(u and unit_quoted(unit,u) for u in known_units),
+            scope_verified=False))
+    return sorted(output, key=lambda c: -c['score'])

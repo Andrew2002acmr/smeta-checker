@@ -14,13 +14,15 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from functools import lru_cache
 import logging
+import os
 import sys
+from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
 
 _logger = logging.getLogger(__name__)
 _client = ContextVar("audit_langfuse_client", default=None)
-_position = ContextVar("audit_langfuse_position", default=None)
+_position: ContextVar["PositionTrace | None"] = ContextVar("audit_langfuse_position", default=None)
 _redact = ContextVar("audit_langfuse_redact_pdf", default=False)
 _mask = ContextVar("audit_langfuse_mask_prompts", default=False)
 _redact_pdf_names: frozenset[str] = frozenset({
@@ -320,7 +322,15 @@ class PositionTrace:
     def url(self):
         if self.trace_id is not None:
             try:
-                return self.run.client.get_trace_url(trace_id=self.trace_id)
+                url = self.run.client.get_trace_url(trace_id=self.trace_id)
+                # Docker's service hostname is not reachable in the user's browser.
+                public = urlsplit(os.environ.get('LANGFUSE_PUBLIC_URL', ''))
+                if public.scheme in {'http', 'https'} and public.netloc:
+                    internal = urlsplit(url)
+                    return urlunsplit((public.scheme, public.netloc,
+                                       public.path.rstrip('/') + internal.path,
+                                       internal.query, internal.fragment))
+                return url
             except Exception:
                 _logger.warning("Langfuse trace link unavailable", exc_info=True)
         return None

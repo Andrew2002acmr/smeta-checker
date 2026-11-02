@@ -1467,6 +1467,11 @@
             "title": "Label",
             "type": "string"
           },
+          "numeric_verified": {
+            "default": false,
+            "title": "Numeric Verified",
+            "type": "boolean"
+          },
           "origin": {
             "title": "Origin",
             "type": "string"
@@ -1474,6 +1479,17 @@
           "page": {
             "title": "Page",
             "type": "integer"
+          },
+          "rects": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "maxItems": 40,
+            "title": "Rects",
+            "type": "array"
           },
           "source_id": {
             "anyOf": [
@@ -1489,6 +1505,16 @@
           "text": {
             "title": "Text",
             "type": "string"
+          },
+          "unit": {
+            "default": "",
+            "title": "Unit",
+            "type": "string"
+          },
+          "unit_verified": {
+            "default": false,
+            "title": "Unit Verified",
+            "type": "boolean"
           },
           "version_id": {
             "anyOf": [
@@ -1617,6 +1643,15 @@
             "default": 0,
             "title": "Requests",
             "type": "integer"
+          },
+          "responses": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "maxItems": 3,
+            "title": "Responses",
+            "type": "array"
           },
           "trace_id": {
             "anyOf": [
@@ -2156,6 +2191,23 @@
             "title": "Conditions",
             "type": "array"
           },
+          "operand_source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Operand Source Ids",
+            "type": "array"
+          },
+          "operation": {
+            "default": "direct",
+            "enum": [
+              "direct",
+              "sum"
+            ],
+            "title": "Operation",
+            "type": "string"
+          },
           "parameter": {
             "enum": [
               "quantity",
@@ -2167,11 +2219,28 @@
             "type": "string"
           },
           "quote": {
+            "default": "",
             "maxLength": 900,
             "title": "Quote",
             "type": "string"
           },
+          "scope_quote": {
+            "default": "",
+            "maxLength": 900,
+            "title": "Scope Quote",
+            "type": "string"
+          },
+          "scope_state": {
+            "default": "unresolved",
+            "enum": [
+              "verified",
+              "unresolved"
+            ],
+            "title": "Scope State",
+            "type": "string"
+          },
           "source_id": {
+            "default": "",
             "maxLength": 80,
             "title": "Source Id",
             "type": "string"
@@ -2190,9 +2259,7 @@
         "required": [
           "parameter",
           "value",
-          "unit",
-          "source_id",
-          "quote"
+          "unit"
         ],
         "title": "NormativeParameterProposal",
         "type": "object"
@@ -2200,6 +2267,28 @@
       "NormativePositionCheck": {
         "additionalProperties": false,
         "properties": {
+          "coverage": {
+            "additionalProperties": true,
+            "title": "Coverage",
+            "type": "object"
+          },
+          "evidence_trace": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Evidence Trace",
+            "type": "array"
+          },
+          "execution_state": {
+            "default": "complete",
+            "enum": [
+              "complete",
+              "technical_failure"
+            ],
+            "title": "Execution State",
+            "type": "string"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/NormativePositionCheckItem"
@@ -2244,6 +2333,11 @@
           "parameter_schema_version": {
             "default": 0,
             "title": "Parameter Schema Version",
+            "type": "integer"
+          },
+          "pipeline_version": {
+            "default": 1,
+            "title": "Pipeline Version",
             "type": "integer"
           },
           "quantity_composition": {

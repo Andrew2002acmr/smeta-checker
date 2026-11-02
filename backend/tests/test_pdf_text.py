@@ -651,7 +651,7 @@ class CacheTests(FakeSourceTests):
             self.assertEqual(second.extraction_misses, 3)
             self.assertEqual(second.native_index.texts, first.native_index.texts)
 
-    def test_failed_markdown_is_explicit_and_not_cached(self):
+    def test_failed_markdown_retains_native_text_and_cached_failure_for_ocr(self):
         natives = [("Кабель медный в смете. " * 20), ("Насосная станция. " * 20)]
         doc, _ = make_doc(natives)
         with TemporaryDirectory() as cache:
@@ -665,11 +665,15 @@ class CacheTests(FakeSourceTests):
             with patch("pdf_text.pymupdf4llm.to_markdown",
                        side_effect=failing_markdown):
                 source = PDFTextSource(doc, cache_dir=cache)
-            self.assertEqual(source.native_index.texts[1], "")
+            self.assertTrue(source.native_index.texts[1])
             self.assertIn(1, source.native_index.errors)
             self.assertEqual(source.extraction_misses, 2)
             envelopes = {path.name for path in Path(cache).rglob("page-*.json")}
-            self.assertEqual(envelopes, {"page-00000.json"})
+            self.assertEqual(envelopes, {"page-00000.json", "page-00001.json"})
+            with patch('pdf_text.pymupdf4llm.to_markdown', side_effect=AssertionError('repeated native pass')):
+                resumed = PDFTextSource(doc, cache_dir=cache)
+            self.assertIn(1, resumed.native_index.errors)
+            self.assertIn(1, resumed.pending_ocr)
 
     def test_cached_table_rows_reused_across_source_instances(self):
         natives = [("Кабель медный в смете. " * 20),

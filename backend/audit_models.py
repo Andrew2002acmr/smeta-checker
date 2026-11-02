@@ -855,6 +855,14 @@ class AuditSettings(BaseModel):
             file_values=file_values,
             secrets=secrets,
         )
+        router_key = get_setting('ROUTERAI_API_KEY', '', file_values=file_values, secrets=secrets)
+        router_model = get_setting('ROUTERAI_MODEL', '', file_values=file_values, secrets=secrets)
+        if router_key or router_model:
+            # Select one complete provider namespace; never send an AnyModel
+            # key/model to RouterAI or silently fall back after partial setup.
+            llm_api_key, llm_model = router_key, router_model
+            llm_base_url = get_setting('ROUTERAI_BASE_URL', 'https://routerai.ru/api/v1',
+                file_values=file_values, secrets=secrets)
         # Trust the host of the explicitly selected backend: AnyModel keys
         # route traffic there, so requiring a second manual allowlist entry
         # only produces a dead audit. Users who set neither key stay on the
@@ -996,13 +1004,14 @@ class AuditSettings(BaseModel):
     def llm_credentials(self) -> LlmCredentials:
         """Pick Yandex or a chat gateway; explicit keys beat implicit defaults.
 
-        AnyModel keys (``ANYMODEL_*``/``AUDIT_LLM_*``) select the chat backend
+        RouterAI or AnyModel keys select the chat backend
         with the raw catalog id. Otherwise Yandex keeps the historical
         ``gpt://folder/model`` shape.
         """
-        if self.llm_api_key.strip() and self.llm_model.strip():
+        router = (urlparse(self.llm_base_url).hostname or '').lower() == 'routerai.ru'
+        if router or (self.llm_api_key.strip() and self.llm_model.strip()):
             return LlmCredentials(
-                api_key=self.llm_api_key.strip(),
+                api_key=self.llm_api_key.strip() if self.llm_model.strip() else '',
                 folder="",
                 model_name=self.llm_model.strip(),
                 base_url=self.llm_base_url.strip()
@@ -1026,4 +1035,6 @@ class AuditSettings(BaseModel):
             host = ""
         if host == "anymodel.org":
             return "AnyModel (chat)"
+        if host == 'routerai.ru':
+            return 'RouterAI (chat)'
         return f"{host or base_url} (chat)"

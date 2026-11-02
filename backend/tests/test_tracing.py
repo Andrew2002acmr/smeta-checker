@@ -9,12 +9,22 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from audit_tracing import STAGE_DESCRIPTIONS, span
+from audit_tracing import STAGE_DESCRIPTIONS, PositionTrace, span
 from audit_core import INCOMPLETE, TECHNICAL_ERROR, result_level
 import test_audit
 
 
 class TracingIsolationTests(unittest.TestCase):
+    def test_local_trace_link_uses_public_browser_origin(self):
+        trace = object.__new__(PositionTrace)
+        trace.trace_id = 'trace-test'
+        trace.run = SimpleNamespace(client=SimpleNamespace(
+            get_trace_url=lambda **_: 'http://langfuse-web:3000/project/p/traces/t?view=details'))
+        with patch.dict('os.environ', {'LANGFUSE_PUBLIC_URL': 'http://localhost:3002'}):
+            self.assertEqual(trace.url(), 'http://localhost:3002/project/p/traces/t?view=details')
+        with patch.dict('os.environ', {'LANGFUSE_PUBLIC_URL': ''}):
+            self.assertEqual(trace.url(), 'http://langfuse-web:3000/project/p/traces/t?view=details')
+
     def test_broken_exporter_does_not_turn_verified_work_into_failure(self):
         class BrokenClient:
             def start_as_current_observation(self, **kwargs):

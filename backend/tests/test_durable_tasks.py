@@ -62,7 +62,7 @@ def enqueue(p):
 def test_soft_timeout_checkpoints_and_resumes_on_another_worker(pipeline):
     p = pipeline
     with patch(
-        "pdf_text.PDFTextSource.for_position", side_effect=SoftTimeLimitExceeded()
+        "pdf_text.PDFTextSource.prepare_page", side_effect=SoftTimeLimitExceeded()
     ):
         with pytest.raises(SoftTimeLimitExceeded):
             prepare(p, slice_seconds=120, durable=True)

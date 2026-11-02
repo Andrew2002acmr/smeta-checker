@@ -13,6 +13,7 @@ and tests call the ``*_run`` functions directly with injected fakes.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import os
 import sys
 import time
@@ -31,7 +32,7 @@ if _APP_ROOT not in sys.path:
 
 from audit_core import build_claim_specs, technical_error
 from audit_llm import audit_position_hybrid
-from audit_models import AuditSettings, VorPosition, expected_scope_hint, position_source_dict, serialize_position_result
+from audit_models import AuditSettings, VorPosition, position_source_dict, serialize_position_result
 from audit_observability import RunMetrics, bind, estimate_cost, get_logger, reset
 from metrics import AUDIT_RUNS_TOTAL
 from sentry_setup import init_sentry
@@ -41,7 +42,7 @@ from audit_service import (
     traced_worker_check_row,
     worker_check_row,
 )
-from audit_snapshot import load_snapshot, store_snapshot
+from audit_snapshot import load_snapshot
 from audit_tracing import TracingRun
 from pdf_binding import resolve_position_pdfs
 from storage_blobs import BlobStore, open_blob_store
@@ -79,9 +80,13 @@ class TaskContext:
 def celery_app(settings: AuditSettings):  # type: ignore[no-untyped-def]
     """Build the Celery app; broker required, Redis recommended."""
     from celery import Celery
+    from sqlalchemy.orm import configure_mappers
 
     if not settings.broker_url:
         raise RuntimeError("CELERY_BROKER_URL is required for background workers")
+    # Configure in the parent BEFORE prefork/task timers. Interrupting lazy
+    # mapper initialization with SoftTimeLimitExceeded poisons that child.
+    configure_mappers()
     app = Celery("smeta-checker", broker=settings.broker_url)
     app.conf.update(
         task_routes=dict(DEFAULT_TASK_ROUTES),
@@ -219,7 +224,7 @@ def prepare_run(
     project: str,
     vor_filename: str,
     vor_bytes: bytes,
-    pdf_files: dict[str, bytes],
+    pdf_files: Mapping[str, bytes],
     pdf_versions: dict[str, Any],
     worker: str,
     dispatch: Callable[[str, dict[str, Any]], None] | None = None,
@@ -227,17 +232,13 @@ def prepare_run(
     slice_seconds: float | None = None,
     durable: bool = False,
 ) -> dict[str, Any]:
-    """CPU stage: bind PDFs, pre-warm one OCR allowance, queue LLM jobs.
+    """Fully prepare every selected document, then queue position checks.
 
-    Runs on the ``pdf`` queue. Opens each PDF once, builds one PDFTextSource
-    per document (closed on exit), and pre-warms ``for_position`` for every
-    bound position so LLM workers hit the persistent cache. One position
-    failure never aborts the rest: it is recorded as a technical payload and
-    finished ``done`` so finalize still merges it.
+    Page checkpoints and one shared frozen corpus per PDF survive retries.
+    No position is dispatched while any document still needs preparation.
     """
     import pymupdf
 
-    from pdf_text import PDFTextSource
     from vor_parse import load_vor_frame_positions
 
     started = time.monotonic()
@@ -261,8 +262,7 @@ def prepare_run(
         redact_pdf=context.settings.telemetry_redact_pdf,
         mask_prompts=context.settings.telemetry_mask_prompts,
     )
-    sources: dict[str, PDFTextSource] = {}
-    snapshot_pages: dict[str, Any] = {}
+
     queued: list[int] = []
     failed: list[int] = []
     try:
@@ -297,6 +297,12 @@ def prepare_run(
                  "position_source": position_source_dict(p)} for p in positions
             ])
             context.repository.update_run_config(run_id, {"vor_context": shared_ref})
+        from document_preparation import prepare_documents
+        prepared_documents = prepare_documents(context, run_id, pdf_files, pdf_versions,
+            checkpoint=checkpoint, cancelled=lambda: context.repository.run_status(run_id) != 'running',
+            tracing=trace_run)
+        if prepared_documents is None:
+            return {'run_id': str(run_id), 'cancelled': True}
         existing = {j.position_index: j for j in context.repository.list_position_jobs(run_id, include_results=False)}
         from vor_consistency import check_scheme_divisors
         scheme_notes: dict = {}
@@ -349,25 +355,8 @@ def prepare_run(
                     target_indices, loc_desc, primary_pages = (
                         get_optimized_page_indices(doc, position.page_ref)
                     )
-                    if pdf_name not in sources:
-                        def progress(done, total):
-                            context.repository.update_run_config(run_id, {
-                                "pdf_preparation": {"done": done, "total": total},
-                            })
-
-                        progress(0, len(doc))
-                        sources[pdf_name] = PDFTextSource(doc, progress=progress, checkpoint=checkpoint)
-                    # Frozen boundary: one prepared corpus per position, stored
-                    # content-addressed; the LLM worker restores it, never PDFs.
-                    text_index = sources[pdf_name].for_position(
-                        target_indices,
-                        position.work_name,
-                        position.volume,
-                        position.reference,
-                        position.comment,
-                        expected_scope=expected_scope_hint(position.position_source),
-                    )
-                    snapshot_ref = store_snapshot(context.blob_store, text_index, page_cache=snapshot_pages)
+                    # Every position uses the SAME completed document snapshot.
+                    snapshot_ref = prepared_documents[pdf_name]
                 payload = _task_payload(
                     position,
                     pdf_name,
@@ -389,6 +378,7 @@ def prepare_run(
                         },
                         "snapshot": dict(snapshot_ref),
                         "corpus_id": snapshot_ref.get("corpus_id", ""),
+                        "document_preparation_version": 1,
                     }
                 )
                 context.repository.requeue_position_job(
@@ -450,11 +440,6 @@ def prepare_run(
         logger.info("preparation checkpoint", extra={"prepared": len(queued) + len(failed)})
         return {"run_id": str(run_id), "continue": True}
     finally:
-        for source in sources.values():
-            try:
-                source.close()
-            except Exception:
-                pass
         for doc in pool.values():
             try:
                 if not doc.is_closed:
@@ -527,6 +512,14 @@ def audit_position(
         pass
     stored: dict[str, Any] | None = None
     try:
+        from analysis_replay import replay_matching,store_matching,enabled as replay_enabled
+        replay_record=context.repository.load_run(run_id,include_results=False) if replay_enabled(context) else None
+        cached=replay_matching(context,replay_record,job.payload) if replay_record else None
+        if cached is not None:
+            context.repository.save_position_result(run_id,position_index,cached)
+            context.repository.finish_position_job(run_id,position_index,'done',result=cached)
+            _maybe_chain_finalize(context,run_id,dispatch=dispatch,request_id=resolved_request)
+            return {'position_index':position_index,'duplicate':False,'reused':True}
         payload = job.payload
         if payload.get("vor_context"):
             from audit_snapshot import load_json
@@ -583,6 +576,10 @@ def audit_position(
             try:
                 text_index = load_snapshot(
                     context.blob_store, dict(payload.get("snapshot") or {}))
+                if payload.get('document_preparation_version') and (
+                    text_index.pending_ocr or not text_index.metadata.get('preparation_complete')
+                ):
+                    raise ValueError('Полная подготовка ПД ещё не завершена')
             except (ValueError, FileNotFoundError) as exc:
                 prep_error = str(exc)
                 task = _build_task_dict(
@@ -754,6 +751,8 @@ def audit_position(
             settings=context.settings,
         )
         stored["corpus_id"] = payload.get("corpus_id", "")
+        if replay_record:
+            stored=store_matching(context,replay_record,job.payload,stored)
         context.repository.save_position_result(run_id, position_index, stored)
         context.repository.finish_position_job(
             run_id, position_index, "done", result=stored
@@ -1197,7 +1196,9 @@ def register_tasks(app):  # type: ignore[no-untyped-def]
                 pdf_versions=_load_run_pdf_versions(context, UUID(str(run_id))),
                 worker=self.request.hostname or "pdf-worker", dispatch=context.repository.enqueue_task,
                 request_id=str(request_id or ""), durable=True,
-                slice_seconds=max(1, min(120, context.settings.task_soft_time_limit - 60)),
+                # A dense engineering page can take >90 s. Yield between
+                # pages early enough to leave it room under the soft limit.
+                slice_seconds=max(1, min(60, context.settings.task_soft_time_limit - 150)),
             )
         return execute(context, run_id, delivery_id, delivery_token, operation, "audit_tasks.prepare_run", {
             "run_id": str(run_id), "project": project, "vor_filename": vor_filename,

@@ -1,0 +1,231 @@
+# Standalone local stack. See docs/LOCAL_TELEMETRY.md. Secrets: .env.local only.
+name: smeta-telemetry
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+x-service: &service
+  restart: unless-stopped
+  logging: *logging
+x-langfuse-env: &langfuse-env
+  NEXTAUTH_URL: http://localhost:3002
+  DATABASE_URL: postgresql://langfuse:${TELEMETRY_DB_PASSWORD:?required}@langfuse-postgres:5432/langfuse
+  SALT: ${TELEMETRY_SALT:?required}
+  ENCRYPTION_KEY: ${TELEMETRY_ENCRYPTION_KEY:?required}
+  TELEMETRY_ENABLED: "false"
+  CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+  CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+  CLICKHOUSE_USER: langfuse
+  CLICKHOUSE_PASSWORD: ${TELEMETRY_CH_PASSWORD:?required}
+  CLICKHOUSE_CLUSTER_ENABLED: "false"
+  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+  LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: langfuse
+  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${TELEMETRY_S3_PASSWORD:?required}
+  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+  LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+  LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+  LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+  LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: langfuse
+  LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${TELEMETRY_S3_PASSWORD:?required}
+  LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+  LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+  REDIS_HOST: langfuse-redis
+  REDIS_PORT: "6379"
+  REDIS_AUTH: ${TELEMETRY_REDIS_PASSWORD:?required}
+  LANGFUSE_IN_APP_AGENT_ENABLED: "false"
+x-langfuse-deps: &langfuse-deps
+  langfuse-postgres:
+    condition: service_healthy
+  langfuse-redis:
+    condition: service_healthy
+  langfuse-clickhouse:
+    condition: service_healthy
+  langfuse-minio:
+    condition: service_healthy
+services:
+  prometheus:
+    <<: *service
+    image: prom/prometheus:v2.55.1@sha256:2659f4c2ebb718e7695cb9b25ffa7d6be64db013daba13e05c875451cf51b0d3
+    user: "0"
+    mem_limit: 384m
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus", "--storage.tsdb.retention.time=15d", "--storage.tsdb.retention.size=2GB"]
+    volumes:
+      - ./monitoring/local/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/local/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ${TELEMETRY_DATA_ROOT:?required}/prometheus:/prometheus
+    ports: ["127.0.0.1:9090:9090"]
+  loki:
+    <<: *service
+    image: grafana/loki:3.2.0@sha256:882e30c20683a48a8b7ca123e6c19988980b4bd13d2ff221dfcbef0fdc631694
+    user: "0"
+    mem_limit: 512m
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ./monitoring/local/loki.yml:/etc/loki/config.yaml:ro
+      - ${TELEMETRY_DATA_ROOT}/loki:/loki
+    ports: ["127.0.0.1:3100:3100"]
+  alloy:
+    <<: *service
+    image: grafana/alloy:v1.21.2@sha256:89a5a320168387336b9ac3c850609c3ba7757eadd4ae5f1d819deb35e9854b18
+    user: "0"
+    mem_limit: 256m
+    command: ["run", "--disable-reporting", "--storage.path=/var/lib/alloy", "/etc/alloy/config.alloy"]
+    volumes:
+      - ./monitoring/local/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${TELEMETRY_DATA_ROOT}/alloy:/var/lib/alloy
+  grafana:
+    <<: *service
+    image: grafana/grafana:11.2.0@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
+    user: "0"
+    mem_limit: 384m
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?required}
+      GF_SERVER_ROOT_URL: http://localhost:3001
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+    volumes:
+      - ${TELEMETRY_DATA_ROOT}/grafana:/var/lib/grafana
+      - ./monitoring/local/datasources.yml:/etc/grafana/provisioning/datasources/local.yml:ro
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/local/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["127.0.0.1:3001:3000"]
+  postgres-exporter:
+    <<: *service
+    image: prometheuscommunity/postgres-exporter:v0.15.0@sha256:386b12d19eab2a37d7cd8ca8b4c7491cc7a830d9581f49af6c98a393da9605e6
+    mem_limit: 96m
+    environment:
+      DATA_SOURCE_NAME: postgresql://smeta_monitor:${TELEMETRY_MONITOR_PASSWORD:?required}@db:5432/${POSTGRES_DB:-smeta}?sslmode=disable
+      PG_EXPORTER_EXTEND_QUERY_PATH: /etc/postgres-exporter/queries.yml
+    volumes:
+      - ./monitoring/local/postgres-queries.yml:/etc/postgres-exporter/queries.yml:ro
+  redis-exporter:
+    <<: *service
+    image: oliver006/redis_exporter:v1.62.0@sha256:c5a968ba5f30bab5e12181cceb89c4ed37cb4fe4d85490b5b66c7cfe4750b5e8
+    mem_limit: 64m
+    environment:
+      REDIS_ADDR: redis://redis:6379
+  langfuse-postgres:
+    <<: *service
+    image: postgres:17-alpine@sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b
+    mem_limit: 256m
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_DB: langfuse
+      POSTGRES_PASSWORD: ${TELEMETRY_DB_PASSWORD:?required}
+    volumes:
+      - ${TELEMETRY_DATA_ROOT}/langfuse-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 180s
+  langfuse-clickhouse:
+    <<: *service
+    image: clickhouse/clickhouse-server:25.12@sha256:8a790dd3468db22b1d4e7b18a176f378ff5ff6053b9c48dd4ea1fa71a24c5ba6
+    mem_limit: 1536m
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: langfuse
+      CLICKHOUSE_PASSWORD: ${TELEMETRY_CH_PASSWORD:?required}
+    volumes:
+      # Native Linux filesystem required for MergeTree atomic directory renames.
+      # Docker Desktop's VHD must reside on D (verified on this PC).
+      - clickhouse-data:/var/lib/clickhouse
+      - ${TELEMETRY_DATA_ROOT}/langfuse-clickhouse-logs:/var/log/clickhouse-server
+      - ./monitoring/local/clickhouse.xml:/etc/clickhouse-server/config.d/local.xml:ro
+    ulimits:
+      nofile: {soft: 262144, hard: 262144}
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 60s
+  langfuse-redis:
+    <<: *service
+    image: redis:7-alpine@sha256:8da19c7399dca900c6822a1cf30f9d2285585e2c4b457ff4095b0f4500054d3f
+    mem_limit: 160m
+    environment:
+      REDIS_PASSWORD: ${TELEMETRY_REDIS_PASSWORD:?required}
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes --maxmemory 96mb --maxmemory-policy noeviction"]
+    volumes:
+      - ${TELEMETRY_DATA_ROOT}/langfuse-redis:/data
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  langfuse-minio:
+    <<: *service
+    # S3-compatible local storage; MinIO's public registries are unavailable.
+    image: rustfs/rustfs:latest@sha256:ed9210d6411d77ffceb70d94b964a3cb7d225983368bc25bebe01e995293dcc2
+    user: "0"
+    mem_limit: 256m
+    command: ["/data"]
+    environment:
+      RUSTFS_ACCESS_KEY: langfuse
+      RUSTFS_SECRET_KEY: ${TELEMETRY_S3_PASSWORD:?required}
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ENABLE: "false"
+      RUSTFS_OBS_LOGGER_LEVEL: warn
+    volumes:
+      - ${TELEMETRY_DATA_ROOT}/langfuse-minio:/data
+    ports: ["127.0.0.1:9092:9000"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  langfuse-worker:
+    <<: *service
+    image: docker.langfuse.com/langfuse/langfuse-worker:4@sha256:aa1724b989a00f1e4ca9930709202489c73deaaf2f1116bbd3d71c77edb8fedb
+    mem_limit: 1024m
+    environment: *langfuse-env
+    depends_on:
+      <<: *langfuse-deps
+      langfuse-web:
+        condition: service_healthy
+  langfuse-web:
+    <<: *service
+    image: docker.langfuse.com/langfuse/langfuse:4@sha256:c311fd9db4b69f6514fdcb1b86a2a105d5a4ed51fbf0ded033ff2722459c804a
+    mem_limit: 1536m
+    ports: ["127.0.0.1:3002:3000"]
+    depends_on: *langfuse-deps
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/public/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 600s
+    environment:
+      <<: *langfuse-env
+      HOSTNAME: "0.0.0.0"
+      NEXTAUTH_SECRET: ${TELEMETRY_AUTH_SECRET:?required}
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://localhost:9092
+      LANGFUSE_S3_MEDIA_UPLOAD_INTERNAL_ENDPOINT: http://langfuse-minio:9000
+      LANGFUSE_INIT_ORG_ID: smeta-local
+      LANGFUSE_INIT_ORG_NAME: Smeta Local
+      LANGFUSE_INIT_PROJECT_ID: smeta-checker
+      LANGFUSE_INIT_PROJECT_NAME: VOR checks
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:?required}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY:?required}
+      LANGFUSE_INIT_USER_EMAIL: ${TELEMETRY_ADMIN_EMAIL:?required}
+      LANGFUSE_INIT_USER_NAME: Engineer
+      LANGFUSE_INIT_USER_PASSWORD: ${TELEMETRY_ADMIN_PASSWORD:?required}
+      AUTH_DISABLE_SIGNUP: "true"
+networks:
+  default:
+    external: true
+    name: smeta-checker-local_default
+volumes:
+  clickhouse-data:
+    name: smeta-telemetry-clickhouse-data
