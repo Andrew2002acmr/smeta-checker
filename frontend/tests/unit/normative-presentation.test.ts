@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { NormativeCheckSource, NormativeParameterCard } from '../../app/generated/types.gen'
 import {
   cardExplanation,
+  cardTitle,
   cardValue,
   compactText,
   formulaPreview,
@@ -79,4 +80,16 @@ describe('compact normative chain', () => {
     copy[0]![0] = 0
     expect(rects[0]![0]).toBe(0.2)
   })
+})
+
+it('shows typed rate and conversion roles without asking for them as PDF quantities', () => {
+  for (const label of [
+    'Расход из примечания ВОР',
+    'Перевод кг в тонны',
+    'Исходная площадь расчёта',
+  ]) {
+    const c = card({ id: 'factor:7:0.4', label, reason: 'Расход уже указан в примечании ВОР.' })
+    expect(cardTitle(c)).toBe(label)
+    expect(cardExplanation(c)).toContain('примечании ВОР')
+  }
 })

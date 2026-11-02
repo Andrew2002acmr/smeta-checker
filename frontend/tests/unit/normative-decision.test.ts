@@ -66,3 +66,17 @@ describe('engineer decision', () => {
     expect(issue.detail).toContain('сумму толщин')
   })
 })
+
+it('requests the real missing input for typed workbook operands', () => {
+  const r = result()
+  Object.assign(r.parameter_cards![0]!, {
+    id: 'factor:7:1000',
+    label: 'Перевод литров и масса',
+    role: 'calculation',
+    reason: 'Для получения тонн нужна плотность эмульсии.',
+  })
+  const issue = normativeDecision(r).issues[0]!
+  expect(issue.title).toBe('Перевод литров и масса')
+  expect(issue.detail).toContain('плотность')
+  expect(issue.detail).not.toContain('строку таблицы ПД')
+})

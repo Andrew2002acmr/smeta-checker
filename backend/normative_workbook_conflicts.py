@@ -126,9 +126,23 @@ def conflicts(position: VorPosition | None,position_key: str) -> list[dict[str,A
         actual_cell=actual_cell,display_cell=display_cell,actual_expression=calc['expression'],
         display_expression=position.formula,declared_value=position.volume,
         actual_value=format(actual[0],'f'),display_value=format(display[0],'f'),unit=position.unit)
+    def differences(left, right):
+        if left[0] == right[0] == 'number':
+            return [(str(left[1]), str(right[1]))] if left[1] != right[1] else []
+        if left[0] == right[0] and len(left) == len(right):
+            return [pair for a, b in zip(left[1:], right[1:], strict=True) for pair in differences(a, b)]
+        return []
+    inputs['different_operands'] = differences(actual[1], display[1])
     binding=hashlib.sha256(json.dumps(inputs,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
     message=(f'В самой ВОР расходятся формула количества {actual_cell} и поясняющий расчёт {display_cell}: '
         f"{inputs['actual_value']} и {inputs['display_value']} {position.unit}. "
         'Нужно согласовать исходные данные этих ячеек. Правильное количество по ПД этим сравнением не определяется.')
+    if inputs['different_operands']:
+        detail = '; '.join(f'{a} в {actual_cell}, {b} в {display_cell}' for a, b in inputs['different_operands'])
+        message = f'Разные исходные числа в расчёте ВОР: {detail}. ' + message
+    from normative_workbook_rate import analyze
+    rate = analyze(position)
+    if rate:
+        message += f" Расход {rate['rate']} {rate['rate_unit']} указан в примечании; замечание относится к различным исходным числам, а не к наличию расхода или делителя 1000."
     return [dict(kind=PROOF,claim_id=f'workbook:{display_cell}:display-operand-mismatch',
         input_sha256=binding,inputs=inputs,message=message)]

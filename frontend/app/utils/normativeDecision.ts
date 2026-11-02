@@ -3,7 +3,7 @@ import type {
   NormativeParameterCard,
   WorkspaceDto,
 } from '~/generated/types.gen'
-import { cardTitle, cardValue, compactText } from './normativePresentation'
+import { cardTitle, cardValue, compactText, workbookOperandCard } from './normativePresentation'
 import { firstSentence } from './presentation'
 
 export type DecisionRow = Pick<WorkspaceDto['row'], 'queue' | 'problem'>
@@ -35,7 +35,9 @@ export function normativeDecision(result: NormativePositionCheck, row?: Decision
     .map((card) => {
       let detail = '',
         action: 'basis' | 'norm' = 'basis'
-      if (card.state === 'possible_mismatch') {
+      if (workbookOperandCard(card)) {
+        detail = card.reason
+      } else if (card.state === 'possible_mismatch') {
         const comparison = cardValue({
           ...card,
           declared_value: card.compared_value || card.declared_value,

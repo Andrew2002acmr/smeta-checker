@@ -10,7 +10,7 @@ from normative_local_checks import layer_group
 from normative_source_roles import classification_source, MESSAGE as CLASSIFICATION_MESSAGE
 from vor_formula import calculate_cell
 
-PARAMETER_SCHEMA_VERSION = 8
+PARAMETER_SCHEMA_VERSION = 9
 
 
 def material_fractions(text):
@@ -560,6 +560,8 @@ def enrich(position, result, positions, relation):
         scale=scale_operand(work,owner,output,parts[2],expression,arithmetic_confirmed=arithmetic)
         if scale:
             card.update(scale)
+    from normative_workbook_rate import annotate as annotate_workbook_rate
+    annotate_workbook_rate(position, output, positions)
     if output.get('pipeline_version', 1) >= 3:
         changed = False
         for item in output.get('items', []):
