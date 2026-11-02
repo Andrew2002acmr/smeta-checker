@@ -16,6 +16,7 @@ import test_normative_integration as fixtures
 ROAD = Path(__file__).resolve().parents[3] / "knowledge-base/road-norms"
 
 
+@unittest.skipUnless((ROAD / "CURRENT.json").is_file(), "Requires external road normative release")
 def test_road_profile_is_separate_and_technical_clause_is_searchable():
     kb = Corpus(ROAD)
     hits = kb.search("27-04-003-06")
@@ -39,6 +40,7 @@ def test_excerpt_limits_keep_header_and_footer():
         assert result.startswith("HEADER") and result.endswith("FOOTER")
 
 
+@unittest.skipUnless((ROAD / "project-bindings.json").is_file(), "Requires external project bindings")
 def test_project_binding_is_explicit_and_does_not_change_other_projects():
     from normative_service import profile_for
     mapping = json.loads((ROAD / "project-bindings.json").read_text(encoding="utf-8"))
@@ -54,6 +56,7 @@ def test_unknown_source_cannot_confirm_a_check():
     assert result[0]["normative_source_ids"] == []
 
 
+@unittest.skipUnless((ROAD / "CURRENT.json").is_file() and (fixtures.ROOT / "CURRENT.json").is_file(), "Requires external road and electrical normative releases")
 class PositionCheckTests(unittest.TestCase):
     _open_app = fixtures.NormativeApiTests._open_app
     _upload = fixtures.NormativeApiTests._upload
