@@ -77,6 +77,7 @@ onMounted(async () => {
                 :type="showPassword ? 'text' : 'password'"
                 aria-label="Пароль"
                 autocomplete="current-password"
+                leading-icon="i-lucide-lock"
                 :disabled="busy"
                 required
                 class="w-full"

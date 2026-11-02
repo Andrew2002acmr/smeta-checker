@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "checklist-design": {
+      "source": "checklist-design/skills",
+      "sourceType": "github",
+      "skillPath": "skills/checklist-design/SKILL.md",
+      "computedHash": "6163c043294fd55dccc052d51db74494599dd8c191d282dfd6b3ea9ad4ccf450"
+    },
     "design-taste-frontend": {
       "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
