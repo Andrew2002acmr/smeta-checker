@@ -47,7 +47,11 @@ onMounted(async () => {
           <template v-else>
             <p v-if="error" class="error-box" role="alert">{{ error }}</p>
             <form v-if="mode" class="login-form" @submit.prevent="login">
-              <UFormField :label="corporate ? 'Корпоративная почта' : 'Логин'" name="login" required>
+              <UFormField
+                :label="corporate ? 'Корпоративная почта' : 'Логин'"
+                name="login"
+                required
+              >
                 <UInput
                   v-model="loginName"
                   name="username"

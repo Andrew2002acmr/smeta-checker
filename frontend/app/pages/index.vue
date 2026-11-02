@@ -528,7 +528,6 @@ onBeforeUnmount(() => {
               >
                 <span>ВОР {{ project.vorCount }}</span>
                 <span>ПД {{ project.pdfCount }}</span>
-                <span>Проверок: {{ project.runs }}</span>
               </div>
             </template>
             <div class="dashboard-card-body">
@@ -543,8 +542,7 @@ onBeforeUnmount(() => {
               </div>
               <div class="dashboard-result">
                 <template v-if="!project.lastRun">
-                  <p class="dashboard-muted">Проверок пока нет</p>
-                  <p class="dashboard-detail">Откройте проект для подготовки проверки</p>
+                  <p class="dashboard-muted">Ожидает документов</p>
                 </template>
                 <template v-else-if="project.lastRun.status === 'done'">
                   <div v-if="project.queues" class="dashboard-queues">
@@ -605,18 +603,20 @@ onBeforeUnmount(() => {
             <template #footer>
               <div class="dashboard-card-footer">
                 <UBadge
-                  :color="
-                    project.queues && Object.values(project.queues).some(Boolean)
-                      ? 'error'
-                      : 'neutral'
-                  "
+                  v-if="project.lastRun?.status === 'done' && project.queues"
+                  :color="Object.values(project.queues).some(Boolean) ? 'error' : 'success'"
                   variant="subtle"
                 >
                   {{
-                    project.queues && Object.values(project.queues).some(Boolean)
-                      ? 'Есть замечания'
-                      : 'Без замечаний'
+                    Object.values(project.queues).some(Boolean) ? 'Есть замечания' : 'Без замечаний'
                   }}
+                </UBadge>
+                <UBadge
+                  v-else-if="project.lastRun?.status === 'running'"
+                  color="neutral"
+                  variant="subtle"
+                >
+                  Проверка выполняется
                 </UBadge>
               </div>
             </template>
@@ -764,8 +764,23 @@ onBeforeUnmount(() => {
   text-decoration: underline;
   .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: 1fr;
     gap: 16px;
+  }
+  @media (min-width: 640px) {
+    .dashboard-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 1024px) {
+    .dashboard-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  @media (min-width: 1536px) {
+    .dashboard-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
   }
   .dashboard-card {
     cursor: pointer;
