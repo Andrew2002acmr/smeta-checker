@@ -42,25 +42,12 @@ onMounted(async () => {
     <main id="main-content" class="login-shell" tabindex="-1">
       <div class="login-center">
         <UCard class="login-card">
-          <div class="login-brand">
-            <img
-              src="/kdfp-logo-light.svg"
-              alt="КДФП"
-              class="login-logo"
-              width="120"
-              height="120"
-            />
-          </div>
           <h1 class="login-heading">Вход в систему</h1>
           <p v-if="checking" class="empty" role="status">Проверяем доступ…</p>
           <template v-else>
             <p v-if="error" class="error-box" role="alert">{{ error }}</p>
             <form v-if="mode" class="login-form" @submit.prevent="login">
-              <UFormField
-                :label="corporate ? 'Корпоративная почта' : 'Логин'"
-                name="login"
-                required
-              >
+              <UFormField :label="corporate ? 'Корпоративная почта' : 'Логин'" name="login" required>
                 <UInput
                   v-model="loginName"
                   name="username"
@@ -138,17 +125,6 @@ onMounted(async () => {
 .login-card {
   padding: 32px;
 }
-.login-brand {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 24px;
-}
-.login-logo {
-  width: 120px;
-  height: 120px;
-  border-radius: 12px;
-  flex-shrink: 0;
-}
 .login-heading {
   font-size: 20px;
   font-weight: 600;
@@ -167,10 +143,6 @@ onMounted(async () => {
 @media (max-width: 640px) {
   .login-card {
     padding: 24px;
-  }
-  .login-logo {
-    width: 96px;
-    height: 96px;
   }
   .login-center {
     max-width: 100%;
