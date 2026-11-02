@@ -445,7 +445,10 @@ onBeforeUnmount(() => {
           <p>По запросу «{{ query }}» нет проектов или ведомостей.</p>
           <UButton color="neutral" variant="outline" @click="query = ''">Сбросить поиск</UButton>
         </div>
-        <div v-else class="dashboard-grid">
+        <div
+          v-else
+          class="dashboard-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+        >
           <UPageCard
             v-for="project in filtered"
             :key="project.id"
@@ -538,7 +541,7 @@ onBeforeUnmount(() => {
                     {{ project.lastRun.vor_filename }}
                   </p>
                 </template>
-                <span v-else class="dashboard-muted" aria-label="Проверок ещё не было">-</span>
+                <p v-else class="dashboard-muted">Нет проверок</p>
               </div>
               <div class="dashboard-result">
                 <template v-if="!project.lastRun">
@@ -762,49 +765,31 @@ onBeforeUnmount(() => {
 }
 .dashboard-name:hover {
   text-decoration: underline;
-  .dashboard-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  @media (min-width: 640px) {
-    .dashboard-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-  @media (min-width: 1024px) {
-    .dashboard-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-  @media (min-width: 1536px) {
-    .dashboard-grid {
-      grid-template-columns: repeat(4, 1fr);
-    }
-  }
-  .dashboard-card {
-    cursor: pointer;
-  }
-  .dashboard-card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .dashboard-card-title {
-    min-width: 0;
-    flex: 1;
-  }
-  .dashboard-card-body {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .dashboard-card-footer {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+}
+.dashboard-card {
+  cursor: pointer;
+}
+.dashboard-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dashboard-card-title {
+  min-width: 0;
+  flex: 1;
+}
+.dashboard-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dashboard-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dashboard-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 12px;
