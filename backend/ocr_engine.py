@@ -18,6 +18,8 @@ are dropped from the merged text and counted explicitly.
 
 from __future__ import annotations
 
+from billiard.exceptions import SoftTimeLimitExceeded
+
 import csv
 import io
 import math
@@ -28,7 +30,7 @@ from functools import lru_cache
 
 from PIL import Image
 
-ALGO_VERSION = "ocr-tsv-v2"
+ALGO_VERSION = "ocr-tsv-v4"
 CACHE_FORMAT = "ocr-tsv-v1"
 CACHE_SCHEMA = 2
 ORIENTATIONS = (0, 90, 180, 270)
@@ -96,6 +98,8 @@ def tesseract_version():
         first = proc.stdout.decode("utf-8", "replace").splitlines()
         if proc.returncode == 0 and first and first[0].strip():
             return first[0].strip()[:60]
+    except SoftTimeLimitExceeded:
+        raise
     except Exception:
         pass
     return "unknown"
@@ -140,7 +144,9 @@ def run_tsv(png_bytes, language="rus+eng", psm=OVERVIEW_PSM,
 def parse_tsv(tsv_text):
     """Parse TSV words (level 5); skips empty texts and unparseable rows."""
     words = []
-    reader = csv.DictReader(io.StringIO(tsv_text), delimiter="\t")
+    # Tesseract emits literal text, not CSV-escaped quoted fields. A leading
+    # quotation mark must never consume subsequent words/rows as one field.
+    reader = csv.DictReader(io.StringIO(tsv_text), delimiter="\t", quoting=csv.QUOTE_NONE)
     for row in reader:
         try:
             if (row.get("level") or "").strip() != "5":
@@ -212,7 +218,7 @@ def _enhance_crop(crop):
     from PIL import ImageOps
     if max(crop.size) >= 1200:
         return crop
-    big = crop.resize((crop.width * 2, crop.height * 2), Image.LANCZOS)
+    big = crop.resize((crop.width * 2, crop.height * 2), Image.Resampling.LANCZOS)
     gray = big.convert("L")
     return ImageOps.autocontrast(gray, cutoff=2).convert("RGB")
 
@@ -285,10 +291,11 @@ def _word_to_pdf(word, rotation, rotated_size, crop_origin, base_size, page_rect
               page_rect.x0 + base[2] * scale_x, page_rect.y0 + base[3] * scale_y]
     if page_derotation is not None:
         mapped = list(_apply_matrix(mapped, page_derotation))
-    clamped = [min(max(mapped[0], page_rect.x0), page_rect.x1),
-               min(max(mapped[1], page_rect.y0), page_rect.y1),
-               min(max(mapped[2], page_rect.x0), page_rect.x1),
-               min(max(mapped[3], page_rect.y0), page_rect.y1)]
+    bounds = _apply_matrix((page_rect.x0, page_rect.y0, page_rect.x1, page_rect.y1), page_derotation) if page_derotation else (page_rect.x0, page_rect.y0, page_rect.x1, page_rect.y1)
+    clamped = [min(max(mapped[0], bounds[0]), bounds[2]),
+               min(max(mapped[1], bounds[1]), bounds[3]),
+               min(max(mapped[2], bounds[0]), bounds[2]),
+               min(max(mapped[3], bounds[1]), bounds[3])]
     drift = max(abs(mapped[i] - clamped[i]) for i in range(4))
     return clamped, drift > 1.0
 
@@ -342,7 +349,7 @@ def _row_bands(words, reading_angle=0):
     frame merges columns into rows on landscape content.
     """
     bands = []
-    transposed = reading_angle % 360 in (90, 270)
+    transposed = bool(words) and all('_tbox' in word for word in words)
     key = (lambda item: (item["_tx"], item["_ty"])) if transposed else (
         lambda item: (item["bbox"][1], item["bbox"][0]))
     for word in sorted(words, key=key):
@@ -386,9 +393,9 @@ def _glue_line(words):
     parts = [words[0]["text"]]
     for prev, word in zip(words, words[1:]):
         left, right = prev["text"], word["text"]
-        gap = word["bbox"][0] - prev["bbox"][2]
-        height = max(prev["bbox"][3] - prev["bbox"][1],
-                       word["bbox"][3] - word["bbox"][1], 1)
+        previous_box, current_box = prev.get('_tbox', prev['bbox']), word.get('_tbox', word['bbox'])
+        gap = current_box[0] - previous_box[2]
+        height = max(previous_box[3] - previous_box[1], current_box[3] - current_box[1], 1)
         if (gap < height * 0.5
                 and _GLUE_LEFT_RE.search(left)
                 and _GLUE_RIGHT_RE.match(right)):
@@ -414,14 +421,14 @@ def _column_strips(words, reading_angle=0, min_gap=8.0):
         if row:
             by_row.setdefault(row, []).append(word)
     rows = [sorted(members, key=lambda item: item["_tx"]
-                   if reading_angle % 360 in (90, 270) else item["bbox"][0])
+                   if '_tbox' in item else item["bbox"][0])
             for members in by_row.values() if len(members) > 1]
     if len(rows) < 3:
         return []
     votes: list[float] = []
     for members in rows:
         for left, right in zip(members, members[1:]):
-            if reading_angle % 360 in (90, 270):
+            if '_tbox' in left and '_tbox' in right:
                 gap = right["_tx"] - left["_tx1"]
                 if gap >= max(min_gap, 20.0):
                     votes.append((left["_tx1"] + right["_tx"]) / 2.0)
@@ -448,7 +455,7 @@ def _column_strips(words, reading_angle=0, min_gap=8.0):
 
 
 def _strip_for(word, strips, reading_angle=0):
-    center = word["_txc"] if reading_angle % 360 in (90, 270) else (
+    center = word["_txc"] if '_tbox' in word else (
         (word["bbox"][0] + word["bbox"][2]) / 2.0)
     for strip in strips:
         if strip["x0"] <= center < strip["x1"]:
@@ -473,6 +480,8 @@ def recognize_page(page, *, language="rus+eng", dpi=200, max_pixels=12000000,
         derotation = page.derotation_matrix
         page_derotation = (derotation.a, derotation.b, derotation.c,
                            derotation.d, derotation.e, derotation.f)
+    except SoftTimeLimitExceeded:
+        raise
     except Exception:
         page_derotation = None
     dpi_overview = bounded_render_dpi(
@@ -491,6 +500,8 @@ def recognize_page(page, *, language="rus+eng", dpi=200, max_pixels=12000000,
         try:
             raw = parse_tsv(run_tsv(_to_png(rotated), language, OVERVIEW_PSM, timeout))
             passes_used += 1
+        except SoftTimeLimitExceeded:
+            raise
         except Exception as exc:
             passes_used += 1
             pass_failures.append("overview rot%d: %s" % (angle, str(exc)[:160]))
@@ -588,6 +599,8 @@ def recognize_page(page, *, language="rus+eng", dpi=200, max_pixels=12000000,
             try:
                 raw = parse_tsv(run_tsv(_to_png(enhanced), language, CROP_PSM, timeout))
                 passes_used += 1
+            except SoftTimeLimitExceeded:
+                raise
             except Exception as exc:
                 passes_used += 1
                 pass_failures.append("crop %s: %s" % (name, str(exc)[:160]))
@@ -614,10 +627,11 @@ def recognize_page(page, *, language="rus+eng", dpi=200, max_pixels=12000000,
                           rect.y0 + base_box[3] * scale[1]]
                 if page_derotation is not None:
                     mapped = list(_apply_matrix(mapped, page_derotation))
-                clamped_box = [min(max(mapped[0], rect.x0), rect.x1),
-                               min(max(mapped[1], rect.y0), rect.y1),
-                               min(max(mapped[2], rect.x0), rect.x1),
-                               min(max(mapped[3], rect.y0), rect.y1)]
+                bounds = _apply_matrix((rect.x0, rect.y0, rect.x1, rect.y1), page_derotation) if page_derotation else (rect.x0, rect.y0, rect.x1, rect.y1)
+                clamped_box = [min(max(mapped[0], bounds[0]), bounds[2]),
+                               min(max(mapped[1], bounds[1]), bounds[3]),
+                               min(max(mapped[2], bounds[0]), bounds[2]),
+                               min(max(mapped[3], bounds[1]), bounds[3])]
                 if max(abs(mapped[i] - clamped_box[i]) for i in range(4)) > 1.0:
                     clamped_boxes += 1
                 kind = measurement_kind(word["text"])

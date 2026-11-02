@@ -1,0 +1,68 @@
+{
+  "designation": "Приказ Минстроя России от 14.07.2022 № 571/пр. Методика применения сметных норм",
+  "file": "minstroy-571pr-official.pdf",
+  "url": "https://www.minstroyrf.gov.ru/upload/iblock/a4b/prikaz-571pr.pdf",
+  "sha256": "ae59b619236cb4e878a1b9efde11e8d082c8a82902695ebb52928b48833e02ec",
+  "pages": 27,
+  "bytes": 11938105,
+  "status": "pdf_verified",
+  "ingestion": "reviewed_methodology",
+  "kind": "METHODOLOGY",
+  "role": "estimate_norm_application_methodology",
+  "edition": "Original official order of 14.07.2022; identity and registration checked against official FRSN snapshot 23.09.2026. Later consolidation beyond this snapshot is not asserted.",
+  "edition_state": "official_identity_registry_snapshot_checked_project_applicability_unverified",
+  "metadata_url": "https://minstroyrf.gov.ru/trades/tsenoobrazovanie/federalnyy-reestr-smetnykh-normativov/",
+  "registration_url": "https://minjust.consultant.ru/documents/32257",
+  "registration": "26.08.2022 № 69802",
+  "effective_date": "2022-09-06",
+  "official_registry": {
+    "url": "https://minstroyrf.gov.ru/upload/iblock/e66/ft2e0obdlqqz0wwswshq5wiv6w0akvgu/FRSN_23.09.2026.xlsx",
+    "sha256": "75eea149363e06a91eda2f6ce5731abf63afc4fed53a265c5382915bea441d01",
+    "snapshot": "2026-09-23",
+    "sheet": "ГСН",
+    "physical_row": 518,
+    "record_number": 374,
+    "entry": "от 23.09.2022 № 431"
+  },
+  "provenance": "Direct download from the Ministry of Construction. PDF title and literal clauses 5, 7, 22 visually compared against official scanned pages; raw embedded OCR is not certified.",
+  "raw_text_method": "embedded_ocr_unreviewed",
+  "amendment_completeness_verified": false,
+  "topics": [
+    "применение сметных норм",
+    "усреднение",
+    "строительные машины",
+    "корректировка сметных норм",
+    "технологические схемы"
+  ],
+  "scope_limit": "Estimate norm application, not certification of actual machine suitability or compaction quality. Project method/date and special collection clauses remain relevant. No automatic approval rule is created.",
+  "reviewed_clauses": [
+    {
+      "label": "5",
+      "physical_pages": [
+        3
+      ],
+      "text": "5. Сметные нормы разработаны на основе принципа усреднения, исходя из условий применения прогрессивных и рациональных методов организации строительного производства с использованием современных строительных машин и механизмов, строительных материалов, изделий и конструкций (далее – материальные ресурсы), обеспечивающих безопасность и потребительские свойства создаваемой строительной продукции, и не подлежат корректировке при применении, за исключением случаев, указанных в пункте 7 Методики.",
+      "verification": "visual_literal_transcription_whitespace_normalized",
+      "reviewed_at": "2026-11-01"
+    },
+    {
+      "label": "7",
+      "physical_pages": [
+        3,
+        4
+      ],
+      "text": "7. При применении сметных норм следует руководствоваться положениями разделов «Общие положения», «Исчисление объемов работ» и «Приложения» соответствующего сборника сметных норм. Не допускается применение положений указанных разделов одного сборника сметных норм к сметным нормам других сборников сметных норм, положений о применении сметных норм одного отдела, раздела или подраздела к сметным нормам других отделов, разделов или подразделов одного сборника сметных норм, а также корректировка сметных норм в зависимости от способа производства работ, за исключением случаев, предусмотренных положениями разделов соответствующих сборников сметных норм.",
+      "verification": "visual_literal_transcription_whitespace_normalized",
+      "reviewed_at": "2026-11-01"
+    },
+    {
+      "label": "22",
+      "physical_pages": [
+        7
+      ],
+      "text": "22. Сметные нормы, за исключением случаев, указанных в пункте 7 Методики, корректировке не подлежат, в том числе, когда проектной документацией предусмотрено:\nа) использование строительных машин и механизмов, не учтенных в сметных нормах, не меняющих принципиально технологические и организационные схемы производства работ;\nб) использование в соответствии с проектом организации строительства (далее – ПОС) машин и механизмов, технические характеристики которых отличаются от учтенных сметными нормами, но при этом принципиально не меняются технологические и организационные схемы производства работ;\nв) выполнение работ вручную и (или) с использованием средств малой механизации. При этом сметными нормами учтено применение машин и механизмов или иных технических средств;\nг) применение материальных ресурсов, характеристики которых отличаются от учтенных сметными нормами, и их применение не меняет технологические и организационные схемы производства работ, не снижает эксплуатационные характеристики конструктивных решений, принятые в проектной документации, а также безопасность и потребительские свойства создаваемой продукции.",
+      "verification": "visual_literal_transcription_whitespace_normalized",
+      "reviewed_at": "2026-11-01"
+    }
+  ]
+}

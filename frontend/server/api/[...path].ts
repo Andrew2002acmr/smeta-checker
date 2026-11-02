@@ -2,7 +2,7 @@ import { createError, defineEventHandler, proxyRequest, setHeader } from 'h3'
 import { requireSession } from '../utils/access'
 
 export default defineEventHandler(async (event) => {
-  await requireSession(event)
+  const account = await requireSession(event)
   const config = useRuntimeConfig(event)
   if (!config.backendToken)
     throw createError({ statusCode: 503, statusMessage: 'Сервер проверки не подключён' })
@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
     return await proxyRequest(event, target.href, {
       headers: {
         authorization: 'Bearer ' + config.backendToken,
+        'x-workspace-user': encodeURIComponent(account || 'api'),
         cookie: '',
         origin: backend.origin,
       },

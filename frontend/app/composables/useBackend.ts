@@ -12,6 +12,14 @@ import {
   zDocumentUploadResponse,
   zStructureDto,
   zFormatDto,
+  zHumanBasisDto,
+  zBasisPreviewDto,
+  zReviewHistoryDto,
+  zReviewArtifactDto,
+  zPreparedPageDto,
+  zPdfBindingsDto,
+  zNormativeStateDto,
+  zNormativeReviewDto,
 } from '~/generated/zod.gen'
 
 export function readableError(error: unknown): string {
@@ -163,6 +171,13 @@ export function useBackend() {
         method: 'PATCH',
         body: JSON.stringify(fields),
       }),
+    pdfBindings: (id: string) =>
+      json(`${root}/documents/${encodeURIComponent(id)}/pdf-bindings`, zPdfBindingsDto),
+    savePdfBindings: (id: string, bindings: Record<string, string>) =>
+      json(`${root}/documents/${encodeURIComponent(id)}/pdf-bindings`, zPdfBindingsDto, {
+        method: 'PUT',
+        body: JSON.stringify({ bindings }),
+      }),
     updateMetadata: (id: string, fields: Record<string, string>) =>
       json(`${root}/documents/${encodeURIComponent(id)}/metadata`, zVersionDto, {
         method: 'PATCH',
@@ -191,6 +206,24 @@ export function useBackend() {
         body: JSON.stringify(payload),
       }),
     cancelAudit: (id: string) => json(audit(id) + '/cancel', zRunDto, { method: 'POST' }),
+    resumeAudit: (id: string) => json(audit(id) + '/resume', zRunDto, { method: 'POST' }),
+    normative: (id: string, index: number) =>
+      json(`${audit(id)}/positions/${index}/normative`, zNormativeStateDto),
+    checkNormativePosition: (id: string, index: number, body: unknown) =>
+      json(`${audit(id)}/positions/${index}/normative/check`, zNormativeReviewDto, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    searchNormative: (id: string, index: number, body: unknown) =>
+      json(`${audit(id)}/positions/${index}/normative/search`, zNormativeReviewDto, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    selectNormative: (id: string, index: number, body: unknown) =>
+      json(`${audit(id)}/positions/${index}/normative/selection`, zNormativeReviewDto, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
     runs: (id: string, offset = 0) =>
       json(
         `${root}/projects/${encodeURIComponent(id)}/audits?offset=${offset}&limit=50`,
@@ -198,13 +231,85 @@ export function useBackend() {
       ),
     run: (id: string) => json(audit(id) + '/progress', zRunDto),
     summary: (id: string) => json(audit(id) + '/summary', zSummaryDto),
-    rows: (id: string, query: { focus: string; q: string; offset: number }) =>
+    rows: (id: string, query: { focus: string; q: string; offset: number; limit?: number }) =>
       json(
-        audit(id) + '/rows?' + new URLSearchParams({ ...query, offset: String(query.offset) }),
+        audit(id) +
+          '/rows?' +
+          new URLSearchParams({
+            focus: query.focus,
+            q: query.q,
+            offset: String(query.offset),
+            limit: String(query.limit ?? 10),
+          }),
         zRowsDto,
       ),
     workspace: (id: string, position: number) =>
       json(`${audit(id)}/positions/${position}/workspace`, zWorkspaceDto),
+    reviewHistory: (id: string, position: number) =>
+      json(`${audit(id)}/positions/${position}/history`, zReviewHistoryDto),
+    preparedPage: (id: string, position: number, page: number) =>
+      json(`${audit(id)}/positions/${position}/extraction?page=${page}`, zPreparedPageDto),
+    reviewImageUrl: (
+      id: string,
+      position: number,
+      kind: 'basis' | 'artifact',
+      item: string,
+      index: number,
+    ) =>
+      `${audit(id)}/positions/${position}/history/${kind}/${encodeURIComponent(item)}/images/${index}`,
+    saveBasisDraft: (id: string, position: number, payload: unknown) =>
+      json(`${audit(id)}/positions/${position}/basis/drafts`, zReviewArtifactDto, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    humanBasis: (id: string, position: number) =>
+      json(`${audit(id)}/positions/${position}/basis`, z.array(zHumanBasisDto)),
+    confirmBasis: (id: string, position: number, evidenceIndex: number) =>
+      json(`${audit(id)}/positions/${position}/basis/confirm`, z.array(zHumanBasisDto), {
+        method: 'POST',
+        body: JSON.stringify({ evidence_index: evidenceIndex }),
+      }),
+    previewBasis: (id: string, position: number, payload: unknown) =>
+      json(`${audit(id)}/positions/${position}/basis/preview`, zBasisPreviewDto, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    recognizeBasis: (id: string, position: number, payload: unknown) =>
+      json(`${audit(id)}/positions/${position}/basis/recognize`, zBasisPreviewDto, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    specifyBasis: (
+      id: string,
+      position: number,
+      payload: {
+        version_id: string
+        page: number
+        rect: number[]
+        comment: string
+        mode?: 'row' | 'area' | 'text' | 'multi'
+        rects?: number[][]
+        selection_digest?: string
+        fragments?: {
+          page: number
+          rect: number[]
+          corrected_text?: string | null
+          text_checked?: boolean
+          role?: 'work' | 'volume' | 'unit' | 'conditions' | 'other'
+        }[]
+        ocr_key?: string | null
+      },
+    ) =>
+      json(`${audit(id)}/positions/${position}/basis`, z.array(zHumanBasisDto), {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    revokeBasis: (id: string, position: number, basisId: string) =>
+      json(
+        `${audit(id)}/positions/${position}/basis/${encodeURIComponent(basisId)}`,
+        z.array(zHumanBasisDto),
+        { method: 'DELETE' },
+      ),
     structure: (id: string) =>
       json(`${root}/documents/${encodeURIComponent(id)}/structure`, zStructureDto),
     formatting: (id: string, sheet = '') => {

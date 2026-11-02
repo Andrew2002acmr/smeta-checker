@@ -414,8 +414,43 @@ def _upload_document(
     )
 
 
+def _include_bound_versions(context, vor_id, pdf_ids):
+    chosen = set(context.repository.load_pdf_bindings(vor_id).values())
+    rows = []
+    for raw in sorted(chosen):
+        try:
+            rows.append(context.repository.load_version(_parse_uuid(raw, field="pdf_bindings")))
+        except KeyError as exc:
+            raise ApiError(400, "binding_pdf_unavailable", "Выбранный ПД удалён. Обновите привязку ВОР.") from exc
+    documents = {row.document_id for row in rows}
+    result = [i for i in pdf_ids if context.repository.load_version(i).document_id not in documents]
+    return list(dict.fromkeys([*result, *(row.id for row in rows)]))
+
+
+def _pdf_pool_keys(context, pdf_ids):
+    rows = [context.repository.load_version(i) for i in pdf_ids]
+    counts = {}
+    for row in rows:
+        key = _clean_pool_key(row.filename)
+        counts[key] = counts.get(key, 0) + 1
+    return {row.id: (_clean_pool_key(row.filename) if counts[_clean_pool_key(row.filename)] == 1 else f"{_clean_pool_key(row.filename)} [версия {row.id}]") for row in rows}
+
+
+def _pdf_binding_keys(context, vor_id, pdf_ids):
+    """Freeze explicit version IDs into canonical worker keys; never guess a replacement."""
+    allowed = set(pdf_ids)
+    result = {}
+    pool_keys = _pdf_pool_keys(context, pdf_ids)
+    for ref, target in context.repository.load_pdf_bindings(vor_id).items():
+        version_id = _parse_uuid(target, field="pdf_bindings")
+        if version_id not in allowed:
+            raise ApiError(400, "binding_pdf_unavailable", f"Для ссылки {ref} выбрана недоступная версия ПД. Обновите привязку или состав ПД.")
+        result[ref] = pool_keys[version_id]
+    return result
+
+
 def _preflight_for_versions(
-    context: ApiContext, vor_version_id: UUID, pdf_version_ids: list[UUID]
+    context: ApiContext, vor_version_id: UUID, pdf_version_ids: list[UUID], bindings=None
 ) -> PreflightResponse:
     from vor_parse import load_vor_positions
 
@@ -423,17 +458,20 @@ def _preflight_for_versions(
     if vor_kind != "vor":
         raise ApiError(400, "not_vor_version", "Указанная версия — не ВОР.")
     pool_keys: dict[str, str] = {}
+    version_keys = _pdf_pool_keys(context, pdf_version_ids)
     for pdf_id in pdf_version_ids:
         _, _, filename, kind = _read_version_bytes(context, pdf_id)
         if kind != "pdf":
             raise ApiError(400, "not_pdf_version", "Указанная версия — не PDF.")
-        pool_keys[_clean_pool_key(filename)] = str(pdf_id)
+        pool_keys[version_keys[pdf_id]] = str(pdf_id)
     try:
         positions, meta = load_vor_positions(vor_bytes, vor_filename)
     except Exception as exc:
         raise ApiError(400, "invalid_vor", f"Не удалось прочитать ВОР: {exc}") from exc
+    if bindings is None:
+        bindings = _pdf_binding_keys(context, vor_version_id, pdf_version_ids)
     rows, has_critical_error = preflight_bindings(
-        {vor_filename: vor_bytes}, [vor_filename], pool_keys.keys()
+        {vor_filename: vor_bytes}, [vor_filename], pool_keys.keys(), bindings
     )
     return PreflightResponse(
         rows=[
@@ -526,13 +564,12 @@ def _resolve_pdf_pool(context: ApiContext, project_id: UUID,
 
 
 def _check_pdf_names(context: ApiContext, version_ids: list[UUID]):
-    names = set()
+    documents = set()
     for version_id in version_ids:
         ref = context.repository.load_version(version_id)
-        name = _clean_pool_key(ref.filename)
-        if name in names:
-            raise ApiError(400, "duplicate_pdf_name", "Выберите одну версию каждого PDF; имена PDF должны различаться")
-        names.add(name)
+        if ref.document_id in documents:
+            raise ApiError(400, "duplicate_pdf_name", "Выберите одну версию каждого документа ПД")
+        documents.add(ref.document_id)
 
 
 def _celery_dispatch(
@@ -723,7 +760,10 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
                 "error": {
                     "code": "validation_error",
                     "message": "Некорректный запрос.",
-                    "details": exc.errors(),
+                    # Validator exception objects and NaN input values are
+                    # not JSON-safe. Return the public validation fields only.
+                    "details": [{key: error[key] for key in ("loc", "msg", "type")}
+                                for error in exc.errors()],
                 }
             },
         )
@@ -798,6 +838,8 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             _parse_uuid(item, field="pdf_version_ids")
             for item in payload.pdf_version_ids
         ])
+        if not payload.pdf_version_ids:
+            pdf_ids = _include_bound_versions(context, vor_id, pdf_ids)
         _check_project_versions(context, owner.id, [vor_id, *pdf_ids])
         _check_active_versions(context, owner.id, [vor_id, *pdf_ids])
         _check_pdf_names(context, pdf_ids)
@@ -823,6 +865,8 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             _parse_uuid(item, field="pdf_version_ids")
             for item in payload.pdf_version_ids
         ])
+        if not payload.pdf_version_ids:
+            pdf_ids = _include_bound_versions(context, vor_id, pdf_ids)
         _check_project_versions(context, stored_project.id, [vor_id, *pdf_ids])
         _check_pdf_names(context, pdf_ids)
         _check_active_versions(context, stored_project.id, [vor_id, *pdf_ids])
@@ -837,12 +881,13 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
         if vor_kind != "vor":
             raise ApiError(400, "not_vor_version", "Указанная версия — не ВОР.")
         pdf_files: dict[str, bytes] = {}
+        version_keys = _pdf_pool_keys(context, pdf_ids)
         pdf_versions: dict[str, DocumentVersionRow] = {}
         for pdf_id in pdf_ids:
             data, row, filename, kind = _read_version_bytes(context, pdf_id)
             if kind != "pdf":
                 raise ApiError(400, "not_pdf_version", "Указанная версия — не PDF.")
-            key = _clean_pool_key(filename)
+            key = version_keys[pdf_id]
             if not key:
                 raise ApiError(400, "filename_required", "Имя PDF обязательно.")
             if key in pdf_files:
@@ -850,23 +895,28 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
                                "Выберите одну версию каждого PDF; имена PDF должны различаться")
             pdf_files[key] = bytes(data)
             pdf_versions[key] = row
-        preflight = _preflight_for_versions(context, vor_id, pdf_ids)
+        bindings = _pdf_binding_keys(context, vor_id, pdf_ids)
+        preflight = _preflight_for_versions(context, vor_id, pdf_ids, bindings)
         positions, _ = load_vor_positions(vor_bytes, vor_filename)
         llm = context.settings.llm_credentials()
         config = {
+            "project": project,
             "model": llm.model_name,
             "provider": llm.provider,
             "pdf_versions": {key: str(row.id) for key, row in pdf_versions.items()},
+            "pdf_bindings": bindings,
             "vor_filename": vor_filename,
             "preflight": [row.model_dump() for row in preflight.rows],
             "has_critical_error": preflight.has_critical_error,
             "request_id": request_id,
             "position_inputs": [p.model_dump(mode="json") for p in positions],
         }
+        dispatch = _celery_dispatch(context)
         try:
             run = context.repository.create_run(
                 stored_project.id, vor_id, config,
                 pdf_pins={key: row.id for key, row in pdf_versions.items()},
+                background=dispatch is not None,
             )
         except KeyError as exc:
             raise ApiError(404, "version_not_found", "Версия не найдена") from exc
@@ -877,31 +927,14 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
                 500, "storage_error", f"Не удалось создать запуск: {exc}"
             ) from exc
 
-        dispatch = _celery_dispatch(context)
         if dispatch is not None:
-            vor_ref = context.repository.load_version(vor_id)
-            pdf_blob_keys = {
-                key: context.repository.load_version(
-                    _parse_uuid(str(row.id), field="pdf_version_ids")
-                ).blob_key
-                for key, row in pdf_versions.items()
-            }
             try:
-                dispatch(
-                    "audit_tasks.prepare_run",
-                    {
-                        "run_id": str(run.id),
-                        "project": project,
-                        "vor_filename": vor_filename,
-                        "vor_blob_key": vor_ref.blob_key,
-                        "pdf_blob_keys": pdf_blob_keys,
-                        "request_id": request_id,
-                    },
-                )
-            except Exception as exc:
-                raise ApiError(
-                    503, "broker_unavailable", f"Очередь недоступна: {exc}"
-                ) from exc
+                from audit_delivery import publish_pending
+                publish_pending(context.repository, dispatch)
+            except Exception:
+                # The run and its first task are committed together. The
+                # dispatcher retries delivery when the broker becomes available.
+                logger.warning("initial delivery deferred", exc_info=True)
             logger.info(
                 "audit dispatched",
                 extra={"audit_run_id": str(run.id), "stage": "dispatch"},
@@ -973,7 +1006,12 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
         if str(record.get("status")) not in POSITION_DONE_STATUSES:
             raise ApiError(409, "audit_not_finished", "Аудит ещё выполняется.")
         try:
-            payload = context.repository.load_run_report(record["id"], kind)
+            from workspace_service import validated_word_report
+            payload = validated_word_report(context, record)
+            if payload is None:
+                payload = context.repository.load_run_report(record["id"], kind)
+        except ValueError as exc:
+            raise ApiError(409, "normative_not_finished", str(exc)) from exc
         except KeyError as exc:
             raise ApiError(404, "report_not_found", "Отчёт не найден.") from exc
         except FileNotFoundError as exc:

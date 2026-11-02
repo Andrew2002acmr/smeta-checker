@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { CancelAuditApiV1AuditsRunIdCancelPostData, CancelAuditApiV1AuditsRunIdCancelPostErrors, CancelAuditApiV1AuditsRunIdCancelPostResponses, CatalogApiV1ProjectsProjectIdCatalogGetData, CatalogApiV1ProjectsProjectIdCatalogGetErrors, CatalogApiV1ProjectsProjectIdCatalogGetResponses, ContentApiV1DocumentsVersionIdContentGetData, ContentApiV1DocumentsVersionIdContentGetErrors, ContentApiV1DocumentsVersionIdContentGetResponses, CreateAuditApiV1AuditsPostData, CreateAuditApiV1AuditsPostErrors, CreateAuditApiV1AuditsPostResponses, CreateProjectApiV1ProjectsPostData, CreateProjectApiV1ProjectsPostErrors, CreateProjectApiV1ProjectsPostResponses, DeleteDocumentApiV1DocumentsDocumentIdDetailDeleteData, DeleteDocumentApiV1DocumentsDocumentIdDetailDeleteErrors, DeleteDocumentApiV1DocumentsDocumentIdDetailDeleteResponses, DeleteProjectApiV1ProjectsProjectIdDeleteData, DeleteProjectApiV1ProjectsProjectIdDeleteErrors, DeleteProjectApiV1ProjectsProjectIdDeleteResponses, DeleteVersionApiV1DocumentsVersionIdVersionDeleteData, DeleteVersionApiV1DocumentsVersionIdVersionDeleteErrors, DeleteVersionApiV1DocumentsVersionIdVersionDeleteResponses, DocumentDetailApiV1DocumentsDocumentIdDetailGetData, DocumentDetailApiV1DocumentsDocumentIdDetailGetErrors, DocumentDetailApiV1DocumentsDocumentIdDetailGetResponses, DocumentsApiV1ProjectsProjectIdDocumentsGetData, DocumentsApiV1ProjectsProjectIdDocumentsGetErrors, DocumentsApiV1ProjectsProjectIdDocumentsGetResponses, DownloadAuditReportApiV1AuditsRunIdReportsKindGetData, DownloadAuditReportApiV1AuditsRunIdReportsKindGetErrors, DownloadAuditReportApiV1AuditsRunIdReportsKindGetResponses, FormatReportApiV1DocumentsVersionIdFormatReportGetData, FormatReportApiV1DocumentsVersionIdFormatReportGetErrors, FormatReportApiV1DocumentsVersionIdFormatReportGetResponses, FormatReportUploadApiV1FormatReportPostData, FormatReportUploadApiV1FormatReportPostErrors, FormatReportUploadApiV1FormatReportPostResponses, FormattingApiV1DocumentsVersionIdFormatChecksPostData, FormattingApiV1DocumentsVersionIdFormatChecksPostErrors, FormattingApiV1DocumentsVersionIdFormatChecksPostResponses, FormattingUploadApiV1FormatChecksPostData, FormattingUploadApiV1FormatChecksPostErrors, FormattingUploadApiV1FormatChecksPostResponses, FormatWordApiV1DocumentsVersionIdFormatWordGetData, FormatWordApiV1DocumentsVersionIdFormatWordGetErrors, FormatWordApiV1DocumentsVersionIdFormatWordGetResponses, FormatWordUploadApiV1FormatWordPostData, FormatWordUploadApiV1FormatWordPostErrors, FormatWordUploadApiV1FormatWordPostResponses, GetAuditApiV1AuditsRunIdGetData, GetAuditApiV1AuditsRunIdGetErrors, GetAuditApiV1AuditsRunIdGetResponses, GetAuditResultsApiV1AuditsRunIdResultsGetData, GetAuditResultsApiV1AuditsRunIdResultsGetErrors, GetAuditResultsApiV1AuditsRunIdResultsGetResponses, GetProjectApiV1ProjectsProjectIdGetData, GetProjectApiV1ProjectsProjectIdGetErrors, GetProjectApiV1ProjectsProjectIdGetResponses, HealthzHealthzGetData, HealthzHealthzGetResponses, HistoryApiV1ProjectsProjectIdAuditsGetData, HistoryApiV1ProjectsProjectIdAuditsGetErrors, HistoryApiV1ProjectsProjectIdAuditsGetResponses, PreflightDocumentsApiV1DocumentsPreflightPostData, PreflightDocumentsApiV1DocumentsPreflightPostErrors, PreflightDocumentsApiV1DocumentsPreflightPostResponses, ProgressApiV1AuditsRunIdProgressGetData, ProgressApiV1AuditsRunIdProgressGetErrors, ProgressApiV1AuditsRunIdProgressGetResponses, ProjectsApiV1ProjectsGetData, ProjectsApiV1ProjectsGetErrors, ProjectsApiV1ProjectsGetResponses, RowsApiV1AuditsRunIdRowsGetData, RowsApiV1AuditsRunIdRowsGetErrors, RowsApiV1AuditsRunIdRowsGetResponses, StructureApiV1DocumentsVersionIdStructureGetData, StructureApiV1DocumentsVersionIdStructureGetErrors, StructureApiV1DocumentsVersionIdStructureGetResponses, SummaryApiV1AuditsRunIdSummaryGetData, SummaryApiV1AuditsRunIdSummaryGetErrors, SummaryApiV1AuditsRunIdSummaryGetResponses, UpdateDocumentApiV1DocumentsDocumentIdPatchData, UpdateDocumentApiV1DocumentsDocumentIdPatchErrors, UpdateDocumentApiV1DocumentsDocumentIdPatchResponses, UpdateProjectApiV1ProjectsProjectIdPatchData, UpdateProjectApiV1ProjectsProjectIdPatchErrors, UpdateProjectApiV1ProjectsProjectIdPatchResponses, UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchData, UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchErrors, UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchResponses, UploadDocumentApiV1DocumentsPostData, UploadDocumentApiV1DocumentsPostErrors, UploadDocumentApiV1DocumentsPostResponses, WorkspaceApiV1AuditsRunIdPositionsPositionIndexWorkspaceGetData, WorkspaceApiV1AuditsRunIdPositionsPositionIndexWorkspaceGetErrors, WorkspaceApiV1AuditsRunIdPositionsPositionIndexWorkspaceGetResponses } from './types.gen';
+import type { CancelAuditApiV1AuditsRunIdCancelPostData, CancelAuditApiV1AuditsRunIdCancelPostErrors, CancelAuditApiV1AuditsRunIdCancelPostResponses, CatalogApiV1ProjectsProjectIdCatalogGetData, CatalogApiV1ProjectsProjectIdCatalogGetErrors, CatalogApiV1ProjectsProjectIdCatalogGetResponses, CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostData, CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostErrors, CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostResponses, CheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetData, CheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetErrors, CheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetResponses, CheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetData, CheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetErrors, CheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetResponses, ContentApiV1DocumentsVersionIdContentGetData, ContentApiV1DocumentsVersionIdContentGetErrors, ContentApiV1DocumentsVersionIdContentGetResponses, CreateAuditApiV1AuditsPostData, CreateAuditApiV1AuditsPostErrors, CreateAuditApiV1AuditsPostResponses, CreateProjectApiV1ProjectsPostData, CreateProjectApiV1ProjectsPostErrors, CreateProjectApiV1ProjectsPostResponses, DeleteDocumentApiV1DocumentsDocumentIdDetailDeleteData, DeleteDocumentApiV1DocumentsDocumentIdDetailDeleteErrors, DeleteDocumentApiV1DocumentsDocumentIdDetailDeleteResponses, DeleteProjectApiV1ProjectsProjectIdDeleteData, DeleteProjectApiV1ProjectsProjectIdDeleteErrors, DeleteProjectApiV1ProjectsProjectIdDeleteResponses, DeleteVersionApiV1DocumentsVersionIdVersionDeleteData, DeleteVersionApiV1DocumentsVersionIdVersionDeleteErrors, DeleteVersionApiV1DocumentsVersionIdVersionDeleteResponses, DocumentDetailApiV1DocumentsDocumentIdDetailGetData, DocumentDetailApiV1DocumentsDocumentIdDetailGetErrors, DocumentDetailApiV1DocumentsDocumentIdDetailGetResponses, DocumentsApiV1ProjectsProjectIdDocumentsGetData, DocumentsApiV1ProjectsProjectIdDocumentsGetErrors, DocumentsApiV1ProjectsProjectIdDocumentsGetResponses, DownloadAuditReportApiV1AuditsRunIdReportsKindGetData, DownloadAuditReportApiV1AuditsRunIdReportsKindGetErrors, DownloadAuditReportApiV1AuditsRunIdReportsKindGetResponses, FormatReportApiV1DocumentsVersionIdFormatReportGetData, FormatReportApiV1DocumentsVersionIdFormatReportGetErrors, FormatReportApiV1DocumentsVersionIdFormatReportGetResponses, FormatReportUploadApiV1FormatReportPostData, FormatReportUploadApiV1FormatReportPostErrors, FormatReportUploadApiV1FormatReportPostResponses, FormattingApiV1DocumentsVersionIdFormatChecksPostData, FormattingApiV1DocumentsVersionIdFormatChecksPostErrors, FormattingApiV1DocumentsVersionIdFormatChecksPostResponses, FormattingUploadApiV1FormatChecksPostData, FormattingUploadApiV1FormatChecksPostErrors, FormattingUploadApiV1FormatChecksPostResponses, FormatWordApiV1DocumentsVersionIdFormatWordGetData, FormatWordApiV1DocumentsVersionIdFormatWordGetErrors, FormatWordApiV1DocumentsVersionIdFormatWordGetResponses, FormatWordUploadApiV1FormatWordPostData, FormatWordUploadApiV1FormatWordPostErrors, FormatWordUploadApiV1FormatWordPostResponses, GetAuditApiV1AuditsRunIdGetData, GetAuditApiV1AuditsRunIdGetErrors, GetAuditApiV1AuditsRunIdGetResponses, GetAuditResultsApiV1AuditsRunIdResultsGetData, GetAuditResultsApiV1AuditsRunIdResultsGetErrors, GetAuditResultsApiV1AuditsRunIdResultsGetResponses, GetProjectApiV1ProjectsProjectIdGetData, GetProjectApiV1ProjectsProjectIdGetErrors, GetProjectApiV1ProjectsProjectIdGetResponses, HealthzHealthzGetData, HealthzHealthzGetResponses, HistoryApiV1ProjectsProjectIdAuditsGetData, HistoryApiV1ProjectsProjectIdAuditsGetErrors, HistoryApiV1ProjectsProjectIdAuditsGetResponses, HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostData, HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostErrors, HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostResponses, HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetData, HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetErrors, HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetResponses, HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostData, HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostErrors, HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostResponses, HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostData, HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostErrors, HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostResponses, HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteData, HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteErrors, HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteResponses, HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostData, HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostErrors, HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostResponses, LibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetData, LibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetErrors, LibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetResponses, MetricsMetricsGetData, MetricsMetricsGetResponses, PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetData, PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetErrors, PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetResponses, PreflightDocumentsApiV1DocumentsPreflightPostData, PreflightDocumentsApiV1DocumentsPreflightPostErrors, PreflightDocumentsApiV1DocumentsPreflightPostResponses, PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetData, PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetErrors, PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetResponses, ProgressApiV1AuditsRunIdProgressGetData, ProgressApiV1AuditsRunIdProgressGetErrors, ProgressApiV1AuditsRunIdProgressGetResponses, ProjectsApiV1ProjectsGetData, ProjectsApiV1ProjectsGetErrors, ProjectsApiV1ProjectsGetResponses, ResumeAuditApiV1AuditsRunIdResumePostData, ResumeAuditApiV1AuditsRunIdResumePostErrors, ResumeAuditApiV1AuditsRunIdResumePostResponses, ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetData, ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetErrors, ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetResponses, ReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetData, ReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetErrors, ReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetResponses, RowsApiV1AuditsRunIdRowsGetData, RowsApiV1AuditsRunIdRowsGetErrors, RowsApiV1AuditsRunIdRowsGetResponses, SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostData, SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostErrors, SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostResponses, SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostData, SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostErrors, SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostResponses, SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostData, SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostErrors, SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostResponses, SourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetData, SourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetErrors, SourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetResponses, StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetData, StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetErrors, StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetResponses, StructureApiV1DocumentsVersionIdStructureGetData, StructureApiV1DocumentsVersionIdStructureGetErrors, StructureApiV1DocumentsVersionIdStructureGetResponses, SummaryApiV1AuditsRunIdSummaryGetData, SummaryApiV1AuditsRunIdSummaryGetErrors, SummaryApiV1AuditsRunIdSummaryGetResponses, UpdateDocumentApiV1DocumentsDocumentIdPatchData, UpdateDocumentApiV1DocumentsDocumentIdPatchErrors, UpdateDocumentApiV1DocumentsDocumentIdPatchResponses, UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutData, UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutErrors, UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutResponses, UpdateProjectApiV1ProjectsProjectIdPatchData, UpdateProjectApiV1ProjectsProjectIdPatchErrors, UpdateProjectApiV1ProjectsProjectIdPatchResponses, UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchData, UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchErrors, UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchResponses, UploadDocumentApiV1DocumentsPostData, UploadDocumentApiV1DocumentsPostErrors, UploadDocumentApiV1DocumentsPostResponses, ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostData, ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostErrors, ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostResponses, WorkspaceApiV1AuditsRunIdPositionsPositionIndexWorkspaceGetData, WorkspaceApiV1AuditsRunIdPositionsPositionIndexWorkspaceGetErrors, WorkspaceApiV1AuditsRunIdPositionsPositionIndexWorkspaceGetResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -41,6 +41,157 @@ export const getAuditApiV1AuditsRunIdGet = <ThrowOnError extends boolean = false
 export const cancelAuditApiV1AuditsRunIdCancelPost = <ThrowOnError extends boolean = false>(options: Options<CancelAuditApiV1AuditsRunIdCancelPostData, ThrowOnError>): RequestResult<CancelAuditApiV1AuditsRunIdCancelPostResponses, CancelAuditApiV1AuditsRunIdCancelPostErrors, ThrowOnError> => (options.client ?? client).post<CancelAuditApiV1AuditsRunIdCancelPostResponses, CancelAuditApiV1AuditsRunIdCancelPostErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/cancel', ...options });
 
 /**
+ * Human Basis List
+ */
+export const humanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGet = <ThrowOnError extends boolean = false>(options: Options<HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetData, ThrowOnError>): RequestResult<HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetResponses, HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetErrors, ThrowOnError> => (options.client ?? client).get<HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetResponses, HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/positions/{position_index}/basis', ...options });
+
+/**
+ * Human Basis Specify
+ */
+export const humanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPost = <ThrowOnError extends boolean = false>(options: Options<HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostData, ThrowOnError>): RequestResult<HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostResponses, HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostErrors, ThrowOnError> => (options.client ?? client).post<HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostResponses, HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostErrors, ThrowOnError>({
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/basis',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Human Basis Confirm
+ */
+export const humanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPost = <ThrowOnError extends boolean = false>(options: Options<HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostData, ThrowOnError>): RequestResult<HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostResponses, HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostErrors, ThrowOnError> => (options.client ?? client).post<HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostResponses, HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostErrors, ThrowOnError>({
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/basis/confirm',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Save Basis Draft
+ */
+export const saveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPost = <ThrowOnError extends boolean = false>(options: Options<SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostData, ThrowOnError>): RequestResult<SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostResponses, SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostErrors, ThrowOnError> => (options.client ?? client).post<SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostResponses, SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostErrors, ThrowOnError>({
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/basis/drafts',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Human Basis Preview
+ */
+export const humanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPost = <ThrowOnError extends boolean = false>(options: Options<HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostData, ThrowOnError>): RequestResult<HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostResponses, HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostErrors, ThrowOnError> => (options.client ?? client).post<HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostResponses, HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostErrors, ThrowOnError>({
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/basis/preview',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Human Basis Recognize
+ */
+export const humanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePost = <ThrowOnError extends boolean = false>(options: Options<HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostData, ThrowOnError>): RequestResult<HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostResponses, HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostErrors, ThrowOnError> => (options.client ?? client).post<HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostResponses, HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostErrors, ThrowOnError>({
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/basis/recognize',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Human Basis Revoke
+ */
+export const humanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDelete = <ThrowOnError extends boolean = false>(options: Options<HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteData, ThrowOnError>): RequestResult<HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteResponses, HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteErrors, ThrowOnError> => (options.client ?? client).delete<HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteResponses, HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/positions/{position_index}/basis/{basis_id}', ...options });
+
+/**
+ * Prepared Page
+ */
+export const preparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGet = <ThrowOnError extends boolean = false>(options: Options<PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetData, ThrowOnError>): RequestResult<PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetResponses, PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetErrors, ThrowOnError> => (options.client ?? client).get<PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetResponses, PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/positions/{position_index}/extraction', ...options });
+
+/**
+ * Review History
+ */
+export const reviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGet = <ThrowOnError extends boolean = false>(options: Options<ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetData, ThrowOnError>): RequestResult<ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetResponses, ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetErrors, ThrowOnError> => (options.client ?? client).get<ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetResponses, ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/positions/{position_index}/history', ...options });
+
+/**
+ * Review Image
+ */
+export const reviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGet = <ThrowOnError extends boolean = false>(options: Options<ReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetData, ThrowOnError>): RequestResult<ReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetResponses, ReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetErrors, ThrowOnError> => (options.client ?? client).get<ReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetResponses, ReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/positions/{position_index}/history/{kind}/{item_id}/images/{index}', ...options });
+
+/**
+ * State
+ */
+export const stateApiV1AuditsRunIdPositionsPositionIndexNormativeGet = <ThrowOnError extends boolean = false>(options: Options<StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetData, ThrowOnError>): RequestResult<StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetResponses, StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetErrors, ThrowOnError> => (options.client ?? client).get<StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetResponses, StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/positions/{position_index}/normative', ...options });
+
+/**
+ * Check
+ */
+export const checkApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPost = <ThrowOnError extends boolean = false>(options: Options<CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostData, ThrowOnError>): RequestResult<CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostResponses, CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostErrors, ThrowOnError> => (options.client ?? client).post<CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostResponses, CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostErrors, ThrowOnError>({
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/check',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Library Pdf
+ */
+export const libraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGet = <ThrowOnError extends boolean = false>(options: Options<LibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetData, ThrowOnError>): RequestResult<LibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetResponses, LibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetErrors, ThrowOnError> => (options.client ?? client).get<LibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetResponses, LibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/library/{source_id}', ...options });
+
+/**
+ * Search
+ */
+export const searchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPost = <ThrowOnError extends boolean = false>(options: Options<SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostData, ThrowOnError>): RequestResult<SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostResponses, SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostErrors, ThrowOnError> => (options.client ?? client).post<SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostResponses, SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostErrors, ThrowOnError>({
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/search',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Select
+ */
+export const selectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPost = <ThrowOnError extends boolean = false>(options: Options<SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostData, ThrowOnError>): RequestResult<SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostResponses, SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostErrors, ThrowOnError> => (options.client ?? client).post<SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostResponses, SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostErrors, ThrowOnError>({
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/selection',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Check Image
+ */
+export const checkImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGet = <ThrowOnError extends boolean = false>(options: Options<CheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetData, ThrowOnError>): RequestResult<CheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetResponses, CheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetErrors, ThrowOnError> => (options.client ?? client).get<CheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetResponses, CheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/{review_id}/check-images/{source_id}', ...options });
+
+/**
+ * Check Ocr
+ */
+export const checkOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGet = <ThrowOnError extends boolean = false>(options: Options<CheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetData, ThrowOnError>): RequestResult<CheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetResponses, CheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetErrors, ThrowOnError> => (options.client ?? client).get<CheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetResponses, CheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/{review_id}/check-ocr/{source_id}', ...options });
+
+/**
+ * Source
+ */
+export const sourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGet = <ThrowOnError extends boolean = false>(options: Options<SourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetData, ThrowOnError>): RequestResult<SourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetResponses, SourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetErrors, ThrowOnError> => (options.client ?? client).get<SourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetResponses, SourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/{review_id}/sources/{source_id}', ...options });
+
+/**
+ * Validate Saved
+ */
+export const validateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePost = <ThrowOnError extends boolean = false>(options: Options<ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostData, ThrowOnError>): RequestResult<ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostResponses, ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostErrors, ThrowOnError> => (options.client ?? client).post<ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostResponses, ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/{review_id}/validate', ...options });
+
+/**
  * Workspace
  */
 export const workspaceApiV1AuditsRunIdPositionsPositionIndexWorkspaceGet = <ThrowOnError extends boolean = false>(options: Options<WorkspaceApiV1AuditsRunIdPositionsPositionIndexWorkspaceGetData, ThrowOnError>): RequestResult<WorkspaceApiV1AuditsRunIdPositionsPositionIndexWorkspaceGetResponses, WorkspaceApiV1AuditsRunIdPositionsPositionIndexWorkspaceGetErrors, ThrowOnError> => (options.client ?? client).get<WorkspaceApiV1AuditsRunIdPositionsPositionIndexWorkspaceGetResponses, WorkspaceApiV1AuditsRunIdPositionsPositionIndexWorkspaceGetErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/positions/{position_index}/workspace', ...options });
@@ -59,6 +210,11 @@ export const downloadAuditReportApiV1AuditsRunIdReportsKindGet = <ThrowOnError e
  * Get Audit Results
  */
 export const getAuditResultsApiV1AuditsRunIdResultsGet = <ThrowOnError extends boolean = false>(options: Options<GetAuditResultsApiV1AuditsRunIdResultsGetData, ThrowOnError>): RequestResult<GetAuditResultsApiV1AuditsRunIdResultsGetResponses, GetAuditResultsApiV1AuditsRunIdResultsGetErrors, ThrowOnError> => (options.client ?? client).get<GetAuditResultsApiV1AuditsRunIdResultsGetResponses, GetAuditResultsApiV1AuditsRunIdResultsGetErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/results', ...options });
+
+/**
+ * Resume Audit
+ */
+export const resumeAuditApiV1AuditsRunIdResumePost = <ThrowOnError extends boolean = false>(options: Options<ResumeAuditApiV1AuditsRunIdResumePostData, ThrowOnError>): RequestResult<ResumeAuditApiV1AuditsRunIdResumePostResponses, ResumeAuditApiV1AuditsRunIdResumePostErrors, ThrowOnError> => (options.client ?? client).post<ResumeAuditApiV1AuditsRunIdResumePostResponses, ResumeAuditApiV1AuditsRunIdResumePostErrors, ThrowOnError>({ url: '/api/v1/audits/{run_id}/resume', ...options });
 
 /**
  * Rows
@@ -142,6 +298,23 @@ export const formatWordApiV1DocumentsVersionIdFormatWordGet = <ThrowOnError exte
  */
 export const updateVersionMetadataApiV1DocumentsVersionIdMetadataPatch = <ThrowOnError extends boolean = false>(options: Options<UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchData, ThrowOnError>): RequestResult<UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchResponses, UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchErrors, ThrowOnError> => (options.client ?? client).patch<UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchResponses, UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchErrors, ThrowOnError>({
     url: '/api/v1/documents/{version_id}/metadata',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Pdf Bindings
+ */
+export const pdfBindingsApiV1DocumentsVersionIdPdfBindingsGet = <ThrowOnError extends boolean = false>(options: Options<PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetData, ThrowOnError>): RequestResult<PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetResponses, PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetErrors, ThrowOnError> => (options.client ?? client).get<PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetResponses, PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetErrors, ThrowOnError>({ url: '/api/v1/documents/{version_id}/pdf-bindings', ...options });
+
+/**
+ * Update Pdf Bindings
+ */
+export const updatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPut = <ThrowOnError extends boolean = false>(options: Options<UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutData, ThrowOnError>): RequestResult<UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutResponses, UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutErrors, ThrowOnError> => (options.client ?? client).put<UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutResponses, UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutErrors, ThrowOnError>({
+    url: '/api/v1/documents/{version_id}/pdf-bindings',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -256,3 +429,8 @@ export const documentsApiV1ProjectsProjectIdDocumentsGet = <ThrowOnError extends
  * Healthz
  */
 export const healthzHealthzGet = <ThrowOnError extends boolean = false>(options?: Options<HealthzHealthzGetData, ThrowOnError>): RequestResult<HealthzHealthzGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<HealthzHealthzGetResponses, unknown, ThrowOnError>({ url: '/healthz', ...options });
+
+/**
+ * Metrics
+ */
+export const metricsMetricsGet = <ThrowOnError extends boolean = false>(options?: Options<MetricsMetricsGetData, ThrowOnError>): RequestResult<MetricsMetricsGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<MetricsMetricsGetResponses, unknown, ThrowOnError>({ url: '/metrics', ...options });

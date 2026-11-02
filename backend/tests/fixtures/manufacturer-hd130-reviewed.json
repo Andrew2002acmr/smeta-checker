@@ -1,0 +1,102 @@
+[
+  {
+    "designation": "HAMM HD 130 — Wirtgen Technology Winter 2002 (factory publication; archived copy)",
+    "kind": "MANUFACTURER_PUBLICATION",
+    "file": "WTM-Winter-2002.pdf",
+    "sha256": "2734fa10221e63a37a32de97a80368b797dd16262d53fd9f045f160d1a14ee3a",
+    "pages": 36,
+    "status": "pdf_verified",
+    "ingestion": "reviewed_manufacturer",
+    "evidence_role": "manufacturer_equipment_classification",
+    "raw_text_method": "native_page_text_retained_unreviewed_except_cited_fragments",
+    "provenance": {
+      "artifact_type": "original_factory_publication_archived",
+      "url": "https://expresswaysonline.com/wp-content/uploads/2018/10/WTM-Winter-2002.pdf",
+      "archive_index_url": "https://expresswaysonline.com/clients/wirtgen-america-inc/",
+      "publisher": "Wirtgen America Inc.",
+      "edition": "Winter 2002, Vol. 2, No. 2",
+      "copyright_year": 2001,
+      "publisher_physical_page": 3,
+      "accessed_at_utc": "2026-11-01T04:30:58Z",
+      "archive_note": "Host is ExpresswaysOnline, credited for concept, photography and copy on page 3; it is not the current manufacturer domain."
+    },
+    "reviewed_clauses": [
+      {
+        "label": "hd130-vibration",
+        "text": "About the HD 90 and HD 130\nDual joy stick controls for travel and vibration, another Hamm exclusive",
+        "literal_fragments": [
+          "About the HD 90 and HD 130",
+          "Dual joy stick controls for travel and vibration, another Hamm exclusive"
+        ],
+        "physical_pages": [
+          26
+        ],
+        "verification": "reviewed_literal_transcription"
+      }
+    ],
+    "reviewed_facts": [
+      {
+        "subject": {
+          "manufacturer": "HAMM",
+          "model": "HD 130"
+        },
+        "predicate": "feature",
+        "value": "vibration",
+        "clause_label": "hd130-vibration",
+        "literal_quote": "Dual joy stick controls for travel and vibration, another Hamm exclusive",
+        "review_status": "reviewed_literal_transcription",
+        "scope": "generic_model_class_only",
+        "matching_policy": "exact_manufacturer_and_model_no_suffix_inference"
+      }
+    ]
+  },
+  {
+    "designation": "HAMM HD 130 — Wirtgen Xibao official HTML (GENERATED WEB CAPTURE, NOT factory PDF)",
+    "kind": "MANUFACTURER_WEB_CAPTURE",
+    "file": "wirtgen-xibao-generated-web-capture.pdf",
+    "sha256": "119e7005b140e150895efab09d5e7b0ea3f2fe14b6e53a5bb5527661d39ed628",
+    "pages": 1,
+    "status": "pdf_verified",
+    "ingestion": "reviewed_manufacturer",
+    "evidence_role": "manufacturer_equipment_classification",
+    "raw_text_method": "generated_capture_of_reviewed_html_excerpt",
+    "provenance": {
+      "artifact_type": "generated_web_capture_not_factory_pdf",
+      "url": "https://www.wirtgen-group.com/en-ao/news-and-media/wirtgen-group/xibao-expressway/",
+      "publisher": "Wirtgen Group",
+      "accessed_at_utc": "2026-11-01T04:30:58Z",
+      "publication_date": null,
+      "raw_html_file": "wirtgen-xibao-official.html",
+      "raw_html_sha256": "8938feb4d80d26eabaf3ee20b2b84558f0d33c4186a1e0fe24405de2d5d41df2",
+      "generated_by_script_sha256": "3c5fa79bcf147888c9a512797a6783d820944d529455182839b4bf3249419bf6"
+    },
+    "reviewed_clauses": [
+      {
+        "label": "hd130-tandem",
+        "text": "HD 130 tandem roller",
+        "literal_fragments": [
+          "HD 130 tandem roller"
+        ],
+        "physical_pages": [
+          1
+        ],
+        "verification": "reviewed_literal_transcription"
+      }
+    ],
+    "reviewed_facts": [
+      {
+        "subject": {
+          "manufacturer": "HAMM",
+          "model": "HD 130"
+        },
+        "predicate": "equipment_class",
+        "value": "tandem_roller",
+        "clause_label": "hd130-tandem",
+        "literal_quote": "HD 130 tandem roller",
+        "review_status": "reviewed_literal_transcription",
+        "scope": "generic_model_class_only",
+        "matching_policy": "exact_manufacturer_and_model_no_suffix_inference"
+      }
+    ]
+  }
+]

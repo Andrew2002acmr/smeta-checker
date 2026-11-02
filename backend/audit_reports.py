@@ -174,11 +174,17 @@ def build_user_report(df, tracking, tasks):
     """
     tracking = [_as_source_dict(source) for source in tracking]
     tasks = [_as_task_dict(task) for task in tasks]
+    from vor_material_links import material_links
+    links = material_links(tasks)
+    tasks = [{**task, "derived_material": task.get("derived_material") or links.get(task.get("idx"))}
+             for task in tasks]
     rows = (_df_rows(df) if hasattr(df, "iterrows") else [dict(r) for r in df])
     if len(rows) != len(tracking) or len(rows) != len(tasks):
         raise ValueError("Данные позиций и источников отчёта не согласованы")
     records = []
     for row, source, task in zip(rows, tracking, tasks):
+        from audit_review_policy import review_source
+        source = review_source(source, task)
         files = [_basename(ref) for ref in split_pdf_refs(task.get("file_refs", ""))]
         if source.get("pdf_name"):
             resolved = _basename(source["pdf_name"])
@@ -193,6 +199,10 @@ def build_user_report(df, tracking, tasks):
             extra = f"стр. {consumption['schedule_page']}"
             location = extra if location == "Место не установлено" else location + "; " + extra
         remarks, notes = [], []
+        if source.get("rounding_note"):
+            notes.append(source["rounding_note"])
+        if source.get("vor_detail_note"):
+            notes.append(source["vor_detail_note"])
         raw_status = row.get("Статус аудита")
         status = MANUAL
         checks = {check.get("claim_id"): check
@@ -247,6 +257,14 @@ def build_user_report(df, tracking, tasks):
             notes.append(
                 "Нормативная позиция: расценивается по сборнику, "
                 "в ПД объёму подтверждения нет и быть не должно.")
+        elif task.get("derived_material") and source.get("derived_material_pending") and raw_status != TECHNICAL_ERROR:
+            link = task["derived_material"]
+            notes.append(
+                f"Расчётный материал связан с работой №{link['number']} "
+                f"(ВОР, строка {link['row']}): {link['name']}. "
+                f"Расчёт: {link['expression']}. Отдельная строка материала в ПД не требуется. "
+                "Основание самой работы проверяется в её позиции. "
+                "Коэффициенты расхода требуют проверки по нормативам.")
         elif not source.get("work_found"):
             if raw_status == TECHNICAL_ERROR:
                 if status != DISCREPANCY:
@@ -354,7 +372,10 @@ def build_user_report(df, tracking, tasks):
                              "chain-mismatch": "Цепочка «работа × запас = материал» не сошлась.",
                              }.get(code, code))
             if not source.get("comment_confirmed"):
-                notes.append("Примечание из ВОР в проекте не нашлось.")
+                proposed = any(":comment:" in check.get("claim_id", "") and check.get("facts")
+                               for check in source.get("checks") or [])
+                notes.append("Примечание из ВОР требует сверки с ПД." if proposed
+                             else "Примечание из ВОР в проекте не нашлось.")
             found_page = source.get("found_page")
             if found_page and source.get("vor_pages") and found_page not in source["vor_pages"]:
                 if any(abs(found_page - page) == 1 for page in source["vor_pages"]):
@@ -375,6 +396,7 @@ def build_user_report(df, tracking, tasks):
             elif not remarks and raw_status == "ОК":
                 status = "ОК"
         if source.get("evaluation_version") == "evidence-claims-v1":
+            independent_material_conflict = bool(source.get("derived_material_pending") and status == DISCREPANCY)
             from audit_models import claim_status
             verdict = claim_status(list(checks.values()),
                                    source.get("execution_errors", []),
@@ -382,6 +404,8 @@ def build_user_report(df, tracking, tasks):
                                                       or source.get("contexts")))
             status = {"Ошибка": DISCREPANCY, INCOMPLETE: MANUAL,
                       TECHNICAL_ERROR: NOT_CHECKED, "ОК": "ОК"}[verdict]
+            if independent_material_conflict:
+                status = DISCREPANCY
             covered_workbook = any(
                 "ведомости противоречие" in str(note) for note in remarks
             )
@@ -390,6 +414,8 @@ def build_user_report(df, tracking, tasks):
             )
             seen_comment = False
             for check in checks.values():
+                if check.get("claim_id") == "derived:rate":
+                    continue  # The linked-material note explains the pending normative check.
                 if check.get("state") in {"confirmed", "not_applicable"}:
                     continue
                 claim_id = str(check.get("claim_id") or "")

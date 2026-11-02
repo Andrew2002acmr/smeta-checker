@@ -9,6 +9,7 @@ import {
   runLabel,
   runStatusColor,
   truncateMiddle,
+  firstSentence,
 } from '~/utils/presentation'
 const route = useRoute(),
   router = useRouter(),
@@ -20,7 +21,8 @@ const route = useRoute(),
   error = ref(''),
   busy = ref(true),
   cancelling = ref(false),
-  focus = ref('fix'),
+  resuming = ref(false),
+  focus = ref('all'),
   query = ref(''),
   offset = ref(0)
 const position = computed(() =>
@@ -28,13 +30,14 @@ const position = computed(() =>
     ? Number(route.query.position)
     : null,
 )
-type QueueId = 'fix' | 'review' | 'missing' | 'ok' | 'all'
+type QueueId = 'fix' | 'review' | 'missing' | 'ok' | 'pending' | 'all'
 const queues: { id: QueueId; label: string }[] = [
   { id: 'fix', label: 'Исправить' },
   { id: 'review', label: queueLabel('review') },
   { id: 'missing', label: queueLabel('missing') },
   { id: 'ok', label: queueLabel('ok') },
-  { id: 'all', label: 'Все позиции' },
+  { id: 'pending', label: queueLabel('pending') },
+  { id: 'all', label: 'Готовые позиции' },
 ]
 const vorFileName = computed(() => formatFileName(run.value?.vor_filename || ''))
 const auditHeading = computed(() => summary.value?.project.name || 'Проверка документов')
@@ -42,8 +45,7 @@ const vorShortName = computed(() => truncateMiddle(vorFileName.value))
 const runStatus = computed(() => run.value?.status || '')
 function queueCount(id: QueueId) {
   if (!summary.value) return 0
-  if (id === 'all')
-    return summary.value.run.total ?? Object.values(summary.value.queues).reduce((a, b) => a + b, 0)
+  if (id === 'all') return (summary.value.ready_positions ?? []).length
   return summary.value.queues[id] ?? 0
 }
 function rowCell(row: RowsDto['rows'][number]) {
@@ -54,13 +56,33 @@ function rowCell(row: RowsDto['rows'][number]) {
 }
 type AuditRow = RowsDto['rows'][number]
 const auditColumns: TableColumn<AuditRow>[] = [
-  { id: 'position', accessorFn: (row: AuditRow) => row.number, header: 'Позиция' },
-  { id: 'result', accessorFn: (row: AuditRow) => row.queue, header: 'Результат проверки' },
-  { id: 'values', accessorFn: (row: AuditRow) => row.declared_quantity, header: 'Значения' },
-  { id: 'action', header: '', enableSorting: false },
+  {
+    id: 'position',
+    accessorFn: (row: AuditRow) => row.number,
+    header: 'Позиция',
+    meta: { style: { th: { width: '42%' } } },
+  },
+  {
+    id: 'status',
+    accessorFn: (row: AuditRow) => row.queue,
+    header: 'Статус',
+    meta: { style: { th: { width: '15%' } } },
+  },
+  {
+    id: 'result',
+    accessorFn: (row: AuditRow) => row.queue,
+    header: 'Результат проверки',
+    meta: { style: { th: { width: '25%' } } },
+  },
+  {
+    id: 'values',
+    accessorFn: (row: AuditRow) => row.declared_quantity,
+    header: 'Значения',
+    meta: { style: { th: { width: '18%' } } },
+  },
 ]
 const auditSorting = ref<any[]>([])
-const auditPagination = ref({ pageIndex: 0, pageSize: 100 })
+const auditPagination = ref({ pageIndex: 0, pageSize: 10 })
 function openPosition(index: number) {
   router.replace({ query: { ...route.query, position: index } })
 }
@@ -69,6 +91,10 @@ function closePosition() {
   delete next.position
   router.replace({ query: next })
 }
+const displayedReady = ref(0)
+const newReady = computed(() =>
+  Math.max(0, (summary.value?.ready_positions?.length ?? 0) - displayedReady.value),
+)
 let active = true,
   timer: ReturnType<typeof setTimeout> | undefined,
   searchTimer: ReturnType<typeof setTimeout> | undefined,
@@ -82,10 +108,12 @@ async function loadRows() {
       focus: focus.value,
       q: query.value,
       offset: offset.value,
+      limit: 10,
     })
     if (active && current === epoch) {
       results.value = data
-      auditPagination.value = { pageIndex: Math.floor(offset.value / 100), pageSize: 100 }
+      displayedReady.value = summary.value?.ready_positions?.length ?? 0
+      auditPagination.value = { pageIndex: Math.floor(offset.value / 10), pageSize: 10 }
     }
   } catch (e) {
     if (active && current === epoch) error.value = readableError(e)
@@ -98,7 +126,7 @@ function changePage(delta: number) {
   loadRows()
 }
 function setPage(page: number) {
-  offset.value = Math.max(0, (page - 1) * 100)
+  offset.value = Math.max(0, (page - 1) * 10)
   loadRows()
 }
 async function poll() {
@@ -107,18 +135,23 @@ async function poll() {
   try {
     const value = await backend.run(runId.value)
     if (!active) return
+    const normativeChanged =
+      JSON.stringify(run.value?.normative_counts) !== JSON.stringify(value.normative_counts)
+    const changed =
+      normativeChanged ||
+      !summary.value ||
+      run.value?.done !== value.done ||
+      run.value?.status !== value.status
     run.value = value
-    if (value.status === 'running') {
-      timer = setTimeout(poll, 1500)
-      return
+    if (changed) {
+      summary.value = await backend.summary(runId.value)
+      if (normativeChanged || !results.value || !results.value.rows.length) await loadRows()
     }
-    if (value.status === 'cancelled') {
-      busy.value = false
-      return
-    }
-    summary.value = await backend.summary(runId.value)
-    await loadRows()
-    fixButton.value?.focus({ preventScroll: true })
+    if (
+      value.status === 'running' ||
+      ['pending', 'dispatched', 'running'].some((key) => (value.normative_counts?.[key] ?? 0) > 0)
+    )
+      timer = setTimeout(poll, 3000)
   } catch (e) {
     if (active) {
       error.value = readableError(e) + '. Повторяем подключение…'
@@ -138,6 +171,19 @@ async function download() {
     error.value = readableError(e)
   }
 }
+async function resume() {
+  if (resuming.value || !run.value || !['cancelled', 'failed'].includes(run.value.status)) return
+  resuming.value = true
+  error.value = ''
+  try {
+    run.value = await backend.resumeAudit(runId.value)
+    await poll()
+  } catch (e) {
+    error.value = readableError(e)
+  } finally {
+    resuming.value = false
+  }
+}
 async function cancel() {
   if (cancelling.value || !run.value || run.value.status !== 'running') return
   cancelling.value = true
@@ -145,6 +191,8 @@ async function cancel() {
     const value = await backend.cancelAudit(runId.value)
     run.value = value
     clearTimeout(timer)
+    summary.value = await backend.summary(runId.value)
+    await loadRows()
   } catch (e) {
     error.value = readableError(e)
   } finally {
@@ -213,7 +261,20 @@ onBeforeUnmount(() => {
           >
         </div>
         <div class="heading-actions">
-          <UButton v-if="summary" variant="outline" icon="i-lucide-download" @click="download()">
+          <UButton
+            v-if="runStatus === 'cancelled' || runStatus === 'failed'"
+            icon="i-lucide-play"
+            :loading="resuming"
+            @click="resume"
+          >
+            Продолжить обработку
+          </UButton>
+          <UButton
+            v-if="summary && (runStatus === 'done' || runStatus === 'failed')"
+            variant="outline"
+            icon="i-lucide-download"
+            @click="download()"
+          >
             Скачать Word
           </UButton>
         </div>
@@ -221,6 +282,13 @@ onBeforeUnmount(() => {
       <div v-if="error" class="error-box" role="alert">
         {{ error }} <UButton variant="link" @click="poll">Повторить</UButton>
       </div>
+      <p v-if="run && Object.keys(run.normative_counts ?? {}).length" role="status" class="muted">
+        Нормативный слой: обработано {{ run.normative_counts?.done ?? 0 }}; выполняется
+        {{ run.normative_counts?.running ?? 0 }}; ожидает
+        {{ (run.normative_counts?.pending ?? 0) + (run.normative_counts?.dispatched ?? 0) }};
+        прервано {{ (run.normative_counts?.failed ?? 0) + (run.normative_counts?.cancelled ?? 0) }}.
+        Сопоставление и просмотр готовых позиций доступны независимо.
+      </p>
       <section v-if="run?.status === 'running'" class="panel progress" role="status">
         <h2>
           {{
@@ -276,9 +344,25 @@ onBeforeUnmount(() => {
         позиции не подтверждены.
       </p>
       <p v-if="run?.status === 'cancelled'" class="error-box">
-        Проверка остановлена. Частичные результаты могут быть недоступны.
+        Проверка остановлена. Готовые результаты и сохранённые исправления доступны ниже.
+      </p>
+      <p v-if="runStatus === 'cancelled' || runStatus === 'failed'" class="muted">
+        Продолжение обработает оставшиеся позиции. Готовые результаты и ваши основания сохранятся.
       </p>
       <template v-if="summary">
+        <div class="toolbar" aria-label="Готовые результаты">
+          <p>
+            Готово к просмотру: {{ summary.ready_positions?.length ?? 0 }} из
+            {{ run?.total ?? '…' }}. Порции по 10 позиций.
+          </p>
+          <UButton
+            :label="
+              newReady ? `Показать новые результаты · ${newReady}` : 'Обновить готовые позиции'
+            "
+            :loading="busy"
+            @click="loadRows"
+          />
+        </div>
         <div class="toolbar results-bar">
           <div class="filters" role="group" aria-label="Фильтр позиций по очередям">
             <button
@@ -315,7 +399,8 @@ onBeforeUnmount(() => {
             v-model:pagination="auditPagination"
             :pagination-options="{ manualPagination: true, rowCount: results?.total ?? 0 }"
             :columns="auditColumns"
-            class="results max-h-[60vh] overflow-auto"
+            :ui="{ base: 'table-fixed w-full' }"
+            class="results max-h-[60vh] overflow-y-auto overflow-x-hidden"
           >
             <template #position-cell="{ row }">
               <div>
@@ -325,13 +410,17 @@ onBeforeUnmount(() => {
                 <p class="muted">{{ row.original.sheet || 'CSV' }} · {{ rowCell(row.original) }}</p>
               </div>
             </template>
+            <template #status-cell="{ row }">
+              <UBadge
+                :color="queueColor(row.original.queue)"
+                variant="subtle"
+                class="max-w-full whitespace-normal"
+              >
+                {{ queueLabel(row.original.queue) }}
+              </UBadge>
+            </template>
             <template #result-cell="{ row }">
-              <div>
-                <UBadge :color="queueColor(row.original.queue)" variant="subtle">
-                  {{ queueLabel(row.original.queue) }}
-                </UBadge>
-                <p class="row-problem">{{ row.original.problem }}</p>
-              </div>
+              <p class="row-problem">{{ firstSentence(row.original.problem) }}</p>
             </template>
             <template #values-cell="{ row }">
               <div class="numbers">
@@ -344,20 +433,23 @@ onBeforeUnmount(() => {
                 <p class="muted">
                   ПД {{ quantityWithUnit(row.original.found_quantity, row.original.found_unit) }}
                 </p>
+                <UButton
+                  variant="link"
+                  size="sm"
+                  class="open-position"
+                  @click="openPosition(row.original.position_index)"
+                >
+                  Открыть позицию
+                </UButton>
               </div>
-            </template>
-            <template #action-cell="{ row }">
-              <UButton variant="ghost" @click="openPosition(row.original.position_index)">
-                Открыть позицию
-              </UButton>
             </template>
           </UTable>
           <p v-if="!results?.rows.length && !busy" class="empty">По этому фильтру позиций нет.</p>
         </div>
-        <div v-if="results && results.total > 100" class="toolbar pagination">
+        <div v-if="results && results.total > 10" class="toolbar pagination">
           <UPagination
-            :page="Math.floor(offset / 100) + 1"
-            :items-per-page="100"
+            :page="Math.floor(offset / 10) + 1"
+            :items-per-page="10"
             :total="results.total"
             @update:page="setPage"
           />
@@ -384,6 +476,7 @@ onBeforeUnmount(() => {
         :run-id="runId"
         :position-index="position"
         :position-count="summary.run.total ?? 0"
+        :ready-positions="summary.ready_positions"
         :documents="summary.documents"
         @close="closePosition"
         @navigate="openPosition"
@@ -466,20 +559,51 @@ onBeforeUnmount(() => {
   min-width: min(100%, 240px);
 }
 .table-wrap {
-  overflow: auto;
+  min-width: 0;
+  width: 100%;
+}
+.results :deep(table) {
+  table-layout: fixed;
+  width: 100%;
+}
+.results :deep(th),
+.results :deep(td) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.results :deep(th:nth-child(1)) {
+  width: 42%;
+}
+.results :deep(th:nth-child(2)) {
+  width: 15%;
+}
+.results :deep(th:nth-child(3)) {
+  width: 25%;
+}
+.results :deep(th:nth-child(4)) {
+  width: 18%;
+}
+.open-position {
+  margin-top: 8px;
+  padding-left: 0;
+}
+.results :deep(button) {
+  white-space: normal;
+  max-width: 100%;
 }
 .row-name {
   display: block;
   color: var(--ui-text-highlighted);
 }
 .row-problem {
-  margin-top: 6px;
+  margin-top: 0;
   color: var(--ui-text-highlighted);
   font-weight: 600;
 }
 .numbers {
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  white-space: normal;
 }
 .row-action {
   text-align: right;
@@ -511,7 +635,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 @media (max-width: 700px) {
-  .results thead {
+  .results :deep(thead) {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -519,25 +643,28 @@ onBeforeUnmount(() => {
     clip-path: inset(50%);
     white-space: nowrap;
   }
-  .results tbody {
+  .results :deep(table),
+  .results :deep(tbody) {
     display: block;
   }
-  .results tr {
+  .results :deep(tr) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 16px 12px;
     padding: 20px 16px;
   }
-  .results td {
+  .results :deep(td) {
     display: block;
     padding: 0;
     border: 0;
   }
-  .results td:nth-child(1),
-  .results td:nth-child(2) {
+  .results :deep(td:nth-child(1)),
+  .results :deep(td:nth-child(2)),
+  .results :deep(td:nth-child(3)),
+  .results :deep(td:nth-child(4)) {
     grid-column: 1 / -1;
   }
-  .results tbody tr + tr {
+  .results :deep(tbody tr + tr) {
     border-top: 1px solid var(--ui-border);
   }
   .row-action {

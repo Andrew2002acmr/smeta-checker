@@ -11,7 +11,7 @@ overrides. The unique ``(project, kind, filename)`` identity was removed in
 the lifecycle migration: same bytes in different logical documents are
 permitted, same bytes in one document still dedupe to one version. Run PDF
 pins are relational rows (``run_pdf_versions``). VOR designations verify
-against PDF text at audit time; no manual binding is stored.
+against PDF text at audit time; explicit VOR-version bindings are snapshotted in run configuration.
 """
 
 from __future__ import annotations
@@ -105,6 +105,7 @@ class DocumentVersion(Base):
     metadata_overrides: Mapped[dict[str, Any]] = mapped_column(
         JSONB, default=dict, server_default="{}"
     )
+    pdf_bindings: Mapped[dict[str, str]] = mapped_column(JSONB, default=dict, server_default="{}")
     format_status: Mapped[dict[str, Any]] = mapped_column(
         JSONB, default=dict, server_default="{}"
     )
@@ -221,3 +222,88 @@ class RunArtifact(Base):
     size: Mapped[int] = mapped_column(Integer)
 
     __table_args__ = (UniqueConstraint("run_id", "kind"),)
+
+
+class TaskOutbox(Base):
+    """Durable task intent, delivery lease and bounded execution attempts."""
+
+    __tablename__ = "task_outbox"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("runs.id", ondelete="CASCADE"), index=True,
+    )
+    task_key: Mapped[str] = mapped_column(String(128))
+    task_name: Mapped[str] = mapped_column(String(128))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    delivery_token: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    __table_args__ = (UniqueConstraint("run_id", "task_key"),)
+
+
+class HumanBasis(Base):
+    """User-reviewed evidence; independent of immutable machine verdicts."""
+
+    __tablename__ = "human_basis"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    run_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("runs.id", ondelete="CASCADE"))
+    position_index: Mapped[int] = mapped_column(Integer)
+    vor_version_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("document_versions.id", ondelete="CASCADE"))
+    pdf_version_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("document_versions.id", ondelete="CASCADE"))
+    position_key: Mapped[str] = mapped_column(String(64), index=True)
+    fingerprint: Mapped[str] = mapped_column(String(64), unique=True)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    actor: Mapped[str] = mapped_column(String(256))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_by: Mapped[str | None] = mapped_column(String(256), nullable=True)
+
+
+class PositionResultVersion(Base):
+    __tablename__ = "position_result_versions"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
+    run_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("runs.id", ondelete="CASCADE"), index=True)
+    position_index: Mapped[int] = mapped_column(Integer)
+    result: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.clock_timestamp())
+
+
+class NormativeReview(Base):
+    """Append-only normative searches and engineer choices, separate from audits."""
+    __tablename__ = "normative_reviews"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("runs.id", ondelete="CASCADE"), index=True)
+    position_index: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String(16))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    actor: Mapped[str] = mapped_column(String(256))
+    fingerprint: Mapped[str] = mapped_column(String(64), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ReviewArtifact(Base):
+    __tablename__ = "review_artifacts"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("runs.id", ondelete="CASCADE"), index=True)
+    position_index: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String(16))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    actor: Mapped[str] = mapped_column(String(256))
+    fingerprint: Mapped[str] = mapped_column(String(64), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AnalysisArtifact(Base):
+    """First-writer-wins content-addressed stage output, scoped to a project."""
+    __tablename__ = 'analysis_artifacts'
+    key: Mapped[str] = mapped_column(String(64),primary_key=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True),ForeignKey('projects.id',ondelete='CASCADE'),index=True)
+    stage: Mapped[str] = mapped_column(String(32))
+    identity: Mapped[dict[str,Any]] = mapped_column(JSONB)
+    payload: Mapped[dict[str,Any]] = mapped_column(JSONB)
+    sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),server_default=func.now())

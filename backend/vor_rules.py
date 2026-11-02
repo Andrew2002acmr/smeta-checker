@@ -3,6 +3,7 @@ import datetime
 import openpyxl
 from openpyxl.utils import get_column_letter
 import io
+from vor_formula import has_formula_text
 import docx
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -742,6 +743,8 @@ def validate_vor_formatting(file_source, sheet_name=None):
     # БЛОК 2. ЗАПРЕТ СЛОВА 'ЗАГОЛОВОК' В СТРОКЕ 18
     # =========================================================================
     for col_i in range(1, 12):
+        if col_i in {1, 10}:
+            continue
         v_18 = get_val(18, col_i)
         if "заголовок" in str(v_18).lower():
             add_res(
@@ -760,18 +763,6 @@ def validate_vor_formatting(file_source, sheet_name=None):
     max_c = ws.max_column
     empty_streak = 0
     has_active_position = False
-
-    # Предварительно собираем все идентификаторы из колонки J и считаем их частоту
-    from collections import Counter
-
-    all_j_ids = []
-    for r_scan in range(18, max_r + 1):
-        val_scan = str(ws.cell(row=r_scan, column=10).value or "").strip()
-        val_a_scan = str(ws.cell(row=r_scan, column=1).value or "").strip()
-        # Учитываем только строки позиций
-        if val_a_scan.isdigit() and val_scan:
-            all_j_ids.append(val_scan)
-    id_frequencies = Counter(all_j_ids)
 
     for r in range(17, max_r + 1):
         row_vals = [get_val(r, c) for c in range(1, 12)]
@@ -799,9 +790,9 @@ def validate_vor_formatting(file_source, sheet_name=None):
         # Признаки того, что строка является разделом:
         # 1) Начинается со слова "Раздел" (с двоеточием или без, в любом регистре)
         # 2) Либо ячейка жирная (bold), а остальные рабочие колонки (B, C, D, K) пусты
-        is_section_candidate = bool(
+        is_section_candidate = (bool(
             re.match(r"^раздел", val_a_clean, re.IGNORECASE)
-        ) or (
+        ) and not (val_b and (val_c or val_d))) or (
             is_bold
             and val_b == ""
             and val_c == ""
@@ -868,11 +859,11 @@ def validate_vor_formatting(file_source, sheet_name=None):
                 )
 
         # --- ТИП 2: ОСНОВНАЯ СТРОКА ПОЗИЦИИ ---
-        elif str(val_a).strip().isdigit():
+        elif str(val_a).strip().isdigit() or (val_b and (val_c or val_d or val_k)):
             has_active_position = True
 
-            # A: номер позиции
-            add_res(f"A{r}", "ROW_POS", "Целое число (1, 2, 3...)", val_a, "ОК")
+            # A and J are bookkeeping labels; they are neither mandatory
+            # engineering facts nor quantities to compare against the PD.
 
             # B: наименование
             if val_b == "":
@@ -944,7 +935,7 @@ def validate_vor_formatting(file_source, sheet_name=None):
 
             # --- E: ФОРМУЛА И СВЕРКА С ОБЪЕМОМ ---
             # Если формула не заполнена, пропускаем без ошибок
-            if val_e != "" and str(val_e).strip() != "":
+            if has_formula_text(val_e):
                 calc_result, calc_err = safe_calc_formula(val_e)
                 if calc_err:
                     add_res(
@@ -1040,29 +1031,6 @@ def validate_vor_formatting(file_source, sheet_name=None):
                 else:
                     add_res(f"G{r}", "ROW_POS", "Корректный путь к файлу", val_g, "ОК")
 
-            # --- J: ИДЕНТИФИКАТОР (НЕ ПУСТО И БЕЗ ПОВТОРОВ) ---
-            id_clean = str(val_j).strip()
-            if not id_clean:
-                add_res(
-                    f"J{r}",
-                    "ROW_POS",
-                    f"В ячейку J{r} впишите идентификатор позиции — например Ф78",
-                    "<Пусто>",
-                    "Ошибка",
-                    "Идентификатор не заполнен (обязателен для каждой позиции)",
-                )
-            elif id_frequencies.get(id_clean, 0) > 1:
-                add_res(
-                    f"J{r}",
-                    "ROW_POS",
-                    f"В ячейке J{r} замените «{id_clean}» на идентификатор, которого ещё нет в ведомости",
-                    id_clean,
-                    "Ошибка",
-                    f"Дубликат идентификатора: '{id_clean}' встречается {id_frequencies[id_clean]} раз(а) в документе",
-                )
-            else:
-                add_res(f"J{r}", "ROW_POS", "Уникальный идентификатор", id_clean, "ОК")
-
             # K: тип позиции (не пусто)
             if val_k == "":
                 add_res(
@@ -1095,13 +1063,16 @@ def validate_vor_formatting(file_source, sheet_name=None):
             else:
                 validate_fgh(val_f, val_g, val_h, r, add_res)
 
+        elif all(value == "" for col, value in enumerate(row_vals) if col not in {0, 9}):
+            # A/J-only labels are bookkeeping, not incomplete work rows.
+            continue
         # --- ТИП 3: НЕКОРРЕКТНАЯ СТРОКА ---
         else:
             preview = " | ".join([str(v)[:20] for v in row_vals if v != ""])
             add_res(
                 f"A{r}-K{r}",
                 "ROW_INVALID",
-                f"Приведите строку {r} к одному виду: раздел («Раздел: 1. Название»), позиция (номер в колонке A) или продолжение ссылок под позицией",
+                f"Приведите строку {r} к одному виду: раздел, позиция с наименованием и количеством или продолжение ссылок под позицией",
                 preview,
                 "Ошибка",
                 "Не удалось отнести строку ни к разделу, ни к позиции работы, ни к привязке документов",

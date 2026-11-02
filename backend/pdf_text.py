@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from billiard.exceptions import SoftTimeLimitExceeded
+
 import hashlib
 import json
 import os
@@ -12,6 +14,7 @@ import threading
 import shutil
 from importlib.metadata import version as _pkg_version
 from pathlib import Path
+from typing import Any
 
 from audit_core import PageTextIndex
 from audit_tracing import span
@@ -112,6 +115,8 @@ def _fix_cmap_shifts(page, text):
     fixes = {}
     try:
         blocks = page.get_text("dict", sort=True)["blocks"]
+    except SoftTimeLimitExceeded:
+        raise
     except Exception:
         return text, 0
     for block in blocks:
@@ -152,6 +157,8 @@ def _deglue_numbers(page, text):
     """
     try:
         words = page.get_text("words", sort=True)
+    except SoftTimeLimitExceeded:
+        raise
     except Exception:
         return text, 0
     count = 0
@@ -211,10 +218,14 @@ def _parser_fingerprint():
     """Extractor versions reflected in the Markdown/table cache key."""
     try:
         layout = _pkg_version("pymupdf-layout")
+    except SoftTimeLimitExceeded:
+        raise
     except Exception:
         layout = "unknown"
     try:
         extractor = _pkg_version("pymupdf4llm")
+    except SoftTimeLimitExceeded:
+        raise
     except Exception:
         extractor = getattr(pymupdf4llm, "__version__", "unknown")
     return (
@@ -250,8 +261,12 @@ class PDFTextSource:
         max_pixels=12000000,
         max_side=4096,
         progress=None,
+        checkpoint=None,
+        native_state=None,
+        full_document=False,
     ):
         self._progress = progress
+        self._checkpoint = checkpoint
         self._owner_thread = threading.get_ident()
         if min(dpi, max_pixels, max_side) <= 0:
             raise ValueError("Параметры OCR должны быть положительными")
@@ -268,6 +283,7 @@ class PDFTextSource:
             # holding tobytes() copies in RAM (78MB PDF -> 234MB peak).
             import tempfile
 
+            Path(cache_dir).parent.mkdir(parents=True, exist_ok=True)
             fd, self._tmp_path = tempfile.mkstemp(
                 prefix="smeta-pdf-", suffix=".pdf", dir=str(Path(cache_dir).parent)
             )
@@ -307,10 +323,21 @@ class PDFTextSource:
         self._extraction_key = self._extraction_key_for(TABLE_OUTPUT)
         self._settings_key = self._settings_key_for(language, dpi, max_pixels, max_side)
         self._table_key = self._table_key_for(MAX_TABLE_CELL_CHARS)
+        if full_document:
+            self._table_key = hashlib.sha256((self._table_key + ':full-document-v1').encode()).hexdigest()
+        self._cached_native_errors = {}
         try:
-            (self._native_texts, self._native_errors, pending, self._repeated_lines) = (
-                self._read_native()
-            )
+            if native_state is None:
+                (self._native_texts, self._native_errors, pending, self._repeated_lines) = self._read_native()
+            else:
+                expected = (self._pdf_hash, self._extraction_key, self._settings_key, self._table_key)
+                actual = tuple(native_state.get(k) for k in ('pdf_sha256', 'extraction_key', 'ocr_settings_key', 'table_key'))
+                if actual != expected or len(native_state['texts']) != len(self._doc):
+                    raise ValueError('Prepared native state belongs to another PDF or extractor configuration')
+                self._native_texts = tuple(native_state['texts'])
+                self._native_errors = {int(k): v for k, v in native_state['errors'].items()}
+                pending = native_state['pending']
+                self._repeated_lines = set(native_state['repeated_lines'])
         except BaseException:
             self.close()
             raise
@@ -335,12 +362,16 @@ class PDFTextSource:
         try:
             if self._doc is not None and not getattr(self._doc, "is_closed", False):
                 self._doc.close()
+        except SoftTimeLimitExceeded:
+            raise
         except Exception:
             pass
         tmp = getattr(self, "_tmp_path", None)
         if tmp:
             try:
                 Path(tmp).unlink(missing_ok=True)
+            except SoftTimeLimitExceeded:
+                raise
             except Exception:
                 pass
             self._tmp_path = None
@@ -349,6 +380,8 @@ class PDFTextSource:
         # Tests and error paths may skip close(): never leak the spill file.
         try:
             self.close()
+        except SoftTimeLimitExceeded:
+            raise
         except Exception:
             pass
 
@@ -371,6 +404,8 @@ class PDFTextSource:
             return False
         try:
             return len(drawings_fn()) >= 50
+        except SoftTimeLimitExceeded:
+            raise
         except Exception:
             return False
 
@@ -401,6 +436,8 @@ class PDFTextSource:
                 cached = self._read_cached_extraction(idx)
                 if cached is not None:
                     text, is_scan = cached
+                    if idx in self._cached_native_errors:
+                        errors[idx] = self._cached_native_errors[idx]
                     texts.append(text)
                     if is_scan:
                         scans.append(idx)
@@ -416,8 +453,12 @@ class PDFTextSource:
                     raw, _ = _deglue_numbers(page, raw)
                     natives[idx] = _compact_text(raw)
                     deferred.append(idx)
+                except SoftTimeLimitExceeded:
+                    raise
                 except Exception as exc:
                     errors[idx] = "Сбой чтения PDF (PyMuPDF4LLM): %s" % str(exc)[:200]
+                    scans.append(idx)
+                    self._write_cached_extraction(idx, '', True, error=errors[idx])
                     if self._progress:
                         self._progress(idx + 1, len(doc))
             repeated = _repeated_lines(
@@ -432,6 +473,7 @@ class PDFTextSource:
                         errors[idx] = (
                             "Сложный векторный чертёж: анализ разметки ограничен; требуется ручная проверка страницы"
                         )
+                        self._write_cached_extraction(idx, natives[idx], False, error=errors[idx])
                         if self._progress:
                             self._progress(idx + 1, len(doc))
                         continue
@@ -459,8 +501,13 @@ class PDFTextSource:
                             self._progress(idx + 1, len(doc))
                         continue
                     pending.append(idx)
+                except SoftTimeLimitExceeded:
+                    raise
                 except Exception as exc:
                     errors[idx] = "Сбой чтения PDF (PyMuPDF4LLM): %s" % str(exc)[:200]
+                    scans.append(idx)
+                    texts[idx] = natives.get(idx, '')
+                    self._write_cached_extraction(idx, texts[idx], True, error=errors[idx])
                     if self._progress:
                         self._progress(idx + 1, len(doc))
             # Pass 2 (expensive): one pipeline init per batch, not per page.
@@ -472,6 +519,8 @@ class PDFTextSource:
                         markdown_doc, pages=batch, **_MARKDOWN_KWARGS
                     )
                     by_page = dict(zip(batch, chunks))
+                except SoftTimeLimitExceeded:
+                    raise
                 except Exception:
                     # One rotten page must not kill its batch neighbours:
                     # retry the batch page by page, isolating the failure.
@@ -482,11 +531,15 @@ class PDFTextSource:
                                 markdown_doc, pages=[idx], **_MARKDOWN_KWARGS
                             )
                             by_page[idx] = single[0] if single else None
+                        except SoftTimeLimitExceeded:
+                            raise
                         except Exception as exc:
-                            texts[idx] = ""
+                            texts[idx] = natives.get(idx, '')
                             errors[idx] = (
                                 "Сбой чтения PDF (PyMuPDF4LLM): %s" % str(exc)[:200]
                             )
+                            scans.append(idx)
+                            self._write_cached_extraction(idx, texts[idx], True, error=errors[idx])
                             if self._progress:
                                 self._progress(idx + 1, len(doc))
                     for idx in batch:
@@ -575,6 +628,11 @@ class PDFTextSource:
     def _table_key_for(max_cell_chars):
         engine = pymupdf.VersionBind
         from pdf_tables import VERSION
+        from pdf_table_verification import VERSION as HEADER_VERSION
+        from pdf_table_verification import SEMANTIC_VERSION
+        from pdf_header_geometry import VERSION as GEOMETRY_VERSION
+        from pdf_row_sections import VERSION as ROW_SECTION_VERSION
+        from pdf_cell_ocr import VERSION as CELL_VERSION, NUMERIC_RECOVERY_VERSION
 
         raw = _cache_payload(
             {
@@ -582,6 +640,12 @@ class PDFTextSource:
                 "pymupdf": str(engine),
                 "max_cell_chars": max_cell_chars,
                 "physical_cells": VERSION,
+                "header_verification": HEADER_VERSION,
+                "semantic_header_verification": SEMANTIC_VERSION,
+                "header_geometry_verification": GEOMETRY_VERSION,
+                "row_section_classification": ROW_SECTION_VERSION,
+                "cell_verification": CELL_VERSION,
+                "numeric_recovery": NUMERIC_RECOVERY_VERSION,
                 "rapidocr": _pkg_version("rapidocr"),
                 "rapid_table": _pkg_version("rapid-table"),
                 "opencv": _pkg_version("opencv-python"),
@@ -637,9 +701,11 @@ class PDFTextSource:
         is_scan = envelope.get("is_scan")
         if not isinstance(text, str) or not isinstance(is_scan, bool):
             return None
+        if envelope.get('native_error'):
+            self._cached_native_errors[idx] = str(envelope['native_error'])
         return _compact_text(text), is_scan
 
-    def _write_cached_extraction(self, idx, text, is_scan):
+    def _write_cached_extraction(self, idx, text, is_scan, *, error=None):
         """Persist one Markdown page; failures are ignored and never poison reads."""
         envelope = {
             "schema": CACHE_SCHEMA_VERSION,
@@ -648,11 +714,11 @@ class PDFTextSource:
             "extraction_key": self._extraction_key,
             "markdown": text,
             "is_scan": bool(is_scan),
+            "native_error": error,
         }
         self._write_cache_bytes(self._extraction_path(idx), _cache_payload(envelope))
 
-    @staticmethod
-    def _write_cache_bytes(path, payload):
+    def _write_cache_bytes(self, path, payload):
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             tmp = path.with_name(
@@ -660,8 +726,14 @@ class PDFTextSource:
             )
             tmp.write_bytes(payload)
             os.replace(tmp, path)
+        except SoftTimeLimitExceeded:
+            raise
         except Exception:
-            pass
+            return
+        # Yield only after durable progress, never after a failed OCR/cache
+        # write which would repeat forever at the next preparation slice.
+        if self._checkpoint:
+            self._checkpoint()
 
     def _ocr_settings_identity(self):
         """Full OCR identity for caching: engine, settings, geometry knobs."""
@@ -796,6 +868,8 @@ class PDFTextSource:
         try:
             record = self._ocr_page_result(idx)
             self.ocr_count += 1
+        except SoftTimeLimitExceeded:
+            raise
         except Exception as exc:
             self._ocr_errors[idx] = "OCR не выполнен (Tesseract %s): %s" % (
                 self.language,
@@ -851,6 +925,8 @@ class PDFTextSource:
             if rect.is_empty or rect.width <= 0 or rect.height <= 0:
                 return ""
             return _compact_text(page.get_textbox(rect)).strip()
+        except SoftTimeLimitExceeded:
+            raise
         except Exception:
             return ""
 
@@ -871,6 +947,8 @@ class PDFTextSource:
 
         try:
             tables = native_tables(page, self._native_cell_text)
+        except SoftTimeLimitExceeded:
+            raise
         except Exception as exc:
             self._table_errors[idx] = (
                 f"native_table_failed:{type(exc).__name__}:{str(exc)[:160]}"
@@ -938,11 +1016,22 @@ class PDFTextSource:
                 "rotation", 0
             )
             tables = raster_tables(self._doc[idx], rotation=int(orientation))
+            from pdf_tables import verify_numeric_cells, recover_unit_headers
+            recover_unit_headers(tables, (self._ocr_pages.get(idx) or {}).get('words') or [])
+            verify_numeric_cells(tables, (self._ocr_pages.get(idx) or {}).get('words') or [])
+            from pdf_cell_ocr import refine_tables
+            from pdf_table_verification import verify_recovered_tables
+            refine_tables(self._doc[idx],[t for t in tables if not t.get('recovery')],
+                rotation=int(orientation),cache_dir=self._cache_dir)
+            verify_recovered_tables(self._doc[idx],tables,rotation=int(orientation),
+                cache_dir=self._cache_dir,seconds=90,max_headers=32,max_numbers=32)
             # Reuse the pipeline's locale normalization without changing source words.
             for table in tables:
                 for cell in table["cells"]:
                     cell["text"] = _ru_decimal_point(cell["text"])
             self._store_tables(idx, tables, origin="ocr")
+        except SoftTimeLimitExceeded:
+            raise
         except Exception as exc:
             self._table_errors[idx] = (
                 f"scan_table_failed:{type(exc).__name__}:{str(exc)[:160]}"
@@ -1049,7 +1138,12 @@ class PDFTextSource:
             return None
         self._structured_tables[idx] = tables
         self._table_origins[idx] = envelope.get("origin", "native")
-        return (tuple(rows), tuple(locators))
+        # The preflight in for_position also reads this envelope. Restore all
+        # views together: origin="ocr" makes _scan_grid_for return immediately,
+        # so leaving _table_rows empty would lose cached text and cell locators.
+        result = tuple(rows), tuple(locators)
+        self._table_rows[idx] = result
+        return result
 
     def _write_cached_table_rows(self, idx, grid_result):
         """Persist grid rows+locators, including empty results; failures are ignored."""
@@ -1066,7 +1160,7 @@ class PDFTextSource:
         }
         self._write_cache_bytes(self._table_path(idx), _cache_payload(envelope))
 
-    def _ocr_locators(self):
+    def _ocr_locators(self, only_page=None):
         """Build origin-``ocr`` word/line locators for recognized pages.
 
         Fail-closed binding: a word becomes a ``cell`` only when the engine
@@ -1077,6 +1171,8 @@ class PDFTextSource:
         grouped: dict[int, list[dict]] = {}
         document_id = "pdf-%s" % self._pdf_hash[:12]
         for idx, record in self._ocr_pages.items():
+            if only_page is not None and idx != only_page:
+                continue
             quality = record.get("quality") or {}
             state = quality.get("state")
             if state not in ("usable", "uncertain"):
@@ -1194,6 +1290,98 @@ class PDFTextSource:
             grouped[idx] = locators
         return grouped
 
+    def native_state(self):
+        """Reusable native pass, pinned to PDF bytes and all extractor settings."""
+        return dict(pdf_sha256=self._pdf_hash, extraction_key=self._extraction_key,
+            ocr_settings_key=self._settings_key, table_key=self._table_key,
+            ocr=self._ocr_settings_identity(),
+            texts=list(self._native_texts), errors=dict(self._native_errors),
+            pending=sorted(self._pending), repeated_lines=sorted(self._repeated_lines))
+
+    def prepare_page(self, idx) -> dict[str, Any]:
+        """Complete text, OCR and physical tables for ONE page, without VOR input.
+
+        The caller commits this page before checkpointing. Failed recognition is
+        an explicit terminal error, never a pending page or evidence of absence.
+        """
+        self._require_owner_thread('Подготовка страницы PDF')
+        native = self._native_texts[idx]
+        # Mixed pages can contain a raster schedule beside a native paragraph.
+        # Small raster logos on digital pages must not force full-page OCR.
+        page_rect = self._doc[idx].rect
+        raster_area = sum((pymupdf.Rect(info['bbox']) & page_rect).get_area()
+                          for info in self._doc[idx].get_image_info())
+        raster_body = raster_area >= .05 * page_rect.get_area()
+        if idx not in self._pending:
+            self._native_grid_for(idx)
+        native_tables = [t for t in self._structured_tables.get(idx, []) if t.get('origin') == 'native']
+        empty_grid = bool(native_tables) and not any(
+            c['text'].strip() for table in native_tables for c in table['cells'] if c.get('role') == 'cell')
+        if (idx in self._pending or idx in self._native_errors or raster_body
+            or idx in self._table_errors or empty_grid):
+            self._ocr_one(idx, 1)
+        if idx in self._ocr_pages:
+            self._scan_grid_for(idx)
+            if native_tables and not empty_grid:
+                from copy import deepcopy
+                # Native characters remain authoritative. Add disjoint raster
+                # tables with their own IDs; never replace native cells by OCR.
+                combined = list(native_tables)
+                for table in self._structured_tables.get(idx, []):
+                    if table.get('origin') == 'native':
+                        continue
+                    box = pymupdf.Rect(table.get('bbox', (0,0,0,0)))
+                    if any(not box.is_empty and
+                           (box & pymupdf.Rect(t['bbox'])).get_area() >= .8 * min(box.get_area(),pymupdf.Rect(t['bbox']).get_area())
+                           for t in native_tables if t.get('bbox')):
+                        continue
+                    table = deepcopy(table)
+                    if not table['table_id'].startswith('ocr-'):
+                        table['table_id'] = 'ocr-'+table['table_id']
+                        ids = {c['cell_id']:'ocr-'+c['cell_id'] for c in table['cells']}
+                        for cell in table['cells']:
+                            cell['cell_id'] = ids[cell['cell_id']]
+                            cell['header_ids'] = [ids.get(h,h) for h in cell['header_ids']]
+                    combined.append(table)
+                self._store_tables(idx, combined, origin='ocr')
+        text = self._merge_text(native, self._ocr_texts.get(idx, ''))
+        rows, locators = self._table_rows.get(idx, ((), ()))
+        locators = [dict(c) for c in locators]
+        locators.extend(self._ocr_locators(only_page=idx).get(idx, []))
+        record = self._ocr_pages.get(idx)
+        errors = []
+        if idx in self._native_errors and record is None:
+            errors.append(self._native_errors[idx])
+        if idx in self._ocr_errors:
+            errors.append(self._ocr_errors[idx])
+        if idx in self._table_errors:
+            errors.append(self._table_errors[idx])
+        quality = dict(record.get('quality') or {}) if record else dict(
+            state='failed' if errors else 'usable', origin='native')
+        quality.pop('words', None)
+        if errors and quality.get('state') == 'usable':
+            quality['state'] = 'uncertain'
+        origin = 'native' if native.strip() else ('ocr' if record else 'native')
+        if text.strip():
+            locators.append(dict(source_id=self._block_id(idx, origin),
+                document_id='pdf-%s' % self._pdf_hash[:12], page=idx+1,
+                text=text[:MAX_TABLE_CELL_CHARS], bbox=[], origin=origin,
+                table_id='', row_id='', column_id='', header_ids=[], group_id='',
+                scope_key='', role='block', quality=quality.get('state', 'uncertain'), rotation=0))
+        if rows:
+            text += '\n' + '\n'.join(rows)
+        page = self._doc[idx]
+        return dict(page=idx+1, text=text, table_rows=list(rows), locators=locators,
+            tables=self._structured_tables.get(idx, []), quality=quality, errors=errors,
+            geometry=dict(width=page.rect.width, height=page.rect.height,
+                          matrix=list(page.rotation_matrix)),
+            table_error=self._table_errors.get(idx))
+
+    def prepare_full(self):
+        """In-process equivalent of the durable document barrier."""
+        from document_preparation import assemble_document
+        return assemble_document(self.native_state(), [self.prepare_page(i) for i in range(self.page_count)])
+
     def for_position(
         self,
         target_indices,
@@ -1237,12 +1425,13 @@ class PDFTextSource:
         ]
         current_errors = dict(self._native_errors)
         current_errors.update(self._ocr_errors)
-        ranked = PageTextIndex(
-            tuple(merged),
-            current_errors,
-            tuple(sorted(self._pending)),
-            repeated_lines=self._repeated_lines,
-        ).candidates(work_name, comment, reference, volume)
+        # Ranking uses page text only. Reuse tokenization and weights until
+        # newly recognized pages actually change that text.
+        merged = tuple(merged)
+        if getattr(self, "_ranking_texts", None) != merged:
+            self._ranking_index = PageTextIndex(merged)
+            self._ranking_texts = merged
+        ranked = self._ranking_index.candidates(work_name, comment, reference, volume)
         top = ranked[:TOP_CANDIDATES_PER_POSITION]
         pool = set(targets) | set(top)
         for idx in list(targets) + list(top):
@@ -1291,9 +1480,22 @@ class PDFTextSource:
                 locator["document_id"] = document_id
         for idx, record in self._ocr_locators().items():
             page_locators[idx].extend(record)
-        for idx in [page for page in self._ocr_pages if page in pool][
-            :MAX_TABLE_PAGES_PER_POSITION
-        ]:
+        # A quantity schedule may share no work-name tokens with the VOR.
+        # Discover it by structure, including scans outside the lexical pool.
+        def looks_like_quantity_table(page):
+            return bool(re.search(r'ведомост|площад|объем|количеств|всего|итого', texts[page], re.I)) and len(re.findall(r'\d+[.,]\d+', texts[page])) >= 12
+        scan_tables = sorted((page for page in self._ocr_pages if page in pool or looks_like_quantity_table(page)), key=lambda page: (
+            -int(looks_like_quantity_table(page)),
+            -int(page in pool), page))
+        fresh_tables = 0
+        for idx in scan_tables:
+            cached = self._table_origins.get(idx) == 'ocr'
+            if not cached:
+                cached = self._read_cached_table_rows(idx) is not None and self._table_origins.get(idx) == 'ocr'
+            if not cached:
+                if fresh_tables >= MAX_TABLE_PAGES_PER_POSITION:
+                    continue
+                fresh_tables += 1
             if not self._table_errors.get(idx, "").startswith("scan_table_failed"):
                 self._scan_grid_for(idx)
                 if idx in self._structured_tables and idx in self._table_rows:
@@ -1350,6 +1552,9 @@ class PDFTextSource:
                 }
         metadata = {
             "pdf_sha256": self._pdf_hash,
+            "page_geometry": {str(i): dict(width=self._doc[i].rect.width, height=self._doc[i].rect.height,
+                matrix=list(getattr(self._doc[i], 'rotation_matrix', (1,0,0,1,0,0))))
+                for i in range(len(texts)) if hasattr(self._doc[i], 'rect')},
             "extraction_key": self._extraction_key,
             "ocr_settings_key": self._settings_key,
             "ocr": self._ocr_settings_identity(),

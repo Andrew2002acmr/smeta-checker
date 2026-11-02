@@ -290,6 +290,7 @@ async function requireServerSession(event: H3Event, mode: 'local' | 'ldap') {
       throw error
     }
   }
+  return rec.account
 }
 
 /**
@@ -302,12 +303,11 @@ export async function requireSession(event: H3Event) {
   const mode = authMode()
   if (mode === 'ldap') {
     assertLdapRequest(event)
-    await requireServerSession(event, 'ldap')
-    return
+    return await requireServerSession(event, 'ldap')
   }
   assertLocal(event)
   localCredentials()
-  await requireServerSession(event, 'local')
+  return await requireServerSession(event, 'local')
 }
 
 /** POST /api/session: the selected local or AD credential check, never anonymous. */

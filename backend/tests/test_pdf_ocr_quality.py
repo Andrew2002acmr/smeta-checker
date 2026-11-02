@@ -12,6 +12,14 @@ import ocr_engine
 from pdf_text import PDFTextSource
 
 
+def test_tsv_literal_quote_does_not_swallow_following_rows():
+    header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+    rows = '5\t1\t1\t1\t1\t1\t10\t20\t50\t10\t95\t"Мост\n5\t1\t2\t1\t1\t1\t100\t220\t40\t12\t98\t345,77\n'
+    words = ocr_engine.parse_tsv(header+rows)
+    assert [w["text"] for w in words] == ['"Мост', '345,77']
+    assert words[1]["top"] == 220
+
+
 class OrientationTests(unittest.TestCase):
     def test_rotation_choice_ignores_expected_values(self):
         filler = ("наполнение " * 40).strip()
@@ -177,6 +185,13 @@ def _word_tsv(words):
 
 
 class EngineFailureTests(unittest.TestCase):
+    def setUp(self):
+        # These cases mock run_tsv and test quality accounting, not an installed
+        # executable. Keep them portable to Windows without native Tesseract.
+        binary = patch.object(ocr_engine.shutil, "which", return_value="synthetic-tesseract")
+        binary.start()
+        self.addCleanup(binary.stop)
+
     def test_failed_passes_record_reasons_not_text(self):
         with patch.object(ocr_engine, "run_tsv", side_effect=RuntimeError("boom")):
             result = ocr_engine.recognize_page(FakePixmapPage())

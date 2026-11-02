@@ -24,6 +24,15 @@ from workspace_models import (
     VersionDTO,
     VersionMetadataPatch,
     WorkspaceDTO,
+    HumanBasisDTO,
+    ConfirmBasisRequest,
+    SpecifyBasisRequest,
+    BasisPreviewDTO,
+    PdfBindingsDTO,
+    PdfBindingsPatch,
+    ReviewArtifactDTO,
+    ReviewHistoryDTO,
+    PreparedPageDTO,
 )
 from workspace_service import (
     inputs_for_run,
@@ -73,6 +82,48 @@ def workspace_router(get_context) -> APIRouter:
         if record["status"] not in {"done", "failed"}:
             raise ApiError(409, "audit_not_finished", "Аудит ещё выполняется")
         return record
+
+    def binding_document(context, version_id):
+        from vor_parse import load_vor_positions
+        from pdf_binding import clean_pdf_name
+        ref = version(context, version_id)
+        if ref.kind != "vor":
+            raise ApiError(400, "not_vor_version", "Привязки задаются для версии ВОР")
+        owner_id = context.repository.version_project_id(ref.id)
+        positions, _ = load_vor_positions(context.blob_store.get(ref.blob_key), ref.filename)
+        references = sorted({clean_pdf_name(r) for p in positions for r in p.explicit_refs if clean_pdf_name(r)})
+        return ref, owner_id, references
+
+    @router.get("/api/v1/documents/{version_id}/pdf-bindings", response_model=PdfBindingsDTO)
+    def pdf_bindings(version_id: str, context=Depends(guarded)):
+        ref, _, references = binding_document(context, version_id)
+        return dict(references=references, bindings=context.repository.load_pdf_bindings(ref.id))
+
+    @router.put("/api/v1/documents/{version_id}/pdf-bindings", response_model=PdfBindingsDTO)
+    def update_pdf_bindings(version_id: str, payload: PdfBindingsPatch, context=Depends(guarded)):
+        from api import _check_active_versions, _check_project_versions
+        from pdf_binding import clean_pdf_name
+        ref, owner_id, references = binding_document(context, version_id)
+        _check_active_versions(context, owner_id, [ref.id])
+        bindings = {}
+        for raw, target in payload.bindings.items():
+            key = clean_pdf_name(raw)
+            if key not in references or key in bindings:
+                raise ApiError(400, "invalid_pdf_reference", "Ссылка отсутствует в этой версии ВОР или повторяется")
+            pdf = version(context, target)
+            if pdf.kind != "pdf":
+                raise ApiError(400, "not_pdf_version", "Для ссылки нужно выбрать PDF")
+            _check_project_versions(context, owner_id, [pdf.id])
+            _check_active_versions(context, owner_id, [pdf.id])
+            bindings[key] = str(pdf.id)
+        context.repository.save_pdf_bindings(ref.id, bindings)
+        return dict(references=references, bindings=bindings)
+
+    def available(context, run_id):
+        return _load_run_record(context, _parse_uuid(run_id, field="run_id"))
+
+    from normative_api import register_normative_routes
+    register_normative_routes(router, guarded, available)
 
     @router.get("/api/v1/projects", response_model=list[ProjectDTO])
     def projects(archived: bool = Query(False), context=Depends(guarded)):
@@ -283,9 +334,28 @@ def workspace_router(get_context) -> APIRouter:
             raise ApiError(404, "run_not_found", "Запуск аудита не найден.")
         return run_progress(context, records[0])
 
+    @router.post("/api/v1/audits/{run_id}/resume", response_model=RunDTO)
+    def resume_audit(run_id: str, context=Depends(guarded)):
+        parsed = _parse_uuid(run_id, field="run_id")
+        try:
+            context.repository.resume_run(parsed, allow_running=False)
+        except KeyError as exc:
+            raise ApiError(404, "run_not_found", "Запуск аудита не найден.") from exc
+        except ValueError as exc:
+            message = (
+                "Предыдущая задача ещё завершается. Повторите продолжение через минуту. "
+                "Готовые результаты сохранены."
+                if "lease" in str(exc)
+                else "Продолжить можно только остановленную или сбойную проверку."
+            )
+            raise ApiError(409, "audit_resume_conflict", message) from exc
+        records = context.repository.run_progress_records(run_id=parsed)
+        return run_progress(context, records[0])
+
     @router.get("/api/v1/audits/{run_id}/summary", response_model=SummaryDTO)
     def summary(run_id: str, context=Depends(guarded)):
-        record = terminal(context, run_id)
+        record = available(context, run_id)
+        ready = present_results(context, record)
         owner = project(context, str(record["project_id"]))
         ids = {
             str(record["vor_version_id"]),
@@ -293,9 +363,10 @@ def workspace_router(get_context) -> APIRouter:
         }
         return {
             "run": run_progress(context, record),
+            "ready_positions": [r.position_index for r in ready],
             "project": {"id": str(owner.id), "name": owner.name},
             "queues": dict(
-                Counter(row.queue for row in present_results(context, record))
+                Counter(row.queue for row in ready)
             ),
             "documents": [
                 v for v in context.repository.list_versions(owner.id) if v["id"] in ids
@@ -305,13 +376,13 @@ def workspace_router(get_context) -> APIRouter:
     @router.get("/api/v1/audits/{run_id}/rows", response_model=RowsDTO)
     def rows(
         run_id: str,
-        focus: str = Query("all", pattern="^(all|fix|review|missing|ok)$"),
+        focus: str = Query("all", pattern="^(all|fix|review|missing|ok|pending)$"),
         q: str = Query("", max_length=500),
         offset: int = Query(0, ge=0),
-        limit: int = Query(100, ge=1, le=200),
+        limit: int = Query(10, ge=1, le=200),
         context=Depends(guarded),
     ):
-        records = present_results(context, terminal(context, run_id))
+        records = present_results(context, available(context, run_id))
         query = q.strip().casefold()
         records = [
             r
@@ -336,7 +407,7 @@ def workspace_router(get_context) -> APIRouter:
         response_model=WorkspaceDTO,
     )
     def workspace(run_id: str, position_index: int, context=Depends(guarded)):
-        record = terminal(context, run_id)
+        record = available(context, run_id)
         row = next(
             (
                 r
@@ -346,7 +417,9 @@ def workspace_router(get_context) -> APIRouter:
             None,
         )
         if row is None:
-            raise ApiError(404, "position_not_found", "Позиция не найдена")
+            if not any(p.index == position_index for p in inputs_for_run(context, record)):
+                raise ApiError(404, "position_not_found", "Позиция не найдена")
+            raise ApiError(409, "position_not_ready", "Позиция ещё обрабатывается. Откройте готовую позицию.")
         position = next(
             p for p in inputs_for_run(context, record) if p.index == position_index
         )
@@ -360,6 +433,153 @@ def workspace_router(get_context) -> APIRouter:
             else None,
             "evidence": source_evidence(context, record, position_index, position),
         }
+
+    def basis_context(context, run_id, position_index):
+        from human_basis import locate_position
+        record = available(context, run_id)
+        try:
+            position = locate_position(context, record, position_index)
+        except KeyError as exc:
+            raise ApiError(404, "position_not_found", "Позиция не найдена") from exc
+        if not any(r.position_index == position_index for r in present_results(context, record)):
+            raise ApiError(409, "position_not_ready", "Позиция ещё обрабатывается")
+        return record, position
+
+    @router.get("/api/v1/audits/{run_id}/positions/{position_index}/basis", response_model=list[HumanBasisDTO])
+    def human_basis_list(run_id: str, position_index: int, context=Depends(guarded)):
+        from human_basis import list_basis
+        record, position = basis_context(context, run_id, position_index)
+        return list_basis(context, record, position)
+
+    @router.post("/api/v1/audits/{run_id}/positions/{position_index}/basis/confirm", response_model=list[HumanBasisDTO])
+    def human_basis_confirm(run_id: str, position_index: int, payload: ConfirmBasisRequest,
+                            request: Request, context=Depends(guarded)):
+        from human_basis import save_basis
+        from urllib.parse import unquote
+        record, position = basis_context(context, run_id, position_index)
+        try:
+            return save_basis(context, record, position, payload,
+                              unquote(request.headers.get("x-workspace-user", "api"))[:256],
+                              evidence_index=payload.evidence_index)
+        except (ValueError, KeyError) as exc:
+            raise ApiError(400, "basis_invalid", str(exc)) from exc
+
+    @router.post("/api/v1/audits/{run_id}/positions/{position_index}/basis/preview", response_model=BasisPreviewDTO)
+    def human_basis_preview(run_id: str, position_index: int, payload: SpecifyBasisRequest,
+                            context=Depends(guarded)):
+        from human_basis import preview_basis
+        record, _ = basis_context(context, run_id, position_index)
+        try:
+            return preview_basis(context, record, payload)
+        except (ValueError, KeyError) as exc:
+            raise ApiError(400, "selection_invalid", str(exc)) from exc
+
+    @router.post("/api/v1/audits/{run_id}/positions/{position_index}/basis/recognize", response_model=BasisPreviewDTO)
+    def human_basis_recognize(run_id: str, position_index: int, payload: SpecifyBasisRequest,
+                            request: Request, context=Depends(guarded)):
+        from human_basis import preview_basis
+        record, _ = basis_context(context, run_id, position_index)
+        try:
+            result = preview_basis(context, record, payload, recognize=True)
+            from urllib.parse import unquote
+            selection = payload.model_dump(mode="json")
+            selection["ocr_key"] = result["ocr_key"]
+            context.repository.save_review_artifact(record["id"], position_index, "ocr", dict(selection=selection, preview=result), unquote(request.headers.get("x-workspace-user", "api"))[:256])
+            return result
+        except (ValueError, KeyError) as exc:
+            raise ApiError(400, "selection_invalid", str(exc)) from exc
+        except RuntimeError as exc:
+            raise ApiError(503, "ocr_unavailable", str(exc)) from exc
+
+    @router.post("/api/v1/audits/{run_id}/positions/{position_index}/basis/drafts", response_model=ReviewArtifactDTO)
+    def save_basis_draft(run_id: str, position_index: int, payload: SpecifyBasisRequest, request: Request, context=Depends(guarded)):
+        import pymupdf
+        from basis_fragments import crop_png
+        from human_basis import preview_basis
+        from urllib.parse import unquote
+        record, _ = basis_context(context, run_id, position_index)
+        try:
+            preview = preview_basis(context, record, payload)
+            ref = version(context, payload.version_id)
+            with pymupdf.open(stream=context.blob_store.get(ref.blob_key), filetype="pdf") as pdf:
+                for fragment in preview.get("fragments", []):
+                    if not fragment.get("image_key"):
+                        fragment["image_key"] = context.blob_store.put(crop_png(pdf[fragment["page"] - 1], fragment["rect"])).key
+            return context.repository.save_review_artifact(record["id"], position_index, "draft", dict(selection=payload.model_dump(mode="json"), preview=preview), unquote(request.headers.get("x-workspace-user", "api"))[:256])
+        except (ValueError, KeyError) as exc:
+            raise ApiError(400, "basis_invalid", str(exc)) from exc
+
+    @router.get("/api/v1/audits/{run_id}/positions/{position_index}/extraction", response_model=PreparedPageDTO)
+    def prepared_page(run_id: str, position_index: int, page: int = Query(1, ge=1), context=Depends(guarded)):
+        from audit_snapshot import load_json
+        record, _ = basis_context(context, run_id, position_index)
+        try:
+            job = context.repository.load_position_job(record["id"], position_index)
+            ref = job.payload.get("snapshot") or {}
+            if ref.get("snapshot_storage") != "pages-v1":
+                raise ApiError(404, "snapshot_unavailable", "Для этой позиции нет постраничного снимка подготовки")
+            manifest = load_json(context.blob_store, dict(key=ref["snapshot_key"], sha256=ref["snapshot_sha256"]))
+            if page > len(manifest["pages"]):
+                raise ApiError(404, "page_not_found", "Страницы нет в снимке")
+            page_ref = manifest["pages"][page-1]
+            data = load_json(context.blob_store, page_ref)
+            origins = {locator.get("origin") for locator in (data.get("locators") or []) if isinstance(locator, dict)}
+            text = str(data.get("text") or "")
+            return dict(page=page, text=text[:20000], pending=bool(data.get("pending")), origin="ocr" if "ocr" in origins else "native" if "native" in origins else "unknown", quality=data.get("quality"), error=str(data["errors"]) if data.get("errors") else None, blob_key=page_ref["key"], sha256=page_ref["sha256"], truncated=len(text)>20000)
+        except (KeyError, ValueError, FileNotFoundError) as exc:
+            raise ApiError(404, "snapshot_unavailable", "Сохранённый снимок этой страницы недоступен") from exc
+
+    @router.get("/api/v1/audits/{run_id}/positions/{position_index}/history", response_model=ReviewHistoryDTO)
+    def review_history(run_id: str, position_index: int, context=Depends(guarded)):
+        from human_basis import position_key
+        record, position = basis_context(context, run_id, position_index)
+        versions = context.repository.result_versions(record["id"], position_index)
+        pins = [_parse_uuid(v, field="version_id") for v in (record["config"].get("pdf_versions") or {}).values()]
+        bases = context.repository.list_human_basis(record["project_id"], record["vor_version_id"], position_key(position), pins, include_revoked=True)
+        return dict(results=[dict(id=v["id"], created_at=v["created_at"], status=str(v["result"].get("status", "")), found_volume=str(v["result"].get("found_volume", "")), found_unit=str(v["result"].get("found_unit", "")), details=str(v["result"].get("discrepancy_details", ""))) for v in versions], artifacts=context.repository.review_artifacts(record["id"], position_index), bases=[dict(**b, reused=b["run_id"] != run_id) for b in bases])
+
+    @router.get("/api/v1/audits/{run_id}/positions/{position_index}/history/{kind}/{item_id}/images/{index}")
+    def review_image(run_id: str, position_index: int, kind: str, item_id: str, index: int, context=Depends(guarded)):
+        from human_basis import position_key
+        record, position = basis_context(context, run_id, position_index)
+        if kind == "artifact":
+            item = next((a for a in context.repository.review_artifacts(record["id"], position_index) if a["id"] == item_id), None)
+            fragments = (item or {}).get("preview", {}).get("fragments", [])
+        elif kind == "basis":
+            pins = [_parse_uuid(v, field="version_id") for v in record["config"].get("pdf_versions", {}).values()]
+            item = next((a for a in context.repository.list_human_basis(record["project_id"], record["vor_version_id"], position_key(position), pins, include_revoked=True) if a["id"] == item_id), None)
+            fragments = (item or {}).get("fragments", [])
+        else:
+            fragments = []
+        if not 0 <= index < len(fragments) or not fragments[index].get("image_key"):
+            raise ApiError(404, "image_not_found", "Изображение фрагмента не найдено")
+        return Response(context.blob_store.get(fragments[index]["image_key"]), media_type="image/png", headers={"Cache-Control": "private, no-store"})
+
+    @router.post("/api/v1/audits/{run_id}/positions/{position_index}/basis", response_model=list[HumanBasisDTO])
+    def human_basis_specify(run_id: str, position_index: int, payload: SpecifyBasisRequest,
+                            request: Request, context=Depends(guarded)):
+        from human_basis import save_basis
+        from urllib.parse import unquote
+        record, position = basis_context(context, run_id, position_index)
+        try:
+            return save_basis(context, record, position, payload,
+                              unquote(request.headers.get("x-workspace-user", "api"))[:256])
+        except (ValueError, KeyError) as exc:
+            raise ApiError(400, "basis_invalid", str(exc)) from exc
+
+    @router.delete("/api/v1/audits/{run_id}/positions/{position_index}/basis/{basis_id}", response_model=list[HumanBasisDTO])
+    def human_basis_revoke(run_id: str, position_index: int, basis_id: str,
+                           request: Request, context=Depends(guarded)):
+        from human_basis import list_basis, position_key
+        from urllib.parse import unquote
+        record, position = basis_context(context, run_id, position_index)
+        try:
+            context.repository.revoke_human_basis(_parse_uuid(basis_id, field="basis_id"),
+                record["project_id"], record["vor_version_id"], position_key(position),
+                unquote(request.headers.get("x-workspace-user", "api"))[:256])
+        except KeyError as exc:
+            raise ApiError(404, "basis_not_found", "Основание не найдено") from exc
+        return list_basis(context, record, position)
 
     @router.get("/api/v1/documents/{version_id}/content")
     def content(

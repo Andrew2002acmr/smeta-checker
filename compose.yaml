@@ -2,7 +2,7 @@
 # One file starts api + workspace (Nuxt) + postgres + redis + pdf/llm workers.
 # Secrets: copy .env.example to .env and fill POSTGRES_PASSWORD, AUDIT_API_TOKEN,
 # WORKSPACE_LOGIN + WORKSPACE_PASSWORD (local mode) or LDAP settings (ldap mode),
-# LLM keys (YANDEX_* or ANYMODEL_*). Compose reads .env automatically.
+# LLM keys (ROUTERAI_*, ANYMODEL_* or YANDEX_*). Compose reads .env automatically.
 name: smeta-checker
 
 services:
@@ -65,11 +65,15 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smeta}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-smeta}
       BLOB_STORE_URL: file:///srv/smeta/.audit_blobs
+      NORMATIVE_PREPARED_CACHE_ROOT: /prepared-cache/pdf
       CELERY_BROKER_URL: redis://redis:6379/0
       AUDIT_API_TOKEN: ${AUDIT_API_TOKEN:?Set AUDIT_API_TOKEN in .env}
       YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
       YANDEX_CLOUD_FOLDER: ${YANDEX_CLOUD_FOLDER:-}
       YANDEX_CLOUD_MODEL: ${YANDEX_CLOUD_MODEL:-qwen3.6-35b-a3b/latest}
+      ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
+      ROUTERAI_BASE_URL: ${ROUTERAI_BASE_URL:-https://routerai.ru/api/v1}
+      ROUTERAI_MODEL: ${ROUTERAI_MODEL:-}
       ANYMODEL_API_KEY: ${ANYMODEL_API_KEY:-}
       ANYMODEL_BASE_URL: ${ANYMODEL_BASE_URL:-https://anymodel.org/v1}
       ANYMODEL_MODEL: ${ANYMODEL_MODEL:-}
@@ -88,6 +92,7 @@ services:
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.05}
     volumes:
       - blobs:/srv/smeta/.audit_blobs
+      - pdfcache:/prepared-cache:ro
     ports:
       - "${API_PORT:-8000}:8000"
     healthcheck:
@@ -161,6 +166,9 @@ services:
       YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
       YANDEX_CLOUD_FOLDER: ${YANDEX_CLOUD_FOLDER:-}
       YANDEX_CLOUD_MODEL: ${YANDEX_CLOUD_MODEL:-qwen3.6-35b-a3b/latest}
+      ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
+      ROUTERAI_BASE_URL: ${ROUTERAI_BASE_URL:-https://routerai.ru/api/v1}
+      ROUTERAI_MODEL: ${ROUTERAI_MODEL:-}
       ANYMODEL_API_KEY: ${ANYMODEL_API_KEY:-}
       ANYMODEL_BASE_URL: ${ANYMODEL_BASE_URL:-https://anymodel.org/v1}
       ANYMODEL_MODEL: ${ANYMODEL_MODEL:-}
@@ -204,6 +212,18 @@ services:
       retries: 3
       start_period: 60s
 
+  worker-normative:
+    extends:
+      service: worker-pdf
+    environment:
+      AUDIT_TASK_TIME_LIMIT: "240"
+      AUDIT_TASK_SOFT_TIME_LIMIT: "210"
+      NORMATIVE_KB_ROOT: /knowledge/electrical-norms
+      NORMATIVE_ROAD_KB_ROOT: /knowledge/road-norms
+    command: ["celery", "-A", "audit_tasks:worker", "worker", "-Q", "normative", "-c", "${AUDIT_NORMATIVE_CONCURRENCY:-2}", "--loglevel=INFO", "--max-memory-per-child", "750000", "--max-tasks-per-child", "25", "-n", "normative-worker@%h", "--pidfile", "/tmp/celery-normative.pid"]
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 $(cat /tmp/celery-normative.pid)"]
+
   worker-llm:
     build:
       context: ./backend
@@ -221,6 +241,9 @@ services:
       YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
       YANDEX_CLOUD_FOLDER: ${YANDEX_CLOUD_FOLDER:-}
       YANDEX_CLOUD_MODEL: ${YANDEX_CLOUD_MODEL:-qwen3.6-35b-a3b/latest}
+      ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
+      ROUTERAI_BASE_URL: ${ROUTERAI_BASE_URL:-https://routerai.ru/api/v1}
+      ROUTERAI_MODEL: ${ROUTERAI_MODEL:-}
       ANYMODEL_API_KEY: ${ANYMODEL_API_KEY:-}
       ANYMODEL_BASE_URL: ${ANYMODEL_BASE_URL:-https://anymodel.org/v1}
       ANYMODEL_MODEL: ${ANYMODEL_MODEL:-}
@@ -259,6 +282,30 @@ services:
       timeout: 5s
       retries: 3
       start_period: 60s
+
+  task-relay:
+    build:
+      context: ./backend
+      target: llm-slim
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smeta}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-smeta}
+      BLOB_STORE_URL: file:///srv/smeta/.audit_blobs
+      CELERY_BROKER_URL: redis://redis:6379/0
+    volumes:
+      - blobs:/srv/smeta/.audit_blobs
+    command: ["python", "-m", "scripts.dispatch_tasks"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import time,pathlib; assert time.time()-pathlib.Path('/tmp/smeta-relay-heartbeat').stat().st_mtime < 60"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
 volumes:
   pgdata:

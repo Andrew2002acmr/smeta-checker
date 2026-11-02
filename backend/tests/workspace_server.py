@@ -24,7 +24,22 @@ def main():
     parser.add_argument("--root", required=True, type=Path)
     parser.add_argument("--port", type=int, default=8116)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--normative-profile", choices=["roads", "electrical"], help="Synthetic normative check fixture only")
+    parser.add_argument("--ocr-container", help="Test only: run real crop Tesseract in this local Docker container")
     args = parser.parse_args()
+    if args.ocr_container:
+        import re
+        import subprocess
+        import ocr_engine
+        if not re.fullmatch(r"[a-zA-Z0-9_.-]+", args.ocr_container):
+            raise SystemExit("Invalid test OCR container name")
+        def container_tsv(png_bytes, language="rus+eng", psm=6, timeout=10):
+            code = f"import sys; from ocr_engine import run_tsv; sys.stdout.write(run_tsv(sys.stdin.buffer.read(), language={language!r}, psm={psm!r}, timeout={timeout!r}))"
+            result = subprocess.run(["docker", "exec", "-i", args.ocr_container, "python", "-c", code], input=png_bytes, capture_output=True, timeout=timeout + 15)
+            if result.returncode:
+                raise RuntimeError("Test container OCR failed: " + result.stderr.decode("utf-8", "replace")[-200:])
+            return result.stdout.decode("utf-8")
+        ocr_engine.run_tsv = container_tsv
     database = os.environ["TEST_POSTGRES_URL"]
     if "/smeta_test_ui" not in database:
         raise SystemExit("E2E requires its own smeta_test_ui database")
@@ -44,12 +59,27 @@ def main():
         yandex_cloud_api_key="synthetic-not-a-provider-key",
         yandex_cloud_folder="synthetic-test",
     )
+    client_factory = _ok_client_factory()
+    if args.normative_profile:
+        import json
+        from types import SimpleNamespace
+        import normative_service
+        settings.yandex_cloud_model = "synthetic-normative-check"
+        normative_service.profile_for = lambda record: args.normative_profile
+
+        def complete_check(**kwargs):
+            data = json.loads(kwargs["input"])
+            project = next(s for s in data["sources"] if s["kind"] == "project")
+            norm = next(s for s in data["sources"] if s["kind"] == "normative")
+            answer = dict(summary="Синтетическая точечная проверка: исходный прогон не изменён.", items=[dict(topic="ПД и норматив", state="needs_facts", explanation="Синтетический стенд: проверьте исходный норматив и проектную строку.", project_source_ids=[project["id"]], normative_source_ids=[norm["id"]])])
+            return SimpleNamespace(output_text=json.dumps(answer), usage=SimpleNamespace(input_tokens=120, output_tokens=30, total_tokens=150))
+        client_factory = lambda **kwargs: SimpleNamespace(responses=SimpleNamespace(create=complete_check), close=lambda: None)
     app = create_app(
         ApiContext(
             settings=settings,
             repository=repository,
             blob_store=blobs,
-            client_factory=_ok_client_factory(),
+            client_factory=client_factory,
         )
     )
     if args.resume:

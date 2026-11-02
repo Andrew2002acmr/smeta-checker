@@ -10,7 +10,7 @@ export function quantityText(value: string | number | null | undefined) {
   }
   return String(value).replace(/(?<=\d)\.(?=\d)/, ',')
 }
-function unitText(unit: string | null | undefined) {
+export function unitText(unit: string | null | undefined) {
   // шт. and шт are the same unit; trailing dots vary by author.
   return (unit || '').trim().replace(/\.+$/, '')
 }
@@ -51,6 +51,7 @@ export function queueLabel(queue: string) {
       review: 'Проверить вручную',
       missing: 'Проверка не выполнена',
       ok: 'Подтверждено',
+      pending: 'Проверяется по нормативам',
     }[queue] || 'Не проверено'
   )
 }
@@ -108,4 +109,10 @@ export function runStatusColor(status: string): 'success' | 'error' | 'warning' 
       : status === 'running'
         ? 'warning'
         : 'neutral'
+}
+export function firstSentence(value: string): string {
+  const text = String(value ?? '').trim()
+  if (!text) return ''
+  const sentences = new Intl.Segmenter('ru', { granularity: 'sentence' }).segment(text)
+  return sentences[Symbol.iterator]().next().value?.segment.trim() || text
 }

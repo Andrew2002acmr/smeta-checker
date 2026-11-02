@@ -14,13 +14,15 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from functools import lru_cache
 import logging
+import os
 import sys
+from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
 
 _logger = logging.getLogger(__name__)
 _client = ContextVar("audit_langfuse_client", default=None)
-_position = ContextVar("audit_langfuse_position", default=None)
+_position: ContextVar["PositionTrace | None"] = ContextVar("audit_langfuse_position", default=None)
 _redact = ContextVar("audit_langfuse_redact_pdf", default=False)
 _mask = ContextVar("audit_langfuse_mask_prompts", default=False)
 _redact_pdf_names: frozenset[str] = frozenset({
@@ -68,7 +70,7 @@ def _maybe_redact(name, kind, payload):
     mask_prompts = _mask.get()
     if not redact_pdf and not mask_prompts:
         return payload
-    if name == "generate-audit" and isinstance(payload, list):
+    if name in {"generate-audit", "normative-query-plan", "normative-rank", "normative-position-check"} and isinstance(payload, list):
         redacted_messages = []
         for item in payload:
             if (
@@ -119,7 +121,10 @@ STAGE_DESCRIPTIONS = {
     "rank-quantity-pages": "Ранжирование страниц поддержки объёма/единицы",
     "confirm-quantity-context": "Единственный подтверждающий запрос количества",
     "check-request-budget": "Проверка лимитов ≤6 запросов/60000 токенов до HTTP",
-    "generate-audit": "Один HTTP-запрос к Qwen: контекст, сырой ответ, usage",
+    "generate-audit": "Один HTTP-запрос к выбранной LLM: контекст, сырой ответ, usage",
+    "normative-query-plan": "Построение поисковых запросов по контексту ВОР и ПД",
+    "normative-rank": "Сопоставление контекста с найденными нормативными вариантами",
+    "normative-position-check": "Одна позиция: ПД, связанные строки ВОР и нормативные источники",
     "validate-audit-response": "Guardrail: JSON и дословность цитат по фрагментам",
     "wait-before-retry": "Пауза перед ретраем: причина и тип ошибки",
 }
@@ -317,7 +322,15 @@ class PositionTrace:
     def url(self):
         if self.trace_id is not None:
             try:
-                return self.run.client.get_trace_url(trace_id=self.trace_id)
+                url = self.run.client.get_trace_url(trace_id=self.trace_id)
+                # Docker's service hostname is not reachable in the user's browser.
+                public = urlsplit(os.environ.get('LANGFUSE_PUBLIC_URL', ''))
+                if public.scheme in {'http', 'https'} and public.netloc:
+                    internal = urlsplit(url)
+                    return urlunsplit((public.scheme, public.netloc,
+                                       public.path.rstrip('/') + internal.path,
+                                       internal.query, internal.fragment))
+                return url
             except Exception:
                 _logger.warning("Langfuse trace link unavailable", exc_info=True)
         return None

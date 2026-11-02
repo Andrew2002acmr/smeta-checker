@@ -33,10 +33,18 @@ class BlobStore:
     def get(self, key: str) -> bytes:
         raise NotImplementedError
 
+    @property
+    def cache_namespace(self) -> str | None:
+        return None
+
 
 class FileBlobStore(BlobStore):
     def __init__(self, root: str | os.PathLike[str]) -> None:
         self._root = Path(root)
+
+    @property
+    def cache_namespace(self) -> str:
+        return str(self._root.resolve())
 
     def put(self, data: bytes) -> BlobRef:
         payload = bytes(data)
