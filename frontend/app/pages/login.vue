@@ -43,7 +43,7 @@ onMounted(async () => {
       <div class="login-center">
         <UCard class="login-card">
           <div class="login-brand">
-            <img src="/kdfp-logo-light.svg" alt="КДФП" class="login-logo" width="48" height="48" />
+            <img src="/kdfp-logo-light.svg" alt="КДФП" class="login-logo" width="56" height="56" />
             <div>
               <h1 class="login-title">КДФП Инжиниринг</h1>
               <p class="login-subtitle">Проверка проектной документации</p>
@@ -118,7 +118,6 @@ onMounted(async () => {
               </UButton>
             </form>
           </template>
-          <p class="login-footer muted">Внутренняя информационная система</p>
         </UCard>
       </div>
     </main>
@@ -147,19 +146,21 @@ onMounted(async () => {
 .login-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 14px;
+  margin-bottom: 16px;
 }
 .login-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  flex-shrink: 0;
 }
 .login-title {
   font-size: 18px;
   font-weight: 700;
   margin: 0;
   line-height: 1.2;
+  color: var(--ui-text);
 }
 .login-subtitle {
   font-size: 13px;
@@ -170,19 +171,16 @@ onMounted(async () => {
   font-size: 20px;
   font-weight: 600;
   margin: 0 0 8px;
+  color: var(--ui-text);
 }
 .login-description {
   margin: 0 0 20px;
   font-size: 14px;
+  color: var(--ui-text-muted);
 }
 .login-form {
   display: grid;
   gap: 16px;
-}
-.login-footer {
-  margin: 24px 0 0;
-  font-size: 12px;
-  text-align: center;
 }
 /* Hide the native password reveal button in Edge/IE. */
 ::-ms-reveal {
@@ -196,8 +194,11 @@ onMounted(async () => {
     gap: 10px;
   }
   .login-logo {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
+  }
+  .login-center {
+    max-width: 100%;
   }
 }
 </style>
