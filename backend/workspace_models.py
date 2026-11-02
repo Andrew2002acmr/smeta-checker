@@ -402,6 +402,7 @@ class NormativeReleaseDTO(DTO):
 class NormativeSourceAdminDTO(DTO):
     id: str
     designation: str
+    sha256: str | None = None
     kind: str = ""
     role: str = ""
     pages: int
@@ -448,9 +449,15 @@ class NormativeCatalogTypeDTO(DTO):
     file_count: int
 
 
+class NormativeProfileErrorDTO(DTO):
+    profile: Literal["electrical", "roads"]
+    message: str
+
+
 class NormativeManagerDTO(DTO):
     profiles: list[NormativeCorpusAdminDTO]
     collections: list[NormativeCatalogTypeDTO]
+    profile_errors: list[NormativeProfileErrorDTO]
 
 class ProjectDTO(DTO):
     id: str

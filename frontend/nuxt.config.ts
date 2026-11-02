@@ -12,6 +12,7 @@ export default defineNuxtConfig({
     public: { sentryDsn: '' },
   },
   app: {
+    pageTransition: { name: 'page', mode: 'out-in' },
     // Separate build assets so an open local stand cannot reuse an older CSS dependency map.
     buildAssetsDir: '/_nuxt/' + Date.now().toString(36) + '/',
     head: {

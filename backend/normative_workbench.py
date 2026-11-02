@@ -41,7 +41,7 @@ def manager_profile(profile: str) -> dict[str, Any]:
         _metadata(db)
         counts = _counts(db)
         sources = [dict(row) for row in db.execute(
-            "SELECT s.id,s.designation,s.kind,s.role,s.pages, "
+            "SELECT s.id,s.designation,s.sha256,s.kind,s.role,s.pages, "
             "(SELECT count(*) FROM pages p WHERE p.source_id=s.id AND length(trim(p.clean_text))>50) AS readable_pages "
             "FROM sources s ORDER BY s.kind,s.designation"
         )]

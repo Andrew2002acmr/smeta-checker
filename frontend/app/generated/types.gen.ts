@@ -1220,6 +1220,10 @@ export type NormativeManagerDto = {
      */
     collections: Array<NormativeCatalogTypeDto>;
     /**
+     * Profile Errors
+     */
+    profile_errors: Array<NormativeProfileErrorDto>;
+    /**
      * Profiles
      */
     profiles: Array<NormativeCorpusAdminDto>;
@@ -1500,6 +1504,20 @@ export type NormativePositionCheckRequest = {
      * Question
      */
     question?: string;
+};
+
+/**
+ * NormativeProfileErrorDTO
+ */
+export type NormativeProfileErrorDto = {
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Profile
+     */
+    profile: 'electrical' | 'roads';
 };
 
 /**
@@ -1853,6 +1871,10 @@ export type NormativeSourceAdminDto = {
      * Role
      */
     role?: string;
+    /**
+     * Sha256
+     */
+    sha256?: string | null;
 };
 
 /**

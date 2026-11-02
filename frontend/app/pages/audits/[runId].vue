@@ -228,8 +228,8 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <div>
-    <WorkspaceHeader active="check" />
-    <main id="main-content" tabindex="-1" class="shell">
+    <WorkspaceHeader active="check" wide />
+    <main id="main-content" tabindex="-1" class="shell shell-wide">
       <nav v-if="summary" class="toolbar" aria-label="Проект и редакция ведомости">
         <UButton
           :to="`/projects/${summary.project.id}`"

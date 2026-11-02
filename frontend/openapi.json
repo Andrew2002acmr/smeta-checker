@@ -1982,6 +1982,13 @@
             "title": "Collections",
             "type": "array"
           },
+          "profile_errors": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeProfileErrorDTO"
+            },
+            "title": "Profile Errors",
+            "type": "array"
+          },
           "profiles": {
             "items": {
               "$ref": "#/components/schemas/NormativeCorpusAdminDTO"
@@ -1992,7 +1999,8 @@
         },
         "required": [
           "profiles",
-          "collections"
+          "collections",
+          "profile_errors"
         ],
         "title": "NormativeManagerDTO",
         "type": "object"
@@ -2497,6 +2505,29 @@
           }
         },
         "title": "NormativePositionCheckRequest",
+        "type": "object"
+      },
+      "NormativeProfileErrorDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "profile": {
+            "enum": [
+              "electrical",
+              "roads"
+            ],
+            "title": "Profile",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile",
+          "message"
+        ],
+        "title": "NormativeProfileErrorDTO",
         "type": "object"
       },
       "NormativeProjectCitation": {
@@ -3053,6 +3084,17 @@
             "default": "",
             "title": "Role",
             "type": "string"
+          },
+          "sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sha256"
           }
         },
         "required": [

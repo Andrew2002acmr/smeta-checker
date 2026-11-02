@@ -1,5 +1,8 @@
 <script setup lang="ts">
-const props = defineProps<{ active?: 'check' | 'format' | 'knowledge' | 'projects' | 'create' }>()
+const props = defineProps<{
+  active?: 'check' | 'format' | 'knowledge' | 'projects' | 'create'
+  wide?: boolean
+}>()
 const route = useRoute()
 const activeTab = computed(() => {
   if (props.active === 'format' || route.path === '/formatting') return 'format'
@@ -27,12 +30,10 @@ async function logout() {
 
 <template>
   <a class="skip-link" href="#main-content">К содержимому</a>
-  <header class="app-header">
-    <NuxtLink to="/" class="brand">
-      <span class="brand-mark">КД<span>ФП</span></span>
-      <span class="brand-divider" aria-hidden="true"></span>
-      <span class="brand-product">Проверка ВОР</span>
-      <span class="visually-hidden"> — все проекты</span>
+  <header class="app-header" :class="{ 'app-header-wide': wide }">
+    <NuxtLink to="/" class="brand" aria-label="КДФП — все проекты">
+      <img class="brand-logo dark:hidden" src="/kdfp-logo-light.svg" alt="" />
+      <img class="brand-logo hidden dark:block" src="/kdfp-logo-dark.svg" alt="" />
     </NuxtLink>
     <nav class="header-navigation" aria-label="Основная навигация">
       <UButton
@@ -83,11 +84,15 @@ async function logout() {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding-block: 28px 24px;
-  margin: 0 auto 8px;
+  min-height: 72px;
+  padding-block: 14px;
+  margin: 0 auto;
   width: calc(100% - 64px);
   max-width: 1376px;
-  border-bottom: 1px solid var(--ui-border);
+  border-bottom: 1px solid var(--ui-border-muted);
+}
+.app-header-wide {
+  max-width: none;
 }
 .brand {
   display: inline-flex;
@@ -97,31 +102,9 @@ async function logout() {
   color: var(--ui-text-highlighted);
   white-space: nowrap;
 }
-.brand-mark {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-}
-.brand-mark span {
-  color: var(--ui-primary);
-}
-.brand-divider {
-  height: 24px;
-  width: 1px;
-  background: var(--ui-border);
-}
-.brand-product {
-  font-size: 16px;
-  font-weight: 650;
-}
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+.brand-logo {
+  width: 128px;
+  height: auto;
 }
 .header-navigation {
   display: flex;
@@ -137,9 +120,9 @@ async function logout() {
 @media (max-width: 640px) {
   .app-header {
     flex-wrap: wrap;
-    gap: 12px;
-    padding-block: 16px;
-    margin-bottom: 8px;
+    gap: 8px;
+    min-height: 64px;
+    padding-block: 10px;
     width: calc(100% - 32px);
   }
   .brand {
@@ -148,8 +131,8 @@ async function logout() {
   .header-navigation {
     width: 100%;
     justify-content: flex-start;
-    overflow-x: auto;
-    flex-wrap: nowrap;
+    overflow-x: visible;
+    flex-wrap: wrap;
     padding-bottom: 2px;
   }
   .header-navigation :deep(a) {

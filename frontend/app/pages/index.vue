@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ProjectDto, RunDto } from '~/generated/types.gen'
-import type { TableColumn } from '@nuxt/ui'
+import type { TableColumn, TabsItem } from '@nuxt/ui'
 
 type Queue = 'fix' | 'review' | 'missing' | 'ok'
 
@@ -28,9 +28,24 @@ const showArchived = computed({
     void router.push({ query: { ...route.query, archived: archived ? 'true' : undefined } })
   },
 })
+const projectTabs: TabsItem[] = [
+  { label: 'Активные', value: 'active', icon: 'i-lucide-folder-open' },
+  { label: 'Архив', value: 'archived', icon: 'i-lucide-archive' },
+]
+const projectScope = computed({
+  get: () => (showArchived.value ? 'archived' : 'active'),
+  set: (value: string | number) => {
+    showArchived.value = value === 'archived'
+  },
+})
 const projects = ref<DashboardProject[]>([])
 const error = ref('')
 const busy = ref(true)
+const hasLoaded = ref(false)
+const scopeCache: Record<'active' | 'archived', DashboardProject[] | null> = {
+  active: null,
+  archived: null,
+}
 const renamingId = ref<string | null>(null)
 const renamingName = ref('')
 const renamingBusy = ref(false)
@@ -191,6 +206,7 @@ async function restore(p: DashboardProject) {
   restoringId.value = p.id
   try {
     await backend.updateProject(p.id, { archived: false })
+    scopeCache.active = null
     await load()
   } catch (e) {
     actionError.value = readableError(e)
@@ -204,6 +220,7 @@ async function confirmArchive() {
   archiveBusy.value = true
   try {
     await backend.updateProject(confirmArchiveId.value, { archived: true })
+    scopeCache.archived = null
     confirmArchiveId.value = null
     await load()
   } catch (e) {
@@ -225,6 +242,7 @@ async function confirmDeleteProject() {
   deleteProjectBusy.value = true
   try {
     await backend.deleteProject(target.id)
+    scopeCache.active = null
     deleteProjectId.value = null
     await load()
   } catch (e) {
@@ -262,15 +280,18 @@ async function loadProject(p: ProjectDto): Promise<DashboardProject> {
 async function load(background = false) {
   clearTimeout(timer)
   const current = ++epoch
-  if (!background) busy.value = true
+  const archived = showArchived.value
+  busy.value = !background
   error.value = ''
   try {
     await backend.connect()
-    const list = await backend.projects(showArchived.value)
+    const list = await backend.projects(archived)
     if (!active || current !== epoch) return
     const rows = await Promise.all(list.map(loadProject))
     if (!active || current !== epoch) return
     projects.value = rows
+    scopeCache[archived ? 'archived' : 'active'] = rows
+    void prefetchOther(archived, current)
     if (rows.some((p) => p.lastRun?.status === 'running'))
       timer = setTimeout(() => load(true), 5000)
   } catch (e) {
@@ -279,16 +300,31 @@ async function load(background = false) {
       if (background) timer = setTimeout(() => load(true), 5000)
     }
   } finally {
-    if (current === epoch) busy.value = false
+    if (current === epoch) {
+      busy.value = false
+      hasLoaded.value = true
+    }
+  }
+}
+async function prefetchOther(archived: boolean, current: number) {
+  const other = archived ? 'active' : 'archived'
+  if (scopeCache[other] !== null) return
+  try {
+    const list = await backend.projects(!archived)
+    const rows = await Promise.all(list.map(loadProject))
+    if (active && current === epoch && scopeCache[other] === null) scopeCache[other] = rows
+  } catch {
+    // The regular load reports errors if this scope is opened.
   }
 }
 
 watch(showArchived, () => {
-  projects.value = []
+  const cached = scopeCache[showArchived.value ? 'archived' : 'active']
+  projects.value = cached ?? []
   query.value = ''
   cancelRename()
   actionError.value = ''
-  load()
+  load(cached !== null)
 })
 
 onMounted(() => load())
@@ -306,40 +342,43 @@ onBeforeUnmount(() => {
       <div class="dashboard-heading">
         <div class="dashboard-title">
           <h1>Проекты</h1>
-          <span v-if="!busy && !error" class="dashboard-count" role="status">
+          <span v-if="!busy && !error && filtered.length" class="dashboard-count" role="status">
             {{ countLabel(filtered.length, ['проект', 'проекта', 'проектов']) }}
           </span>
         </div>
-        <UButton to="/upload" icon="i-lucide-plus" color="primary">Новый проект</UButton>
+        <UButton
+          v-if="showArchived || projects.length || busy || error"
+          to="/upload"
+          icon="i-lucide-plus"
+          color="primary"
+          >Новый проект</UButton
+        >
       </div>
 
       <div class="dashboard-toolbar">
-        <div class="dashboard-scope" role="group" aria-label="Раздел проектов">
-          <UButton
-            color="neutral"
-            variant="ghost"
-            :aria-pressed="!showArchived"
-            :class="{ selected: !showArchived }"
-            @click="showArchived = false"
-            >Активные</UButton
-          >
-          <UButton
-            color="neutral"
-            variant="ghost"
-            :aria-pressed="showArchived"
-            :class="{ selected: showArchived }"
-            @click="showArchived = true"
-            >Архив</UButton
-          >
-        </div>
+        <UTabs
+          v-model="projectScope"
+          :items="projectTabs"
+          :content="false"
+          :ui="{
+            list: 'w-auto bg-elevated ring ring-default',
+            indicator: 'bg-default shadow-sm',
+            trigger: 'min-h-9 data-[state=active]:text-highlighted',
+          }"
+          class="dashboard-scope"
+          color="neutral"
+          activation-mode="manual"
+          aria-label="Раздел проектов"
+        />
         <UInput
+          v-if="projects.length"
           v-model="query"
           icon="i-lucide-search"
           placeholder="Найти проект или ведомость"
           aria-label="Поиск проектов"
           class="dashboard-search"
         />
-        <div class="dashboard-sort">
+        <div v-if="projects.length" class="dashboard-sort">
           <USelect
             v-model="sort"
             :items="[
@@ -347,6 +386,10 @@ onBeforeUnmount(() => {
               { label: 'По вниманию', value: 'attention' },
               { label: 'По алфавиту', value: 'name' },
             ]"
+            :ui="{
+              base: 'cursor-pointer',
+              item: 'cursor-pointer data-highlighted:not-data-disabled:before:bg-accented',
+            }"
             aria-label="Сортировка проектов"
           />
         </div>
@@ -362,23 +405,40 @@ onBeforeUnmount(() => {
       </p>
 
       <section class="dashboard-panel" aria-label="Список проектов" :aria-busy="busy">
-        <div v-if="busy && !projects.length && !error" class="dashboard-loading" aria-hidden="true">
+        <div
+          v-if="busy && !hasLoaded && !projects.length && !error"
+          class="dashboard-loading"
+          aria-hidden="true"
+        >
           <USkeleton v-for="n in 3" :key="n" class="dashboard-skeleton skeleton-name" />
+        </div>
+        <div
+          v-else-if="busy && !projects.length && !error"
+          class="dashboard-switch-loading"
+          role="status"
+        >
+          Загрузка проектов…
         </div>
         <div v-else-if="error && !projects.length" class="dashboard-empty">
           <h2>Не удалось загрузить проекты</h2>
           <p>Проверьте соединение с сервером и попробуйте ещё раз.</p>
           <UButton color="neutral" variant="outline" @click="load()">Повторить</UButton>
         </div>
-        <div v-else-if="!projects.length" class="dashboard-empty">
+        <div v-else-if="!projects.length" class="dashboard-empty dashboard-empty-list">
+          <UIcon
+            :name="showArchived ? 'i-lucide-archive' : 'i-lucide-folder-plus'"
+            class="dashboard-empty-icon"
+            aria-hidden="true"
+          />
           <h2>{{ showArchived ? 'Архив проектов пуст' : 'Пока нет проектов' }}</h2>
           <p>
             {{
               showArchived
                 ? 'Архивированные проекты появятся здесь. Вернуться можно вкладкой «Активные».'
-                : 'Создайте проект кнопкой «Новый проект», затем добавьте ведомость и проектные PDF.'
+                : 'Создайте проект, загрузите ведомость объёмов работ и проектную документацию для проверки.'
             }}
           </p>
+          <UButton v-if="!showArchived" to="/upload" icon="i-lucide-plus"> Создать проект </UButton>
         </div>
         <div v-else-if="!filtered.length" class="dashboard-empty">
           <h2>Ничего не найдено</h2>
@@ -397,6 +457,12 @@ onBeforeUnmount(() => {
               openProject(row.original)
             }
           "
+          :ui="{
+            base: 'table-fixed',
+            tr: 'data-[selectable=true]:cursor-pointer',
+            th: 'text-muted font-normal',
+            td: 'whitespace-normal',
+          }"
           class="dashboard-table max-h-[60vh] overflow-auto"
         >
           <template #caption>
@@ -627,17 +693,9 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* Kept brand, editorial column: 12 × 77px + 11 × 16px = 1100px of working content. */
 .dashboard {
-  max-width: 1164px;
+  max-width: 1440px;
   padding-top: 32px;
-}
-.dashboard-page :deep(.app-header) {
-  max-width: 1100px;
-  min-height: 72px;
-  padding-block: 14px;
-  margin-bottom: 0;
-  border-color: var(--ui-border-muted);
 }
 .dashboard-heading,
 .dashboard-title {
@@ -646,6 +704,7 @@ onBeforeUnmount(() => {
   gap: 16px;
 }
 .dashboard-heading {
+  min-height: 44px;
   justify-content: space-between;
   margin-bottom: 24px;
 }
@@ -669,18 +728,7 @@ onBeforeUnmount(() => {
   margin-bottom: 16px;
 }
 .dashboard-scope {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.dashboard-scope :deep(button) {
-  color: var(--ui-text-muted);
-  border-radius: 0;
-  border-bottom: 2px solid transparent;
-}
-.dashboard-scope :deep(button.selected) {
-  color: var(--ui-text-highlighted);
-  border-bottom-color: currentColor;
+  justify-self: start;
 }
 .dashboard-search,
 .dashboard-sort {
@@ -698,44 +746,17 @@ onBeforeUnmount(() => {
   padding-inline: 20px;
   min-width: 0;
 }
-.dashboard-table {
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
-  font-size: 15px;
-  line-height: 1.5;
-}
-.project-column {
+.dashboard-panel :deep(.dashboard-table th:first-child) {
   width: 40%;
 }
-.last-check-column {
+.dashboard-panel :deep(.dashboard-table th:nth-child(2)) {
   width: 25%;
 }
-.actions-column {
+.dashboard-panel :deep(.dashboard-table th:last-child) {
   width: 44px;
 }
-.dashboard-table th {
-  height: 44px;
-  text-align: left;
-  color: var(--ui-text-muted);
-  font-size: 14px;
-  font-weight: 400;
-}
-.dashboard-table td {
-  padding-block: 20px;
-  vertical-align: middle;
-  border-top: 1px solid var(--ui-border-muted);
-}
-.dashboard-table th:not(:last-child),
-.dashboard-table td:not(:last-child) {
-  padding-right: 16px;
-}
-.dashboard-row {
-  cursor: pointer;
-}
-.dashboard-row:hover {
-  outline: 1px solid var(--ui-border);
-  outline-offset: -1px;
+.dashboard-panel :deep(.dashboard-table tbody tr[data-selectable='true']:hover) {
+  background: var(--ui-bg-muted);
 }
 .dashboard-name {
   display: block;
@@ -835,6 +856,27 @@ onBeforeUnmount(() => {
 .dashboard-table td.dashboard-empty {
   padding-block: 32px;
 }
+.dashboard-switch-loading {
+  display: grid;
+  min-height: clamp(320px, 45vh, 480px);
+  place-items: center;
+  color: var(--ui-text-muted);
+}
+.dashboard-empty-list {
+  display: flex;
+  min-height: clamp(320px, 45vh, 480px);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-block: 32px;
+  text-align: center;
+}
+.dashboard-empty-icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 12px;
+  color: var(--ui-text-muted);
+}
 .dashboard-empty h2 {
   font-size: 18px;
   font-weight: 600;
@@ -844,7 +886,7 @@ onBeforeUnmount(() => {
   color: var(--ui-text-muted);
   font-size: 15px;
   margin: 0 0 16px;
-  max-width: 65ch;
+  max-width: 480px;
 }
 .dashboard-notice {
   display: flex;
@@ -891,42 +933,13 @@ onBeforeUnmount(() => {
   .dashboard-search {
     grid-column: 1 / -1;
   }
-  .project-column {
+  .dashboard-panel :deep(.dashboard-table th:first-child) {
     width: 39%;
-  }
-  .last-check-column {
-    width: 25%;
   }
 }
 @media (max-width: 640px) {
   .dashboard {
     padding: 20px 16px 40px;
-  }
-  .dashboard-page :deep(.app-header) {
-    min-height: 64px;
-    padding-block: 10px;
-    width: calc(100% - 32px);
-    flex-wrap: nowrap;
-    gap: 8px;
-  }
-  .dashboard-page :deep(.brand) {
-    gap: 8px;
-  }
-  .dashboard-page :deep(.brand-mark) {
-    font-size: 20px;
-  }
-  .dashboard-page :deep(.brand-product) {
-    font-size: 13px;
-  }
-  .dashboard-page :deep(.brand-divider) {
-    height: 20px;
-  }
-  .dashboard-page :deep(.header-navigation) {
-    width: auto;
-    gap: 4px;
-  }
-  .dashboard-page :deep(.header-project-label) {
-    display: none;
   }
   .dashboard-heading {
     margin-bottom: 16px;
@@ -942,51 +955,51 @@ onBeforeUnmount(() => {
     font-size: 13px;
   }
   .dashboard-toolbar {
-    grid-template-columns: 1fr 168px;
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px 8px;
+  }
+  .dashboard-sort {
+    grid-column: 1;
+    grid-row: auto;
   }
   .dashboard-panel {
     padding-inline: 16px;
   }
-  .dashboard-table colgroup,
-  .dashboard-table thead {
+  .dashboard-panel :deep(.dashboard-table thead) {
     display: none;
   }
-  .dashboard-table,
-  .dashboard-table tbody {
+  .dashboard-panel :deep(.dashboard-table table),
+  .dashboard-panel :deep(.dashboard-table tbody) {
     display: block;
   }
-  .dashboard-table tr.dashboard-row {
+  .dashboard-panel :deep(.dashboard-table tbody tr[data-selectable='true']) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 44px;
     gap: 8px 12px;
     padding-block: 16px;
-    border-top: 1px solid var(--ui-border-muted);
   }
-  .dashboard-table tr:first-child {
-    border-top: 0;
-  }
-  .dashboard-table td,
-  .dashboard-table td:not(:last-child) {
+  .dashboard-panel :deep(.dashboard-table tbody td) {
     display: block;
-    border: 0;
+    min-width: 0;
     padding: 0;
   }
-  .dashboard-identity {
+  .dashboard-panel :deep(.dashboard-table tbody td:nth-child(1)) {
     grid-column: 1;
     grid-row: 1;
   }
-  .dashboard-actions {
-    grid-column: 2;
-    grid-row: 1;
+  .dashboard-panel :deep(.dashboard-table tbody td:nth-child(2)) {
+    grid-column: 1 / -1;
+    grid-row: 3;
   }
-  .dashboard-result {
+  .dashboard-panel :deep(.dashboard-table tbody td:nth-child(3)) {
     grid-column: 1 / -1;
     grid-row: 2;
   }
+  .dashboard-panel :deep(.dashboard-table tbody td:nth-child(4)) {
+    grid-column: 2;
+    grid-row: 1;
+  }
   .dashboard-last-check {
-    grid-column: 1 / -1;
-    grid-row: 3;
     display: flex !important;
     flex-wrap: wrap;
     gap: 4px 12px;

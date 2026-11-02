@@ -494,6 +494,14 @@ export const zNormativePositionCheckRequest = z.object({
 });
 
 /**
+ * NormativeProfileErrorDTO
+ */
+export const zNormativeProfileErrorDto = z.object({
+    message: z.string(),
+    profile: z.enum(['electrical', 'roads'])
+});
+
+/**
  * NormativeProjectCitation
  */
 export const zNormativeProjectCitation = z.object({
@@ -627,7 +635,8 @@ export const zNormativeSourceAdminDto = z.object({
     kind: z.string().optional().default(''),
     pages: z.int(),
     readable_pages: z.int(),
-    role: z.string().optional().default('')
+    role: z.string().optional().default(''),
+    sha256: z.string().nullish()
 });
 
 /**
@@ -650,6 +659,7 @@ export const zNormativeCorpusAdminDto = z.object({
  */
 export const zNormativeManagerDto = z.object({
     collections: z.array(zNormativeCatalogTypeDto),
+    profile_errors: z.array(zNormativeProfileErrorDto),
     profiles: z.array(zNormativeCorpusAdminDto)
 });
 

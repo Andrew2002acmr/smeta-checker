@@ -147,6 +147,23 @@
     scrollbar-color: var(--ui-border-accented) transparent;
   }
 }
+@media (prefers-reduced-motion: no-preference) {
+  .page-enter-active {
+    transition:
+      opacity 180ms ease-out,
+      transform 180ms ease-out;
+  }
+  .page-leave-active {
+    transition: opacity 80ms ease-in;
+  }
+  .page-enter-from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  .page-leave-to {
+    opacity: 0;
+  }
+}
 /* Review tables fit their pane; long names, formulas and notes wrap. */
 .table-wrap table,
 .project-table table {

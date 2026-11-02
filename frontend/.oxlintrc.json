@@ -7,9 +7,23 @@
     "public/**",
     ".api-check/**"
   ],
+  "plugins": [
+    "eslint",
+    "typescript",
+    "unicorn",
+    "oxc",
+    "import",
+    "promise",
+    "vue",
+    "vitest",
+    "node"
+  ],
   "categories": {
     "correctness": "error",
-    "suspicious": "error"
+    "suspicious": "error",
+    "pedantic": "warn",
+    "perf": "warn",
+    "style": "off"
   },
   "rules": {
     "no-unused-vars": "error",

@@ -3,6 +3,9 @@
   margin-inline: auto;
   padding: 24px 32px 64px;
 }
+.shell-wide {
+  max-width: none;
+}
 .skip-link {
   position: fixed;
   inset: 12px auto auto 12px;
