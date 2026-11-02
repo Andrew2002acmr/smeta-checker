@@ -49,6 +49,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests/test_*.py"]
+pythonpath = ["."]
 addopts = "-q"
 
 [tool.ruff]
