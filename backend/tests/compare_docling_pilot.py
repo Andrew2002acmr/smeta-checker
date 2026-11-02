@@ -68,7 +68,7 @@ def load_vor_positions(path):
     def find_column(*markers):
         lowered = [c.lower().replace("ё", "е") for c in frame.columns]
         for marker in markers:
-            for column, text in zip(frame.columns, lowered):
+            for column, text in zip(frame.columns, lowered, strict=True):
                 if marker in text:
                     return column
         return None
@@ -188,7 +188,7 @@ def main():
     try:
         import pymupdf
     except ImportError:
-        raise SystemExit("PyMuPDF is required for the native baseline")
+        raise SystemExit("PyMuPDF is required for the native baseline") from None
     docling = None
     if not args.baseline_only:
         try:
@@ -199,7 +199,7 @@ def main():
             from docling.document_converter import PdfFormatOption as _PdfFormatOption
             docling = (_InputFormat, _PdfPipelineOptions, _TessOptions, _Converter, _PdfFormatOption)
         except ImportError:
-            raise SystemExit("pip install docling  # pilot-only, do NOT add to pyproject.toml")
+            raise SystemExit("pip install docling  # pilot-only, do NOT add to pyproject.toml") from None
 
     from pdf_text import PDFTextSource
 

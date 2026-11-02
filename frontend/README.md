@@ -93,6 +93,15 @@ pnpm --dir frontend run test:unit
 pnpm --dir frontend run build
 ```
 
+Oxlint настроен в `frontend/.oxlintrc.json`: категории `correctness` и
+`suspicious`, а также `no-unused-vars` и `no-debugger` считаются ошибками.
+Проверка включает плагины Vue и Vitest и отклоняет также предупреждения.
+Генерируемый SDK, зависимости, сборочные каталоги, `public` и временный каталог
+проверки API исключены из lint. Запуск: `pnpm --dir frontend run lint`;
+для автоматических исправлений — `pnpm --dir frontend run lint:fix`.
+Форматирование проверяется отдельно командой `pnpm --dir frontend run fmt:check`,
+а применяется командой `pnpm --dir frontend run fmt`.
+
 Источник схем — реальные Pydantic DTO в `backend/workspace_models.py`, `backend/audit_models.py` и `backend/api.py`. Сгенерированный SDK/TS/Zod находится в `app/generated/`; вручную его не редактируют. Экспорт OpenAPI не открывает БД и не запускает OCR/LLM.
 
 Unit-тесты чистых функций и контрактов выполняются в Node, без запуска Nuxt. Пользовательские сценарии и компоненты проверяются E2E на собранном приложении.

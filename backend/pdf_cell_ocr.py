@@ -85,7 +85,7 @@ def column_axis(table):
     shifts = []
     for row in sorted({c['row'] for c in table['cells'] if c.get('role') == 'cell'})[:8]:
         cells = sorted((c for c in table['cells'] if c['row'] == row and c.get('colspan',1) == 1), key=lambda c:c['column'])
-        for a,b in zip(cells,cells[1:]):
+        for a,b in zip(cells,cells[1:], strict=False):
             if b['column'] != a['column']+1:
                 continue
             shifts.append([abs((a['bbox'][i]+a['bbox'][i+2]-b['bbox'][i]-b['bbox'][i+2])/2) for i in (0,1)])
@@ -161,7 +161,7 @@ def _rapid_numeric(image):
     result=_numeric_rapid_engine()(image,use_det=False,use_cls=False,use_rec=True)
     return [dict(text=str(text),confidence=float(confidence))
         for text,confidence in zip(result.txts if result.txts is not None else [],
-            result.scores if result.scores is not None else [])]
+            result.scores if result.scores is not None else [], strict=False)]
 
 
 def recovered_numeric_value(cell, proof):

@@ -4,7 +4,7 @@ import { resolve } from 'node:path'
 
 test('continues a stopped audit without losing the ready batch', async ({ page }) => {
   test.skip(!process.env.E2E_FIXTURE_ROOT, 'Requires the isolated progressive fixture')
-  const { run_id: run } = JSON.parse(
+  const { resume_run_id: run } = JSON.parse(
     readFileSync(resolve(process.env.E2E_FIXTURE_ROOT!, 'progressive-run.json'), 'utf8'),
   )
   await page.setViewportSize({ width: 1600, height: 1100 })

@@ -5,7 +5,7 @@ const backend = useBackend()
 const route = useRoute()
 const router = useRouter()
 definePageMeta({
-  key: (route) => `${route.params.projectId}:${route.params.documentId}`,
+  key: (pageRoute) => `${pageRoute.params.projectId}:${pageRoute.params.documentId}`,
 })
 let active = true
 let documentEpoch = 0

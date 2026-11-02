@@ -12,7 +12,11 @@ from normative_corpus import Corpus
 from normative_position_check import _excerpt, validate_items, CheckedItem
 import test_normative_integration as fixtures
 
-ROAD = Path(__file__).resolve().parents[3] / "knowledge-base/road-norms"
+ROAD = Path(os.environ.get(
+    "NORMATIVE_ROAD_KB_ROOT",
+    Path(__file__).resolve().parents[2]
+    / "normative-handoff-20261030-092929/knowledge-base/road-norms",
+))
 
 
 def test_road_profile_is_separate_and_technical_clause_is_searchable():
@@ -38,11 +42,13 @@ def test_excerpt_limits_keep_header_and_footer():
         assert result.startswith("HEADER") and result.endswith("FOOTER")
 
 
-def test_project_binding_is_explicit_and_does_not_change_other_projects():
+def test_project_binding_is_explicit_and_does_not_change_other_projects(tmp_path):
     from normative_service import profile_for
-    mapping = json.loads((ROAD / "project-bindings.json").read_text(encoding="utf-8"))
-    with patch.dict(os.environ, {"NORMATIVE_ROAD_KB_ROOT": str(ROAD)}):
-        assert profile_for(dict(project_id=next(iter(mapping)))) == "roads"
+    (tmp_path / "project-bindings.json").write_text(
+        json.dumps({"bound-test-project": "roads"}), encoding="utf-8"
+    )
+    with patch.dict(os.environ, {"NORMATIVE_ROAD_KB_ROOT": str(tmp_path)}):
+        assert profile_for(dict(project_id="bound-test-project")) == "roads"
         assert profile_for(dict(project_id="unbound-test-project")) == "electrical"
 
 

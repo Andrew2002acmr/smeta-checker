@@ -51,7 +51,7 @@ test('revisions retain document identity and historical evidence after PD change
   const vorResponse = await page.request.get(`/api/v1/documents/${vorDocumentId}/detail`)
   const vor = await vorResponse.json()
   expect(vor.id).toBe(vorDocumentId)
-  expect(vor.versions.map((version: { filename: string }) => version.filename).sort()).toEqual([
+  expect(vor.versions.map((version: { filename: string }) => version.filename).toSorted()).toEqual([
     'vor-corrected.csv',
     'vor.csv',
   ])
@@ -86,8 +86,8 @@ test('revisions retain document identity and historical evidence after PD change
 
   const after = await (await page.request.get(`/api/v1/audits/${firstRunId}/summary`)).json()
   expect(after.run.vor_version_id).toBe(oldVorVersion)
-  expect(after.documents.map((document: { id: string }) => document.id).sort()).toEqual(
-    before.documents.map((document: { id: string }) => document.id).sort(),
+  expect(after.documents.map((document: { id: string }) => document.id).toSorted()).toEqual(
+    before.documents.map((document: { id: string }) => document.id).toSorted(),
   )
   const historicalPdf = await page.request.get(`/api/v1/documents/${oldPdVersion}/content`)
   expect(await historicalPdf.body()).toEqual(pdf)

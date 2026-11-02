@@ -36,10 +36,11 @@ class Corpus:
     def connect(self):
         with sqlite3.connect(':memory:') as db:
             db.row_factory=sqlite3.Row
-            db.execute('CREATE TABLE norms(id TEXT,source_id TEXT,family TEXT,table_code TEXT,code TEXT,text TEXT)')
+            db.execute('CREATE TABLE norms(id TEXT,source_id TEXT,family TEXT,table_code TEXT,code TEXT,title TEXT)')
             for item in self.norms:
-                db.execute('INSERT INTO norms VALUES(?,?,?,?,?,?)',tuple(item[field]
-                    for field in ('id','source_id','family','table_code','code','text')))
+                db.execute('INSERT INTO norms VALUES(?,?,?,?,?,?)',(
+                    item['id'], item['source_id'], item['family'], item['table_code'],
+                    item['code'], item.get('title', item.get('text', ''))))
             yield db
 
     def entity(self,kind,entity_id):
@@ -95,6 +96,19 @@ def test_literal_adjustment_range_adds_navigation_candidate_with_unchanged_statu
     assert found['automatic_application_allowed'] is False and found['edition_confirmed'] is False
     assert found['missing_facts']==['Engineering conditions unresolved']
     assert found['status']=='extracted_native_unreviewed' and kb.norms==original
+
+
+def test_cross_table_adjustment_uses_norm_title_from_corpus_schema():
+    base = norm('03')
+    step = norm('05', table_code='77-01-047', title=(
+        'На каждые 5 см изменения толщины слоя добавлять или исключать '
+        'к нормам с 77-01-046-01 по 77-01-046-04'
+    ))
+    step.pop('text')
+    kb = Corpus([base, step])
+    result = same_table_adjustments(kb, [base], {})
+    assert [item['code'] for item in result] == ['77-01-047-05']
+    assert result[0]['automatic_application_allowed'] is False
 
 
 @pytest.mark.parametrize('change',[

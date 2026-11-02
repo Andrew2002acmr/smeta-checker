@@ -403,7 +403,7 @@ class SearchTests(unittest.TestCase):
         for primary, found_page, status in (([0], 2, "ОК"), ([2], 2, "ОК"),
                                              ([0, 3], 3, "ОК"), ([0], 4, "ОК")):
             with self.subTest(primary=primary, found_page=found_page):
-                def ask(context):
+                def ask(context, found_page=found_page):
                     if found_page in context:
                         return found(context, found_page,
                                      expected_volume="45", expected_unit="m",
@@ -733,7 +733,7 @@ class SearchTests(unittest.TestCase):
     def test_request_and_character_budgets_stop_negative_search(self):
         for limits in ({"max_contexts": 2}, {"max_total_chars": 300, "max_context_chars": 200}):
             calls = []
-            def ask(context):
+            def ask(context, calls=calls):
                 calls.append(context)
                 return empty_result("Ошибка", "Not in context")
             result = audit_text_pages(PageTextIndex(["Cable 40 m " * 100] * 30), [0], ask, "Cable", "45", **limits)

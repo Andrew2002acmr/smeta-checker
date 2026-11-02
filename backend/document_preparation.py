@@ -140,7 +140,7 @@ def prepare_documents(
                 state["page_count"] = source.page_count
                 pages = list(state.get("pages") or [])
 
-                def commit():
+                def commit(name=name, state=state, pages=pages):
                     documents[name] = dict(state, pages=list(pages))
                     done = sum(len(s.get("pages") or []) for s in documents.values())
                     context.repository.update_run_config(

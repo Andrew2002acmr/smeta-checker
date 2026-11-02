@@ -99,7 +99,7 @@ def main():
     try:
         import pymupdf
     except ImportError:
-        raise SystemExit("PyMuPDF is required for the baseline")
+        raise SystemExit("PyMuPDF is required for the baseline") from None
 
     output = args.output.resolve()
     (output / "pages" / "old").mkdir(parents=True, exist_ok=True)

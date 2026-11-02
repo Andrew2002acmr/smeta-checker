@@ -39,7 +39,7 @@ describe('folder drag&drop traversal', () => {
       items: [{ webkitGetAsEntry: () => nested }],
       files: [],
     })
-    expect(files.map((file) => file.name).sort()).toEqual(['project.pdf', 'vor.xlsx'])
+    expect(files.map((file) => file.name).toSorted()).toEqual(['project.pdf', 'vor.xlsx'])
   })
 
   it('reads directories in batches until an empty batch', async () => {
@@ -60,7 +60,7 @@ describe('folder drag&drop traversal', () => {
       ],
       files: [],
     })
-    expect(files.map((file) => file.name).sort()).toEqual(['loose.csv', 'nested.pdf'])
+    expect(files.map((file) => file.name).toSorted()).toEqual(['loose.csv', 'nested.pdf'])
   })
 
   it('falls back to the file list without entry support', async () => {

@@ -50,18 +50,21 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests/test_*.py"]
 addopts = "-q"
+pythonpath = ["."]
 
 [tool.ruff]
 target-version = "py314"
 # Flat layout without src/: tests extend sys.path before importing app modules.
-lint.select = ["E4", "E7", "E9", "F"]
+lint.select = ["E4", "E7", "E9", "F", "B"]
 lint.ignore = ["E402"]
+lint.flake8-bugbear.extend-immutable-calls = ["fastapi.Depends", "fastapi.File"]
 
 [tool.uv]
+default-groups = ["dev", "full"]
 package = false
 
 [tool.pyright]
 typeCheckingMode = "basic"
 pythonVersion = "3.14"
-include = ["pdf_binding.py"]
+include = ["pdf_binding.py", "audit_delivery.py", "audit_models.py", "workspace_models.py", "normative_corpus.py"]
 reportMissingImports = true

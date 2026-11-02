@@ -54,7 +54,10 @@ def test_separately_confirmed_live_geometry_survives_only_unrelated_child_gap():
     untouched=deepcopy(final)
     apply(data,first)
     assert tools.geometry_checkpoint
-    assert thickness(data,final)['state']=='needs_facts'
+    # The literal project thickness is independently verified even while the
+    # mixed norm-threshold/child-rate claim remains unresolved.
+    assert thickness(data,final)['state']=='confirmed'
+    assert validate_items(final.items,data[4])[0]['state']=='needs_facts'
     apply(data,final)
     assert thickness(data,final)['state']=='confirmed'
     geometry=next(item for item in final.items if CLAIM in item.claim_ids)
@@ -71,7 +74,9 @@ def test_frozen_or_legacy_mixed_claim_without_live_checkpoint_cannot_be_promoted
     original=deepcopy(data[-1])
     apply(data,data[-1])
     assert data[-1]==original and not getattr(data[5],'geometry_checkpoint',None)
-    assert thickness(data,data[-1])['state']=='needs_facts'
+    # A confirmed numeric card does not promote the mixed claim itself.
+    assert thickness(data,data[-1])['state']=='confirmed'
+    assert validate_items(data[-1].items,data[4])[0]['state']=='needs_facts'
 
 
 @pytest.mark.parametrize('change',['source_version','source_text','source_page','scope_unresolved','parameter_value',

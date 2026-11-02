@@ -13,16 +13,28 @@ from storage_blobs import FileBlobStore
 from storage_db import open_repository
 
 
-def main():
-    import sys
-    root = Path(sys.argv[1])
-    url = os.environ["TEST_POSTGRES_URL"]
-    if "/smeta_test_ui" not in url:
-        raise SystemExit("Only an isolated E2E database is allowed")
-    blobs = FileBlobStore(root / "blobs")
-    repo = open_repository(url, blobs)
+def seed(root, repo, blobs, *, road=False):
     old = repo.load_run(UUID((root / "run-id.txt").read_text().strip()))
-    original = old["config"]["position_inputs"][0]
+    project_id = old["project_id"]
+    replacements = {}
+    if road:
+        project_id = repo.create_project("Синтетический дорожный проект").id
+        replacements[str(old["project_id"])] = str(project_id)
+        for version_id in old["config"]["pdf_versions"].values():
+            ref = repo.load_version(UUID(version_id))
+            copied = repo.add_document_version(
+                project_id, blobs.get(ref.blob_key), filename=ref.filename,
+                kind="pdf", new_document=True,
+            )
+            replacements[version_id] = str(copied.id)
+
+    def remap(value):
+        encoded = json.dumps(value)
+        for before, after in replacements.items():
+            encoded = encoded.replace(before, after)
+        return json.loads(encoded)
+
+    original = remap(old["config"]["position_inputs"][0])
     ref = repo.load_version(old["vor_version_id"])
     book = load_workbook(io.BytesIO(blobs.get(ref.blob_key)))
     name = "Устройство нижнего слоя основания из щебеночно-песчаной смеси с уплотнением и уточнением размеров " * 3
@@ -46,18 +58,29 @@ def main():
     output = io.BytesIO()
     book.save(output)
     book.close()
-    version = repo.add_document_version(old["project_id"], output.getvalue(), filename="layout.xlsx", kind="vor", new_document=True)
-    config = {**old["config"], "position_inputs": positions, "prepare_seconds": 0.1}
-    run = repo.create_run(old["project_id"], version.id, config,
+    version = repo.add_document_version(project_id, output.getvalue(), filename="layout.xlsx", kind="vor", new_document=True)
+    config = {**remap(old["config"]), "position_inputs": positions, "prepare_seconds": 0.1}
+    run = repo.create_run(project_id, version.id, config,
                           pdf_pins={k: UUID(v) for k, v in config["pdf_versions"].items()})
-    result = old["indexed_results"][0]["result"]
-    payload = repo.load_position_job(old["id"], 0).payload
+    result = remap(old["indexed_results"][0]["result"])
+    payload = remap(repo.load_position_job(old["id"], 0).payload)
     for i in range(12):
         repo.create_position_job(run.id, i, queue="llm", payload=payload)
         repo.save_position_result(run.id, i, result)
         repo.finish_position_job(run.id, i, "done", result=result)
     repo.finish_run(run.id, "done")
-    (root / "table-run.json").write_text(json.dumps(dict(run_id=str(run.id))))
+    filename = "road-run.json" if road else "table-run.json"
+    (root / filename).write_text(json.dumps(dict(run_id=str(run.id), project_id=str(project_id))), encoding="utf-8")
+
+
+def main():
+    root = Path(sys.argv[1])
+    url = os.environ["TEST_POSTGRES_URL"]
+    from sqlalchemy.engine import make_url
+    if make_url(url).database != "smeta_test_ui":
+        raise SystemExit("Only an isolated E2E database is allowed")
+    blobs = FileBlobStore(root / "blobs")
+    seed(root, open_repository(url, blobs), blobs)
 
 
 if __name__ == "__main__":

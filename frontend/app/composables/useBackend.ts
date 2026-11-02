@@ -48,6 +48,33 @@ export function backendError(value: unknown): string {
         'Запрос не выполнен'
     : 'Запрос не выполнен'
 }
+async function download(url: string, filename: string) {
+  const reply = await fetch(url, { credentials: 'same-origin' })
+  if (!reply.ok) throw Error(backendError(await reply.json()))
+  const href = URL.createObjectURL(await reply.blob())
+  const link = document.createElement('a')
+  link.href = href
+  link.download = filename
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(href), 1000)
+}
+async function downloadPost(url: string, form: FormData, filename: string) {
+  const reply = await fetch(url, {
+    method: 'POST',
+    body: form,
+    credentials: 'same-origin',
+  })
+  if (!reply.ok) {
+    const data: unknown = await reply.json().catch(() => null)
+    throw Error(backendError(data))
+  }
+  const href = URL.createObjectURL(await reply.blob())
+  const link = document.createElement('a')
+  link.href = href
+  link.download = filename
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(href), 1000)
+}
 export function useBackend() {
   const route = useRoute()
   const connected = useState('workspace-connected', () => false)
@@ -73,33 +100,6 @@ export function useBackend() {
   const root = '/api/v1'
   const audit = (id: string) => `${root}/audits/${encodeURIComponent(id)}`
   const contentUrl = (id: string) => `${root}/documents/${encodeURIComponent(id)}/content`
-  async function download(url: string, filename: string) {
-    const reply = await fetch(url, { credentials: 'same-origin' })
-    if (!reply.ok) throw Error(backendError(await reply.json()))
-    const href = URL.createObjectURL(await reply.blob())
-    const link = document.createElement('a')
-    link.href = href
-    link.download = filename
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(href), 1000)
-  }
-  async function downloadPost(url: string, form: FormData, filename: string) {
-    const reply = await fetch(url, {
-      method: 'POST',
-      body: form,
-      credentials: 'same-origin',
-    })
-    if (!reply.ok) {
-      const data: unknown = await reply.json().catch(() => null)
-      throw Error(backendError(data))
-    }
-    const href = URL.createObjectURL(await reply.blob())
-    const link = document.createElement('a')
-    link.href = href
-    link.download = filename
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(href), 1000)
-  }
   return {
     json,
     audit,

@@ -162,7 +162,7 @@ def _deglue_numbers(page, text):
     except Exception:
         return text, 0
     count = 0
-    for first, second in zip(words, words[1:]):
+    for first, second in zip(words, words[1:], strict=False):
         a, b = first[4], second[4]
         if not a or not b:
             continue
@@ -518,7 +518,7 @@ class PDFTextSource:
                     chunks = pymupdf4llm.to_markdown(
                         markdown_doc, pages=batch, **_MARKDOWN_KWARGS
                     )
-                    by_page = dict(zip(batch, chunks))
+                    by_page = dict(zip(batch, chunks, strict=False))
                 except SoftTimeLimitExceeded:
                     raise
                 except Exception:
@@ -557,7 +557,7 @@ class PDFTextSource:
                             self._progress(idx + 1, len(doc))
                     continue
                 # Chunks come back in pages order; metadata.page is empty.
-                by_page = dict(zip(batch, chunks))
+                by_page = dict(zip(batch, chunks, strict=False))
                 for idx in batch:
                     chunk = by_page.get(idx)
                     text = (

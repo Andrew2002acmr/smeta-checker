@@ -14,7 +14,7 @@ const selected = computed(
     props.data?.nodes.find((n) => n.id === props.selectedId) ||
     props.data?.nodes
       .filter((n) => n.physical_start <= props.page && n.physical_end >= props.page)
-      .sort(
+      .toSorted(
         (a, b) =>
           b.physical_start - a.physical_start ||
           (b.kind === 'table' ? 1 : 0) - (a.kind === 'table' ? 1 : 0) ||

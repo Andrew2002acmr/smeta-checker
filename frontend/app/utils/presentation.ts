@@ -26,17 +26,17 @@ export function quantityWithUnit(
     ? text
     : text + ' ' + suffix
 }
+function parseQuantity(value: string | number | null | undefined): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const num = Number(String(value).replace(/\s/g, '').replace(',', '.'))
+  return Number.isFinite(num) ? num : null
+}
 export function quantityDelta(
   declared: string | number | null | undefined,
   found: string | number | null | undefined,
 ): string | null {
-  const parse = (value: string | number | null | undefined): number | null => {
-    if (value === null || value === undefined || value === '') return null
-    const num = Number(String(value).replace(/\s/g, '').replace(',', '.'))
-    return Number.isFinite(num) ? num : null
-  }
-  const a = parse(declared)
-  const b = parse(found)
+  const a = parseQuantity(declared)
+  const b = parseQuantity(found)
   if (a === null || b === null) return null
   // Round to 3 decimals to avoid float artifacts (0.1 + 0.2).
   const diff = Math.round((b - a) * 1000) / 1000

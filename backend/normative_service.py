@@ -166,7 +166,7 @@ def candidate(kb, item, facts=None):
         missing.append("В интерфейсе показаны первые 500 ресурсных ячеек; полный состав — в оригинале")
     status = "possible_mismatch" if any(c["state"] == "mismatch" for c in checks) else "needs_facts" if missing else "candidate"
     if any(r["state"] == "candidate" and raw["effect"].get("type") == "possible_duplicate"
-           for r, raw in zip(rules, item.get("rules") or [])):
+           for r, raw in zip(rules, item.get("rules") or [], strict=True)):
         status = "possible_duplicate"
     return dict(id=item["id"], code=item.get("code") or item.get("label") or "", title=item.get("title") or item.get("label") or "Пункт документа",
         designation=item["designation"], entity_kind=item["entity_kind"], text=str(item.get("text") or "")[:6000],

@@ -18,14 +18,17 @@ test.beforeEach(async ({ page }) => {
 
 test('user confirms, selects PDF evidence, reloads and revokes a choice', async ({ page }) => {
   test.skip(!process.env.E2E_FIXTURE_ROOT, 'Requires an isolated synthetic workspace')
+  const login = process.env.WORKSPACE_LOGIN?.trim()
+  if (!login) throw new Error('E2E requires WORKSPACE_LOGIN')
   const runId = readFileSync(resolve(process.env.E2E_FIXTURE_ROOT!, 'run-id.txt'), 'utf8').trim()
   await page.setViewportSize({ width: 1600, height: 1100 })
   await page.goto(`/audits/${runId}?position=0`)
   await page.getByRole('button', { name: 'Подтвердить основание', exact: true }).first().click()
   const reviewed = page.getByRole('region', { name: 'Выбор пользователя' })
-  await expect(reviewed).toContainText('basis-e2e')
+  await expect(reviewed).toContainText(login)
   await expect(reviewed.getByText('Подтверждено пользователем', { exact: true })).toHaveCount(1)
   await page.reload()
+  await expect(reviewed).toContainText(login)
   await expect(reviewed.getByText('Подтверждено пользователем', { exact: true })).toHaveCount(1)
   await page.getByRole('button', { name: 'Указать основание', exact: true }).click()
   await page.getByRole('button', { name: 'Область', exact: true }).click()
@@ -144,9 +147,15 @@ test('one click selects exactly one table row with a matching preview and saved 
     .filter({ hasText: /^Copper cable$/ })
     .first()
   await expect(text).toBeVisible()
-  const target = await text.boundingBox()
-  if (!target) throw new Error('Table row not visible')
-  await page.mouse.click(target.x + target.width / 2, target.y + target.height / 2)
+  // The text layer is rebuilt after PDF resizes; click the persistent drawing
+  // overlay at a point inside the fixture's first data row instead of measuring
+  // a span that can disappear between toBeVisible() and boundingBox().
+  const overlay = page.locator('.pdf-draw')
+  const target = await overlay.boundingBox()
+  if (!target) throw new Error('PDF drawing overlay is unavailable')
+  await overlay.click({
+    position: { x: target.width * (120 / 600), y: target.height * (128 / 400) },
+  })
   const preview = page.getByRole('textbox', { name: 'Текст выбранного основания' })
   await expect(preview).toHaveValue(/Copper cable/)
   await expect(preview).not.toHaveValue(/NEXT ROW|999/)

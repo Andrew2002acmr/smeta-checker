@@ -47,7 +47,7 @@ def test_merged_header_preserves_distinct_child_units_and_shared_parent():
     assert geometry is not None
     values = ['Пикет','Основание','Площадь, м2','Объем, м3','Всего:','120','24']
     words = [dict(text=text,confidence=.99,bbox=[b[0]+8,b[1]+8,b[2]-8,b[3]-8])
-        for b,text in zip(boxes,values)]
+        for b,text in zip(boxes,values,strict=True)]
     table = rebuild(*geometry,words,page=1)
     headers = {c['cell_id']:c for c in table['cells'] if c['role']=='header'}
     for number,unit in [('120','Площадь, м2'),('24','Объем, м3')]:

@@ -186,7 +186,7 @@ def parse_rows(rows: list[dict[str,Any]]):
         previous: dict[str,Any] | None=None
         bad=False
         detail=''
-        for current,anchor in zip(following,anchors):
+        for current,anchor in zip(following,anchors,strict=True):
             if anchor is None:
                 pending.append(current)
                 continue

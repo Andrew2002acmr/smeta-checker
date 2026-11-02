@@ -111,7 +111,7 @@ def test_packing_diagnostics_are_saved_but_never_fed_back_into_model_context():
     run(ask,None,None,'',{},AgentAnswer,None,{'queries':[]},tools,verify_answer=verify)
     packing=tools.coverage['model_context_packing']
     assert len(packing)==2
-    for call,record in zip(ask.call_args_list,packing):
+    for call,record in zip(ask.call_args_list,packing,strict=True):
         supplied=call.args[3]
         assert 'model_context_packing' not in supplied['coverage']
         assert record['input_json_characters']==len(serialize_context(supplied))
