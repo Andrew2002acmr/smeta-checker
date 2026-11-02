@@ -23,7 +23,7 @@ test('user confirms, selects PDF evidence, reloads and revokes a choice', async 
   await page.goto(`/audits/${runId}?position=0`)
   await page.getByRole('button', { name: 'Подтвердить основание', exact: true }).first().click()
   const reviewed = page.getByRole('region', { name: 'Выбор пользователя' })
-  await expect(reviewed).toContainText('basis-e2e')
+  await expect(reviewed).toContainText(process.env.WORKSPACE_LOGIN!)
   await expect(reviewed.getByText('Подтверждено пользователем', { exact: true })).toHaveCount(1)
   await page.reload()
   await expect(reviewed.getByText('Подтверждено пользователем', { exact: true })).toHaveCount(1)

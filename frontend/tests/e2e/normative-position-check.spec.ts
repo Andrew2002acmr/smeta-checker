@@ -2,6 +2,13 @@ import { test, expect } from './auth'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
+test.beforeEach(() => {
+  test.skip(
+    process.env.E2E_NORMATIVE_PROFILE !== 'roads',
+    'Requires an external roads normative release and configured fixture API',
+  )
+})
+
 test('one position uses road norms and preserves batch results', async ({ page }) => {
   test.skip(!process.env.E2E_FIXTURE_ROOT, 'Requires isolated road-profile fixture API')
   const { run_id: run } = JSON.parse(

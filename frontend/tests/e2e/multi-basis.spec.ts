@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 test('image-only PDF: multiple regions across pages, real crop OCR, corrections and reload', async ({
   page,
 }) => {
+  test.setTimeout(120000)
   test.skip(!process.env.E2E_FIXTURE_ROOT, 'Requires an isolated workspace with crop OCR')
   const headers = { Origin: process.env.FRONTEND_URL! }
   const created = await page.request.post('/api/v1/projects', {

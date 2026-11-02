@@ -112,7 +112,11 @@ jobs:
           uv --project backend run --no-sync python backend/tests/workspace_server.py --root .audit_cache/e2e-fixture --port 8116 > .audit_cache/e2e-api.log 2>&1 &
           node frontend/.output/server/index.mjs > .audit_cache/e2e-frontend.log 2>&1 &
           for i in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:8116/healthz > /dev/null && curl -fsS http://127.0.0.1:3016/ > /dev/null; then exit 0; fi
+            if curl -fsS http://127.0.0.1:8116/healthz > /dev/null && curl -fsS http://127.0.0.1:3016/ > /dev/null; then
+              uv --project backend run --no-sync python backend/tests/table_layout_fixture.py .audit_cache/e2e-fixture
+              uv --project backend run --no-sync python backend/tests/progressive_fixture.py seed .audit_cache/e2e-fixture
+              exit 0
+            fi
             sleep 1
           done
           exit 1
@@ -122,6 +126,8 @@ jobs:
         env:
           FRONTEND_URL: http://127.0.0.1:3016
           E2E_FIXTURE_ROOT: ${{ github.workspace }}/.audit_cache/e2e-fixture
+          E2E_PYTHON: ${{ github.workspace }}/backend/.venv/bin/python
+          TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@localhost:5432/smeta_test_ui
           WORKSPACE_AUTH_MODE: local
           WORKSPACE_LOGIN: e2e-workspace
           WORKSPACE_PASSWORD: synthetic-workspace-only

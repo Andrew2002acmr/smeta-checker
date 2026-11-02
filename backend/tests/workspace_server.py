@@ -19,6 +19,35 @@ from storage_db import open_repository
 from test_api import _fake_pdf_bytes, _ok_client_factory
 
 
+def selection_pdfs(root):
+    """Create portable synthetic inputs required by the browser selection tests."""
+    import pymupdf
+
+    with pymupdf.open() as document:
+        page = document.new_page(width=600, height=400)
+        for x in (50, 350, 420, 550):
+            page.draw_line((x, 80), (x, 180))
+        for y in (80, 110, 145, 180):
+            page.draw_line((50, y), (550, y))
+        for x, y, text in [
+            (60, 100, "Work"), (360, 100, "Unit"), (430, 100, "Quantity"),
+            (60, 132, "Copper cable"), (360, 132, "m"), (430, 132, "45"),
+            (60, 167, "NEXT ROW"), (360, 167, "m"), (430, 167, "999"),
+        ]:
+            page.insert_text((x, y), text, fontsize=11)
+        document.save(root / "selection-table.pdf")
+    with pymupdf.open() as scan:
+        for label in ("COPPER CABLE", "UNIT"):
+            with pymupdf.open() as native:
+                page = native.new_page(width=400, height=400)
+                page.insert_text((40, 62), label, fontsize=16)
+                page.insert_text((285, 62), "222.78", fontsize=16)
+                image = page.get_pixmap(matrix=pymupdf.Matrix(3, 3)).tobytes("png")
+            page = scan.new_page(width=400, height=400)
+            page.insert_image(page.rect, stream=image)
+        scan.save(root / "multi-scan.pdf")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", required=True, type=Path)
@@ -107,6 +136,7 @@ def main():
     book.close()
     (args.root / "vor.xlsx").write_bytes(output.getvalue())
     (args.root / "project.pdf").write_bytes(_fake_pdf_bytes())
+    selection_pdfs(args.root)
     with TestClient(app) as client:
         client.headers["Authorization"] = "Bearer synthetic-e2e-only"
         created = client.post(
