@@ -38,7 +38,7 @@ def manager_profile(profile: str) -> dict[str, Any]:
 
     kb: Corpus = normative_service.corpus(profile=profile)
     with kb.connect() as db:
-        metadata = _metadata(db)
+        _metadata(db)
         counts = _counts(db)
         sources = [dict(row) for row in db.execute(
             "SELECT s.id,s.designation,s.kind,s.role,s.pages, "
@@ -116,7 +116,8 @@ def code_from_position(work_name: str, reference: str) -> str:
 
 
 def title_similarity(left: str, right: str) -> int:
-    words = lambda value: set(re.findall(r"[а-яёa-z0-9]+", value.casefold()))
+    def words(value):
+        return set(re.findall(r"[а-яёa-z0-9]+", value.casefold()))
     a, b = words(left), words(right)
     token_score = (2 * len(a & b) / (len(a) + len(b))) if a and b else 0
     sequence_score = SequenceMatcher(None, " ".join(sorted(a)), " ".join(sorted(b))).ratio()

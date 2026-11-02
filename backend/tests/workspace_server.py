@@ -73,7 +73,8 @@ def main():
             norm = next(s for s in data["sources"] if s["kind"] == "normative")
             answer = dict(summary="Синтетическая точечная проверка: исходный прогон не изменён.", items=[dict(topic="ПД и норматив", state="needs_facts", explanation="Синтетический стенд: проверьте исходный норматив и проектную строку.", project_source_ids=[project["id"]], normative_source_ids=[norm["id"]])])
             return SimpleNamespace(output_text=json.dumps(answer), usage=SimpleNamespace(input_tokens=120, output_tokens=30, total_tokens=150))
-        client_factory = lambda **kwargs: SimpleNamespace(responses=SimpleNamespace(create=complete_check), close=lambda: None)
+        def client_factory(**kwargs):
+            return SimpleNamespace(responses=SimpleNamespace(create=complete_check), close=lambda: None)
     app = create_app(
         ApiContext(
             settings=settings,
