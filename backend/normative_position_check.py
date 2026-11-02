@@ -31,7 +31,7 @@ class CheckedItem(NormativePositionCheckItem):
 class CheckAnswer(BaseModel):
     model_config = ConfigDict(extra="forbid")
     summary: str = Field(max_length=2500)
-    items: list[CheckedItem] = Field(max_length=8)
+    items: list[CheckedItem] = Field(max_length=16)
     parameters: list[NormativeParameterProposal] = Field(default_factory=list, max_length=16)
 
 
@@ -181,11 +181,15 @@ def answer_feedback(answer, sources, tools, *, owner_unit='', work_scope='', hei
     from normative_parameter_feedback import literal_parameter_issues
     from normative_source_roles import classification_only_basis, classification_source, MESSAGE
     canonicalize_cell_parameters(answer,sources,work_scope=work_scope,height_cm=height_cm,section_context=section_context)
-    from normative_quantity_sum_repair import repair_quantity_sum
-    repair_quantity_sum(answer,tools,owner_work=quantity_work_scope or work_scope,
-        work_scope=work_scope,owner_unit=owner_unit,section_context=section_context,height_cm=height_cm)
+    # The model chooses direct versus summed scope. Feedback may reject a
+    # partial reading, but must not replace it with a verified local decision.
     lookup={s['id']:s for s in sources}
     issues=[]
+    quantities = [p for p in answer.parameters if p.parameter == 'quantity']
+    if len({measure(p.value, p.unit) for p in quantities if measure(p.value, p.unit) is not None}) > 1:
+        issues.append('Для quantity возвращено несколько разных величин. Сам установи охват позиции по ПД: '
+            'выбери одно основание либо запроси sum_cells и верни operation=sum с точными operand_source_ids, '
+            'если источники доказывают, что эти части составляют общий объём. Код не выбирает и не складывает их вместо тебя.')
     evidence=dict(getattr(tools,'parameter_evidence',{}))
     tools.invalid_project_parameter_kinds=set()
     definitions={d['claim_id']:d for d in claim_definitions}
@@ -469,12 +473,10 @@ def position_search_queries(position, question):
 def check(context, record, index, payload, actor, *, automatic=False):
     from analysis_replay import replay_normative,store_normative
     replayed=replay_normative(context,record,index,payload,actor)
-    if replayed is not None:
+    if replayed is not None and replayed['payload']['position_check'].get('pipeline_version', 0) >= PIPELINE_VERSION:
         return replayed
-    from normative_layer_reuse import reuse_layer_check
-    cached=reuse_layer_check(context,record,index,actor)
-    if cached is not None:
-        return store_normative(context,record,index,payload,cached)
+    # Exact-input replay above may reuse a prior agent answer. A verdict for
+    # another technological layer is context for the model, not this answer.
     started = time.monotonic()
     position, facts, origins, project_citations = service.project_context(context, record, index)
     from vor_material_links import material_links
@@ -602,6 +604,8 @@ def check(context, record, index, payload, actor, *, automatic=False):
     prepare_quantity_pair(tools,owner_work=(parent_position or position).work_name,
         work_scope=parameter_work_scope,owner_unit=(parent_position or position).unit,
         section_context=section_context,height_cm=declared_layer_group['height'] if declared_layer_group else None)
+    from normative_schedule_quantity import prepare as prepare_schedule_quantity
+    prepared_schedule_candidates = prepare_schedule_quantity(parent_position or position, positions, tools, related)
     discovered = dict(sources=sources, quantity_composition=None)
     tracing = TracingRun(context.settings.langfuse_public_key, context.settings.langfuse_secret_key,
         context.settings.langfuse_base_url, context.settings.langfuse_environment, audit_run_id=str(record["id"]),
@@ -644,7 +648,8 @@ def check(context, record, index, payload, actor, *, automatic=False):
         collection=collection_context(kb,raw_candidates,expected_pin=kb.identity)
         sources.extend(collection['sources'])
         tools.preferred.extend(collection['preferred_source_ids'])
-        inputs = dict(question=payload.question, prepared_quantity_tables=table_discovery,
+        inputs: dict[str, Any] = dict(question=payload.question, prepared_quantity_tables=table_discovery,
+            prepared_schedule_candidates=prepared_schedule_candidates,
             methodology_context=methodology['context'],
             manufacturer_context=manufacturer['context'],
             collection_context=collection['context'],
@@ -694,6 +699,10 @@ def check(context, record, index, payload, actor, *, automatic=False):
             "а не отдельную строку для каждого технологического слоя. Извлекай найденные операнды даже при "
             "неподтверждённом OCR/единице: пометь scope_state=unresolved, не придумывай недостающий источник. "
             "quantity_candidates — отдельные или сгруппированные симметричные колонки одной итоговой строки. "
+            "prepared_schedule_candidates содержит только кандидатов поиска и арифметические суммы, а не решение о принадлежности. "
+            "Сам запроси и прочитай источники, установи связь участка, материала и полной толщины. Верни выбранные parameters, "
+            "ссылки и отдельные выводы по геометрии, нормативной применимости и расходу. Не подтверждай по одному сходству чисел. "
+            "Полная толщина связанной конструкции не равна толщине одного технологического слоя. "
             "Если кандидат содержит source_id и equation, сумма уже вычислена сервером по указанным operand_source_ids: "
             "для quantity используй operation=sum, этот source_id, точный calculated_sum и единицу; не подменяй их количеством ВОР. "
             "scope_verified=False означает, что сервер ещё НЕ принимал инженерное решение об области применения; это не запрет и не установленное противоречие. "
@@ -839,6 +848,7 @@ def check(context, record, index, payload, actor, *, automatic=False):
         tracing.close()
     result = dict(**answer, state="possible_mismatch" if any(v["state"] == "possible_mismatch" for v in answer["items"]) else "needs_facts",
         pipeline_version=PIPELINE_VERSION, execution_state=execution_state,
+        decision_origin='model_with_validated_sources',
         evidence_trace=tools.events, coverage=tools.coverage,
         sources=sources, related_positions=related, telemetry=stats, requires_engineer_review=True,
         quantity_composition=discovered.get('quantity_composition'))
@@ -850,9 +860,6 @@ def check(context, record, index, payload, actor, *, automatic=False):
         from normative_resource_recovery import hydrate
         hydrate(kb,result,facts.model_dump())
         result=bind_parent_basis(context,record,result,positions,relation,position=position)
-        if not parent_position:
-            from normative_schedule_quantity import apply as project_schedule_quantity
-            project_schedule_quantity(context,record,index,position,result,kb,positions)
         result = enrich(position, result, positions, relation)
     from normative_verdict import finalize_state, readable_review
     result = readable_review(result)
@@ -941,7 +948,7 @@ def validate_agent_saved(context, record, index, row, actor, *, register=True):
     # parent verdict; its coefficient and material-specific claims stay open.
     result = bind_parent_basis(context, record, result, positions, relation,expected_kb=kb.identity,position=position)
     owner = positions.get(relation['parent']['index'],position) if relation.get('parent') else position
-    if owner.index==position.index:
+    if owner.index==position.index and result.get('pipeline_version', 0) < 5:
         from normative_schedule_quantity import apply as project_schedule_quantity
         project_schedule_quantity(context,record,index,position,result,kb,positions)
         from normative_strengthening_quantity import apply as project_strengthening_quantity
@@ -979,7 +986,7 @@ def validate_agent_saved(context, record, index, row, actor, *, register=True):
     data['position_check']=result
     data['status']='candidate' if result['state']=='confirmed' else result['state']
     saved=context.repository.save_normative_review(record['id'],index,'check',data,actor)
-    if register and kb.identity==active_kb.identity:
+    if register and kb.identity==active_kb.identity and result.get('pipeline_version', 0) == PIPELINE_VERSION:
         from analysis_replay import register_validated
         return register_validated(context,record,index,saved)
     return saved

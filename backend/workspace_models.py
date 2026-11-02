@@ -272,6 +272,7 @@ class QuantityComposition(DTO):
 
 class NormativePositionCheck(DTO):
     pipeline_version: int = 1
+    decision_origin: Literal['model_with_validated_sources'] | None = None
     execution_state: Literal['complete', 'technical_failure'] = 'complete'
     evidence_trace: list[dict[str, Any]] = Field(default_factory=list)
     coverage: dict[str, Any] = Field(default_factory=dict)

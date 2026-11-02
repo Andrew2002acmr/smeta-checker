@@ -925,6 +925,7 @@ export const zQuantityComposition = z.object({
  */
 export const zNormativePositionCheck = z.object({
     coverage: z.record(z.string(), z.unknown()).optional(),
+    decision_origin: z.literal('model_with_validated_sources').nullish(),
     evidence_trace: z.array(z.record(z.string(), z.unknown())).optional(),
     execution_state: z.enum(['complete', 'technical_failure']).optional().default('complete'),
     items: z.array(zNormativePositionCheckItem),

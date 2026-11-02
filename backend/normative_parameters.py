@@ -196,6 +196,9 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
         if kind in {'quantity','thickness'}:
             valid = [p for p in matches if p.get('scope_state')=='verified'
                 and not construction_conflict(p.get('scope_quote',''),work_scope,comparison_group['height'] if comparison_group else None)
+                and (kind != 'thickness' or not re.findall(r'нижн|средн|верхн', clean(owner.work_name))
+                    or set(re.findall(r'нижн|средн|верхн', clean(p.get('scope_quote', ''))))
+                        == set(re.findall(r'нижн|средн|верхн', clean(owner.work_name))))
                 and quoted(p['value'],p['quote'],sources[p['source_id']]['text'])]
             if valid:
                 # A claimed same-scope fact with a broken numeric citation is

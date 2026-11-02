@@ -1,10 +1,12 @@
 """Bind complete area columns by section, material and layer, never VOR amount."""
 from copy import deepcopy
+import json
 import re
+from typing import Any
 
 from normative_parameters import clean, measure, number, quoted
 
-TRACE = 'physical_schedule_layer_quantity_v1'
+TRACE = 'physical_schedule_layer_quantity_v2'
 HEIGHT = re.compile(r'\bh\s*(min)?\s*=\s*(\d+(?:[.,]\d+)?)\s*(см|мм|м|m)\b', re.I)
 
 
@@ -123,31 +125,94 @@ def apply(context, record, index, position, result, kb, positions):
     from vor_material_ownership import material_owners
     owners = material_owners([p.legacy_task() for p in positions.values()])
     materials = [positions[i].work_name for i, owner in owners.items() if owner['index'] == index]
-    if identity(position, materials) is None or any(c['id'] == 'quantity' and c['state'] == 'confirmed'
-            for c in result.get('parameter_cards', [])):
+    from normative_base_schedule import identity as base_identity
+    if identity(position, materials) is None and base_identity(position, materials, positions) is None:
         return False
     from normative_agent import EvidenceTools
-    return project(position, result, EvidenceTools(context, record, index, [], kb, {}), materials)
+    return project(position, result, EvidenceTools(context, record, index, [], kb, {}), materials, positions=positions)
 
 
-def project(position, result, tools, materials):
-    key = identity(position, materials)
+def prepare(position, positions, tools, related):
+    """Expose literal candidates for the model; never create a verified verdict.
+
+    Retrieval uses table structure and work vocabulary, not the declared amount.
+    The agent must request/read sources, choose scope and return its own answer.
+    """
+    from vor_material_ownership import material_owners
+    from normative_base_schedule import identity as base_identity, native_construction, select as select_base, prepared_native_sources
+    from normative_agent import EvidenceRequest
+    from normative_quantity_anchors import quantity_parameter_candidates
+    owners = material_owners([p.legacy_task() for p in positions.values()])
+    materials = [positions[i].work_name for i, owner in owners.items() if owner['index'] == position.index]
+    key = identity(position, materials) or base_identity(position, materials, positions)
+    if not key or not tools.version or tools.index is None:
+        return None
+    base = key.get('family') == 'granular_base'
+    pool: dict[str, Any] = dict(sources=[*tools.sources, *prepared_native_sources(tools)]) if base else dict(sources=tools.sources)
+    native = native_construction(pool, key, tools.version) if base else None
+    if base and native is None:
+        return None
+    tables = [(at+1, t) for at in range(len(tools.index.texts)) for t in tools._tables(at+1)]
+    selected = select_base(tables, key, native) if base else select(tables, key)
+    if selected is None:
+        return None
+    page, table, cells = selected
+    request = EvidenceRequest(tool='read_table', page=page, table_id=table['table_id'],
+        row_ids=[cells[0]['row']], column_ids=[c['column'] for c in cells])
+    read = tools.execute(request)
+    ids = [c['source_id'] for c in read.get('rows', []) if c.get('source_id')
+        and c.get('cell_id') in {v['cell_id'] for v in cells}]
+    if len(ids) != len(cells):
+        return None
+    read_requests = [request.model_dump()]
+    if native is not None:
+        source = next(s for s in pool['sources'] if s['id'] == native['source_id'])
+        tools._add(deepcopy(source))
+        tools.preferred.append(source['id'])
+        read_requests.append(EvidenceRequest(tool='read_source', source_id=source['id']).model_dump())
+    source_id = ids[0]
+    if len(ids) > 1:
+        computed = tools.execute(EvidenceRequest(tool='sum_cells', operand_ids=ids, unit=position.unit))
+        source_id = computed.get('source_id')
+    suggestions = [v for v in quantity_parameter_candidates(tools.sources, tools.cells, tools.quantity_sums,
+        limit=32, max_chars=32000) if v['proposal']['source_id'] == source_id]
+    tools.events.append(dict(kind='prepared_schedule_navigation_v1', page=page, table_id=table['table_id'],
+        operand_source_ids=ids, scope_verified=False, model_decision_required=True))
+    return dict(state='candidate', scope_verified=False, model_decision_required=True,
+        quantity_candidates=suggestions, construction_candidate=native, read_requests=read_requests,
+        checks_required=['same project section', 'same material', 'whole construction depth',
+            'technological layer assembly', 'normative applicability and consumption conditions'])
+
+
+def project(position, result, tools, materials, *, positions=None):
+    positions = positions or {position.index: position}
+    key: dict[str, Any] | None = identity(position, materials)
+    from normative_base_schedule import identity as base_identity, native_construction, select as select_base
+    key = key or base_identity(position, materials, positions)
     if not key or not tools.version or result.get('execution_state') == 'technical_failure':
         return False
-    native = native_street_layer(position, result, key, tools.version) if key['section'] == 'street' else None
-    if key['section'] == 'street' and native is None:
+    base = key.get('family') == 'granular_base'
+    native_pool = result
+    if base:
+        from normative_base_schedule import prepared_native_sources
+        native_pool = {**result, 'sources': [*result['sources'], *prepared_native_sources(tools)]}
+    native = native_construction(native_pool, key, tools.version) if base else (
+        native_street_layer(position, result, key, tools.version) if key['section'] == 'street' else None)
+    if (base or key['section'] == 'street') and native is None:
         return False
     tables = [(at+1, t) for at in range(len(tools.index.texts)) for t in tools._tables(at+1)]
-    selected = select(tables, key)
+    selected = select_base(tables, key, native) if base else select(tables, key)
     if selected is None:
         return False
     page, table, cells = selected
     from normative_agent import EvidenceRequest
     from normative_quantity_anchors import _physical, _proposal, quantity_parameter_candidates
-    tools.execute(EvidenceRequest(tool='read_table', page=page, table_id=table['table_id'],
+    read = tools.execute(EvidenceRequest(tool='read_table', page=page, table_id=table['table_id'],
         row_ids=[cells[0]['row']], column_ids=[c['column'] for c in cells]))
     lookup = {s['id']: s for s in tools.sources}
-    physical = [_physical(sid, lookup, tools.cells) for sid in tools.cells]
+    selected_ids = [c['source_id'] for c in read.get('rows', []) if c.get('cell_id') in {v['cell_id'] for v in cells}
+        and c.get('source_id')]
+    physical = [_physical(sid, lookup, tools.cells) for sid in selected_ids]
     if len(physical) != len(cells) or any(p is None for p in physical):
         return False
     physical = [p for p in physical if p is not None]
@@ -170,9 +235,13 @@ def project(position, result, tools, materials):
     original = [p for p in result.get('parameter_proposals', []) if p['parameter'] == 'quantity']
     if original == [proposal] and any(e.get('kind') == TRACE for e in result.get('evidence_trace', [])):
         return False
-    if any(p.get('scope_state') == 'verified' and p != proposal for p in original):
+    from normative_quantity_anchors import sum_supersedes_operand
+    covered = [p for p in original if sum_supersedes_operand(p, proposal, lookup)]
+    if any(p.get('scope_state') == 'verified' and p != proposal and p not in covered for p in original):
         return False
     preview = deepcopy(result)
+    if base and native is not None and native['source_id'] not in {s['id'] for s in preview['sources']}:
+        preview['sources'].append(deepcopy(next(s for s in native_pool['sources'] if s['id'] == native['source_id'])))
     fresh = [s for s in tools.sources if s['id'] in {proposal['source_id'], *proposal['operand_source_ids']}]
     for source in fresh:
         old = next((s for s in preview['sources'] if s['id'] == source['id']), None)
@@ -181,19 +250,41 @@ def project(position, result, tools, materials):
             return False
     preview['sources'] = [s for s in preview['sources'] if s['id'] not in {v['id'] for v in fresh}] + deepcopy(fresh)
     preview['parameter_proposals'] = [p for p in preview.get('parameter_proposals', []) if p['parameter'] != 'quantity'] + [proposal]
+    bound_thickness = None
+    if base and native is not None:
+        source = next(s for s in preview['sources'] if s['id'] == native['source_id'])
+        scope = native['scope_quote']
+        depth = HEIGHT.search(scope)
+        if depth and clean(scope) in clean(source['text']):
+            # Bind thickness to the exact native layer sentence, rather than
+            # a page excerpt containing lower, middle and upper layers at once.
+            thickness = dict(parameter='thickness', operation='direct', operand_source_ids=[], conditions=[],
+                source_id=source['id'], value=depth[2], unit=depth[3], quote=depth[0],
+                scope_quote=scope, scope_state='verified')
+            other = [p for p in preview['parameter_proposals'] if p['parameter'] == 'thickness'
+                and measure(p['value'], p['unit']) != key['height']]
+            if not other:
+                preview['parameter_proposals'] = [p for p in preview['parameter_proposals']
+                    if p['parameter'] != 'thickness'] + [thickness]
+                bound_thickness = thickness
     removed = []
     kept = []
+    superseded_claims = {'quantity'} | ({'geometry:thickness', 'thickness'} if bound_thickness else set())
     for item in preview['items']:
-        if item['state'] == 'needs_facts' and 'quantity' in item.get('claim_ids', []):
+        if item['state'] == 'needs_facts' and superseded_claims.intersection(item.get('claim_ids', [])):
             removed.append(deepcopy(item))
-            residual = [v for v in item['claim_ids'] if v != 'quantity']
+            residual = [v for v in item['claim_ids'] if v not in superseded_claims]
             if residual:
                 kept.append({**item, 'claim_ids': residual})
         else:
             kept.append(item)
     preview['items'] = kept
+    if bound_thickness:
+        preview['items'].append(dict(topic='Толщина той же конструкции ПД', state='confirmed', required=True,
+            claim_ids=['geometry:thickness'], project_source_ids=[bound_thickness['source_id']],
+            normative_source_ids=[], explanation=bound_thickness['scope_quote']))
     from normative_parameters import build_cards
-    card = next(c for c in build_cards(position, preview, {position.index: position}, {}) if c['id'] == 'quantity')
+    card = next(c for c in build_cards(position, preview, positions, {}) if c['id'] == 'quantity')
     if card['state'] != 'confirmed':
         # Preserve located evidence for the next step, without converting
         # uncertain precision or a conflict into an automatic VOR error.
@@ -207,7 +298,8 @@ def project(position, result, tools, materials):
     preview['items'].append(dict(topic='Количество по собственной колонке ведомости ПД', state='confirmed', required=True,
         claim_ids=['quantity'], project_source_ids=[proposal['source_id']], normative_source_ids=[],
         explanation='Полный итог раздела, материала и толщины слоя: ' + proposal['quote'] + '. ' + card['reason']))
-    preview.setdefault('evidence_trace', []).append(dict(kind=TRACE, identity={**key, 'height': str(key['height'][1])},
+    serialized_key = json.loads(json.dumps({**key, 'height': str(key['height'][1])}, default=str))
+    preview.setdefault('evidence_trace', []).append(dict(kind=TRACE, identity=serialized_key,
         version_id=tools.version, page=page, table_id=table['table_id'], cell_ids=[c['cell_id'] for c in cells],
         native_layer=native, original_proposals=deepcopy(original), superseded_items=removed,
         proposal=proposal, physical_trace=deepcopy(tools.events), model_requests=0))

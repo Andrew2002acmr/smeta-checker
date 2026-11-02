@@ -171,6 +171,20 @@ def _reuse_geometry(result,parent,basis,positions,parent_relation,row,child=None
             needed.update(dependencies)
     if not selected:
         return output if output!=result else result
+    # A whole-work sum supersedes the child's earlier direct readings of its
+    # exact operands. Keeping both parts and their sum fabricates ambiguity.
+    from normative_quantity_anchors import sum_supersedes_operand
+    quantity = selected.get('quantity')
+    if quantity:
+        current_sources = {s['id']: s for s in output['sources']}
+        covered = [p for p in output.get('parameter_proposals', [])
+            if any(sum_supersedes_operand(p, total, sources)
+                and current_sources.get(p['source_id']) == sources.get(p['source_id'])
+                for total in quantity[1])]
+        if covered:
+            output['parameter_proposals'] = [p for p in output['parameter_proposals'] if p not in covered]
+            output.setdefault('evidence_trace', []).append(dict(kind='parent_sum_supersedes_parts_v1',
+                position_index=parent.index, original_parameters=deepcopy(covered)))
     mapping={sid:f'parent-{parent.index}:geometry:'+hashlib.sha256(sid.encode()).hexdigest()[:24]
         for sid in needed}
     output['sources'] += [{**deepcopy(s),'id':mapping[s['id']]} for s in basis['sources'] if s['id'] in needed]
@@ -234,6 +248,8 @@ def bind_parent_basis(context,record,result,positions,relation,*,expected_kb=Non
         return clean
     data=row['payload']
     basis=data.get('position_check') or {}
+    if result.get('pipeline_version', 0) >= 5 and basis.get('pipeline_version', 0) < 5:
+        return clean  # A legacy locally assembled verdict is not a new agent decision.
     if (data.get('position_key')!=service.position_key(parent) or data.get('vor_version_id')!=str(record['vor_version_id'])
             or basis.get('execution_state')!='complete' or basis.get('pipeline_version',0)<3):
         return clean

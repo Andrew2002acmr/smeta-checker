@@ -2272,6 +2272,18 @@
             "title": "Coverage",
             "type": "object"
           },
+          "decision_origin": {
+            "anyOf": [
+              {
+                "const": "model_with_validated_sources",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Origin"
+          },
           "evidence_trace": {
             "items": {
               "additionalProperties": true,

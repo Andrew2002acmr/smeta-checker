@@ -46,6 +46,7 @@ def test_projection_retains_public_fields_and_never_mutates_stored_private_metad
 @pytest.mark.parametrize('endpoint', ['state', 'search', 'selection', 'check', 'validate'])
 def test_real_response_model_routes_accept_private_source_metadata_without_storage_changes(monkeypatch, endpoint):
     stored = review()
+    stored['payload']['position_check'].update(pipeline_version=5, decision_origin='model_with_validated_sources')
     before = deepcopy(stored)
     state = dict(work_name='Work',facts={},fact_origins={},project_citations=[],latest_check=stored)
     monkeypatch.setattr('normative_service.state', lambda *_: state)
@@ -73,6 +74,7 @@ def test_real_response_model_routes_accept_private_source_metadata_without_stora
             output = response.json()
             NormativeReviewDTO.model_validate(output)
     assert stored == before
+    assert output['payload']['position_check']['decision_origin'] == 'model_with_validated_sources'
     for source in output['payload']['position_check']['sources']:
         assert 'classification_claim_ids' not in source and 'source_sha256' not in source
 
