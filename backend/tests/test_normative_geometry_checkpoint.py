@@ -146,11 +146,11 @@ def test_eight_item_dto_limit_is_respected_without_discarding_other_obligations(
     assert final==original and len(final.items)==8 and not data[5].events
 
 
-def test_final_prompt_allows_dto_eight_items_and_keeps_distinct_scopes():
+def test_final_prompt_allows_dto_sixteen_items_and_keeps_distinct_scopes():
     tools=SimpleNamespace(sources=[],preferred=[],events=[],coverage={},table_search_done=True)
     answer=AgentAnswer(summary='Answer',items=[])
     ask=Mock(side_effect=[answer.model_copy(deep=True) for _ in range(3)])
     run(ask,None,None,'',{},AgentAnswer,None,{},tools,verify_answer=lambda answer:['Separate evidence'])
     prompt=ask.call_args.args[2]
-    assert 'до 8 items' in prompt and 'до 5 items' not in prompt
+    assert 'до 16 items' in prompt and 'до 5 items' not in prompt
     assert 'Не объединяй подтверждённую геометрию' in prompt
