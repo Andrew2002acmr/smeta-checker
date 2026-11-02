@@ -43,20 +43,9 @@ onMounted(async () => {
       <div class="login-center">
         <UCard class="login-card">
           <div class="login-brand">
-            <img src="/kdfp-logo-light.svg" alt="КДФП" class="login-logo" width="56" height="56" />
-            <div>
-              <h1 class="login-title">КДФП Инжиниринг</h1>
-              <p class="login-subtitle">Проверка проектной документации</p>
-            </div>
+            <img src="/kdfp-logo-light.svg" alt="КДФП" class="login-logo" width="80" height="80" />
           </div>
-          <h2 class="login-heading">Вход в систему</h2>
-          <p class="muted login-description">
-            {{
-              corporate
-                ? 'Войдите с корпоративным логином и паролем.'
-                : 'Войдите с логином и паролем стенда.'
-            }}
-          </p>
+          <h1 class="login-heading">Вход в систему</h1>
           <p v-if="checking" class="empty" role="status">Проверяем доступ…</p>
           <template v-else>
             <p v-if="error" class="error-box" role="alert">{{ error }}</p>
@@ -145,38 +134,21 @@ onMounted(async () => {
 }
 .login-brand {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 16px;
+  justify-content: center;
+  margin-bottom: 24px;
 }
 .login-logo {
-  width: 56px;
-  height: 56px;
-  border-radius: 10px;
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
   flex-shrink: 0;
-}
-.login-title {
-  font-size: 18px;
-  font-weight: 700;
-  margin: 0;
-  line-height: 1.2;
-  color: var(--ui-text);
-}
-.login-subtitle {
-  font-size: 13px;
-  margin: 2px 0 0;
-  color: var(--ui-text-muted);
 }
 .login-heading {
   font-size: 20px;
   font-weight: 600;
-  margin: 0 0 8px;
-  color: var(--ui-text);
-}
-.login-description {
   margin: 0 0 20px;
-  font-size: 14px;
-  color: var(--ui-text-muted);
+  color: var(--ui-text);
+  text-align: center;
 }
 .login-form {
   display: grid;
@@ -190,12 +162,9 @@ onMounted(async () => {
   .login-card {
     padding: 24px;
   }
-  .login-brand {
-    gap: 10px;
-  }
   .login-logo {
-    width: 48px;
-    height: 48px;
+    width: 64px;
+    height: 64px;
   }
   .login-center {
     max-width: 100%;
