@@ -18,6 +18,8 @@ are dropped from the merged text and counted explicitly.
 
 from __future__ import annotations
 
+from billiard.exceptions import SoftTimeLimitExceeded
+
 import csv
 import io
 import math
@@ -28,7 +30,7 @@ from functools import lru_cache
 
 from PIL import Image
 
-ALGO_VERSION = "ocr-tsv-v2"
+ALGO_VERSION = "ocr-tsv-v3"
 CACHE_FORMAT = "ocr-tsv-v1"
 CACHE_SCHEMA = 2
 ORIENTATIONS = (0, 90, 180, 270)
@@ -96,6 +98,8 @@ def tesseract_version():
         first = proc.stdout.decode("utf-8", "replace").splitlines()
         if proc.returncode == 0 and first and first[0].strip():
             return first[0].strip()[:60]
+    except SoftTimeLimitExceeded:
+        raise
     except Exception:
         pass
     return "unknown"
@@ -140,7 +144,9 @@ def run_tsv(png_bytes, language="rus+eng", psm=OVERVIEW_PSM,
 def parse_tsv(tsv_text):
     """Parse TSV words (level 5); skips empty texts and unparseable rows."""
     words = []
-    reader = csv.DictReader(io.StringIO(tsv_text), delimiter="\t")
+    # Tesseract emits literal text, not CSV-escaped quoted fields. A leading
+    # quotation mark must never consume subsequent words/rows as one field.
+    reader = csv.DictReader(io.StringIO(tsv_text), delimiter="\t", quoting=csv.QUOTE_NONE)
     for row in reader:
         try:
             if (row.get("level") or "").strip() != "5":
@@ -473,6 +479,8 @@ def recognize_page(page, *, language="rus+eng", dpi=200, max_pixels=12000000,
         derotation = page.derotation_matrix
         page_derotation = (derotation.a, derotation.b, derotation.c,
                            derotation.d, derotation.e, derotation.f)
+    except SoftTimeLimitExceeded:
+        raise
     except Exception:
         page_derotation = None
     dpi_overview = bounded_render_dpi(
@@ -491,6 +499,8 @@ def recognize_page(page, *, language="rus+eng", dpi=200, max_pixels=12000000,
         try:
             raw = parse_tsv(run_tsv(_to_png(rotated), language, OVERVIEW_PSM, timeout))
             passes_used += 1
+        except SoftTimeLimitExceeded:
+            raise
         except Exception as exc:
             passes_used += 1
             pass_failures.append("overview rot%d: %s" % (angle, str(exc)[:160]))
@@ -588,6 +598,8 @@ def recognize_page(page, *, language="rus+eng", dpi=200, max_pixels=12000000,
             try:
                 raw = parse_tsv(run_tsv(_to_png(enhanced), language, CROP_PSM, timeout))
                 passes_used += 1
+            except SoftTimeLimitExceeded:
+                raise
             except Exception as exc:
                 passes_used += 1
                 pass_failures.append("crop %s: %s" % (name, str(exc)[:160]))

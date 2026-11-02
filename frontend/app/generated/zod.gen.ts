@@ -54,6 +54,28 @@ export const zAuditStatusResponse = z.object({
 });
 
 /**
+ * BasisFragmentRequest
+ */
+export const zBasisFragmentRequest = z.object({
+    corrected_text: z.string().max(4000).nullish(),
+    page: z.int().gte(1),
+    rect: z.tuple([
+        z.number(),
+        z.number(),
+        z.number(),
+        z.number()
+    ]),
+    role: z.enum([
+        'work',
+        'volume',
+        'unit',
+        'conditions',
+        'other'
+    ]).optional().default('other'),
+    text_checked: z.boolean().optional().default(false)
+});
+
+/**
  * Body_format_report_upload_api_v1_format_report_post
  */
 export const zBodyFormatReportUploadApiV1FormatReportPost = z.object({
@@ -83,6 +105,22 @@ export const zBodyUploadDocumentApiV1DocumentsPost = z.object({
     kind: z.string().regex(/^(vor|pdf)$/),
     new_document: z.boolean().optional().default(false),
     project_id: z.string()
+});
+
+/**
+ * Body_workbench_vor_check_api_v1_normative_vor_check_post
+ */
+export const zBodyWorkbenchVorCheckApiV1NormativeVorCheckPost = z.object({
+    file: z.string(),
+    profile: z.string().regex(/^(electrical|roads)$/).optional().default('electrical')
+});
+
+/**
+ * ConfirmBasisRequest
+ */
+export const zConfirmBasisRequest = z.object({
+    comment: z.string().max(2000).optional().default(''),
+    evidence_index: z.int().gte(0)
 });
 
 /**
@@ -167,8 +205,10 @@ export const zFormatIssueDto = z.object({
  * FormatDTO
  */
 export const zFormatDto = z.object({
+    check_count: z.int().optional().default(0),
     error_count: z.int().optional().default(0),
     issues: z.array(zFormatIssueDto),
+    position_count: z.int().optional().default(0),
     sheet: z.string().optional().default(''),
     sheets: z.array(z.string()).optional(),
     version_id: z.string(),
@@ -206,6 +246,494 @@ export const zDocumentMetadataDto = z.object({
 });
 
 /**
+ * NormativeCatalogFileDTO
+ */
+export const zNormativeCatalogFileDto = z.object({
+    designation: z.string(),
+    id: z.string(),
+    imported: z.boolean(),
+    sha256: z.string(),
+    size_bytes: z.int()
+});
+
+/**
+ * NormativeCatalogSectionDTO
+ */
+export const zNormativeCatalogSectionDto = z.object({
+    files: z.array(zNormativeCatalogFileDto),
+    title: z.string()
+});
+
+/**
+ * NormativeCatalogTypeDTO
+ */
+export const zNormativeCatalogTypeDto = z.object({
+    file_count: z.int(),
+    kind: z.string(),
+    sections: z.array(zNormativeCatalogSectionDto)
+});
+
+/**
+ * NormativeCheck
+ */
+export const zNormativeCheck = z.object({
+    actual: z.string().nullish(),
+    expected: z.string().nullish(),
+    label: z.string(),
+    norm_quantity: z.string().nullish(),
+    state: z.enum([
+        'match',
+        'mismatch',
+        'unknown'
+    ])
+});
+
+/**
+ * NormativeCheckSource
+ */
+export const zNormativeCheckSource = z.object({
+    engine: z.string().optional().default(''),
+    id: z.string(),
+    image_key: z.string().nullish(),
+    kind: z.enum(['project', 'normative']),
+    label: z.string(),
+    origin: z.string(),
+    page: z.int(),
+    source_id: z.string().nullish(),
+    text: z.string(),
+    version_id: z.string().nullish(),
+    words_key: z.string().nullish()
+});
+
+/**
+ * NormativeCitation
+ */
+export const zNormativeCitation = z.object({
+    bbox: z.array(z.number()).nullish(),
+    coordinate_system: z.string().nullish(),
+    designation: z.string(),
+    label: z.string().optional().default(''),
+    page: z.int(),
+    source_id: z.string()
+});
+
+/**
+ * NormativeContextAnalysis
+ */
+export const zNormativeContextAnalysis = z.object({
+    elapsed_seconds: z.number().optional().default(0),
+    interpretation: z.string().optional().default(''),
+    missing_facts: z.array(z.string()).optional(),
+    model: z.string(),
+    provider: z.string(),
+    queries: z.array(z.string()).optional(),
+    requests: z.int().optional().default(0),
+    trace_id: z.string().nullish(),
+    trace_url: z.string().nullish(),
+    usage: z.record(z.string(), z.int()).optional(),
+    warnings: z.array(z.string()).optional()
+});
+
+/**
+ * NormativeEvidenceAnchor
+ */
+export const zNormativeEvidenceAnchor = z.object({
+    quote: z.string().optional().default(''),
+    rects: z.array(z.array(z.number())).max(40).optional(),
+    source_id: z.string()
+});
+
+/**
+ * NormativeFacts
+ */
+export const zNormativeFacts = z.object({
+    cross_section_mm2: z.string().max(32).optional().default(''),
+    height_m: z.string().max(32).optional().default(''),
+    included_height_exceeded: z.boolean().nullish(),
+    mass_kg_per_m: z.string().max(32).optional().default(''),
+    placement: z.enum([
+        '',
+        'laid_pipes_blocks_boxes',
+        'trench',
+        'tray',
+        'open'
+    ]).optional().default(''),
+    project_date: z.string().max(10).optional().default(''),
+    quantity: z.string().max(64).optional().default(''),
+    separate_connection_position: z.boolean().nullish(),
+    system: z.enum([
+        '',
+        'power',
+        'contact_network',
+        'lighting',
+        'automation'
+    ]).optional().default(''),
+    unit: z.string().max(32).optional().default(''),
+    voltage_kv: z.string().max(32).optional().default('')
+});
+
+/**
+ * NormativeLibrarySource
+ */
+export const zNormativeLibrarySource = z.object({
+    designation: z.string(),
+    id: z.string(),
+    pages: z.int(),
+    readable_pages: z.int()
+});
+
+/**
+ * NormativeLibrary
+ */
+export const zNormativeLibrary = z.object({
+    counts: z.record(z.string(), z.int()),
+    gaps: z.array(z.record(z.string(), z.string())),
+    identity: z.record(z.string(), z.string()),
+    sources: z.array(zNormativeLibrarySource)
+});
+
+/**
+ * NormativeNumericCondition
+ */
+export const zNormativeNumericCondition = z.object({
+    operator: z.enum([
+        'eq',
+        'lt',
+        'le',
+        'gt',
+        'ge'
+    ]),
+    parameter: z.enum(['quantity', 'thickness']),
+    quote: z.string().max(700),
+    unit: z.string().max(30),
+    value: z.string().max(40)
+});
+
+/**
+ * NormativeParameterCard
+ */
+export const zNormativeParameterCard = z.object({
+    compared_value: z.string().nullish(),
+    conditions: z.array(z.string()).optional(),
+    declared_value: z.string(),
+    expression: z.string().optional().default(''),
+    found_unit: z.string().nullish(),
+    found_value: z.string().nullish(),
+    id: z.string(),
+    label: z.string(),
+    quote: z.string().optional().default(''),
+    reason: z.string(),
+    required: z.boolean().optional().default(true),
+    role: z.enum([
+        'project_value',
+        'coefficient',
+        'unit_scale',
+        'calculation'
+    ]),
+    row: z.int().nullish(),
+    source_anchors: z.array(zNormativeEvidenceAnchor).optional(),
+    source_ids: z.array(z.string()).optional(),
+    state: z.enum([
+        'confirmed',
+        'needs_facts',
+        'possible_mismatch'
+    ]),
+    unit: z.string()
+});
+
+/**
+ * NormativeParameterProposal
+ */
+export const zNormativeParameterProposal = z.object({
+    conditions: z.array(zNormativeNumericCondition).max(6).optional(),
+    parameter: z.enum([
+        'quantity',
+        'thickness',
+        'coefficient',
+        'unit_scale'
+    ]),
+    quote: z.string().max(900),
+    source_id: z.string().max(80),
+    unit: z.string().max(30),
+    value: z.string().max(40)
+});
+
+/**
+ * NormativePositionCheckItem
+ */
+export const zNormativePositionCheckItem = z.object({
+    claim_ids: z.array(z.string()).optional(),
+    explanation: z.string(),
+    normative_source_ids: z.array(z.string()),
+    project_source_ids: z.array(z.string()),
+    required: z.boolean().optional().default(true),
+    state: z.enum([
+        'confirmed',
+        'needs_facts',
+        'possible_mismatch'
+    ]),
+    topic: z.string()
+});
+
+/**
+ * NormativePositionCheckRequest
+ */
+export const zNormativePositionCheckRequest = z.object({
+    pages: z.array(z.int()).max(6).optional(),
+    pdf_version_id: z.string().nullish(),
+    question: z.string().max(2000).optional().default('')
+});
+
+/**
+ * NormativeProjectCitation
+ */
+export const zNormativeProjectCitation = z.object({
+    filename: z.string(),
+    origin: z.enum(['machine', 'human']),
+    page: z.int(),
+    quote: z.string(),
+    version_id: z.string()
+});
+
+/**
+ * NormativeReleaseDTO
+ */
+export const zNormativeReleaseDto = z.object({
+    counts: z.record(z.string(), z.int()),
+    current: z.boolean().optional().default(false),
+    database: z.string(),
+    engineering_validation: z.string().optional().default('not_full'),
+    foreign_keys: z.string().optional().default('unknown'),
+    integrity: z.string().optional().default('unknown'),
+    observed_on: z.string().optional().default(''),
+    parser_version: z.string().optional().default(''),
+    release_id: z.string()
+});
+
+/**
+ * NormativeResource
+ */
+export const zNormativeResource = z.object({
+    citations: z.array(zNormativeCitation),
+    code: z.string(),
+    name: z.string(),
+    quantity: z.string().nullable(),
+    quantity_kind: z.string(),
+    raw_quantity: z.string(),
+    status: z.string(),
+    unit: z.string()
+});
+
+/**
+ * NormativeReviewIssueDTO
+ */
+export const zNormativeReviewIssueDto = z.object({
+    designation: z.string().optional().default(''),
+    entity_id: z.string().optional().default(''),
+    id: z.string(),
+    page: z.int().nullish(),
+    reason: z.string(),
+    source_id: z.string().optional().default('')
+});
+
+/**
+ * NormativeRule
+ */
+export const zNormativeRule = z.object({
+    citations: z.array(zNormativeCitation),
+    factor: z.string().nullish(),
+    id: z.string(),
+    message: z.string().optional().default(''),
+    missing_facts: z.array(z.string()),
+    state: z.enum([
+        'candidate',
+        'needs_facts',
+        'not_applicable'
+    ]),
+    target: z.string().optional().default(''),
+    title: z.string()
+});
+
+/**
+ * NormativeCandidate
+ */
+export const zNormativeCandidate = z.object({
+    checks: z.array(zNormativeCheck),
+    citations: z.array(zNormativeCitation),
+    code: z.string(),
+    composition: z.array(z.string()),
+    context_reason: z.string().optional().default(''),
+    designation: z.string(),
+    edition_status: z.string(),
+    entity_kind: z.enum(['norm', 'clause']),
+    extraction_status: z.string(),
+    id: z.string(),
+    missing_facts: z.array(z.string()),
+    resources: z.array(zNormativeResource),
+    rules: z.array(zNormativeRule),
+    status: z.enum([
+        'candidate',
+        'needs_facts',
+        'possible_mismatch',
+        'possible_duplicate'
+    ]),
+    text: z.string().optional().default(''),
+    title: z.string(),
+    unit_base: z.string().optional().default(''),
+    unit_raw: z.string().optional().default(''),
+    unit_scale: z.string().nullish()
+});
+
+/**
+ * NormativeSearchRequest
+ */
+export const zNormativeSearchRequest = z.object({
+    facts: zNormativeFacts.optional(),
+    kind: z.enum([
+        'GESN',
+        'SP',
+        'GOST',
+        'PUE',
+        'ALL'
+    ]).optional().default('GESN'),
+    mode: z.enum(['lexical', 'context']).optional().default('lexical'),
+    query: z.string().min(2).max(2000)
+});
+
+/**
+ * NormativeSelectionRequest
+ */
+export const zNormativeSelectionRequest = z.object({
+    comment: z.string().max(2000).optional().default(''),
+    norm_ids: z.array(z.string()).max(20),
+    search_id: z.string()
+});
+
+/**
+ * NormativeSourceAdminDTO
+ */
+export const zNormativeSourceAdminDto = z.object({
+    designation: z.string(),
+    id: z.string(),
+    kind: z.string().optional().default(''),
+    pages: z.int(),
+    readable_pages: z.int(),
+    role: z.string().optional().default('')
+});
+
+/**
+ * NormativeCorpusAdminDTO
+ */
+export const zNormativeCorpusAdminDto = z.object({
+    counts: z.record(z.string(), z.int()),
+    gaps: z.array(z.record(z.string(), z.unknown())),
+    identity: z.record(z.string(), z.string()),
+    profile: z.enum(['electrical', 'roads']),
+    releases: z.array(zNormativeReleaseDto),
+    review_queue: z.array(zNormativeReviewIssueDto),
+    review_queue_total: z.int(),
+    sources: z.array(zNormativeSourceAdminDto),
+    title: z.string()
+});
+
+/**
+ * NormativeManagerDTO
+ */
+export const zNormativeManagerDto = z.object({
+    collections: z.array(zNormativeCatalogTypeDto),
+    profiles: z.array(zNormativeCorpusAdminDto)
+});
+
+/**
+ * NormativeStage
+ */
+export const zNormativeStage = z.object({
+    attempts: z.int(),
+    message: z.string().optional().default(''),
+    status: z.enum([
+        'pending',
+        'dispatched',
+        'running',
+        'done',
+        'failed',
+        'cancelled'
+    ])
+});
+
+/**
+ * NormativeVORRowDTO
+ */
+export const zNormativeVorRowDto = z.object({
+    candidates: z.array(zNormativeCandidate),
+    code_match: z.boolean().nullish(),
+    index: z.int(),
+    name_similarity: z.int().nullish(),
+    number: z.string(),
+    source_code: z.string().optional().default(''),
+    status: z.enum([
+        'matched',
+        'unit_mismatch',
+        'name_mismatch',
+        'review',
+        'not_found'
+    ]),
+    unit: z.string(),
+    unit_match: z.boolean().nullish(),
+    volume: z.string(),
+    work_name: z.string()
+});
+
+/**
+ * NormativeVORCheckDTO
+ */
+export const zNormativeVorCheckDto = z.object({
+    filename: z.string(),
+    profile: z.enum(['electrical', 'roads']),
+    returned_positions: z.int(),
+    rows: z.array(zNormativeVorRowDto),
+    total_positions: z.int(),
+    truncated: z.boolean()
+});
+
+/**
+ * NormativeWorkBasis
+ */
+export const zNormativeWorkBasis = z.object({
+    anchors: z.record(z.string(), z.array(zNormativeEvidenceAnchor)).optional(),
+    norm_scale: z.string(),
+    normative_source_ids: z.array(z.string()),
+    project_source_ids: z.array(z.string()),
+    quantity: z.string(),
+    thickness_cm: z.string(),
+    unit: z.string()
+});
+
+/**
+ * NormativeWorkbenchSearchDTO
+ */
+export const zNormativeWorkbenchSearchDto = z.object({
+    candidates: z.array(zNormativeCandidate),
+    identity: z.record(z.string(), z.string()),
+    profile: z.enum(['electrical', 'roads']),
+    query: z.string()
+});
+
+/**
+ * PdfBindingsDTO
+ */
+export const zPdfBindingsDto = z.object({
+    bindings: z.record(z.string(), z.string()),
+    references: z.array(z.string())
+});
+
+/**
+ * PdfBindingsPatch
+ */
+export const zPdfBindingsPatch = z.object({
+    bindings: z.record(z.string(), z.string()).optional()
+});
+
+/**
  * PdfRegionDTO
  */
 export const zPdfRegionDto = z.object({
@@ -213,6 +741,53 @@ export const zPdfRegionDto = z.object({
     highlights: z.array(zHighlightDto),
     reason: z.string(),
     width: z.number()
+});
+
+/**
+ * BasisFragmentDTO
+ */
+export const zBasisFragmentDto = z.object({
+    corrected_text: z.string().max(4000).nullish(),
+    extracted_text: z.string().optional().default(''),
+    image_key: z.string().nullish(),
+    ocr_text: z.string().nullish(),
+    page: z.int().gte(1),
+    rect: z.tuple([
+        z.number(),
+        z.number(),
+        z.number(),
+        z.number()
+    ]),
+    region: zPdfRegionDto,
+    role: z.enum([
+        'work',
+        'volume',
+        'unit',
+        'conditions',
+        'other'
+    ]).optional().default('other'),
+    text: z.string().optional().default(''),
+    text_checked: z.boolean().optional().default(false)
+});
+
+/**
+ * BasisPreviewDTO
+ */
+export const zBasisPreviewDto = z.object({
+    filename: z.string(),
+    fragments: z.array(zBasisFragmentDto).optional(),
+    mode: z.enum([
+        'row',
+        'area',
+        'text',
+        'multi'
+    ]),
+    ocr_key: z.string().nullish(),
+    page: z.int(),
+    quote: z.string(),
+    rect: z.array(z.number()),
+    region: zPdfRegionDto,
+    selection_digest: z.string()
 });
 
 /**
@@ -226,6 +801,32 @@ export const zEvidenceDto = z.object({
     quote: z.string(),
     region: zPdfRegionDto.nullable(),
     version_id: z.string()
+});
+
+/**
+ * HumanBasisDTO
+ */
+export const zHumanBasisDto = z.object({
+    actor: z.string(),
+    comment: z.string(),
+    created_at: z.iso.datetime(),
+    filename: z.string(),
+    fragments: z.array(zBasisFragmentDto).optional(),
+    id: z.string(),
+    ocr_key: z.string().nullish(),
+    origin: z.enum(['confirmed', 'specified']),
+    outdated: z.boolean().optional().default(false),
+    page: z.int(),
+    pdf_version_id: z.string(),
+    position_index: z.int(),
+    quote: z.string(),
+    rect: z.array(z.number()).nullable(),
+    region: zPdfRegionDto.nullable(),
+    result_version_id: z.string().nullish(),
+    reused: z.boolean(),
+    revoked_at: z.iso.datetime().nullish(),
+    revoked_by: z.string().nullish(),
+    run_id: z.string()
 });
 
 /**
@@ -244,6 +845,21 @@ export const zPreflightRow = z.object({
 export const zPreflightResponse = z.object({
     has_critical_error: z.boolean(),
     rows: z.array(zPreflightRow)
+});
+
+/**
+ * PreparedPageDTO
+ */
+export const zPreparedPageDto = z.object({
+    blob_key: z.string(),
+    error: z.string().nullish(),
+    origin: z.string(),
+    page: z.int(),
+    pending: z.boolean(),
+    quality: z.record(z.string(), z.unknown()).nullish(),
+    sha256: z.string(),
+    text: z.string(),
+    truncated: z.boolean()
 });
 
 /**
@@ -272,6 +888,117 @@ export const zProjectUpdate = z.object({
 });
 
 /**
+ * QuantityTerm
+ */
+export const zQuantityTerm = z.object({
+    label: z.string(),
+    rect: z.array(z.number()),
+    value: z.string()
+});
+
+/**
+ * QuantityComposition
+ */
+export const zQuantityComposition = z.object({
+    declared_value: z.string(),
+    page: z.int(),
+    parent_position_index: z.int().nullish(),
+    rounded_total: z.string(),
+    source_id: z.string(),
+    state: z.enum(['confirmed', 'possible_mismatch']),
+    terms: z.array(zQuantityTerm),
+    total: z.string(),
+    unit: z.string()
+});
+
+/**
+ * NormativePositionCheck
+ */
+export const zNormativePositionCheck = z.object({
+    items: z.array(zNormativePositionCheckItem),
+    local_rules_version: z.int().optional().default(0),
+    local_validation_version: z.int().optional().default(0),
+    local_work_basis: zNormativeWorkBasis.nullish(),
+    parameter_cards: z.array(zNormativeParameterCard).optional(),
+    parameter_proposals: z.array(zNormativeParameterProposal).optional(),
+    parameter_schema_version: z.int().optional().default(0),
+    quantity_composition: zQuantityComposition.nullish(),
+    related_positions: z.array(z.record(z.string(), z.unknown())),
+    requires_engineer_review: z.boolean().optional().default(true),
+    sources: z.array(zNormativeCheckSource),
+    state: z.enum([
+        'confirmed',
+        'needs_facts',
+        'possible_mismatch'
+    ]),
+    summary: z.string(),
+    telemetry: zNormativeContextAnalysis
+});
+
+/**
+ * NormativeSnapshot
+ */
+export const zNormativeSnapshot = z.object({
+    candidates: z.array(zNormativeCandidate),
+    checks: z.array(z.string()),
+    comment: z.string().optional().default(''),
+    context_analysis: zNormativeContextAnalysis.nullish(),
+    fact_origins: z.record(z.string(), z.string()),
+    facts: zNormativeFacts,
+    kb: z.record(z.string(), z.string()),
+    kind: z.string(),
+    missing_facts: z.array(z.string()),
+    mode: z.enum(['lexical', 'context']).optional().default('lexical'),
+    position_check: zNormativePositionCheck.nullish(),
+    position_key: z.string(),
+    project_citations: z.array(zNormativeProjectCitation),
+    query: z.string(),
+    requires_engineer_review: z.boolean().optional().default(true),
+    search_id: z.string().optional().default(''),
+    selected_ids: z.array(z.string()).optional(),
+    status: z.enum([
+        'candidate',
+        'needs_facts',
+        'possible_mismatch',
+        'possible_duplicate'
+    ]),
+    vor_version_id: z.string(),
+    work_item_id: z.string(),
+    work_relations: z.record(z.string(), z.unknown()).optional()
+});
+
+/**
+ * NormativeReviewDTO
+ */
+export const zNormativeReviewDto = z.object({
+    actor: z.string(),
+    created_at: z.iso.datetime(),
+    id: z.string(),
+    kind: z.enum([
+        'search',
+        'selection',
+        'check'
+    ]),
+    payload: zNormativeSnapshot
+});
+
+/**
+ * NormativeStateDTO
+ */
+export const zNormativeStateDto = z.object({
+    automatic_stage: zNormativeStage.nullish(),
+    fact_origins: z.record(z.string(), z.string()),
+    facts: zNormativeFacts,
+    latest_check: zNormativeReviewDto.nullish(),
+    latest_search: zNormativeReviewDto.nullish(),
+    library: zNormativeLibrary.nullish(),
+    profile: z.enum(['electrical', 'roads']).optional().default('electrical'),
+    project_citations: z.array(zNormativeProjectCitation),
+    selection: zNormativeReviewDto.nullish(),
+    work_name: z.string()
+});
+
+/**
  * ReportStatus
  *
  * User-facing report bucket; derived from flags, never invented.
@@ -297,6 +1024,7 @@ export const zResultDto = z.object({
     found_quantity: z.string().nullable(),
     found_unit: z.string().nullable(),
     id: z.string(),
+    matching_report_status: zReportStatus.nullish(),
     name: z.string(),
     number: z.string(),
     position_index: z.int(),
@@ -305,15 +1033,32 @@ export const zResultDto = z.object({
         'fix',
         'review',
         'missing',
-        'ok'
+        'ok',
+        'pending'
     ]),
-    report_status: zReportStatus,
+    related_work: z.record(z.string(), z.unknown()).nullish(),
+    report_status: z.union([
+        zReportStatus,
+        z.literal('Проверяется по нормативам')
+    ]),
     sheet: z.string(),
     source_row: z.int().nullable(),
     unit: z.string(),
     unit_confirmed: z.boolean(),
     volume_confirmed: z.boolean(),
     work_found: z.boolean()
+});
+
+/**
+ * ResultVersionDTO
+ */
+export const zResultVersionDto = z.object({
+    created_at: z.iso.datetime(),
+    details: z.string(),
+    found_unit: z.string(),
+    found_volume: z.string(),
+    id: z.string(),
+    status: z.string()
 });
 
 /**
@@ -335,6 +1080,7 @@ export const zRunDto = z.object({
     done: z.int(),
     failed: z.int(),
     finished_at: z.iso.datetime().nullable(),
+    normative_counts: z.record(z.string(), z.int()).optional(),
     preparation_done: z.int().optional().default(0),
     preparation_total: z.int().nullish(),
     project_id: z.string(),
@@ -386,6 +1132,52 @@ export const zPositionSource = z.object({
     scope_reason: z.string().optional().default('unknown'),
     sections: z.array(zSourceHeading).optional(),
     sheet: z.string().optional().default('')
+});
+
+/**
+ * SpecifyBasisRequest
+ */
+export const zSpecifyBasisRequest = z.object({
+    comment: z.string().max(2000).optional().default(''),
+    fragments: z.array(zBasisFragmentRequest).max(20).optional(),
+    mode: z.enum([
+        'row',
+        'area',
+        'text',
+        'multi'
+    ]).optional().default('area'),
+    ocr_key: z.string().regex(/^[a-f0-9]{2}\/[a-f0-9]{2}\/[a-f0-9]{64}$/).nullish(),
+    page: z.int().gte(1),
+    rect: z.tuple([
+        z.number(),
+        z.number(),
+        z.number(),
+        z.number()
+    ]),
+    rects: z.array(z.array(z.number())).min(1).max(200).nullish(),
+    selection_digest: z.string().regex(/^[a-f0-9]{64}$/).nullish(),
+    version_id: z.string()
+});
+
+/**
+ * ReviewArtifactDTO
+ */
+export const zReviewArtifactDto = z.object({
+    actor: z.string(),
+    created_at: z.iso.datetime(),
+    id: z.string(),
+    kind: z.enum(['draft', 'ocr']),
+    preview: zBasisPreviewDto,
+    selection: zSpecifyBasisRequest
+});
+
+/**
+ * ReviewHistoryDTO
+ */
+export const zReviewHistoryDto = z.object({
+    artifacts: z.array(zReviewArtifactDto),
+    bases: z.array(zHumanBasisDto),
+    results: z.array(zResultVersionDto)
 });
 
 /**
@@ -493,6 +1285,7 @@ export const zSummaryDto = z.object({
     documents: z.array(zVersionDto),
     project: zProjectDto,
     queues: z.record(z.string(), z.int()),
+    ready_positions: z.array(z.int()).optional(),
     run: zRunDto
 });
 
@@ -581,6 +1374,211 @@ export const zCancelAuditApiV1AuditsRunIdCancelPostPath = z.object({
  */
 export const zCancelAuditApiV1AuditsRunIdCancelPostResponse = zRunDto;
 
+export const zHumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Response Human Basis List Api V1 Audits  Run Id  Positions  Position Index  Basis Get
+ *
+ * Successful Response
+ */
+export const zHumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetResponse = z.array(zHumanBasisDto);
+
+export const zHumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostBody = zSpecifyBasisRequest;
+
+export const zHumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Response Human Basis Specify Api V1 Audits  Run Id  Positions  Position Index  Basis Post
+ *
+ * Successful Response
+ */
+export const zHumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostResponse = z.array(zHumanBasisDto);
+
+export const zHumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostBody = zConfirmBasisRequest;
+
+export const zHumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Response Human Basis Confirm Api V1 Audits  Run Id  Positions  Position Index  Basis Confirm Post
+ *
+ * Successful Response
+ */
+export const zHumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostResponse = z.array(zHumanBasisDto);
+
+export const zSaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostBody = zSpecifyBasisRequest;
+
+export const zSaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Successful Response
+ */
+export const zSaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostResponse = zReviewArtifactDto;
+
+export const zHumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostBody = zSpecifyBasisRequest;
+
+export const zHumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Successful Response
+ */
+export const zHumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostResponse = zBasisPreviewDto;
+
+export const zHumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostBody = zSpecifyBasisRequest;
+
+export const zHumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Successful Response
+ */
+export const zHumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostResponse = zBasisPreviewDto;
+
+export const zHumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeletePath = z.object({
+    run_id: z.string(),
+    position_index: z.int(),
+    basis_id: z.string()
+});
+
+/**
+ * Response Human Basis Revoke Api V1 Audits  Run Id  Positions  Position Index  Basis  Basis Id  Delete
+ *
+ * Successful Response
+ */
+export const zHumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteResponse = z.array(zHumanBasisDto);
+
+export const zPreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+export const zPreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetQuery = z.object({
+    page: z.int().gte(1).optional().default(1)
+});
+
+/**
+ * Successful Response
+ */
+export const zPreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetResponse = zPreparedPageDto;
+
+export const zReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Successful Response
+ */
+export const zReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetResponse = zReviewHistoryDto;
+
+export const zReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetPath = z.object({
+    run_id: z.string(),
+    position_index: z.int(),
+    kind: z.string(),
+    item_id: z.string(),
+    index: z.int()
+});
+
+export const zStateApiV1AuditsRunIdPositionsPositionIndexNormativeGetPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Successful Response
+ */
+export const zStateApiV1AuditsRunIdPositionsPositionIndexNormativeGetResponse = zNormativeStateDto;
+
+export const zCheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostBody = zNormativePositionCheckRequest;
+
+export const zCheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Successful Response
+ */
+export const zCheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostResponse = zNormativeReviewDto;
+
+export const zLibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetPath = z.object({
+    run_id: z.string(),
+    position_index: z.int(),
+    source_id: z.string()
+});
+
+export const zSearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostBody = zNormativeSearchRequest;
+
+export const zSearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Successful Response
+ */
+export const zSearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostResponse = zNormativeReviewDto;
+
+export const zSelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostBody = zNormativeSelectionRequest;
+
+export const zSelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Successful Response
+ */
+export const zSelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostResponse = zNormativeReviewDto;
+
+export const zCheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetPath = z.object({
+    run_id: z.string(),
+    position_index: z.int(),
+    review_id: z.string(),
+    source_id: z.string()
+});
+
+export const zCheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetPath = z.object({
+    run_id: z.string(),
+    position_index: z.int(),
+    review_id: z.string(),
+    source_id: z.string()
+});
+
+export const zSourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetPath = z.object({
+    run_id: z.string(),
+    position_index: z.int(),
+    review_id: z.string(),
+    source_id: z.string()
+});
+
+export const zValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostPath = z.object({
+    run_id: z.string(),
+    position_index: z.int(),
+    review_id: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostResponse = zNormativeReviewDto;
+
 export const zWorkspaceApiV1AuditsRunIdPositionsPositionIndexWorkspaceGetPath = z.object({
     run_id: z.string(),
     position_index: z.int()
@@ -614,15 +1612,24 @@ export const zGetAuditResultsApiV1AuditsRunIdResultsGetPath = z.object({
  */
 export const zGetAuditResultsApiV1AuditsRunIdResultsGetResponse = zAuditResultsResponse;
 
+export const zResumeAuditApiV1AuditsRunIdResumePostPath = z.object({
+    run_id: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zResumeAuditApiV1AuditsRunIdResumePostResponse = zRunDto;
+
 export const zRowsApiV1AuditsRunIdRowsGetPath = z.object({
     run_id: z.string()
 });
 
 export const zRowsApiV1AuditsRunIdRowsGetQuery = z.object({
-    focus: z.string().regex(/^(all|fix|review|missing|ok)$/).optional().default('all'),
+    focus: z.string().regex(/^(all|fix|review|missing|ok|pending)$/).optional().default('all'),
     q: z.string().max(500).optional().default(''),
     offset: z.int().gte(0).optional().default(0),
-    limit: z.int().gte(1).lte(200).optional().default(100)
+    limit: z.int().gte(1).lte(200).optional().default(10)
 });
 
 /**
@@ -730,6 +1737,26 @@ export const zUpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchPath = z.
  */
 export const zUpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchResponse = zVersionDto;
 
+export const zPdfBindingsApiV1DocumentsVersionIdPdfBindingsGetPath = z.object({
+    version_id: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zPdfBindingsApiV1DocumentsVersionIdPdfBindingsGetResponse = zPdfBindingsDto;
+
+export const zUpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutBody = zPdfBindingsPatch;
+
+export const zUpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutPath = z.object({
+    version_id: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zUpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutResponse = zPdfBindingsDto;
+
 export const zStructureApiV1DocumentsVersionIdStructureGetPath = z.object({
     version_id: z.string()
 });
@@ -769,6 +1796,38 @@ export const zFormatWordUploadApiV1FormatWordPostBody = zBodyFormatWordUploadApi
 
 export const zFormatWordUploadApiV1FormatWordPostQuery = z.object({
     sheet: z.string().max(100).nullish()
+});
+
+export const zCatalogPdfApiV1NormativeCatalogPdfGetQuery = z.object({
+    path: z.string().min(1).max(1024)
+});
+
+/**
+ * Successful Response
+ */
+export const zNormativeManagerApiV1NormativeManagerGetResponse = zNormativeManagerDto;
+
+export const zWorkbenchSearchApiV1NormativeSearchPostBody = zNormativeSearchRequest;
+
+export const zWorkbenchSearchApiV1NormativeSearchPostQuery = z.object({
+    profile: z.string().regex(/^(electrical|roads)$/).optional().default('electrical')
+});
+
+/**
+ * Successful Response
+ */
+export const zWorkbenchSearchApiV1NormativeSearchPostResponse = zNormativeWorkbenchSearchDto;
+
+export const zWorkbenchVorCheckApiV1NormativeVorCheckPostBody = zBodyWorkbenchVorCheckApiV1NormativeVorCheckPost;
+
+/**
+ * Successful Response
+ */
+export const zWorkbenchVorCheckApiV1NormativeVorCheckPostResponse = zNormativeVorCheckDto;
+
+export const zWorkbenchSourceApiV1NormativeProfileSourcesSourceIdGetPath = z.object({
+    profile: z.string(),
+    source_id: z.string()
 });
 
 export const zProjectsApiV1ProjectsGetQuery = z.object({

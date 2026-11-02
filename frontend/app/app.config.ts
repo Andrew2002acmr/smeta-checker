@@ -13,6 +13,20 @@ export default defineAppConfig({
       defaultVariants: { size: 'md' },
     },
     input: { slots: { base: 'min-h-11 text-base' } },
-    select: { slots: { base: 'min-h-11 text-base' } },
+    select: {
+      slots: {
+        base: 'min-h-11 text-base',
+        content: 'w-max min-w-(--reka-select-trigger-width) max-w-[min(40rem,calc(100vw-2rem))]',
+        itemLabel: 'whitespace-normal break-words',
+        itemDescription: 'whitespace-normal break-words',
+      },
+    },
+    selectMenu: {
+      slots: {
+        content: 'w-max min-w-(--reka-combobox-trigger-width) max-w-[min(40rem,calc(100vw-2rem))]',
+        itemLabel: 'whitespace-normal break-words',
+        itemDescription: 'whitespace-normal break-words',
+      },
+    },
   },
 })

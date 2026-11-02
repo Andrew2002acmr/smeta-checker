@@ -24,6 +24,13 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, localcontext
 from typing import Any, NoReturn
 
+
+def has_formula_text(value: Any) -> bool:
+    """An omitted calculation is allowed; malformed supplied arithmetic is not."""
+    return str("" if value is None else value).strip().casefold().rstrip(".") not in {
+        "", "-", "—", "–", "nan", "none", "null", "нет", "не задано", "не задана", "не требуется",
+    }
+
 MAX_FORMULA_LENGTH = 500
 MAX_LITERAL_LENGTH = 40
 MAX_REFERENCE_DEPTH = 25

@@ -1,0 +1,33 @@
+{
+  "integrity": "ok",
+  "foreign_keys": "ok",
+  "engineering_validation": "not_full",
+  "counts": {
+    "sources": 19,
+    "pages": 1055,
+    "clauses": 2363,
+    "norm_tables": 312,
+    "norms": 1299,
+    "resources": 12449,
+    "rules": 0,
+    "relations": 0,
+    "gaps": 5,
+    "review_queue": 476,
+    "chunks": 4929
+  },
+  "gaps": [
+    {
+      "designation": "Редакции и изменения",
+      "reason": "Amendment closure not confirmed; do not infer currency from download date"
+    },
+    {
+      "designation": "СП 42.13330.2026",
+      "reason": "Referenced by PD; effective 12.07.2026. Full text not yet acquired; apply only after project date is established",
+      "official_card": "https://protect.gost.ru/sp/details/f6917ab4-63d8-4ecb-9794-0b4990ba3b99"
+    },
+    {
+      "designation": "Геология, мосты и инженерные изыскания",
+      "reason": "Other PD references inventoried separately; this corpus covers the 103 road-pavement VOR items, not whole bridge compliance"
+    }
+  ]
+}

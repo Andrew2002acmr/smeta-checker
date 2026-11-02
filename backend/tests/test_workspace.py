@@ -306,7 +306,7 @@ class WorkspaceTests(unittest.TestCase):
             self.assertEqual(book["ВОР-2"]["C3"].value, 45)
             book.close()
 
-    def test_sheet_window_shows_three_rows_and_key_columns(self):
+    def test_sheet_window_shows_only_reviewed_row_without_identifiers(self):
         from vor_parse import load_vor_positions
         from workspace_service import sheet_window
 
@@ -314,13 +314,12 @@ class WorkspaceTests(unittest.TestCase):
         positions, _ = load_vor_positions(data, "source.xlsx")
         window = sheet_window(data, positions[0])
         rows = [row["number"] for row in window["rows"]]
-        # Fixture has a single data row at 3: window clamps to [2, 3].
-        self.assertEqual(rows, [2, 3])
-        self.assertEqual(window["columns"], ["A", "B", "C", "D", "E", "J", "K"])
+        self.assertEqual(rows, [3])
+        self.assertEqual(window["columns"], ["A", "B", "C", "D", "E"])
         selected = [row for row in window["rows"] if row["selected"]]
         self.assertEqual([row["number"] for row in selected], [3])
         for row in window["rows"]:
-            self.assertLessEqual(len(row["cells"]), 7)
+            self.assertLessEqual(len(row["cells"]), 5)
     def test_new_routes_require_same_bearer_as_existing_api(self):
         with tempfile.TemporaryDirectory() as tmp:
             client, app = self._open_app(tmp)

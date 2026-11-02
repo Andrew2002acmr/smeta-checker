@@ -93,6 +93,75 @@ const selectedVersion = computed<RichVersion | null>(() => {
     null
   )
 })
+const bindingReferences = ref<string[]>([])
+const bindingDraft = ref<Record<string, string>>({})
+const savedBindings = ref('{}')
+const bindingOptions = ref<{ label: string; value: string }[]>([])
+const bindingsBusy = ref(false)
+const bindingsError = ref('')
+let bindingEpoch = 0
+const bindingsDirty = computed(() => JSON.stringify(bindingDraft.value) !== savedBindings.value)
+async function loadBindings() {
+  const revision = selectedVersion.value
+  const current = ++bindingEpoch
+  bindingReferences.value = []
+  bindingDraft.value = {}
+  savedBindings.value = '{}'
+  bindingsError.value = ''
+  if (!isVor.value || !revision) return
+  bindingsBusy.value = true
+  try {
+    const [data, catalog] = await Promise.all([
+      backend.pdfBindings(revision.id),
+      backend.catalog(projectId.value),
+    ])
+    if (!active || current !== bindingEpoch) return
+    bindingReferences.value = data.references
+    bindingDraft.value = { ...data.bindings }
+    savedBindings.value = JSON.stringify(bindingDraft.value)
+    bindingOptions.value = catalog
+      .filter((d) => d.kind === 'pdf' && !d.archived)
+      .flatMap((d) =>
+        d.versions.map((v) => ({
+          value: v.id,
+          label: `${d.title || v.filename} · версия ${v.number} · ${v.filename}`,
+        })),
+      )
+  } catch (e) {
+    if (active && current === bindingEpoch) bindingsError.value = readableError(e)
+  } finally {
+    if (current === bindingEpoch) bindingsBusy.value = false
+  }
+}
+async function saveBindings() {
+  const revision = selectedVersion.value
+  if (!revision || bindingsBusy.value || locksMutations.value) return
+  const current = bindingEpoch
+  bindingsBusy.value = true
+  bindingsError.value = ''
+  try {
+    const fields = Object.fromEntries(
+      Object.entries(bindingDraft.value).filter(([, value]) => value),
+    )
+    const data = await backend.savePdfBindings(revision.id, fields)
+    if (!active || current !== bindingEpoch) return
+    bindingDraft.value = { ...data.bindings }
+    savedBindings.value = JSON.stringify(bindingDraft.value)
+    resetPreflight()
+    notice.value = 'Привязки ПД сохранены для этой версии ВОР.'
+  } catch (e) {
+    if (active && current === bindingEpoch) bindingsError.value = readableError(e)
+  } finally {
+    if (current === bindingEpoch) bindingsBusy.value = false
+  }
+}
+watch(
+  () => selectedVersion.value?.id,
+  () => {
+    void loadBindings()
+  },
+)
+
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} Б`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} КБ`
@@ -338,7 +407,16 @@ async function toggleArchive(next: boolean) {
 
 async function checkAndStart() {
   const revision = selectedVersion.value
-  if (!revision || !isVor.value || preflightBusy.value || starting.value) return
+  if (
+    !revision ||
+    !isVor.value ||
+    preflightBusy.value ||
+    starting.value ||
+    bindingsBusy.value ||
+    bindingsDirty.value ||
+    bindingsError.value
+  )
+    return
   // Повторный клик после подтверждения критических ошибок запускает проверку.
   if (preflight.value && (!preflight.value.has_critical_error || acknowledged.value)) {
     await startAudit()
@@ -685,15 +763,65 @@ onBeforeUnmount(() => {
         <section v-if="isVor" class="panel" aria-label="Проверка и запуск">
           <h2>Проверка и запуск</h2>
           <p class="muted">
-            Обозначения из ВОР сверяются с текстом проектных PDF. Отдельной привязки нет: проверка
-            идёт по действующим редакциям всего проекта.
+            Укажите, какой загруженный PDF соответствует ссылке из ВОР. Явная привязка имеет
+            приоритет над именем файла: можно выбрать копию или нужную редакцию ПД. Обозначения и
+            содержимое документа продолжат проверяться.
           </p>
+          <div class="preflight-block" aria-label="Привязки ВОР и ПД">
+            <p v-if="bindingsBusy" role="status">Загружаем или сохраняем привязки…</p>
+            <p v-if="bindingsError" class="error-box" role="alert">{{ bindingsError }}</p>
+            <div v-for="reference in bindingReferences" :key="reference" class="preflight-block">
+              <label :for="`binding-${reference}`">Ссылка из ВОР: {{ reference }}</label>
+              <select
+                :id="`binding-${reference}`"
+                v-model="bindingDraft[reference]"
+                :aria-label="`ПД для ссылки ${reference}`"
+                :disabled="bindingsBusy || !!locksMutations"
+                class="binding-select"
+              >
+                <option value="">Автоматически по имени файла</option>
+                <option v-for="item in bindingOptions" :key="item.value" :value="item.value">
+                  {{ item.label }}
+                </option>
+                <option
+                  v-if="
+                    bindingDraft[reference] &&
+                    !bindingOptions.some((item) => item.value === bindingDraft[reference])
+                  "
+                  :value="bindingDraft[reference]"
+                >
+                  Выбранная версия недоступна — выберите другой PDF
+                </option>
+              </select>
+            </div>
+            <p v-if="!bindingsBusy && !bindingsError && !bindingReferences.length" class="muted">
+              В этой версии ВОР нет ссылок на файлы ПД.
+            </p>
+            <UButton
+              v-if="bindingReferences.length"
+              :loading="bindingsBusy"
+              :disabled="!bindingsDirty || !!locksMutations"
+              @click="saveBindings"
+              >Сохранить привязки ПД</UButton
+            >
+            <p v-if="bindingsDirty" class="muted">
+              Сохраните привязки перед запуском проверки. Действующие проверки сохраняют прежние
+              привязки.
+            </p>
+          </div>
           <div class="preflight-block">
             <div class="toolbar">
               <UButton
                 color="primary"
                 :loading="preflightBusy || starting"
-                :disabled="preflightBusy || starting || !!locksMutations"
+                :disabled="
+                  preflightBusy ||
+                  starting ||
+                  !!locksMutations ||
+                  bindingsBusy ||
+                  bindingsDirty ||
+                  !!bindingsError
+                "
                 aria-label="Проверить"
                 @click="checkAndStart()"
               >
@@ -1031,6 +1159,15 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.binding-select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+  background: var(--ui-bg);
+  color: var(--ui-text);
+}
+
 .document-detail {
   display: flex;
   flex-direction: column;

@@ -119,7 +119,7 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <div>
-    <WorkspaceHeader active="projects" />
+    <WorkspaceHeader active="check" />
     <main id="main-content" tabindex="-1" class="shell">
       <div class="page-heading">
         <div>
@@ -186,7 +186,10 @@ onBeforeUnmount(() => {
           :data="runs"
           v-model:sorting="historySorting"
           v-model:pagination="historyPagination"
-          :pagination-options="{ manualPagination: true, rowCount: offset + runs.length + (runs.length === 50 ? 50 : 0) }"
+          :pagination-options="{
+            manualPagination: true,
+            rowCount: offset + runs.length + (runs.length === 50 ? 50 : 0),
+          }"
           :columns="historyColumns"
           :on-select="(e, row) => router.push(`/audits/${row.original.run_id}`)"
           class="results max-h-[60vh] overflow-auto"

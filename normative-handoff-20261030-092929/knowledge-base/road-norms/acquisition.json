@@ -1,0 +1,339 @@
+[
+  {
+    "key": "GOST_32961_2014",
+    "designation": "ГОСТ 32961-2014",
+    "kind": "GOST",
+    "role": "core",
+    "title": "Бортовые камни автомобильных дорог",
+    "url": "https://www.mos.ru/upload/documents/files/2814/GOST32961-2014.pdf",
+    "official_card": "https://protect.gost.ru/gost/details/bf485623-4133-45c2-a6b2-0d007f94c317",
+    "metadata": {
+      "url": "https://www.mos.ru/upload/documents/files/2814/GOST32961-2014.pdf",
+      "official_card": "https://protect.gost.ru/gost/details/bf485623-4133-45c2-a6b2-0d007f94c317",
+      "observed_on": "2026-10-28",
+      "edition_state": "downloaded_snapshot_amendments_require_reconciliation"
+    },
+    "input_path": "D:\\VOR\\knowledge-base\\road-norms\\inputs\\GOST_32961_2014.pdf",
+    "sha256": "e3c09a64a789a2246ddecd45c7a1fc4a5425bfd2d293a2db2bdbc883264a5b60",
+    "acquisition_status": "downloaded"
+  },
+  {
+    "key": "GOST_7473_2010",
+    "designation": "ГОСТ 7473-2010",
+    "kind": "GOST",
+    "role": "core",
+    "title": "Смеси бетонные",
+    "url": "https://www.mos.ru/upload/documents/files/7149/GOST7473.pdf",
+    "official_card": "https://protect.gost.ru/gost?search=7473-2010",
+    "metadata": {
+      "url": "https://www.mos.ru/upload/documents/files/7149/GOST7473.pdf",
+      "official_card": "https://protect.gost.ru/gost?search=7473-2010",
+      "observed_on": "2026-10-28",
+      "edition_state": "downloaded_snapshot_amendments_require_reconciliation"
+    },
+    "input_path": "D:\\VOR\\knowledge-base\\road-norms\\inputs\\GOST_7473_2010.pdf",
+    "sha256": "bbc0d6358e802d8d3b96171ef3c39586497171582437c09c5faf0276e2a03d12",
+    "acquisition_status": "downloaded"
+  },
+  {
+    "key": "GOST_26633_2015",
+    "designation": "ГОСТ 26633-2015",
+    "kind": "GOST",
+    "role": "core",
+    "title": "Бетоны тяжелые и мелкозернистые",
+    "url": "https://www.mos.ru/upload/documents/files/2117/GOST26633-2015.pdf",
+    "official_card": "https://protect.gost.ru/gost?search=26633-2015",
+    "metadata": {
+      "url": "https://www.mos.ru/upload/documents/files/2117/GOST26633-2015.pdf",
+      "official_card": "https://protect.gost.ru/gost?search=26633-2015",
+      "observed_on": "2026-10-28",
+      "edition_state": "downloaded_snapshot_amendments_require_reconciliation"
+    },
+    "input_path": "D:\\VOR\\knowledge-base\\road-norms\\inputs\\GOST_26633_2015.pdf",
+    "sha256": "56e516ed61046ebac720733905ba47604135b7a204e35bfba4f7c3719c719f7c",
+    "acquisition_status": "downloaded"
+  },
+  {
+    "key": "SP82_2016",
+    "designation": "СП 82.13330.2016",
+    "kind": "SP",
+    "role": "core",
+    "title": "Благоустройство территорий",
+    "url": "https://files.stroyinf.ru/Data2/1/4293747/4293747629.pdf",
+    "official_card": "https://protect.gost.ru/sp/details/8d5a8ef5-f450-4356-ac88-72cd17c416cf",
+    "metadata": {
+      "url": "https://files.stroyinf.ru/Data2/1/4293747/4293747629.pdf",
+      "official_card": "https://protect.gost.ru/sp/details/8d5a8ef5-f450-4356-ac88-72cd17c416cf",
+      "observed_on": "2026-10-28",
+      "edition_state": "downloaded_snapshot_amendments_require_reconciliation"
+    },
+    "input_path": "D:\\VOR\\knowledge-base\\road-norms\\inputs\\SP82_2016.pdf",
+    "sha256": "55731f649dbc19cd5188a034a136044c529abc39e7c117f1b7d0b40ac6259271",
+    "acquisition_status": "downloaded"
+  },
+  {
+    "key": "GOST_70458_2022",
+    "designation": "ГОСТ Р 70458-2022",
+    "kind": "GOST",
+    "role": "core",
+    "title": "Щебеночно-гравийно-песчаные смеси",
+    "url": "https://www.mos.ru/upload/documents/files/7373/GOSTR70458-2022.pdf",
+    "official_card": "https://protect.gost.ru/gost/details/276e0902-0979-4224-80c0-4280c1358996",
+    "metadata": {
+      "url": "https://www.mos.ru/upload/documents/files/7373/GOSTR70458-2022.pdf",
+      "official_card": "https://protect.gost.ru/gost/details/276e0902-0979-4224-80c0-4280c1358996",
+      "observed_on": "2026-10-28",
+      "edition_state": "downloaded_snapshot_amendments_require_reconciliation"
+    },
+    "input_path": "D:\\VOR\\knowledge-base\\road-norms\\inputs\\GOST_70458_2022.pdf",
+    "sha256": "eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748",
+    "acquisition_status": "downloaded"
+  },
+  {
+    "key": "GOST_58406_1_2020",
+    "designation": "ГОСТ Р 58406.1-2020",
+    "kind": "GOST",
+    "role": "core",
+    "title": "Щебеночно-мастичные асфальтобетонные смеси",
+    "url": "https://amdor.ru/filemanager/download/23896",
+    "official_card": "https://protect.gost.ru/gost?search=58406.1-2020",
+    "metadata": {
+      "url": "https://amdor.ru/filemanager/download/23896",
+      "official_card": "https://protect.gost.ru/gost?search=58406.1-2020",
+      "observed_on": "2026-10-28",
+      "edition_state": "downloaded_snapshot_amendments_require_reconciliation"
+    },
+    "input_path": "D:\\VOR\\knowledge-base\\road-norms\\inputs\\GOST_58406_1_2020.pdf",
+    "sha256": "610cf478f31d6bd7426252ddcec9772cddbb3fda402d84c618471ed8ee1be56f",
+    "acquisition_status": "downloaded"
+  },
+  {
+    "key": "GOST_58406_2_2020",
+    "designation": "ГОСТ Р 58406.2-2020",
+    "kind": "GOST",
+    "role": "core",
+    "title": "Горячие асфальтобетонные смеси",
+    "url": "https://www.mos.ru/upload/documents/files/6654/GOSTR584062-2020.pdf",
+    "official_card": "https://protect.gost.ru/gost/details/2772155f-bc2e-4711-9100-4d769dce74fc",
+    "metadata": {
+      "url": "https://www.mos.ru/upload/documents/files/6654/GOSTR584062-2020.pdf",
+      "official_card": "https://protect.gost.ru/gost/details/2772155f-bc2e-4711-9100-4d769dce74fc",
+      "observed_on": "2026-10-28",
+      "edition_state": "downloaded_snapshot_amendments_require_reconciliation"
+    },
+    "input_path": "D:\\VOR\\knowledge-base\\road-norms\\inputs\\GOST_58406_2_2020.pdf",
+    "sha256": "ce51ce70720c495b4138af04e1a1760de8504005ed0ba4e45505d9ffbe664464",
+    "acquisition_status": "downloaded"
+  },
+  {
+    "key": "GOST_33133_2014",
+    "designation": "ГОСТ 33133-2014",
+    "kind": "GOST",
+    "role": "core",
+    "title": "Битумы нефтяные дорожные вязкие",
+    "url": "https://www.mos.ru/upload/documents/files/795/GOST33133-2014.pdf",
+    "official_card": "https://protect.gost.ru/gost/details/d1cca9eb-8e58-4d41-abf5-e8221140389c",
+    "metadata": {
+      "url": "https://www.mos.ru/upload/documents/files/795/GOST33133-2014.pdf",
+      "official_card": "https://protect.gost.ru/gost/details/d1cca9eb-8e58-4d41-abf5-e8221140389c",
+      "observed_on": "2026-10-28",
+      "edition_state": "downloaded_snapshot_amendments_require_reconciliation"
+    },
+    "input_path": "D:\\VOR\\knowledge-base\\road-norms\\inputs\\GOST_33133_2014.pdf",
+    "sha256": "bef003a6c2b2998b3bc1a7e1f0ceb20bdf7b839f5c480d333ca0a7807a55f983",
+    "acquisition_status": "downloaded"
+  },
+  {
+    "key": "GOST_52056_2003",
+    "designation": "ГОСТ Р 52056-2003",
+    "kind": "GOST",
+    "role": "core",
+    "title": "Полимерно-битумные вяжущие",
+    "url": "https://www.mos.ru/upload/documents/files/8858/GOSTR52056-2003.pdf",
+    "official_card": "https://protect.gost.ru/gost?search=52056-2003",
+    "metadata": {
+      "url": "https://www.mos.ru/upload/documents/files/8858/GOSTR52056-2003.pdf",
+      "official_card": "https://protect.gost.ru/gost?search=52056-2003",
+      "observed_on": "2026-10-28",
+      "edition_state": "downloaded_snapshot_amendments_require_reconciliation"
+    },
+    "input_path": "D:\\VOR\\knowledge-base\\road-norms\\inputs\\GOST_52056_2003.pdf",
+    "sha256": "9f2bdab7262fdfe5dcc2b4ca9078e1b37470914c558ad101781db5556a2a6ba1",
+    "acquisition_status": "downloaded"
+  },
+  {
+    "key": "GOST_58952_1_2020",
+    "designation": "ГОСТ Р 58952.1-2020",
+    "kind": "GOST",
+    "role": "core",
+    "title": "Эмульсии битумные дорожные",
+    "url": "https://www.mos.ru/upload/documents/files/19/GOSTR589521-2020.pdf",
+    "official_card": "https://protect.gost.ru/gost/details/75bdb210-9259-4ec8-8db4-e07be4bfe71d",
+    "metadata": {
+      "url": "https://www.mos.ru/upload/documents/files/19/GOSTR589521-2020.pdf",
+      "official_card": "https://protect.gost.ru/gost/details/75bdb210-9259-4ec8-8db4-e07be4bfe71d",
+      "observed_on": "2026-10-28",
+      "edition_state": "downloaded_snapshot_amendments_require_reconciliation"
+    },
+    "input_path": "D:\\VOR\\knowledge-base\\road-norms\\inputs\\GOST_58952_1_2020.pdf",
+    "sha256": "6e8109d8b65b592bdc8527870d8d6bdcf08a8bf6f1b291a639821b2f0beedfb8",
+    "acquisition_status": "downloaded"
+  },
+  {
+    "key": "GOST_6665_91",
+    "designation": "ГОСТ 6665-91",
+    "kind": "GOST",
+    "role": "core",
+    "title": "Бортовые камни; действие восстановлено 25.03.2025",
+    "url": "https://www.mos.ru/upload/documents/files/9088/GOST6665-91Kamnibetonnieijelezobetonniebortovie.pdf",
+    "official_card": "https://protect.gost.ru/gost/changesdetails/1dd6da3d-df04-4848-9957-f0efd27913ce",
+    "metadata": {
+      "url": "https://www.mos.ru/upload/documents/files/9088/GOST6665-91Kamnibetonnieijelezobetonniebortovie.pdf",
+      "official_card": "https://protect.gost.ru/gost/changesdetails/1dd6da3d-df04-4848-9957-f0efd27913ce",
+      "observed_on": "2026-10-28",
+      "edition_state": "downloaded_snapshot_amendments_require_reconciliation"
+    },
+    "input_path": "D:\\VOR\\knowledge-base\\road-norms\\inputs\\GOST_6665_91.pdf",
+    "sha256": "954aae66bfea185f14a7b996b06b5d2964d509c14b09b5d3f5ad13edba8d5432",
+    "acquisition_status": "downloaded"
+  },
+  {
+    "key": "SP34_2021",
+    "designation": "СП 34.13330.2021",
+    "kind": "SP",
+    "role": "core",
+    "title": "Автомобильные дороги",
+    "url": "https://api.faufcc.ru/api/assets/e1cff7b9-7483-46c6-9c62-073cc44b1a77/download",
+    "official_card": "https://protect.gost.ru/sp?search=34.13330.2021",
+    "metadata": {
+      "url": "https://api.faufcc.ru/api/assets/e1cff7b9-7483-46c6-9c62-073cc44b1a77/download",
+      "official_card": "https://protect.gost.ru/sp?search=34.13330.2021",
+      "observed_on": "2026-10-28",
+      "edition_state": "downloaded_snapshot_amendments_require_reconciliation"
+    },
+    "input_path": "D:\\VOR\\knowledge-base\\road-norms\\inputs\\SP34_2021.pdf",
+    "sha256": "8837d156502361a5733b8f55f2fdb33e991d26af4ea26aec91468f5f226037dd",
+    "acquisition_status": "downloaded"
+  },
+  {
+    "key": "SP78_2012",
+    "designation": "СП 78.13330.2012",
+    "kind": "SP",
+    "role": "core",
+    "title": "Автомобильные дороги: производство и контроль работ",
+    "url": "https://www.srogeo.ru/upload/files/doc/SP_78.13330.2012.pdf",
+    "official_card": "https://protect.gost.ru/sp/details/d3dfcb2b-a5e6-4355-8bbd-f2dc3ec10158",
+    "metadata": {
+      "url": "https://www.srogeo.ru/upload/files/doc/SP_78.13330.2012.pdf",
+      "official_card": "https://protect.gost.ru/sp/details/d3dfcb2b-a5e6-4355-8bbd-f2dc3ec10158",
+      "observed_on": "2026-10-28",
+      "edition_state": "downloaded_snapshot_amendments_require_reconciliation"
+    },
+    "input_path": "D:\\VOR\\knowledge-base\\road-norms\\inputs\\SP78_2012.pdf",
+    "sha256": "340190c46606b19fbffdd113cdc5c30b3f5fb859c66824bc75c209d0334a2bf7",
+    "acquisition_status": "downloaded"
+  },
+  {
+    "key": "SP396_2018",
+    "designation": "СП 396.1325800.2018",
+    "kind": "SP",
+    "role": "core",
+    "title": "Улицы и дороги населенных пунктов",
+    "url": "https://meganorm.ru/Data2/1/4293732/4293732357.pdf",
+    "official_card": "https://protect.gost.ru/sp/details/b06a81a0-0143-4299-aac1-764b05cf4242",
+    "metadata": {
+      "url": "https://meganorm.ru/Data2/1/4293732/4293732357.pdf",
+      "official_card": "https://protect.gost.ru/sp/details/b06a81a0-0143-4299-aac1-764b05cf4242",
+      "observed_on": "2026-10-28",
+      "edition_state": "downloaded_snapshot_amendments_require_reconciliation"
+    },
+    "input_path": "D:\\VOR\\knowledge-base\\road-norms\\inputs\\SP396_2018.pdf",
+    "sha256": "047e6b9b0adae4f68479d0c5db7ca342992b412fc4517c540957d09f78caebc0",
+    "acquisition_status": "downloaded"
+  },
+  {
+    "key": "ГЭСН27",
+    "designation": "ГЭСН 27 ФСНБ-2022",
+    "family": "ГЭСН",
+    "kind": "GESN",
+    "role": "core",
+    "title": "Сборник ГЭСН27 Автомобильные дороги",
+    "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН27 Автомобильные дороги.pdf",
+    "sha256": "45a5445bc9b51b87edb1a45b4466c345aa000894478427d33b1a15048bba55e5",
+    "acquisition_status": "user_supplied",
+    "metadata": {
+      "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН27 Автомобильные дороги.pdf",
+      "origin": "user_supplied_FGIS_CS_export",
+      "observed_on": "2026-10-28",
+      "edition_state": "user_supplied_snapshot_amendments_require_reconciliation"
+    }
+  },
+  {
+    "key": "ГЭСН01",
+    "designation": "ГЭСН 01 ФСНБ-2022",
+    "family": "ГЭСН",
+    "kind": "GESN",
+    "role": "supporting",
+    "title": "Сборник ГЭСН01 Земляные работы",
+    "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН01 Земляные работы.pdf",
+    "sha256": "c6521074871f22b02adc16d7462ee06f76914b873b41b711c6066df88975f9f4",
+    "acquisition_status": "user_supplied",
+    "metadata": {
+      "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН01 Земляные работы.pdf",
+      "origin": "user_supplied_FGIS_CS_export",
+      "observed_on": "2026-10-28",
+      "edition_state": "user_supplied_snapshot_amendments_require_reconciliation"
+    }
+  },
+  {
+    "key": "ГЭСН06",
+    "designation": "ГЭСН 06 ФСНБ-2022",
+    "family": "ГЭСН",
+    "kind": "GESN",
+    "role": "supporting",
+    "title": "Сборник ГЭСН06 Бетонные и железобетонные конструкции монолитные",
+    "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН06 Бетонные и железобетонные конструкции монолитные.pdf",
+    "sha256": "39e884687d609c81ec78d27c7f14b9ffb8270f923d127aeec47ccdb576d2ad55",
+    "acquisition_status": "user_supplied",
+    "metadata": {
+      "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН06 Бетонные и железобетонные конструкции монолитные.pdf",
+      "origin": "user_supplied_FGIS_CS_export",
+      "observed_on": "2026-10-28",
+      "edition_state": "user_supplied_snapshot_amendments_require_reconciliation"
+    }
+  },
+  {
+    "key": "ГЭСН47",
+    "designation": "ГЭСН 47 ФСНБ-2022",
+    "family": "ГЭСН",
+    "kind": "GESN",
+    "role": "core",
+    "title": "Сборник ГЭСН47 Озеленение, защитные лесонасаждения",
+    "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН47 Озеленение, защитные лесонасаждения.pdf",
+    "sha256": "b6fefcd14e5b5356bd26b64d0ad1e4e827e4143229a11761c8a318e873a51efe",
+    "acquisition_status": "user_supplied",
+    "metadata": {
+      "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН47 Озеленение, защитные лесонасаждения.pdf",
+      "origin": "user_supplied_FGIS_CS_export",
+      "observed_on": "2026-10-28",
+      "edition_state": "user_supplied_snapshot_amendments_require_reconciliation"
+    }
+  },
+  {
+    "key": "ГЭСНр68",
+    "designation": "ГЭСНр 68 ФСНБ-2022",
+    "family": "ГЭСНр",
+    "kind": "GESN",
+    "role": "supporting",
+    "title": "Сборник ГЭСНр68 Благоустройство",
+    "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\05 Государственные элементные сметные нормы на ремонтно-строительные работы\\Сборник ГЭСНр68 Благоустройство.pdf",
+    "sha256": "4f6067247ca2fca5aee0a5e2fc19316a4c464e12b7df173179681c4b3bd11bcd",
+    "acquisition_status": "user_supplied",
+    "metadata": {
+      "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\05 Государственные элементные сметные нормы на ремонтно-строительные работы\\Сборник ГЭСНр68 Благоустройство.pdf",
+      "origin": "user_supplied_FGIS_CS_export",
+      "observed_on": "2026-10-28",
+      "edition_state": "user_supplied_snapshot_amendments_require_reconciliation"
+    }
+  }
+]

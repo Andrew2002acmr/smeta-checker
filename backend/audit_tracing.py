@@ -68,7 +68,7 @@ def _maybe_redact(name, kind, payload):
     mask_prompts = _mask.get()
     if not redact_pdf and not mask_prompts:
         return payload
-    if name == "generate-audit" and isinstance(payload, list):
+    if name in {"generate-audit", "normative-query-plan", "normative-rank", "normative-position-check"} and isinstance(payload, list):
         redacted_messages = []
         for item in payload:
             if (
@@ -119,7 +119,10 @@ STAGE_DESCRIPTIONS = {
     "rank-quantity-pages": "Ранжирование страниц поддержки объёма/единицы",
     "confirm-quantity-context": "Единственный подтверждающий запрос количества",
     "check-request-budget": "Проверка лимитов ≤6 запросов/60000 токенов до HTTP",
-    "generate-audit": "Один HTTP-запрос к Qwen: контекст, сырой ответ, usage",
+    "generate-audit": "Один HTTP-запрос к выбранной LLM: контекст, сырой ответ, usage",
+    "normative-query-plan": "Построение поисковых запросов по контексту ВОР и ПД",
+    "normative-rank": "Сопоставление контекста с найденными нормативными вариантами",
+    "normative-position-check": "Одна позиция: ПД, связанные строки ВОР и нормативные источники",
     "validate-audit-response": "Guardrail: JSON и дословность цитат по фрагментам",
     "wait-before-retry": "Пауза перед ретраем: причина и тип ошибки",
 }

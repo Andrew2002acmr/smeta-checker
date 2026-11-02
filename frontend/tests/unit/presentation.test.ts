@@ -5,7 +5,21 @@ import {
   quantityDelta,
   quantityText,
   quantityWithUnit,
+  firstSentence,
 } from '../../app/utils/presentation'
+
+describe('short result in the audit list', () => {
+  it('shows one sentence without splitting decimal quantities', () => {
+    expect(firstSentence('Объём 108,66 м³ в проекте не нашёлся. В ВОР единица «м³».')).toBe(
+      'Объём 108,66 м³ в проекте не нашёлся.',
+    )
+    expect(firstSentence('В ВОР 8.395 т, в ПД 8.3 т. Проверьте расчёт.')).toBe(
+      'В ВОР 8.395 т, в ПД 8.3 т.',
+    )
+    expect(firstSentence('Расхождений не обнаружено.')).toBe('Расхождений не обнаружено.')
+    expect(firstSentence('')).toBe('')
+  })
+})
 
 describe('domain status mapping', () => {
   it('maps the four queues to distinct functional colors', () => {

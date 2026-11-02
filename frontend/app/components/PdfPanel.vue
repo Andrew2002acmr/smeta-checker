@@ -2,9 +2,13 @@
 import type { PDFDocumentProxy, PDFDocumentLoadingTask, RenderTask } from 'pdfjs-dist'
 import type { PdfRegionDto } from '~/generated/types.gen'
 import { clampPage } from '~/utils/presentation'
+import { selectionRectangles, selectionEnvelope } from '~/utils/pdfSelection'
+import { evidenceRects } from '~/utils/normativePresentation'
 const props = defineProps<{
   sourceUrl: string
   page: number
+  focusText?: string
+  focusRects?: number[][]
   region?: PdfRegionDto | null
   notes?: {
     id: string
@@ -15,11 +19,15 @@ const props = defineProps<{
     position_id: string
   }[]
   annotate?: boolean
+  selectionMode?: 'row' | 'area' | 'text'
 }>()
 const emit = defineEmits<{
   page: [page: number]
-  selection: [selection: { rect: number[]; text: string }]
+  selection: [
+    selection: { rect: number[]; text: string; rects?: number[][]; mode?: 'row' | 'area' | 'text' },
+  ]
   loaded: [count: number]
+  focused: [found: boolean]
 }>()
 const canvas = ref<HTMLCanvasElement>(),
   stage = ref<HTMLElement>(),
@@ -60,6 +68,67 @@ const marks = computed(
       ]),
     })) || [],
 )
+const focusMarks = ref<number[][]>([])
+function focusAnchor() {
+  focusMarks.value = []
+  const rects = evidenceRects(props.focusRects)
+  if (rects.length && scroll.value) {
+    focusMarks.value = rects
+    scroll.value.scrollTop = Math.max(
+      0,
+      Math.min(...rects.map((r) => r[1]!)) * height.value - scroll.value.clientHeight / 3,
+    )
+    emit('focused', true)
+    return
+  }
+  const target = (props.focusText ?? '')
+    .normalize('NFKC')
+    .toLocaleLowerCase('ru-RU')
+    .replace(/[\s\u00ad]/g, '')
+  if (!target || !textHost.value || !canvas.value || !scroll.value) return
+  const owners: { node: Text; offset: number }[] = []
+  let content = ''
+  const walker = document.createTreeWalker(textHost.value, NodeFilter.SHOW_TEXT)
+  while (walker.nextNode()) {
+    if (content.length > 150000) {
+      emit('focused', false)
+      return
+    }
+    const node = walker.currentNode as Text
+    for (let offset = 0; offset < node.data.length; offset++) {
+      const folded = node.data[offset]!.normalize('NFKC')
+        .toLocaleLowerCase('ru-RU')
+        .replace(/[\s\u00ad]/g, '')
+      content += folded
+      for (let i = 0; i < folded.length; i++) owners.push({ node, offset })
+    }
+  }
+  let start = content.indexOf(target)
+  while (start >= 0 && /^[\d.-]+$/.test(target) && /\d/.test(content[start + target.length] ?? ''))
+    start = content.indexOf(target, start + 1)
+  const first = owners[start],
+    last = owners[start + target.length - 1]
+  if (start < 0 || !first || !last) {
+    emit('focused', false)
+    return
+  }
+  const range = document.createRange()
+  range.setStart(first.node, first.offset)
+  range.setEnd(last.node, last.offset + 1)
+  const box = canvas.value.getBoundingClientRect()
+  focusMarks.value = [...range.getClientRects()]
+    .filter((r) => r.width > 0 && r.height > 0)
+    .map((r) => [
+      Math.max(0, (r.left - box.left) / box.width),
+      Math.max(0, (r.top - box.top) / box.height),
+      Math.min(1, (r.right - box.left) / box.width),
+      Math.min(1, (r.bottom - box.top) / box.height),
+    ])
+  const top = focusMarks.value[0]?.[1]
+  if (top !== undefined)
+    scroll.value.scrollTop = Math.max(0, top * height.value - scroll.value.clientHeight / 3)
+  emit('focused', focusMarks.value.length > 0)
+}
 async function render() {
   if (!documentPdf || !canvas.value || !textHost.value || !scroll.value) return
   const current = ++epoch
@@ -67,6 +136,7 @@ async function render() {
   busy.value = true
   error.value = ''
   pending.value = null
+  focusMarks.value = []
   try {
     const page = await documentPdf.getPage(clampPage(props.page, documentPdf.numPages))
     if (current !== epoch) return
@@ -105,6 +175,7 @@ async function render() {
             scroll.value.clientHeight / 3,
         )
       : 0
+    focusAnchor()
   } catch (e) {
     if (current === epoch && !(e instanceof Error && e.name === 'RenderingCancelledException'))
       error.value = 'Не удалось открыть страницу PDF.'
@@ -146,7 +217,7 @@ async function open() {
   }
 }
 function point(e: PointerEvent) {
-  const box = stage.value!.getBoundingClientRect()
+  const box = canvas.value!.getBoundingClientRect()
   return {
     x: Math.max(0, Math.min(1, (e.clientX - box.left) / box.width)),
     y: Math.max(0, Math.min(1, (e.clientY - box.top) / box.height)),
@@ -169,45 +240,105 @@ function move(e: PointerEvent) {
   ]
 }
 function up(e: PointerEvent) {
+  if (!first) return
+  const anchor = first
   move(e)
   first = null
+  if (props.selectionMode === 'row') {
+    const epsilon = 0.0005
+    const rect = [
+      Math.max(0, anchor.x - epsilon),
+      Math.max(0, anchor.y - epsilon),
+      Math.min(1, anchor.x + epsilon),
+      Math.min(1, anchor.y + epsilon),
+    ]
+    pending.value = null
+    emit('selection', { rect, text: '', mode: 'row' })
+    return
+  }
   if (
     pending.value &&
     pending.value[2]! - pending.value[0]! > 0.002 &&
     pending.value[3]! - pending.value[1]! > 0.002
   )
-    emit('selection', { rect: pending.value, text: '' })
+    emit('selection', { rect: pending.value, text: '', mode: 'area' })
 }
-function selectedText() {
+function selectedText(silent = false) {
   const selection = window.getSelection()
   if (
     !selection?.rangeCount ||
     selection.isCollapsed ||
     !stage.value?.contains(selection.anchorNode) ||
-    !stage.value.contains(selection.focusNode)
+    !stage.value.contains(selection.focusNode) ||
+    !canvas.value
   ) {
-    error.value = 'Выделите текст в PDF, затем нажмите «Отметить текст».'
+    if (!silent) error.value = 'Выделите текст мышью внутри страницы PDF.'
     return
   }
-  const boxes = [...selection.getRangeAt(0).getClientRects()],
-    box = stage.value.getBoundingClientRect()
-  if (!boxes.length) return
-  const rect = [
-    Math.max(0, (Math.min(...boxes.map((r) => r.left)) - box.left) / box.width),
-    Math.max(0, (Math.min(...boxes.map((r) => r.top)) - box.top) / box.height),
-    Math.min(1, (Math.max(...boxes.map((r) => r.right)) - box.left) / box.width),
-    Math.min(1, (Math.max(...boxes.map((r) => r.bottom)) - box.top) / box.height),
-  ]
-  emit('selection', { rect, text: selection.toString().slice(0, 4000) })
+  const rects = selectionRectangles(
+    [...selection.getRangeAt(0).getClientRects()],
+    canvas.value.getBoundingClientRect(),
+  )
+  if (!rects.length) return
+  error.value = ''
+  pending.value = null
+  emit('selection', {
+    rect: selectionEnvelope(rects),
+    rects,
+    text: selection.toString(),
+    mode: 'text',
+  })
+}
+let selectionTimer: ReturnType<typeof setTimeout> | undefined
+let textPointerDown = false
+function textPointerStart() {
+  if (props.annotate && props.selectionMode === 'text') textPointerDown = true
+}
+function textPointerEnd() {
+  if (textPointerDown) {
+    textPointerDown = false
+    textSelectionChanged()
+  }
+}
+function textSelectionChanged() {
+  if (!props.annotate || props.selectionMode !== 'text') return
+  clearTimeout(selectionTimer)
+  selectionTimer = setTimeout(() => {
+    if (!textPointerDown) selectedText(true)
+  }, 180)
+}
+function clearSelection() {
+  pending.value = null
+  const selection = window.getSelection()
+  if (selection?.anchorNode && stage.value?.contains(selection.anchorNode))
+    selection.removeAllRanges()
 }
 function changePage(value: number) {
   emit('page', clampPage(value, count.value))
 }
 watch(() => props.sourceUrl, open)
 watch(() => props.page, render)
+watch(() => props.focusText, render)
+watch(() => props.focusRects, render, { deep: true })
 watch(zoom, render)
+watch(
+  () => props.region,
+  async (region) => {
+    await nextTick()
+    if (region?.highlights[0] && scroll.value && ready.value)
+      scroll.value.scrollTop = Math.max(
+        0,
+        (region.highlights[0].bbox[1]! / region.height) * height.value -
+          scroll.value.clientHeight / 3,
+      )
+  },
+)
+watch(() => props.selectionMode, clearSelection)
+
 onMounted(() => {
   open()
+  document.addEventListener('selectionchange', textSelectionChanged)
+  document.addEventListener('pointerup', textPointerEnd)
   let timer: ReturnType<typeof setTimeout>
   resizeObserver = new ResizeObserver(() => {
     clearTimeout(timer)
@@ -216,6 +347,9 @@ onMounted(() => {
   if (scroll.value) resizeObserver.observe(scroll.value)
 })
 onBeforeUnmount(() => {
+  document.removeEventListener('selectionchange', textSelectionChanged)
+  document.removeEventListener('pointerup', textPointerEnd)
+  clearTimeout(selectionTimer)
   epoch++
   resizeObserver?.disconnect()
   renderTask?.cancel()
@@ -246,9 +380,7 @@ async function find(query: string) {
 defineExpose({
   selectedText,
   find,
-  clearSelection: () => {
-    pending.value = null
-  },
+  clearSelection,
 })
 </script>
 <template>
@@ -302,7 +434,14 @@ defineExpose({
         :style="{ width: width + 'px', height: height + 'px', '--scale-factor': scale }"
       >
         <canvas ref="canvas" :style="{ width: width + 'px', height: height + 'px' }"></canvas>
-        <div ref="textHost" class="textLayer"></div>
+        <div ref="textHost" class="textLayer" @pointerdown="textPointerStart"></div>
+        <div
+          v-for="(rect, index) in focusMarks"
+          :key="`anchor-${index}`"
+          class="pdf-anchor-mark"
+          :style="percent(rect)"
+          aria-hidden="true"
+        ></div>
         <span
           v-for="(mark, i) in marks"
           :key="i"
@@ -320,7 +459,7 @@ defineExpose({
         ></span
         ><span v-if="pending" class="pdf-note pending" :style="percent(pending)"></span>
         <div
-          v-if="annotate"
+          v-if="annotate && selectionMode !== 'text'"
           class="pdf-draw"
           @pointerdown="down"
           @pointermove="move"
@@ -332,6 +471,13 @@ defineExpose({
   </div>
 </template>
 <style scoped>
+.pdf-anchor-mark {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--color-amber-400) 30%, transparent);
+  outline: 2px solid var(--ui-primary);
+}
 .pdf-container {
   display: flex;
   flex-direction: column;
@@ -355,6 +501,7 @@ defineExpose({
 }
 .pdf-stage {
   position: relative;
+  box-sizing: content-box;
   margin: 0 auto;
   background: var(--ui-bg);
   border: 1px solid var(--ui-border);

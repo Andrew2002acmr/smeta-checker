@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-VERSION = "physical-cells-v2"
+VERSION = "physical-cells-v3-frame-recovery"
 
 
 def finish_table(cells, *, table_id, page, bbox, origin, header_rows, reasons=()):
@@ -98,11 +98,18 @@ def native_tables(page, read_cell):
             page.set_rotation(rotation)
 
 
-def _native_tables_unrotated(page, read_cell):
+def _native_tables_unrotated(page, read_cell, *, clip=None, recover=True):
     """Use physical ruling, not colored header rectangles as extra grid edges."""
     import pymupdf
 
-    finder = page.find_tables(strategy="lines_strict")
+    options = {"clip": clip} if clip is not None else {}
+    if isinstance(page, pymupdf.Page):
+        # Page.find_tables may delegate to the optional layout engine and
+        # ignore physical strategy/clip. This path must use ruled geometry.
+        from pymupdf.table import find_tables
+        finder = find_tables(page, strategy="lines_strict", use_layout=False, **options)
+    else:
+        finder = page.find_tables(strategy="lines_strict", **options)
     raw_text = page.get_text("rawdict", sort=True)
     lines = (
         [
@@ -181,7 +188,58 @@ def _native_tables_unrotated(page, read_cell):
                 reasons=reasons,
             )
         )
+    if recover:
+        results = [_recover_frame_grid(page, read_cell, table) for table in results]
     return results
+
+
+def _recover_frame_grid(page, read_cell, table):
+    """Separate a ruled schedule from a surrounding engineering drawing frame.
+
+    A nearly touching outer frame can produce a giant overlapping cell that
+    swallows the rightmost column. Re-detect only within a contiguous band of
+    physical row cells; never infer values from the requested VOR quantity.
+    Accept the replacement only when its topology and headers are usable.
+    """
+    frame_header = "header_unresolved" in table["reasons"] and any(
+        cell["row"] == 0 and cell["colspan"] >= 3 for cell in table["cells"])
+    if "overlapping_logical_cells" not in table["reasons"] and not frame_header:
+        return table
+    from collections import defaultdict
+    import pymupdf
+
+    bands = defaultdict(list)
+    for cell in table["cells"]:
+        box = cell["bbox"]
+        bands[(round(box[1], 1), round(box[3], 1))].append(box)
+    groups = []
+    for (top, bottom), boxes in sorted(bands.items()):
+        if len(boxes) < 3:
+            continue
+        if groups and abs(groups[-1][-1][1] - top) <= 1:
+            groups[-1].append((top, bottom, boxes))
+        else:
+            groups.append([(top, bottom, boxes)])
+    groups = [group for group in groups if len(group) >= 3]
+    if not groups:
+        return table
+    band = max(groups, key=lambda group: (len(group), group[-1][1] - group[0][0]))
+    left = min(box[0] for _, _, boxes in band for box in boxes)
+    region = pymupdf.Rect(left - 1, band[0][0] - 1.5,
+                          table["bbox"][2], band[-1][1] + 1.5) & page.rect
+    candidates = _native_tables_unrotated(page, read_cell, clip=region, recover=False)
+    usable = [candidate for candidate in candidates if candidate["quality"] == "usable"
+              and candidate["row_count"] >= len(band)]
+    if len(usable) != 1:
+        return table
+    restored = usable[0]
+    for word in page.get_text("words", clip=region):
+        x, y = (word[0] + word[2]) / 2, (word[1] + word[3]) / 2
+        if not any(cell["bbox"][0] <= x < cell["bbox"][2]
+                   and cell["bbox"][1] <= y < cell["bbox"][3] for cell in restored["cells"]):
+            return table  # A clipped-away quantity column is not a repaired grid.
+    return finish_table(restored["cells"], table_id=table["table_id"], page=table["page"],
+                        bbox=restored["bbox"], origin="native", header_rows=restored["header_rows"])
 
 
 def raster_engine():

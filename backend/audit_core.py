@@ -3,14 +3,20 @@
 import json
 import math
 import re
-from collections import Counter
+from collections import Counter, OrderedDict
 from decimal import Decimal
 import unicodedata
+import sys
+from threading import Lock
 
 from audit_measurements import (
     _close_numbers,
     _numbers,
     canonical_unit,
+    paired_units,
+    iter_paired_measurements,
+    paired_measurements,
+    has_paired_units,
     iter_measurements,
     parse_measurement,
     compare_measurements,
@@ -150,6 +156,35 @@ def _terms(text):
             result.add(code)
     result.update(_UNIT_RE.findall(text))
     return result
+
+
+_page_terms_cache = OrderedDict()
+_page_terms_size = 0
+_page_terms_lock = Lock()
+_PAGE_TERMS_LIMIT = 32 * 1024 * 1024
+
+
+def _cached_page_terms(text):
+    """Reuse immutable page tokens across positions, with a per-process RAM bound."""
+    global _page_terms_size
+    with _page_terms_lock:
+        cached = _page_terms_cache.get(text)
+        if cached is not None:
+            _page_terms_cache.move_to_end(text)
+            return cached[0]
+    terms = frozenset(_terms(text))
+    size = sys.getsizeof(text) + sys.getsizeof(terms) + sum(map(sys.getsizeof, terms))
+    if size <= _PAGE_TERMS_LIMIT:
+        with _page_terms_lock:
+            previous = _page_terms_cache.pop(text, None)
+            if previous is not None:
+                _page_terms_size -= previous[1]
+            _page_terms_cache[text] = (terms, size)
+            _page_terms_size += size
+            while _page_terms_size > _PAGE_TERMS_LIMIT:
+                _, (_, removed_size) = _page_terms_cache.popitem(last=False)
+                _page_terms_size -= removed_size
+    return terms
 
 
 def _compact_terms(text):
@@ -544,8 +579,18 @@ class PageTextIndex:
         self.texts = tuple(texts)
         self.errors = dict(errors or {})
         self.pending_ocr = tuple(sorted(set(pending_ocr)))
-        if tables is not None:
-            table_rows = tables
+        # Physical grids and legacy flattened strings are different contracts.
+        # Older snapshots accidentally put grids in table_rows; read them safely.
+        self._legacy_tables = tables is None and table_rows is not None and any(
+            isinstance(row, dict) for page in table_rows for row in page)
+        if self._legacy_tables:
+            tables = table_rows
+        self.tables = tuple(tuple(page) for page in tables) if tables is not None else None
+        if table_rows is None and self.tables is not None:
+            table_rows = [tuple(" | ".join(cell.get("text", "") for cell in table["cells"]
+                                         if cell["row"] == row)
+                                for table in page for row in range(table["row_count"]))
+                          for page in self.tables]
         self.table_rows = tuple(tuple(row) for row in table_rows) if table_rows is not None else None
         # Plain-data source locators per page (SourceLocator-compatible dicts);
         # None means unknown provenance (historical snapshots), never fabricated.
@@ -554,7 +599,7 @@ class PageTextIndex:
         self.quality = dict(quality or {})
         self.metadata = dict(metadata or {})
         self.repeated_lines = tuple(repeated_lines or ())
-        self.terms = tuple(_terms(text) for text in self.texts)
+        self.terms = tuple(_cached_page_terms(text) for text in self.texts)
         frequency = Counter(term for terms in self.terms for term in terms)
         self.weights = {term: math.log(1 + len(self.texts) / count) for term, count in frequency.items()}
 
@@ -568,6 +613,8 @@ class PageTextIndex:
             "table_rows": self.table_rows, "locators": self.locators,
             "quality": _canonical_page_map(self.quality), "metadata": self.metadata,
         }
+        if self.tables is not None and not self._legacy_tables:
+            payload["tables"] = self.tables
         # Canonical JSON also detaches nested dictionaries from the index.
         encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True,
                              separators=(",", ":"), allow_nan=False).encode("utf-8")
@@ -594,7 +641,7 @@ class PageTextIndex:
         if not isinstance(texts, list) or any(not isinstance(text, str) for text in texts):
             raise ValueError("Invalid snapshot page texts")
         count = len(texts)
-        for field in ("table_rows", "locators"):
+        for field in ("table_rows", "locators", "tables"):
             if payload.get(field) is not None and len(payload[field]) != count:
                 raise ValueError(f"Invalid snapshot {field} page count")
         def integer_keys(field):
@@ -610,11 +657,11 @@ class PageTextIndex:
             raise ValueError("Invalid snapshot pending OCR page")
         return cls(texts, integer_keys("errors"), pending, payload.get("table_rows"),
                    payload.get("locators"), quality=integer_keys("quality"),
-                   metadata=payload.get("metadata"))
+                   metadata=payload.get("metadata"), tables=payload.get("tables"))
 
     def _score(self, text, work_name, comment, reference, volume, prefer_volume=False,
-               *, quantity_search=False, formula_numbers=()):
-        terms = _terms(text)
+               *, quantity_search=False, formula_numbers=(), page_terms=None):
+        terms = _terms(text) if page_terms is None else page_terms
         qwork, qcomm = _terms(work_name), _terms(comment)
         if quantity_search or prefer_volume:
             # Once work is located, its exact material code must not crowd
@@ -646,11 +693,15 @@ class PageTextIndex:
         for idx, text in enumerate(self.texts):
             if idx in excluded or not text.strip():
                 continue
-            score = self._score(text, work_name, comment, reference, volume)
+            score = self._score(text, work_name, comment, reference, volume, page_terms=self.terms[idx])
             if score > 0:
-                ranked.append((score, idx))
-        ranked.sort(key=lambda item: (-item[0], item[1]))
-        return [idx for _, idx in ranked]
+                structured = self.tables is not None and any(
+                    table.get("quality") == "usable" and _terms(work_name).intersection(
+                        _terms(" ".join(cell["text"] for cell in table["cells"])))
+                    for table in self.tables[idx])
+                ranked.append((bool(structured), score, idx))
+        ranked.sort(key=lambda item: (-item[0], -item[1], item[2]))
+        return [idx for _, _, idx in ranked]
 
     def support_candidates(self, work_name, volume, unit, excluded=(), *, formula_numbers=()):
         """Find quantity-bearing pages for an already located work, not another location search."""
@@ -666,7 +717,7 @@ class PageTextIndex:
             if not numbers or not (self.terms[idx] & query or _TABLE_MARKERS.search(text)):
                 continue
             score = self._score(text, work_name, "", "", volume, quantity_search=True,
-                                formula_numbers=formula_numbers)
+                                formula_numbers=formula_numbers, page_terms=self.terms[idx])
             if _TABLE_MARKERS.search(text):
                 score += 5
             if numbers & expected:
@@ -865,6 +916,22 @@ class PageTextIndex:
         if limit <= 0:
             return ""
         text = self.texts[idx]
+        if self.tables is not None and self.tables[idx]:
+            from table_context import select_fragment
+            def score(value):
+                # Locate a physical row by its subject, never by the expected
+                # quantity. The retained source quote must fit evidence DTOs.
+                return self._score(value, work_name, comment, reference, "")
+            ranked = sorted(self.tables[idx], key=lambda table: (
+                table.get("quality") == "usable",
+                score(" ".join(cell["text"] for cell in table["cells"]))), reverse=True)
+            for table in ranked:
+                selected = select_fragment(table, min(limit, 1200), score)
+                if selected is not None:
+                    return selected[0]
+            # A cut HTML row is not evidence. Keep only prose outside tables.
+            text = re.sub(r"<table\b.*?</table>", "", text, flags=re.I | re.S)
+            return text[:limit]
         if len(text) <= limit:
             return text
         # Table headings commonly precede the highest-scoring numerical row.
@@ -1118,7 +1185,7 @@ def _row_texts(quote):
             re.DOTALL | re.IGNORECASE)) for row in rows] or [quote]
 
 
-def _bind_quantity_fact(quotes, expected_work=""):
+def _bind_quantity_fact(quotes, expected_work="", expected_unit=""):
     """Bind the single atomic number+unit fact addressed by the proposal.
 
     Binding uses only proposal geometry: one measurement in the addressed
@@ -1128,7 +1195,29 @@ def _bind_quantity_fact(quotes, expected_work=""):
     """
     candidates = []
     for quote in quotes:
-        for text in _row_texts(quote):
+        rows = _row_texts(quote)
+        if len(rows) > 1 and str(expected_work).strip():
+            query = _terms(expected_work)
+            scored = [(sum(3 if _has_digit(term) else 1 for term in query & _terms(row)), row)
+                      for row in rows if _shares_work_object(row, expected_work)]
+            if scored:
+                best = max(score for score, _ in scored)
+                rows = [row for score, row in scored if score == best]
+        for text in rows:
+            pairs = iter_paired_measurements(text)
+            if pairs:
+                requested = canonical_unit(expected_unit)
+                # The VOR unit selects a typed component. Its numeric value
+                # is never used to pick the convenient side of the slash.
+                applicable = [m for m in pairs if requested and m.dimension == requested[1]]
+                distinct = {(format(m.value, "f"), m.unit) for m in applicable}
+                if len(distinct) != 1:
+                    return None, "ambiguous_measurements"
+                candidates.append((text, applicable[0]))
+                continue
+            if (any(paired_units(cell.strip()) for cell in text.split("|"))
+                    if "|" in text else has_paired_units(text)):
+                return None, "ambiguous_measurements"
             measurements = iter_measurements(text)
             cells = [chunk.strip() for chunk in text.split("|")]
             if len(cells) > 1:
@@ -1228,6 +1317,32 @@ def _bind_quantity_fact(quotes, expected_work=""):
     return candidates[0][1], "bound"
 
 
+def _quantity_binding_quotes(items):
+    """Use explicit unit-cell evidence only when table provenance links it.
+
+    Joined text is an internal parsing view, never a fabricated source quote.
+    The persisted evidence remains the original, hash-bound fragments.
+    """
+    values = [item for item in items if item.get("binding_role") not in {"subject", "relation", "unit"}] or items
+    quotes = []
+    for value in values:
+        quote = value["quote"]
+        locator = value.get("locator") or {}
+        for unit in items:
+            if unit is value or unit.get("binding_role") != "unit":
+                continue
+            other = unit.get("locator") or {}
+            same_table = (value.get("page") == unit.get("page") and locator.get("table_id")
+                          and locator.get("table_id") == other.get("table_id"))
+            same_row = locator.get("row_id") and locator.get("row_id") == other.get("row_id")
+            linked_header = unit.get("source_id") in (locator.get("header_ids") or [])
+            if same_table and (same_row or linked_header) and paired_measurements(quote, unit["quote"]):
+                quote = unit["quote"] + " | " + quote
+                break
+        quotes.append(quote)
+    return quotes
+
+
 def _compare_bound_fact(fact, expected_volume, expected_unit):
     if expected_volume is None:
         return "equal"
@@ -1261,6 +1376,11 @@ def _evaluate_presence(proposal_evidence, expected_work, position_type, context)
         return ClaimCheck(claim_id="presence", kind=ClaimKind.PRESENCE,
                           state=ClaimState.NOT_FOUND,
                           reasons=["no_proposal"], required=True), []
+    if all(item.get("locator", {}).get("quality", "usable") != "usable"
+           for item in proposal_evidence):
+        return ClaimCheck(claim_id="presence", kind=ClaimKind.PRESENCE,
+                          state=ClaimState.REVIEW_REQUIRED,
+                          reasons=["unusable_table_structure"], required=True), proposal_evidence
     work_text = " ".join(item["quote"] for item in proposal_evidence)
     if str(expected_work).strip():
         page_ok = any(_shares_work_object(context[item["page"]], str(expected_work))
@@ -1293,14 +1413,14 @@ def _evaluate_quantity(proposal_evidence, expected_volume, expected_unit,
                    if item.get("binding_role") not in {"subject", "relation", "unit"}]
     if not value_items:
         value_items = proposal_evidence
-    quotes = [item["quote"] for item in value_items]
+    quotes = _quantity_binding_quotes(proposal_evidence)
     if any(item.get("locator", {}).get("quality", "usable") != "usable"
            for item in value_items):
         return ClaimCheck(claim_id="quantity", kind=ClaimKind.QUANTITY,
                           state=ClaimState.REVIEW_REQUIRED, reasons=["unusable_ocr"],
                           facts=_facts_for("quantity", proposal_evidence),
                           required=True), proposal_evidence
-    fact, bound = _bind_quantity_fact(quotes, expected_work)
+    fact, bound = _bind_quantity_fact(quotes, expected_work, expected_unit)
     if fact is None:
         if bound == "worded_quantity_without_digits":
             return ClaimCheck(claim_id="quantity", kind=ClaimKind.QUANTITY,
@@ -1357,7 +1477,9 @@ def _evaluate_unit(proposal_evidence, expected_unit):
                     re.DOTALL | re.IGNORECASE)) for row in rows] or texts
         for text in texts:
             evidenced_units.update(m.unit for m in iter_measurements(text))
+            evidenced_units.update(m.unit for m in iter_paired_measurements(text))
             for chunk in text.split("|"):
+                evidenced_units.update(unit for unit, _ in paired_units(chunk.strip()))
                 hit = canonical_unit(chunk.strip())
                 if hit is not None:
                     evidenced_units.add(hit[0])
@@ -1485,7 +1607,16 @@ def parse_audit_response(raw, context, comment_required=True, *, expected_volume
         checks.append(geometry)
     comment_items = grouped.get("attribute", []) + grouped.get("comment", [])
     if comment_required:
-        if comment_items:
+        mapped_comments = [check for check in checks if ":comment:" in check.claim_id]
+        if mapped_comments:
+            required_comments = [check for check in mapped_comments if check.required]
+            closed = all(check.state in {ClaimState.CONFIRMED, ClaimState.NOT_APPLICABLE}
+                         for check in required_comments)
+            state = ClaimState.CONFIRMED if closed else ClaimState.REVIEW_REQUIRED
+            checks.append(ClaimCheck(claim_id="comment", kind=ClaimKind.ATTRIBUTE,
+                                     state=state, reasons=["comment_predicates_evaluated"],
+                                     required=False))
+        elif comment_items:
             checks.append(ClaimCheck(claim_id="comment", kind=ClaimKind.ATTRIBUTE,
                                      state=ClaimState.CONFIRMED,
                                      reasons=["comment_cited"], required=False))
@@ -1521,9 +1652,9 @@ def parse_audit_response(raw, context, comment_required=True, *, expected_volume
         found_page = str(presence_pages[0])
     else:
         found_page = "-"
-    quantity_texts = [item["quote"] for item in quantity_evidence]
+    quantity_texts = _quantity_binding_quotes(quantity_evidence)
     fact, binding = _bind_quantity_fact(
-        quantity_texts, expected_work) if quantity_texts else (None, "")
+        quantity_texts, expected_work, expected_unit) if quantity_texts else (None, "")
     if binding != "bound":
         fact = None
     found_volume = format(fact.value, "f") if fact is not None and fact.value is not None else "-"
@@ -1555,8 +1686,8 @@ def parse_audit_response(raw, context, comment_required=True, *, expected_volume
         "found_unit": found_unit,
         "found_page": found_page,
         "found_pages": found_pages,
-        "evidence": [{"page": item["page"], "quote": item["quote"],
-                      "kind": item["kind"]} for item in evidence],
+        "evidence": [{key: item[key] for key in ("page", "quote", "kind", "source_id", "locator")
+                      if key in item} for item in evidence],
         "discrepancy_details": details,
         "search_complete": work_found,
         "technology": technology,
@@ -1637,7 +1768,7 @@ def audit_text_pages(index, target_indices, ask, work_name, volume, reference=""
         quantity_quotes = [item["quote"] for item in evidence
                            if item.get("kind") == "volume"]
         fact, binding = _bind_quantity_fact(
-            quantity_quotes, work_name) if quantity_quotes else (None, "")
+            quantity_quotes, work_name, unit) if quantity_quotes else (None, "")
         if binding != "bound":
             fact = None
         return {
@@ -1763,6 +1894,9 @@ def audit_text_pages(index, target_indices, ask, work_name, volume, reference=""
             break  # Keep an HTTP attempt for quantity confirmation; never grow the budget.
         from_reference = bool(groups)
         seeds = groups.pop(0) if groups else candidates[:min(2, max_pages)]
+        if not from_reference and seeds and index.tables is not None and any(
+                table.get("quality") == "usable" for table in index.tables[seeds[0]]):
+            seeds = seeds[:1]
         candidates = [i for i in candidates if i not in seeds]
         pages = list(seeds)
         # Neighbours support referenced pages, but are not a semantic relation

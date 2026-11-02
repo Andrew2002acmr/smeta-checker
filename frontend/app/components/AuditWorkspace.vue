@@ -5,13 +5,19 @@ import type {
   VersionDto,
   StructureDto,
   StructureNodeDto,
+  HumanBasisDto,
+  BasisPreviewDto,
+  BasisFragmentRequest,
+  SpecifyBasisRequest,
 } from '~/generated/types.gen'
 import { queueColor, queueLabel, quantityDelta, quantityWithUnit } from '~/utils/presentation'
+import { evidenceText, evidenceExcerpt, EVIDENCE_PREVIEW_LENGTH } from '~/utils/evidenceText'
 const props = defineProps<{
     runId: string
     positionIndex: number
     documents: VersionDto[]
     positionCount?: number
+    readyPositions?: number[]
   }>(),
   emit = defineEmits<{ close: []; navigate: [index: number] }>(),
   backend = useBackend(),
@@ -27,9 +33,124 @@ const props = defineProps<{
   structureError = ref(''),
   busy = ref(true),
   search = ref(''),
-  pdfPanel = ref<{ find: (q: string) => Promise<number[]> }>(),
+  pdfPanel = ref<{
+    find: (q: string) => Promise<number[]>
+    selectedText: () => void
+    clearSelection: () => void
+  }>(),
   searchPages = ref<number[]>([]),
   expandedQuotes = ref<Set<number>>(new Set())
+const historyPanel = ref<{ load: () => Promise<void> }>()
+async function refreshVerdict() {
+  const index = props.positionIndex
+  try {
+    const value = await backend.workspace(props.runId, index)
+    if (workspace.value && props.positionIndex === index) workspace.value.row = value.row
+  } catch {
+    error.value = 'Не удалось обновить итог нормативной проверки. Обновите страницу.'
+  }
+}
+const previousReady = computed(() =>
+  props.readyPositions
+    ? ([...props.readyPositions].filter((i) => i < props.positionIndex).sort((a, b) => b - a)[0] ??
+      null)
+    : props.positionIndex > 0
+      ? props.positionIndex - 1
+      : null,
+)
+const nextReady = computed(() =>
+  props.readyPositions
+    ? ([...props.readyPositions].filter((i) => i > props.positionIndex).sort((a, b) => a - b)[0] ??
+      null)
+    : typeof props.positionCount === 'number' && props.positionIndex + 1 < props.positionCount
+      ? props.positionIndex + 1
+      : null,
+)
+const humanBasis = ref<HumanBasisDto[]>([]),
+  humanSourceId = ref(''),
+  choosingBasis = ref(false),
+  basisMode = ref<'row' | 'area' | 'text' | 'multi'>('row'),
+  basisPreview = ref<BasisPreviewDto | null>(null),
+  previewBusy = ref(false),
+  basisRects = ref<number[][] | undefined>(),
+  basisRect = ref<number[] | null>(null),
+  basisTarget = ref<{ version_id: string; page: number } | null>(null),
+  basisComment = ref(''),
+  basisBusy = ref(false),
+  basisError = ref(''),
+  basisSaved = ref('')
+const basisFragments = ref<BasisFragmentRequest[]>([])
+const ocrKey = ref<string | null>(null)
+const ocrBusy = ref(false)
+const fragmentRoles = [
+  { label: 'Без назначения', value: 'other' },
+  { label: 'Работа', value: 'work' },
+  { label: 'Количество', value: 'volume' },
+  { label: 'Единица', value: 'unit' },
+  { label: 'Условия', value: 'conditions' },
+]
+let previewEpoch = 0
+const basisModes = [
+  { value: 'row', label: 'Строка таблицы' },
+  { value: 'area', label: 'Область' },
+  { value: 'multi', label: 'Несколько областей' },
+  { value: 'text', label: 'Текст' },
+] as const
+const humanNotes = computed(() => {
+  if (choosingBasis.value && basisMode.value === 'multi')
+    return basisFragments.value.map((f, i) => ({
+      id: `draft:${i}`,
+      page: f.page,
+      rect: f.rect,
+      text: `Область ${i + 1}`,
+      deleted: false,
+      position_id: '',
+    }))
+  return humanBasis.value
+    .filter((b) => b.pdf_version_id === version.value)
+    .flatMap((b) => {
+      const fragments = b.fragments ?? []
+      const parts = fragments.length
+        ? fragments
+        : [{ page: b.page, rect: b.rect, region: b.region }]
+      return parts.flatMap((f, part) => {
+        const ranges = f.region
+          ? f.region.highlights.map((h) => [
+              h.bbox[0]! / f.region!.width,
+              h.bbox[1]! / f.region!.height,
+              h.bbox[2]! / f.region!.width,
+              h.bbox[3]! / f.region!.height,
+            ])
+          : f.rect
+            ? [f.rect]
+            : []
+        return ranges.map((rect, i) => ({
+          id: `${b.id}:${part}:${i}`,
+          page: f.page,
+          rect,
+          text: b.comment || b.quote,
+          deleted: false,
+          position_id: '',
+        }))
+      })
+    })
+})
+function regionOnPage(value: BasisPreviewDto | HumanBasisDto | null | undefined) {
+  if (!value) return null
+  if (!value.fragments?.length) return value.page === page.value ? value.region : null
+  const parts = value.fragments!.filter((f) => f.page === page.value)
+  return parts.length
+    ? { ...parts[0]!.region, highlights: parts.flatMap((f) => f.region.highlights) }
+    : null
+}
+const selectedHuman = computed(() =>
+  humanBasis.value.find(
+    (item) =>
+      item.id === humanSourceId.value &&
+      item.pdf_version_id === version.value &&
+      (item.page === page.value || item.fragments?.some((f) => f.page === page.value)),
+  ),
+)
 const source = computed(() => workspace.value?.evidence[sourceIndex.value]),
   isBasis = computed(
     () =>
@@ -38,15 +159,19 @@ const source = computed(() => workspace.value?.evidence[sourceIndex.value]),
       source.value.page === page.value &&
       !selectedNode.value,
   ),
-  isLast = computed(
-    () => typeof props.positionCount === 'number' && props.positionIndex >= props.positionCount - 1,
-  ),
+  isLast = computed(() => nextReady.value === null),
   headerDescription = computed(() =>
     workspace.value
       ? `${workspace.value.row.number} · ${workspace.value.row.name}`
       : 'Открываем позицию…',
   ),
-  region = computed(() => (isBasis.value ? source.value?.region : null)),
+  region = computed(() =>
+    choosingBasis.value
+      ? basisMode.value === 'multi'
+        ? null
+        : regionOnPage(basisPreview.value)
+      : (regionOnPage(selectedHuman.value) ?? (isBasis.value ? source.value?.region : null)),
+  ),
   pdfs = computed(() => props.documents.filter((v) => v.kind === 'pdf')),
   printed = computed(
     () => structure.value?.pages.find((p) => p.physical_page === page.value)?.printed_page,
@@ -63,6 +188,11 @@ const source = computed(() => workspace.value?.evidence[sourceIndex.value]),
   verdictOpen = ref(false),
   verdictLead = computed(() => {
     const text = workspace.value?.row.problem || ''
+    if (
+      workspace.value?.row.queue === 'review' &&
+      /структурированного подтверждения|однозначный источник параметра/.test(text)
+    )
+      return 'Не хватает подтверждения по ПД или нормативам.'
     const end = text.search(/[.?!]\s/)
     return end > 0 ? text.slice(0, end + 1) : text
   }),
@@ -81,6 +211,12 @@ const source = computed(() => workspace.value?.evidence[sourceIndex.value]),
 let active = true,
   epoch = 0
 const kindLabels: Record<string, string> = {
+  technology: 'Способ выполнения',
+  presence: 'Работа',
+  quantity: 'Количество',
+  geometry: 'Размеры',
+  attribute: 'Характеристики',
+  conditions: 'Условия',
   work: 'Работа',
   volume: 'Объём',
   unit: 'Единица измерения',
@@ -115,6 +251,7 @@ async function loadStructure() {
   }
 }
 function basis(index = sourceIndex.value) {
+  humanSourceId.value = ''
   sourceIndex.value = index
   const item = workspace.value?.evidence[index]
   if (item) {
@@ -122,6 +259,270 @@ function basis(index = sourceIndex.value) {
     page.value = item.page
     selectedNode.value = ''
   }
+}
+function clearPendingBasis() {
+  previewEpoch++
+  basisFragments.value = []
+  ocrKey.value = null
+  ocrBusy.value = false
+  basisRect.value = null
+  basisRects.value = undefined
+  basisTarget.value = null
+  basisPreview.value = null
+  previewBusy.value = false
+  pdfPanel.value?.clearSelection()
+}
+function cancelBasisSelection() {
+  choosingBasis.value = false
+  clearPendingBasis()
+}
+function startBasisSelection() {
+  clearPendingBasis()
+  basisError.value = ''
+  basisSaved.value = ''
+  basisComment.value = ''
+  choosingBasis.value = true
+}
+function changeBasisMode(mode: 'row' | 'area' | 'text' | 'multi') {
+  clearPendingBasis()
+  basisMode.value = mode
+  basisError.value = ''
+}
+async function selectedBasis(selection: {
+  rect: number[]
+  text: string
+  rects?: number[][]
+  mode?: 'row' | 'area' | 'text'
+}) {
+  if (basisMode.value === 'multi') {
+    if (basisBusy.value || ocrBusy.value) return
+    if (basisFragments.value.length >= 20) {
+      basisError.value = 'Можно добавить до 20 областей.'
+      return
+    }
+    basisFragments.value.push({
+      page: page.value,
+      rect: selection.rect as [number, number, number, number],
+      corrected_text: null,
+      text_checked: false,
+      role: 'other',
+    })
+    ocrKey.value = null
+    pdfPanel.value?.clearSelection()
+    await refreshMulti()
+    return
+  }
+  const current = ++previewEpoch
+  const context = `${props.runId}:${props.positionIndex}:${version.value}:${page.value}`
+  basisRect.value = selection.rect
+  basisRects.value = selection.rects
+  basisTarget.value = { version_id: version.value, page: page.value }
+  basisPreview.value = null
+  basisError.value = ''
+  previewBusy.value = true
+  try {
+    const preview = await backend.previewBasis(props.runId, props.positionIndex, {
+      ...basisTarget.value,
+      rect: selection.rect,
+      rects: selection.rects,
+      mode: selection.mode || basisMode.value,
+    })
+    if (
+      current !== previewEpoch ||
+      context !== `${props.runId}:${props.positionIndex}:${version.value}:${page.value}`
+    )
+      return
+    basisPreview.value = preview
+    pdfPanel.value?.clearSelection()
+  } catch (e) {
+    if (current === previewEpoch) basisError.value = readableError(e)
+  } finally {
+    if (current === previewEpoch) previewBusy.value = false
+  }
+}
+function multiPayload() {
+  const first = basisFragments.value[0]!
+  return {
+    version_id: version.value,
+    page: first.page,
+    rect: first.rect,
+    mode: 'multi' as const,
+    fragments: JSON.parse(JSON.stringify(basisFragments.value)) as BasisFragmentRequest[],
+    ocr_key: ocrKey.value,
+    comment: basisComment.value,
+  }
+}
+async function refreshMulti(recognize = false) {
+  if (!basisFragments.value.length) {
+    basisPreview.value = null
+    return
+  }
+  const current = ++previewEpoch
+  const context = `${props.runId}:${props.positionIndex}:${version.value}`
+  const payload = multiPayload()
+  previewBusy.value = true
+  ocrBusy.value = recognize
+  basisError.value = ''
+  try {
+    const result = await (recognize ? backend.recognizeBasis : backend.previewBasis)(
+      props.runId,
+      props.positionIndex,
+      payload,
+    )
+    if (
+      !active ||
+      current !== previewEpoch ||
+      context !== `${props.runId}:${props.positionIndex}:${version.value}`
+    )
+      return
+    basisPreview.value = result
+    ocrKey.value = result.ocr_key ?? null
+  } catch (e) {
+    if (current === previewEpoch) {
+      basisPreview.value = null
+      basisError.value = readableError(e)
+    }
+  } finally {
+    if (current === previewEpoch) {
+      previewBusy.value = false
+      ocrBusy.value = false
+    }
+  }
+}
+function editFragment(fragment: BasisFragmentRequest, text: string) {
+  fragment.corrected_text = text
+  fragment.text_checked = false
+}
+function selectionPayload(): SpecifyBasisRequest | null {
+  if (basisMode.value === 'multi') return basisFragments.value.length ? multiPayload() : null
+  if (!basisRect.value || !basisTarget.value) return null
+  return {
+    ...basisTarget.value,
+    rect: basisRect.value as [number, number, number, number],
+    rects: basisRects.value as [number, number, number, number][] | undefined,
+    mode: basisMode.value,
+    comment: basisComment.value,
+  }
+}
+async function saveDraft() {
+  const payload = selectionPayload()
+  if (!payload || basisBusy.value || previewBusy.value || ocrBusy.value) return
+  basisBusy.value = true
+  basisError.value = ''
+  const current = epoch,
+    runId = props.runId,
+    index = props.positionIndex
+  try {
+    await backend.saveBasisDraft(runId, index, payload)
+    if (active && current === epoch) {
+      basisSaved.value = 'Черновик сохранён. Его можно открыть в истории.'
+      void historyPanel.value?.load()
+    }
+  } catch (e) {
+    if (current === epoch) basisError.value = readableError(e)
+  } finally {
+    if (current === epoch) basisBusy.value = false
+  }
+}
+async function restoreDraft(selection: SpecifyBasisRequest) {
+  cancelBasisSelection()
+  version.value = selection.version_id
+  page.value = selection.page
+  await nextTick()
+  choosingBasis.value = true
+  basisMode.value = selection.mode ?? 'area'
+  basisComment.value = selection.comment ?? ''
+  if (selection.mode === 'multi') {
+    basisFragments.value = JSON.parse(JSON.stringify(selection.fragments ?? []))
+    ocrKey.value = selection.ocr_key ?? null
+    await refreshMulti()
+  } else {
+    await selectedBasis({
+      rect: selection.rect,
+      rects: selection.rects ?? undefined,
+      text: '',
+      mode: selection.mode ?? 'area',
+    })
+  }
+}
+function removeFragment(index: number) {
+  if (basisBusy.value || ocrBusy.value) return
+  basisFragments.value.splice(index, 1)
+  ocrKey.value = null
+  void refreshMulti()
+}
+function recognizeBasis() {
+  if (basisBusy.value || ocrBusy.value) return
+  if (basisMode.value !== 'multi') {
+    if (!basisRect.value || !basisTarget.value) return
+    basisFragments.value = [
+      {
+        page: basisTarget.value.page,
+        rect: basisRect.value as [number, number, number, number],
+        corrected_text: null,
+        text_checked: false,
+        role: 'other',
+      },
+    ]
+    basisMode.value = 'multi'
+  }
+  void refreshMulti(true)
+}
+async function saveMultiBasis() {
+  if (!basisFragments.value.length || basisBusy.value || ocrBusy.value || previewBusy.value) return
+  const payload = multiPayload()
+  const runId = props.runId,
+    index = props.positionIndex
+  await saveHumanAction(async () => {
+    const preview = await backend.previewBasis(runId, index, payload)
+    return backend.specifyBasis(runId, index, {
+      ...payload,
+      selection_digest: preview.selection_digest,
+    })
+  })
+}
+function showHumanBasis(item: HumanBasisDto, targetPage = item.page) {
+  cancelBasisSelection()
+  humanSourceId.value = item.id
+  version.value = item.pdf_version_id
+  page.value = targetPage
+  selectedNode.value = ''
+}
+function isHumanConfirmed(item: WorkspaceDto['evidence'][number]) {
+  return humanBasis.value.some(
+    (b) => b.pdf_version_id === item.version_id && b.page === item.page && b.quote === item.quote,
+  )
+}
+async function saveHumanAction(action: () => Promise<HumanBasisDto[]>) {
+  const current = epoch
+  basisBusy.value = true
+  basisError.value = ''
+  basisSaved.value = ''
+  try {
+    const records = await action()
+    if (!active || current !== epoch) return
+    humanBasis.value = records
+    void historyPanel.value?.load()
+    basisSaved.value = 'Выбор сохранён для этой позиции и версии ПД.'
+    cancelBasisSelection()
+  } catch (e) {
+    if (active && current === epoch) basisError.value = readableError(e)
+  } finally {
+    if (active && current === epoch) basisBusy.value = false
+  }
+}
+function saveSpecifiedBasis() {
+  if (!basisRect.value || !basisTarget.value || !basisPreview.value || previewBusy.value) return
+  void saveHumanAction(() =>
+    backend.specifyBasis(props.runId, props.positionIndex, {
+      ...basisTarget.value!,
+      rect: basisRect.value!,
+      rects: basisRects.value,
+      mode: basisMode.value,
+      selection_digest: basisPreview.value!.selection_digest,
+      comment: basisComment.value,
+    }),
+  )
 }
 function selectNode(node: StructureNodeDto) {
   page.value = node.physical_start
@@ -132,15 +533,10 @@ function changePage(value: number) {
   selectedNode.value = ''
 }
 function plainQuote(quote: string) {
-  const text = quote
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-  return text || quote
+  return evidenceText(quote)
 }
 function shortQuote(quote: string) {
-  const plain = plainQuote(quote)
-  return plain.length > 240 ? `${plain.slice(0, 240)}…` : plain
+  return evidenceExcerpt(quote)
 }
 function isNumericCell(value: unknown) {
   if (typeof value !== 'string' && typeof value !== 'number') return false
@@ -175,7 +571,17 @@ let mediaQuery: MediaQueryList | null = null
 function onMediaChange(event: MediaQueryListEvent) {
   isNarrow.value = event.matches
 }
+watch(version, clearPendingBasis)
+watch(page, () => {
+  if (basisMode.value !== 'multi') clearPendingBasis()
+})
 watch(version, loadStructure)
+watch(
+  () => props.readyPositions,
+  (ready) => {
+    if (!workspace.value && !busy.value && ready?.includes(props.positionIndex)) void loadPosition()
+  },
+)
 watch(
   () => props.positionIndex,
   () => {
@@ -190,10 +596,20 @@ async function loadPosition() {
   const current = ++epoch
   busy.value = true
   error.value = ''
+  cancelBasisSelection()
+  humanSourceId.value = ''
+  humanBasis.value = []
+  basisError.value = ''
+  basisSaved.value = ''
+  basisBusy.value = false
   try {
-    const data = await backend.workspace(props.runId, props.positionIndex)
+    const [data, reviewed] = await Promise.all([
+      backend.workspace(props.runId, props.positionIndex),
+      backend.humanBasis(props.runId, props.positionIndex),
+    ])
     if (!active || current !== epoch) return
     workspace.value = data
+    humanBasis.value = reviewed
     if (workspace.value.evidence.length) basis(0)
     else {
       version.value = pdfs.value[0]?.id || ''
@@ -228,8 +644,8 @@ onBeforeUnmount(() => {
               variant="ghost"
               icon="i-lucide-chevron-left"
               aria-label="Предыдущая позиция"
-              :disabled="positionIndex <= 0"
-              @click="emit('navigate', positionIndex - 1)"
+              :disabled="previousReady === null"
+              @click="previousReady !== null && emit('navigate', previousReady)"
             />
             <UButton
               color="neutral"
@@ -237,7 +653,7 @@ onBeforeUnmount(() => {
               icon="i-lucide-chevron-right"
               aria-label="Следующая позиция"
               :disabled="isLast"
-              @click="emit('navigate', positionIndex + 1)"
+              @click="nextReady !== null && emit('navigate', nextReady)"
             />
           </div>
           <div class="aw-heading">
@@ -306,6 +722,16 @@ onBeforeUnmount(() => {
               <p v-if="verdictOpen && verdictRest" class="aw-verdict-rest">{{ verdictRest }}</p>
               <p v-if="verdictOpen && workspace.row.details" class="aw-verdict-details">
                 {{ workspace.row.details }}
+              </p>
+              <p v-if="workspace.row.related_work" class="muted">
+                Расчётный материал работы №{{ workspace.row.related_work.number }} (строка
+                {{ workspace.row.related_work.row }}). Проверяем основание работы, формулу и
+                коэффициенты расхода.
+                <UButton
+                  variant="link"
+                  @click="emit('navigate', Number(workspace.row.related_work.index))"
+                  >К связанной работе</UButton
+                >
               </p>
               <p class="aw-verdict-action">{{ workspace.row.action }}</p>
             </div>
@@ -415,12 +841,167 @@ onBeforeUnmount(() => {
                         @keyup.enter="find"
                       />
                     </div>
+                    <UButton
+                      label="Указать основание"
+                      icon="i-lucide-mouse-pointer-2"
+                      variant="soft"
+                      :disabled="basisBusy || !version"
+                      @click="startBasisSelection"
+                    />
                   </div>
+                  <div v-if="choosingBasis" class="aw-basis-editor">
+                    <div
+                      class="aw-evidence-actions"
+                      role="group"
+                      aria-label="Способ выделения основания"
+                    >
+                      <UButton
+                        v-for="mode in basisModes"
+                        :key="mode.value"
+                        :label="mode.label"
+                        :variant="basisMode === mode.value ? 'solid' : 'soft'"
+                        :disabled="basisBusy || ocrBusy"
+                        @click="changeBasisMode(mode.value)"
+                      />
+                      <UButton
+                        label="Отмена"
+                        color="neutral"
+                        variant="ghost"
+                        :disabled="basisBusy"
+                        @click="cancelBasisSelection"
+                      />
+                    </div>
+                    <p v-if="basisMode === 'row'">
+                      Кликните по нужной строке таблицы — выделим её целиком по границам ячеек.
+                    </p>
+                    <p v-else-if="basisMode === 'area'">
+                      Обведите нужную область. В предпросмотр попадёт только текст внутри рамки.
+                    </p>
+                    <p v-else-if="basisMode === 'multi'">
+                      Обведите ячейки по очереди. Можно переходить на другие страницы этого PDF. До
+                      20 областей в одном основании.
+                    </p>
+                    <p v-else>
+                      Выделите текст мышью, как в обычном документе. Предпросмотр появится сразу
+                      после отпускания кнопки мыши.
+                    </p>
+                    <UButton
+                      v-if="basisFragments.length || basisRect"
+                      label="Сохранить черновик"
+                      variant="outline"
+                      :disabled="basisBusy || previewBusy || ocrBusy"
+                      @click="saveDraft"
+                    />
+                    <p v-if="previewBusy" role="status">
+                      {{ ocrBusy ? 'Распознаём выбранные области…' : 'Уточняем выделение…' }}
+                    </p>
+                    <UButton
+                      v-if="basisFragments.length || basisRect"
+                      label="Распознать выбранное"
+                      icon="i-lucide-scan-text"
+                      :loading="ocrBusy"
+                      :disabled="previewBusy || basisBusy"
+                      @click="recognizeBasis"
+                    />
+                    <template v-if="basisMode === 'multi' && basisFragments.length">
+                      <p>
+                        Областей: {{ basisFragments.length }}. Результат OCR проверьте перед
+                        сохранением.
+                      </p>
+                      <div
+                        v-for="(fragment, index) in basisFragments"
+                        :key="index"
+                        class="aw-fragment"
+                      >
+                        <div class="aw-evidence-actions">
+                          <UButton
+                            :label="`Область ${index + 1} · стр. ${fragment.page}`"
+                            variant="ghost"
+                            @click="changePage(fragment.page)"
+                          />
+                          <UButton
+                            :aria-label="`Удалить область ${index + 1}`"
+                            label="Удалить"
+                            color="error"
+                            variant="ghost"
+                            :disabled="ocrBusy || basisBusy"
+                            @click="removeFragment(index)"
+                          />
+                        </div>
+                        <USelect
+                          v-model="fragment.role"
+                          :items="fragmentRoles"
+                          :aria-label="`Назначение области ${index + 1}`"
+                          :disabled="ocrBusy || basisBusy"
+                        />
+                        <UTextarea
+                          :model-value="
+                            fragment.corrected_text ?? basisPreview?.fragments?.[index]?.text ?? ''
+                          "
+                          :aria-label="`Текст области ${index + 1}`"
+                          placeholder="Нажмите «Распознать выбранное» или введите текст вручную"
+                          :maxlength="4000"
+                          :rows="2"
+                          :disabled="ocrBusy || basisBusy || previewBusy"
+                          @update:model-value="editFragment(fragment, $event)"
+                        />
+                        <UCheckbox
+                          v-model="fragment.text_checked"
+                          label="Текст проверен по изображению"
+                          :disabled="ocrBusy || basisBusy || previewBusy"
+                        />
+                      </div>
+                      <UTextarea
+                        v-model="basisComment"
+                        aria-label="Комментарий к основанию"
+                        placeholder="Комментарий к основанию (необязательно)"
+                        :maxlength="2000"
+                      />
+                      <UButton
+                        label="Сохранить основание"
+                        :loading="basisBusy"
+                        :disabled="ocrBusy || previewBusy"
+                        @click="saveMultiBasis"
+                      />
+                    </template>
+                    <template v-if="basisPreview && basisMode !== 'multi'">
+                      <p>
+                        Будет сохранено · {{ basisPreview.filename }} · стр. {{ basisPreview.page }}
+                      </p>
+                      <UTextarea
+                        v-if="basisPreview.quote"
+                        :model-value="basisPreview.quote"
+                        readonly
+                        aria-label="Текст выбранного основания"
+                        :rows="4"
+                        class="w-full"
+                      />
+                      <p v-else class="muted">
+                        В этой области нет текстового слоя. Сохранится выделенная область PDF.
+                      </p>
+                      <UTextarea
+                        v-model="basisComment"
+                        placeholder="Комментарий к основанию (необязательно)"
+                        aria-label="Комментарий к основанию"
+                        :maxlength="2000"
+                        class="w-full"
+                      />
+                      <UButton
+                        label="Сохранить основание"
+                        icon="i-lucide-check"
+                        :loading="basisBusy"
+                        :disabled="previewBusy"
+                        @click="saveSpecifiedBasis"
+                      />
+                    </template>
+                  </div>
+                  <p v-if="basisError" class="error-box" role="alert">{{ basisError }}</p>
+                  <p v-if="basisSaved" class="muted" role="status">{{ basisSaved }}</p>
                   <p v-if="searchPages.length" class="muted">
                     Найдено на страницах: {{ searchPages.join(', ') }}
                   </p>
                   <UAlert
-                    v-if="source && !isBasis"
+                    v-if="source && !isBasis && !selectedHuman"
                     color="warning"
                     variant="soft"
                     title="Просмотр другой страницы. Заключение по позиции не изменилось."
@@ -437,6 +1018,10 @@ onBeforeUnmount(() => {
                     :source-url="backend.contentUrl(version)"
                     :page="page"
                     :region="region"
+                    :annotate="choosingBasis && !ocrBusy && !basisBusy"
+                    :selection-mode="basisMode === 'multi' ? 'area' : basisMode"
+                    :notes="humanNotes"
+                    @selection="selectedBasis"
                     @page="changePage"
                   />
                   <p v-else class="empty">Для этого аудита PDF не выбран.</p>
@@ -446,6 +1031,79 @@ onBeforeUnmount(() => {
 
               <template #dossier>
                 <div class="aw-dossier-pane excel-pane">
+                  <NormativePanel
+                    :key="`${runId}:${positionIndex}`"
+                    :run-id="runId"
+                    :position-index="positionIndex"
+                    :row="workspace.row"
+                    @validated="refreshVerdict"
+                    @specify-basis="startBasisSelection"
+                  />
+                  <section v-if="humanBasis.length" aria-label="Выбор пользователя">
+                    <h2 class="aw-section-title">Выбор пользователя · {{ humanBasis.length }}</h2>
+                    <p class="muted">Основания сохранены отдельно от автоматического заключения.</p>
+                    <UCard
+                      v-for="item in humanBasis"
+                      :key="item.id"
+                      :ui="{ body: 'p-3 sm:p-3' }"
+                      class="mb-2"
+                    >
+                      <UBadge label="Подтверждено пользователем" color="success" variant="soft" />
+                      <p>{{ item.filename }} · стр. {{ item.page }}</p>
+                      <p v-if="item.outdated" class="muted">
+                        Машинный результат обновился после подтверждения. Проверьте основание
+                        повторно.
+                      </p>
+                      <p v-if="item.reused" class="muted">
+                        Выбрано в предыдущей проверке этих же документов.
+                      </p>
+                      <blockquote class="aw-quote">
+                        {{ shortQuote(item.quote) || 'Область PDF без текстового слоя' }}
+                      </blockquote>
+                      <div v-if="item.fragments?.length" class="aw-evidence-actions">
+                        <UButton
+                          v-for="(fragment, index) in item.fragments"
+                          :key="index"
+                          :label="`Область ${index + 1} · стр. ${fragment.page}`"
+                          variant="ghost"
+                          size="xs"
+                          @click="showHumanBasis(item, fragment.page)"
+                        />
+                      </div>
+                      <p v-if="item.comment">{{ item.comment }}</p>
+                      <p class="muted">
+                        {{ item.actor }} · {{ new Date(item.created_at).toLocaleString('ru-RU') }}
+                      </p>
+                      <div class="aw-evidence-actions">
+                        <UButton
+                          label="Показать в PDF"
+                          variant="soft"
+                          size="xs"
+                          @click="showHumanBasis(item)"
+                        />
+                        <UButton
+                          label="Отменить подтверждение"
+                          variant="ghost"
+                          color="neutral"
+                          size="xs"
+                          :disabled="basisBusy"
+                          @click="
+                            saveHumanAction(() =>
+                              backend.revokeBasis(props.runId, props.positionIndex, item.id),
+                            )
+                          "
+                        />
+                      </div>
+                    </UCard>
+                  </section>
+                  <ReviewHistory
+                    :key="`${runId}:${positionIndex}`"
+                    ref="historyPanel"
+                    :run-id="runId"
+                    :position-index="positionIndex"
+                    :page="page"
+                    @restore="restoreDraft"
+                  />
                   <section aria-label="Основания">
                     <h2 class="aw-section-title">Основания · {{ evidenceGroups.length }}</h2>
                     <p v-if="!evidenceGroups.length" class="muted">
@@ -463,13 +1121,19 @@ onBeforeUnmount(() => {
                           <UBadge
                             v-for="kind in group.kinds"
                             :key="kind"
-                            :label="kindLabels[kind] || kind"
+                            :label="kindLabels[kind] || 'Основание'"
                             color="neutral"
                             variant="soft"
                           />
                           <span class="aw-evidence-page">стр. {{ group.item.page }}</span>
                           <UBadge
-                            :label="group.item.confirmed ? 'Подтверждено' : 'Не подтверждено'"
+                            :label="
+                              isHumanConfirmed(group.item)
+                                ? 'Подтверждено пользователем'
+                                : group.item.confirmed
+                                  ? 'Найдено автоматически'
+                                  : 'Не подтверждено'
+                            "
                             :color="group.item.confirmed ? 'success' : 'error'"
                             variant="soft"
                           />
@@ -483,6 +1147,24 @@ onBeforeUnmount(() => {
                         </blockquote>
                         <div class="aw-evidence-actions">
                           <UButton
+                            v-if="group.item.confirmed"
+                            :label="
+                              isHumanConfirmed(group.item)
+                                ? 'Основание подтверждено'
+                                : 'Подтвердить основание'
+                            "
+                            icon="i-lucide-check"
+                            color="success"
+                            variant="soft"
+                            size="xs"
+                            :disabled="basisBusy || isHumanConfirmed(group.item)"
+                            @click="
+                              saveHumanAction(() =>
+                                backend.confirmBasis(props.runId, props.positionIndex, group.index),
+                              )
+                            "
+                          />
+                          <UButton
                             label="К основанию"
                             icon="i-lucide-crosshair"
                             color="primary"
@@ -491,7 +1173,7 @@ onBeforeUnmount(() => {
                             @click="basis(group.index)"
                           />
                           <UButton
-                            v-if="group.item.quote.length > 240"
+                            v-if="plainQuote(group.item.quote).length > EVIDENCE_PREVIEW_LENGTH"
                             :label="
                               expandedQuotes.has(group.index) ? 'Свернуть' : 'Показать полностью'
                             "
@@ -560,6 +1242,10 @@ onBeforeUnmount(() => {
                       <p>{{ workspace.position.reference }}</p>
                       <p>{{ workspace.position.formula }}</p>
                     </div>
+                    <details v-if="workspace.position.comment" :key="positionIndex" class="aw-note">
+                      <summary>Примечание</summary>
+                      <p>{{ workspace.position.comment }}</p>
+                    </details>
                   </section>
                 </div>
               </template>
@@ -571,6 +1257,23 @@ onBeforeUnmount(() => {
   </UModal>
 </template>
 <style scoped>
+.aw-fragment {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+}
+.aw-basis-editor {
+  max-height: 40vh;
+  overflow-y: auto;
+  flex-shrink: 0;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+}
 .aw-dossier {
   display: flex;
   flex-direction: column;
@@ -871,7 +1574,8 @@ onBeforeUnmount(() => {
   padding-left: 8px;
   border-left: 2px solid var(--ui-primary);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.65;
+  white-space: pre-line;
   color: var(--ui-text);
   overflow-wrap: anywhere;
 }
@@ -892,13 +1596,14 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
 }
 .sheet-scroll {
-  max-height: 220px;
-  overflow: auto;
+  width: 100%;
+  min-width: 0;
   border: 1px solid var(--ui-border);
   border-radius: 8px;
 }
 .sheet {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 12px;
   background: var(--ui-bg-elevated);
@@ -915,6 +1620,40 @@ onBeforeUnmount(() => {
   text-align: left;
   vertical-align: top;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.sheet th:first-child {
+  width: 9%;
+}
+.sheet th:nth-child(2) {
+  width: 7%;
+}
+.sheet th:nth-child(3) {
+  width: 38%;
+}
+.sheet th:nth-child(4) {
+  width: 9%;
+}
+.sheet th:nth-child(5) {
+  width: 15%;
+}
+.sheet th:nth-child(6) {
+  width: 22%;
+}
+.aw-note {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+.aw-note summary {
+  cursor: pointer;
+  color: var(--ui-primary);
+  padding: 8px 0;
+}
+.aw-note p {
+  white-space: pre-wrap;
+  padding: 8px;
+  background: var(--ui-bg-muted);
 }
 .sheet td.numbers,
 .sheet th.numbers {

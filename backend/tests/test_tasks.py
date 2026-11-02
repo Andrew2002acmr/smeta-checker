@@ -102,6 +102,7 @@ class PositionJobTests(unittest.TestCase):
     def test_claim_finalize_wins_exactly_once(self):
         repo = _open_repo(tempfile.mkdtemp(prefix="smeta-jobs-"))
         run, _ = self._make_run(repo)
+        repo.update_run_config(run.id, {"prepare_complete": True, "expected_positions": 0})
         self.assertTrue(repo.claim_finalize(run.id))
         self.assertFalse(repo.claim_finalize(run.id))
         self.assertTrue(repo.load_run(run.id)["config"]["finalize_chained"])

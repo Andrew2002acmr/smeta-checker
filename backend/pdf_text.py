@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from billiard.exceptions import SoftTimeLimitExceeded
+
 import hashlib
 import json
 import os
@@ -112,6 +114,8 @@ def _fix_cmap_shifts(page, text):
     fixes = {}
     try:
         blocks = page.get_text("dict", sort=True)["blocks"]
+    except SoftTimeLimitExceeded:
+        raise
     except Exception:
         return text, 0
     for block in blocks:
@@ -152,6 +156,8 @@ def _deglue_numbers(page, text):
     """
     try:
         words = page.get_text("words", sort=True)
+    except SoftTimeLimitExceeded:
+        raise
     except Exception:
         return text, 0
     count = 0
@@ -211,10 +217,14 @@ def _parser_fingerprint():
     """Extractor versions reflected in the Markdown/table cache key."""
     try:
         layout = _pkg_version("pymupdf-layout")
+    except SoftTimeLimitExceeded:
+        raise
     except Exception:
         layout = "unknown"
     try:
         extractor = _pkg_version("pymupdf4llm")
+    except SoftTimeLimitExceeded:
+        raise
     except Exception:
         extractor = getattr(pymupdf4llm, "__version__", "unknown")
     return (
@@ -250,8 +260,10 @@ class PDFTextSource:
         max_pixels=12000000,
         max_side=4096,
         progress=None,
+        checkpoint=None,
     ):
         self._progress = progress
+        self._checkpoint = checkpoint
         self._owner_thread = threading.get_ident()
         if min(dpi, max_pixels, max_side) <= 0:
             raise ValueError("Параметры OCR должны быть положительными")
@@ -268,6 +280,7 @@ class PDFTextSource:
             # holding tobytes() copies in RAM (78MB PDF -> 234MB peak).
             import tempfile
 
+            Path(cache_dir).parent.mkdir(parents=True, exist_ok=True)
             fd, self._tmp_path = tempfile.mkstemp(
                 prefix="smeta-pdf-", suffix=".pdf", dir=str(Path(cache_dir).parent)
             )
@@ -335,12 +348,16 @@ class PDFTextSource:
         try:
             if self._doc is not None and not getattr(self._doc, "is_closed", False):
                 self._doc.close()
+        except SoftTimeLimitExceeded:
+            raise
         except Exception:
             pass
         tmp = getattr(self, "_tmp_path", None)
         if tmp:
             try:
                 Path(tmp).unlink(missing_ok=True)
+            except SoftTimeLimitExceeded:
+                raise
             except Exception:
                 pass
             self._tmp_path = None
@@ -349,6 +366,8 @@ class PDFTextSource:
         # Tests and error paths may skip close(): never leak the spill file.
         try:
             self.close()
+        except SoftTimeLimitExceeded:
+            raise
         except Exception:
             pass
 
@@ -371,6 +390,8 @@ class PDFTextSource:
             return False
         try:
             return len(drawings_fn()) >= 50
+        except SoftTimeLimitExceeded:
+            raise
         except Exception:
             return False
 
@@ -416,6 +437,8 @@ class PDFTextSource:
                     raw, _ = _deglue_numbers(page, raw)
                     natives[idx] = _compact_text(raw)
                     deferred.append(idx)
+                except SoftTimeLimitExceeded:
+                    raise
                 except Exception as exc:
                     errors[idx] = "Сбой чтения PDF (PyMuPDF4LLM): %s" % str(exc)[:200]
                     if self._progress:
@@ -459,6 +482,8 @@ class PDFTextSource:
                             self._progress(idx + 1, len(doc))
                         continue
                     pending.append(idx)
+                except SoftTimeLimitExceeded:
+                    raise
                 except Exception as exc:
                     errors[idx] = "Сбой чтения PDF (PyMuPDF4LLM): %s" % str(exc)[:200]
                     if self._progress:
@@ -472,6 +497,8 @@ class PDFTextSource:
                         markdown_doc, pages=batch, **_MARKDOWN_KWARGS
                     )
                     by_page = dict(zip(batch, chunks))
+                except SoftTimeLimitExceeded:
+                    raise
                 except Exception:
                     # One rotten page must not kill its batch neighbours:
                     # retry the batch page by page, isolating the failure.
@@ -482,6 +509,8 @@ class PDFTextSource:
                                 markdown_doc, pages=[idx], **_MARKDOWN_KWARGS
                             )
                             by_page[idx] = single[0] if single else None
+                        except SoftTimeLimitExceeded:
+                            raise
                         except Exception as exc:
                             texts[idx] = ""
                             errors[idx] = (
@@ -651,8 +680,7 @@ class PDFTextSource:
         }
         self._write_cache_bytes(self._extraction_path(idx), _cache_payload(envelope))
 
-    @staticmethod
-    def _write_cache_bytes(path, payload):
+    def _write_cache_bytes(self, path, payload):
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             tmp = path.with_name(
@@ -660,8 +688,14 @@ class PDFTextSource:
             )
             tmp.write_bytes(payload)
             os.replace(tmp, path)
+        except SoftTimeLimitExceeded:
+            raise
         except Exception:
-            pass
+            return
+        # Yield only after durable progress, never after a failed OCR/cache
+        # write which would repeat forever at the next preparation slice.
+        if self._checkpoint:
+            self._checkpoint()
 
     def _ocr_settings_identity(self):
         """Full OCR identity for caching: engine, settings, geometry knobs."""
@@ -796,6 +830,8 @@ class PDFTextSource:
         try:
             record = self._ocr_page_result(idx)
             self.ocr_count += 1
+        except SoftTimeLimitExceeded:
+            raise
         except Exception as exc:
             self._ocr_errors[idx] = "OCR не выполнен (Tesseract %s): %s" % (
                 self.language,
@@ -851,6 +887,8 @@ class PDFTextSource:
             if rect.is_empty or rect.width <= 0 or rect.height <= 0:
                 return ""
             return _compact_text(page.get_textbox(rect)).strip()
+        except SoftTimeLimitExceeded:
+            raise
         except Exception:
             return ""
 
@@ -871,6 +909,8 @@ class PDFTextSource:
 
         try:
             tables = native_tables(page, self._native_cell_text)
+        except SoftTimeLimitExceeded:
+            raise
         except Exception as exc:
             self._table_errors[idx] = (
                 f"native_table_failed:{type(exc).__name__}:{str(exc)[:160]}"
@@ -943,6 +983,8 @@ class PDFTextSource:
                 for cell in table["cells"]:
                     cell["text"] = _ru_decimal_point(cell["text"])
             self._store_tables(idx, tables, origin="ocr")
+        except SoftTimeLimitExceeded:
+            raise
         except Exception as exc:
             self._table_errors[idx] = (
                 f"scan_table_failed:{type(exc).__name__}:{str(exc)[:160]}"
@@ -1237,12 +1279,13 @@ class PDFTextSource:
         ]
         current_errors = dict(self._native_errors)
         current_errors.update(self._ocr_errors)
-        ranked = PageTextIndex(
-            tuple(merged),
-            current_errors,
-            tuple(sorted(self._pending)),
-            repeated_lines=self._repeated_lines,
-        ).candidates(work_name, comment, reference, volume)
+        # Ranking uses page text only. Reuse tokenization and weights until
+        # newly recognized pages actually change that text.
+        merged = tuple(merged)
+        if getattr(self, "_ranking_texts", None) != merged:
+            self._ranking_index = PageTextIndex(merged)
+            self._ranking_texts = merged
+        ranked = self._ranking_index.candidates(work_name, comment, reference, volume)
         top = ranked[:TOP_CANDIDATES_PER_POSITION]
         pool = set(targets) | set(top)
         for idx in list(targets) + list(top):

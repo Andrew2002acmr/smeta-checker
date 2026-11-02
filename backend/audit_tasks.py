@@ -22,6 +22,8 @@ from pathlib import Path
 from typing import Any, Callable
 from uuid import UUID
 
+from billiard.exceptions import SoftTimeLimitExceeded
+
 _APP_ROOT = str(Path(__file__).resolve().parent)
 if _APP_ROOT not in sys.path:
     # Celery prefork children do not inherit the '' cwd entry reliably.
@@ -49,6 +51,11 @@ logger = get_logger(__name__)
 
 PDF_QUEUE = "pdf"
 LLM_QUEUE = "llm"
+NORMATIVE_QUEUE = "normative"
+
+
+class PreparationYield(BaseException):
+    """Yield after a durable checkpoint, without marking a position failed."""
 
 # Single source for Celery routing and worker limits; workers are documented in README.
 DEFAULT_TASK_ROUTES = {
@@ -56,6 +63,7 @@ DEFAULT_TASK_ROUTES = {
     "audit_tasks.audit_position": {"queue": LLM_QUEUE},
     "audit_tasks.finalize_run": {"queue": PDF_QUEUE},
     "audit_tasks.recover_run": {"queue": PDF_QUEUE},
+    "audit_tasks.normative_position": {"queue": NORMATIVE_QUEUE},
 }
 
 
@@ -139,11 +147,12 @@ def _prepare_one_position(
     meta: Any,
     pool_keys: list[str],
     pdf_versions: dict[str, Any],
+    bindings=None,
 ) -> dict[str, Any]:
     """Bind one position and claim its job row; pure except the claim."""
     refs = list(position.explicit_refs)
     pdfs, _, _, bind_error = resolve_position_pdfs(
-        refs, pool_keys, meta.get("basis_code", "")
+        refs, pool_keys, meta.get("basis_code", ""), bindings
     )
     pdf_name = pdfs[0] if not bind_error and pdfs else ""
     payload = _task_payload(position, pdf_name, [], 0)
@@ -215,6 +224,8 @@ def prepare_run(
     worker: str,
     dispatch: Callable[[str, dict[str, Any]], None] | None = None,
     request_id: str = "",
+    slice_seconds: float | None = None,
+    durable: bool = False,
 ) -> dict[str, Any]:
     """CPU stage: bind PDFs, pre-warm one OCR allowance, queue LLM jobs.
 
@@ -230,6 +241,11 @@ def prepare_run(
     from vor_parse import load_vor_frame_positions
 
     started = time.monotonic()
+    deadline = None
+
+    def checkpoint():
+        if deadline is not None and time.monotonic() >= deadline:
+            raise PreparationYield()
     token = bind(
         audit_run_id=str(run_id), request_id=request_id or None,
         stage="prepare", worker=worker, queue=PDF_QUEUE,
@@ -246,26 +262,65 @@ def prepare_run(
         mask_prompts=context.settings.telemetry_mask_prompts,
     )
     sources: dict[str, PDFTextSource] = {}
+    snapshot_pages: dict[str, Any] = {}
     queued: list[int] = []
     failed: list[int] = []
     try:
-        for name, data in pdf_files.items():
-            pool[name] = pymupdf.open(stream=bytes(data), filetype="pdf")
-        df_works, positions, meta = load_vor_frame_positions(vor_bytes, vor_filename)
+        from audit_snapshot import store_json, load_json
+        from audit_models import VorMeta
+
+        record = context.repository.load_run(run_id, include_results=False)
+        previous_config = record.get("config") or {}
+        parsed_ref = previous_config.get("prepare_inputs")
+        if parsed_ref:
+            parsed = load_json(context.blob_store, parsed_ref)
+            positions = [VorPosition.model_validate(p) for p in parsed["positions"]]
+            meta = VorMeta.model_validate(parsed["meta"])
+            df_rows = parsed["df_rows"]
+        else:
+            df_works, positions, meta = load_vor_frame_positions(vor_bytes, vor_filename)
+            df_rows = len(df_works)
+            parsed_ref = store_json(context.blob_store, {
+                "positions": [p.model_dump(mode="json") for p in positions],
+                "meta": meta.model_dump(mode="json"), "df_rows": df_rows,
+            })
+        context.repository.update_run_config(run_id, {
+            "expected_positions": len(positions), "prepare_complete": False, "prepare_inputs": parsed_ref,
+        })
+        deadline = time.monotonic() + slice_seconds if slice_seconds is not None else None
+        shared_ref = previous_config.get("vor_context")
+        if not shared_ref:
+            shared_ref = store_json(context.blob_store, [
+                {"index": int(p.index), "number": p.number, "position_type": p.position_type,
+                 "unit": p.unit, "volume": p.volume, "work_name": p.work_name,
+                 "comment": p.comment, "formula": p.formula, "calculation": p.calculation,
+                 "position_source": position_source_dict(p)} for p in positions
+            ])
+            context.repository.update_run_config(run_id, {"vor_context": shared_ref})
+        existing = {j.position_index: j for j in context.repository.list_position_jobs(run_id, include_results=False)}
         from vor_consistency import check_scheme_divisors
         scheme_notes: dict = {}
         for hit in check_scheme_divisors(positions):
             scheme_notes.setdefault(hit.get("position", ""), []).append(hit)
-        pool_keys = list(pool.keys())
+        pool_keys = list(pdf_files)
         cancelled = False
         for position in positions:
             try:
-                if str(context.repository.load_run(run_id).get("status")) == "cancelled":
+                if context.repository.run_status(run_id) != "running":
                     cancelled = True
                     break
+            except SoftTimeLimitExceeded:
+                raise
             except Exception:
                 pass
             index = int(position.index)
+            previous = existing.get(index)
+            if previous is not None and (previous.queue == LLM_QUEUE or previous.status == "done"):
+                queued.append(index)
+                continue
+            if durable and previous is not None and previous.status == "running":
+                context.repository.requeue_position_job(run_id, index, queue=PDF_QUEUE, payload=previous.payload)
+            checkpoint()
             try:
                 prep = _prepare_one_position(
                     context=context,
@@ -276,6 +331,7 @@ def prepare_run(
                     meta=meta,
                     pool_keys=pool_keys,
                     pdf_versions=pdf_versions,
+                    bindings=previous_config.get("pdf_bindings", {}),
                 )
                 if prep.get("skipped"):
                     queued.append(index)
@@ -287,6 +343,8 @@ def prepare_run(
                 primary_pages: list[int] = []
                 snapshot_ref: dict[str, Any] = {}
                 if pdf_name and not bind_error:
+                    if pdf_name not in pool:
+                        pool[pdf_name] = pymupdf.open(stream=bytes(pdf_files[pdf_name]), filetype="pdf")
                     doc = pool[pdf_name]
                     target_indices, loc_desc, primary_pages = (
                         get_optimized_page_indices(doc, position.page_ref)
@@ -298,7 +356,7 @@ def prepare_run(
                             })
 
                         progress(0, len(doc))
-                        sources[pdf_name] = PDFTextSource(doc, progress=progress)
+                        sources[pdf_name] = PDFTextSource(doc, progress=progress, checkpoint=checkpoint)
                     # Frozen boundary: one prepared corpus per position, stored
                     # content-addressed; the LLM worker restores it, never PDFs.
                     text_index = sources[pdf_name].for_position(
@@ -309,23 +367,14 @@ def prepare_run(
                         position.comment,
                         expected_scope=expected_scope_hint(position.position_source),
                     )
-                    snapshot_ref = store_snapshot(context.blob_store, text_index)
-                siblings = [
-                    {"index": int(other.index), "number": other.number,
-                     "position_type": other.position_type,
-                     "unit": other.unit, "volume": other.volume,
-                     "work_name": other.work_name, "comment": other.comment,
-                     "formula": other.formula, "calculation": other.calculation,
-                     "position_source": position_source_dict(other)}
-                    for other in positions
-                ]
+                    snapshot_ref = store_snapshot(context.blob_store, text_index, page_cache=snapshot_pages)
                 payload = _task_payload(
                     position,
                     pdf_name,
                     target_indices,
-                    len(pool[pdf_name]) if pdf_name else 0,
+                    len(pool[pdf_name]) if pdf_name in pool else 0,
                 )
-                payload["vor_positions"] = siblings
+                payload["vor_context"] = shared_ref
                 payload.update(
                     {
                         "bind_error": bind_error,
@@ -343,9 +392,9 @@ def prepare_run(
                     }
                 )
                 context.repository.requeue_position_job(
-                    run_id, index, queue=LLM_QUEUE, payload=payload
+                    run_id, index, queue=LLM_QUEUE, payload=payload, durable=durable,
                 )
-                if dispatch is not None:
+                if dispatch is not None and not durable:
                     position_payload: dict[str, Any] = {
                         "run_id": str(run_id),
                         "position_index": index,
@@ -354,6 +403,8 @@ def prepare_run(
                         position_payload["request_id"] = request_id
                     dispatch("audit_tasks.audit_position", position_payload)
                 queued.append(index)
+            except SoftTimeLimitExceeded:
+                raise
             except Exception as exc:
                 logger.exception("prepare position %s of run %s failed", index, run_id)
                 failure = technical_error(
@@ -368,30 +419,36 @@ def prepare_run(
                 )
                 failed.append(index)
         if cancelled:
-            try:
-                context.repository.finish_run(run_id, "cancelled")
-            except Exception:
-                pass
             return {"run_id": str(run_id), "cancelled": True}
         logger.info(
             "prepare finished",
             extra={"queued": len(queued), "failed": len(failed)},
         )
-        prepare_seconds = round(time.monotonic() - started, 3)
+        prepare_seconds = round(float(previous_config.get("prepare_elapsed_seconds", 0)) + time.monotonic() - started, 3)
         try:
             context.repository.update_run_config(
-                run_id, {"prepare_seconds": prepare_seconds}
+                run_id, {"prepare_seconds": prepare_seconds, "prepare_complete": True}
             )
         except Exception:
             logger.warning("could not persist prepare timing", exc_info=True)
+            raise
+        _maybe_chain_finalize(context, run_id, dispatch=dispatch, request_id=request_id)
         return {
             "run_id": str(run_id),
             "vor_filename": vor_filename,
-            "df_rows": len(df_works),
+            "df_rows": df_rows,
             "queued": queued,
             "failed": failed,
             "prepare_seconds": prepare_seconds,
         }
+    except PreparationYield:
+        if slice_seconds is None:
+            raise
+        context.repository.update_run_config(run_id, {
+            "prepare_elapsed_seconds": round(float(previous_config.get("prepare_elapsed_seconds", 0)) + time.monotonic() - started, 3),
+        })
+        logger.info("preparation checkpoint", extra={"prepared": len(queued) + len(failed)})
+        return {"run_id": str(run_id), "continue": True}
     finally:
         for source in sources.values():
             try:
@@ -431,7 +488,7 @@ def audit_position(
     it (tests/fallback) the caller runs ``finalize_run`` itself.
     """
     try:
-        if str(context.repository.load_run(run_id).get("status")) == "cancelled":
+        if context.repository.run_status(run_id) != "running":
             try:
                 context.repository.finish_position_job(
                     run_id, position_index, "failed", error="Отменено"
@@ -471,6 +528,9 @@ def audit_position(
     stored: dict[str, Any] | None = None
     try:
         payload = job.payload
+        if payload.get("vor_context"):
+            from audit_snapshot import load_json
+            payload = {**payload, "vor_positions": load_json(context.blob_store, payload["vor_context"], cache_page=True)}
         w_name = payload.get("work_name", "")
         bind_error = payload.get("bind_error")
         pdf_name = payload.get("pdf_name", "")
@@ -743,15 +803,7 @@ def _maybe_chain_finalize(
     """
     if dispatch is None:
         return
-    try:
-        jobs = context.repository.list_position_jobs(run_id)
-    except Exception:
-        logger.warning("finalize chain: cannot list jobs", exc_info=True)
-        return
-    if not jobs:
-        return
-    if any(job.status not in {"done", "failed"} for job in jobs):
-        return
+    # The repository validates preparation and all expected jobs atomically.
     try:
         claimed = context.repository.claim_finalize(run_id)
     except Exception:
@@ -788,9 +840,10 @@ def _load_run_pdf_versions(context: TaskContext, run_id: UUID) -> dict[str, Any]
 
     from storage_db import DocumentVersionRow
 
-    record = context.repository.load_run(run_id)
-    config = record.get("config") or {}
-    mapping = config.get("pdf_versions") or {}
+    mapping = context.repository.run_pinned_versions(run_id)
+    if not mapping:
+        record = context.repository.load_run(run_id, include_results=False)
+        mapping = (record.get("config") or {}).get("pdf_versions") or {}
     versions: dict[str, Any] = {}
     for key, version_id in mapping.items():
         ref = context.repository.load_version(_UUID(str(version_id)))
@@ -1103,59 +1156,98 @@ def recover_run(
 def register_tasks(app):  # type: ignore[no-untyped-def]
     """Bind ``*_run`` functions to Celery task names; called by the worker."""
 
+    from audit_delivery import execute_delivery, publish_pending
+
+    def execute(context, run_id, delivery_id, delivery_token, operation, legacy_name, legacy_payload):
+        try:
+            if not delivery_id:
+                context.repository.enqueue_task(legacy_name, legacy_payload)
+                return {"adopted": True}
+            result = execute_delivery(context, delivery_id, delivery_token, operation)
+            _maybe_chain_finalize(context, UUID(str(run_id)), dispatch=context.repository.enqueue_task)
+            return result
+        finally:
+            try:
+                publish_pending(context.repository, lambda name, payload: app.send_task(name, kwargs=payload))
+            except Exception:
+                logger.warning("delivery deferred to relay", exc_info=True)
+
     @app.task(name="audit_tasks.prepare_run", bind=True)
     def _prepare(  # type: ignore[no-untyped-def]
         self, run_id, project, vor_filename, vor_blob_key, pdf_blob_keys,
-        request_id="",
+        request_id="", delivery_id="", delivery_token="",
     ):
         context = open_task_context()
-        vor_data = context.blob_store.get(vor_blob_key)
-        files = {
-            key: context.blob_store.get(blob_key)
-            for key, blob_key in pdf_blob_keys.items()
-        }
-        versions = _load_run_pdf_versions(context, UUID(str(run_id)))
-        # prepare_run dispatches each queued position itself: no second fan-out.
-        return prepare_run(
-            context,
-            UUID(str(run_id)),
-            project=project,
-            vor_filename=vor_filename,
-            vor_bytes=vor_data,
-            pdf_files=files,
-            pdf_versions=versions,
-            worker=self.request.hostname or "pdf-worker",
-            dispatch=lambda name, payload: app.send_task(name, kwargs=payload),
-            request_id=str(request_id or ""),
-        )
+        def operation():
+            from collections.abc import Mapping
+
+            class LazyPdfs(Mapping):
+                def __iter__(self):
+                    return iter(pdf_blob_keys)
+
+                def __len__(self):
+                    return len(pdf_blob_keys)
+
+                def __getitem__(self, key):
+                    return context.blob_store.get(pdf_blob_keys[key])
+
+            return prepare_run(
+                context, UUID(str(run_id)), project=project, vor_filename=vor_filename,
+                vor_bytes=context.blob_store.get(vor_blob_key), pdf_files=LazyPdfs(),
+                pdf_versions=_load_run_pdf_versions(context, UUID(str(run_id))),
+                worker=self.request.hostname or "pdf-worker", dispatch=context.repository.enqueue_task,
+                request_id=str(request_id or ""), durable=True,
+                slice_seconds=max(1, min(120, context.settings.task_soft_time_limit - 60)),
+            )
+        return execute(context, run_id, delivery_id, delivery_token, operation, "audit_tasks.prepare_run", {
+            "run_id": str(run_id), "project": project, "vor_filename": vor_filename,
+            "vor_blob_key": vor_blob_key, "pdf_blob_keys": pdf_blob_keys, "request_id": request_id,
+        })
 
     @app.task(
         name="audit_tasks.audit_position",
         bind=True,
-        max_retries=3,
-        autoretry_for=(Exception,),
-        retry_backoff=True,
     )
-    def _audit(self, run_id, position_index, request_id=""):  # type: ignore[no-untyped-def]
+    def _audit(self, run_id, position_index, request_id="", delivery_id="", delivery_token=""):  # type: ignore[no-untyped-def]
         context = open_task_context()
-        return audit_position(
-            context,
-            UUID(str(run_id)),
-            int(position_index),
-            worker=self.request.hostname or "llm-worker",
-            request_id=str(request_id or ""),
-            dispatch=lambda name, payload: app.send_task(name, kwargs=payload),
-        )
+        def operation():
+            job = context.repository.load_position_job(UUID(str(run_id)), int(position_index))
+            if delivery_id and job.status == "running":
+                context.repository.requeue_position_job(
+                    UUID(str(run_id)), int(position_index), queue=LLM_QUEUE, payload=job.payload,
+                )
+            return audit_position(
+                context, UUID(str(run_id)), int(position_index),
+                worker=self.request.hostname or "llm-worker", request_id=str(request_id or ""),
+                dispatch=context.repository.enqueue_task,
+            )
+        return execute(context, run_id, delivery_id, delivery_token, operation, "audit_tasks.audit_position", {
+            "run_id": str(run_id), "position_index": int(position_index), "request_id": request_id,
+        })
+
+    @app.task(name="audit_tasks.normative_position", bind=True)
+    def _normative(self, run_id, position_index, delivery_id="", delivery_token="", local_only=False, local_rules_version=0):
+        from normative_background import review_position
+        context = open_task_context()
+        # No finalization chain: matching may finish while this independent layer runs.
+        try:
+            return execute_delivery(context, delivery_id, delivery_token,
+                lambda: review_position(context, UUID(str(run_id)), int(position_index), local_only=local_only))
+        finally:
+            try:
+                publish_pending(context.repository, lambda name, payload: app.send_task(name, kwargs=payload))
+            except Exception:
+                logger.warning("normative delivery deferred to relay", exc_info=True)
 
     @app.task(name="audit_tasks.finalize_run", bind=True)
-    def _finalize(self, run_id, request_id=""):  # type: ignore[no-untyped-def]
+    def _finalize(self, run_id, request_id="", delivery_id="", delivery_token=""):  # type: ignore[no-untyped-def]
         context = open_task_context()
-        return finalize_run(
+        return execute(context, run_id, delivery_id, delivery_token, lambda: finalize_run(
             context,
             UUID(str(run_id)),
             worker=self.request.hostname or "pdf-worker",
             request_id=str(request_id or ""),
-        )
+        ), "audit_tasks.finalize_run", {"run_id": str(run_id), "request_id": request_id})
 
     @app.task(name="audit_tasks.recover_run")
     def _recover(run_id):  # type: ignore[no-untyped-def]

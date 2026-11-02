@@ -30,6 +30,14 @@ def normalize(text):
     return re.sub(r"\s+", " ", unicodedata.normalize("NFKC", str(text)).casefold().replace("ё", "е")).strip()
 
 
+def _designation_text(text):
+    # ГОСТ 977-88, ГОСТ-977-88 and a line break after ГОСТ- are the
+    # same designation; retain every digit and the actual standard number.
+    text = normalize(text)
+    text = re.sub(r"\b(гост|сп|ту)\s*[-–—]?\s*(?=\d)", r"\1 ", text)
+    return re.sub(r"(?<=\d)\s*[-–—]\s*(?=\d)", "-", text)
+
+
 def _measurement(text):
     atoms = iter_measurements(text)
     if len(atoms) != 1:
@@ -125,8 +133,9 @@ def predicate_check(spec, evidence):
     if any(item.get("locator", {}).get("quality", "usable") != "usable" for item in evidence):
         return outcome(ClaimState.REVIEW_REQUIRED, "unusable_ocr")
     if spec.predicate in {"text", "designation"}:
-        expected = normalize(spec.expected_text)
-        if any(expected in normalize(item["quote"]) for item in evidence):
+        normalizer = _designation_text if spec.predicate == "designation" else normalize
+        expected = normalizer(spec.expected_text)
+        if any(expected in normalizer(item["quote"]) for item in evidence):
             return outcome(ClaimState.CONFIRMED, "verbatim_predicate")
         return outcome(ClaimState.REVIEW_REQUIRED, "equivalence_unproven")
     if spec.predicate == "directed_pair":

@@ -1,0 +1,36 @@
+# Example override for an existing smeta-checker deployment; no services are launched here.
+services:
+  api:
+    environment:
+      NORMATIVE_KB_ROOT: /knowledge/electrical-norms
+      NORMATIVE_ROAD_KB_ROOT: /knowledge/road-norms
+    volumes:
+      - type: bind
+        source: ${NORMATIVE_KB_HOST_ROOT:?Set path to electrical-norms}
+        target: /knowledge/electrical-norms
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${NORMATIVE_ROAD_KB_HOST_ROOT:?Set path to road-norms}
+        target: /knowledge/road-norms
+        read_only: true
+        bind:
+          create_host_path: false
+  worker-normative:
+    environment:
+      NORMATIVE_KB_ROOT: /knowledge/electrical-norms
+      NORMATIVE_ROAD_KB_ROOT: /knowledge/road-norms
+    volumes:
+      - type: bind
+        source: ${NORMATIVE_KB_HOST_ROOT:?Set path to electrical-norms}
+        target: /knowledge/electrical-norms
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${NORMATIVE_ROAD_KB_HOST_ROOT:?Set path to road-norms}
+        target: /knowledge/road-norms
+        read_only: true
+        bind:
+          create_host_path: false

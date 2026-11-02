@@ -100,6 +100,124 @@ export type AuditStatusResponse = {
 };
 
 /**
+ * BasisFragmentDTO
+ */
+export type BasisFragmentDto = {
+    /**
+     * Corrected Text
+     */
+    corrected_text?: string | null;
+    /**
+     * Extracted Text
+     */
+    extracted_text?: string;
+    /**
+     * Image Key
+     */
+    image_key?: string | null;
+    /**
+     * Ocr Text
+     */
+    ocr_text?: string | null;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Rect
+     */
+    rect: [
+        number,
+        number,
+        number,
+        number
+    ];
+    region: PdfRegionDto;
+    /**
+     * Role
+     */
+    role?: 'work' | 'volume' | 'unit' | 'conditions' | 'other';
+    /**
+     * Text
+     */
+    text?: string;
+    /**
+     * Text Checked
+     */
+    text_checked?: boolean;
+};
+
+/**
+ * BasisFragmentRequest
+ */
+export type BasisFragmentRequest = {
+    /**
+     * Corrected Text
+     */
+    corrected_text?: string | null;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Rect
+     */
+    rect: [
+        number,
+        number,
+        number,
+        number
+    ];
+    /**
+     * Role
+     */
+    role?: 'work' | 'volume' | 'unit' | 'conditions' | 'other';
+    /**
+     * Text Checked
+     */
+    text_checked?: boolean;
+};
+
+/**
+ * BasisPreviewDTO
+ */
+export type BasisPreviewDto = {
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Fragments
+     */
+    fragments?: Array<BasisFragmentDto>;
+    /**
+     * Mode
+     */
+    mode: 'row' | 'area' | 'text' | 'multi';
+    /**
+     * Ocr Key
+     */
+    ocr_key?: string | null;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Quote
+     */
+    quote: string;
+    /**
+     * Rect
+     */
+    rect: Array<number>;
+    region: PdfRegionDto;
+    /**
+     * Selection Digest
+     */
+    selection_digest: string;
+};
+
+/**
  * Body_format_report_upload_api_v1_format_report_post
  */
 export type BodyFormatReportUploadApiV1FormatReportPost = {
@@ -153,6 +271,34 @@ export type BodyUploadDocumentApiV1DocumentsPost = {
      * Project Id
      */
     project_id: string;
+};
+
+/**
+ * Body_workbench_vor_check_api_v1_normative_vor_check_post
+ */
+export type BodyWorkbenchVorCheckApiV1NormativeVorCheckPost = {
+    /**
+     * File
+     */
+    file: Blob | File;
+    /**
+     * Profile
+     */
+    profile?: string;
+};
+
+/**
+ * ConfirmBasisRequest
+ */
+export type ConfirmBasisRequest = {
+    /**
+     * Comment
+     */
+    comment?: string;
+    /**
+     * Evidence Index
+     */
+    evidence_index: number;
 };
 
 /**
@@ -375,6 +521,10 @@ export type ExcelRowDto = {
  */
 export type FormatDto = {
     /**
+     * Check Count
+     */
+    check_count?: number;
+    /**
      * Error Count
      */
     error_count?: number;
@@ -382,6 +532,10 @@ export type FormatDto = {
      * Issues
      */
     issues: Array<FormatIssueDto>;
+    /**
+     * Position Count
+     */
+    position_count?: number;
     /**
      * Sheet
      */
@@ -471,6 +625,89 @@ export type HighlightDto = {
 };
 
 /**
+ * HumanBasisDTO
+ */
+export type HumanBasisDto = {
+    /**
+     * Actor
+     */
+    actor: string;
+    /**
+     * Comment
+     */
+    comment: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Fragments
+     */
+    fragments?: Array<BasisFragmentDto>;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Ocr Key
+     */
+    ocr_key?: string | null;
+    /**
+     * Origin
+     */
+    origin: 'confirmed' | 'specified';
+    /**
+     * Outdated
+     */
+    outdated?: boolean;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Pdf Version Id
+     */
+    pdf_version_id: string;
+    /**
+     * Position Index
+     */
+    position_index: number;
+    /**
+     * Quote
+     */
+    quote: string;
+    /**
+     * Rect
+     */
+    rect: Array<number> | null;
+    region: PdfRegionDto | null;
+    /**
+     * Result Version Id
+     */
+    result_version_id?: string | null;
+    /**
+     * Reused
+     */
+    reused: boolean;
+    /**
+     * Revoked At
+     */
+    revoked_at?: string | null;
+    /**
+     * Revoked By
+     */
+    revoked_by?: string | null;
+    /**
+     * Run Id
+     */
+    run_id: string;
+};
+
+/**
  * MetadataSourceDTO
  */
 export type MetadataSourceDto = {
@@ -486,6 +723,1290 @@ export type MetadataSourceDto = {
      * Sheet
      */
     sheet?: string;
+};
+
+/**
+ * NormativeCandidate
+ */
+export type NormativeCandidate = {
+    /**
+     * Checks
+     */
+    checks: Array<NormativeCheck>;
+    /**
+     * Citations
+     */
+    citations: Array<NormativeCitation>;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Composition
+     */
+    composition: Array<string>;
+    /**
+     * Context Reason
+     */
+    context_reason?: string;
+    /**
+     * Designation
+     */
+    designation: string;
+    /**
+     * Edition Status
+     */
+    edition_status: string;
+    /**
+     * Entity Kind
+     */
+    entity_kind: 'norm' | 'clause';
+    /**
+     * Extraction Status
+     */
+    extraction_status: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Missing Facts
+     */
+    missing_facts: Array<string>;
+    /**
+     * Resources
+     */
+    resources: Array<NormativeResource>;
+    /**
+     * Rules
+     */
+    rules: Array<NormativeRule>;
+    /**
+     * Status
+     */
+    status: 'candidate' | 'needs_facts' | 'possible_mismatch' | 'possible_duplicate';
+    /**
+     * Text
+     */
+    text?: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Unit Base
+     */
+    unit_base?: string;
+    /**
+     * Unit Raw
+     */
+    unit_raw?: string;
+    /**
+     * Unit Scale
+     */
+    unit_scale?: string | null;
+};
+
+/**
+ * NormativeCatalogFileDTO
+ */
+export type NormativeCatalogFileDto = {
+    /**
+     * Designation
+     */
+    designation: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Imported
+     */
+    imported: boolean;
+    /**
+     * Sha256
+     */
+    sha256: string;
+    /**
+     * Size Bytes
+     */
+    size_bytes: number;
+};
+
+/**
+ * NormativeCatalogSectionDTO
+ */
+export type NormativeCatalogSectionDto = {
+    /**
+     * Files
+     */
+    files: Array<NormativeCatalogFileDto>;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * NormativeCatalogTypeDTO
+ */
+export type NormativeCatalogTypeDto = {
+    /**
+     * File Count
+     */
+    file_count: number;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Sections
+     */
+    sections: Array<NormativeCatalogSectionDto>;
+};
+
+/**
+ * NormativeCheck
+ */
+export type NormativeCheck = {
+    /**
+     * Actual
+     */
+    actual?: string | null;
+    /**
+     * Expected
+     */
+    expected?: string | null;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Norm Quantity
+     */
+    norm_quantity?: string | null;
+    /**
+     * State
+     */
+    state: 'match' | 'mismatch' | 'unknown';
+};
+
+/**
+ * NormativeCheckSource
+ */
+export type NormativeCheckSource = {
+    /**
+     * Engine
+     */
+    engine?: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Image Key
+     */
+    image_key?: string | null;
+    /**
+     * Kind
+     */
+    kind: 'project' | 'normative';
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Origin
+     */
+    origin: string;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Source Id
+     */
+    source_id?: string | null;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Version Id
+     */
+    version_id?: string | null;
+    /**
+     * Words Key
+     */
+    words_key?: string | null;
+};
+
+/**
+ * NormativeCitation
+ */
+export type NormativeCitation = {
+    /**
+     * Bbox
+     */
+    bbox?: Array<number> | null;
+    /**
+     * Coordinate System
+     */
+    coordinate_system?: string | null;
+    /**
+     * Designation
+     */
+    designation: string;
+    /**
+     * Label
+     */
+    label?: string;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Source Id
+     */
+    source_id: string;
+};
+
+/**
+ * NormativeContextAnalysis
+ */
+export type NormativeContextAnalysis = {
+    /**
+     * Elapsed Seconds
+     */
+    elapsed_seconds?: number;
+    /**
+     * Interpretation
+     */
+    interpretation?: string;
+    /**
+     * Missing Facts
+     */
+    missing_facts?: Array<string>;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Queries
+     */
+    queries?: Array<string>;
+    /**
+     * Requests
+     */
+    requests?: number;
+    /**
+     * Trace Id
+     */
+    trace_id?: string | null;
+    /**
+     * Trace Url
+     */
+    trace_url?: string | null;
+    /**
+     * Usage
+     */
+    usage?: {
+        [key: string]: number;
+    };
+    /**
+     * Warnings
+     */
+    warnings?: Array<string>;
+};
+
+/**
+ * NormativeCorpusAdminDTO
+ */
+export type NormativeCorpusAdminDto = {
+    /**
+     * Counts
+     */
+    counts: {
+        [key: string]: number;
+    };
+    /**
+     * Gaps
+     */
+    gaps: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Identity
+     */
+    identity: {
+        [key: string]: string;
+    };
+    /**
+     * Profile
+     */
+    profile: 'electrical' | 'roads';
+    /**
+     * Releases
+     */
+    releases: Array<NormativeReleaseDto>;
+    /**
+     * Review Queue
+     */
+    review_queue: Array<NormativeReviewIssueDto>;
+    /**
+     * Review Queue Total
+     */
+    review_queue_total: number;
+    /**
+     * Sources
+     */
+    sources: Array<NormativeSourceAdminDto>;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * NormativeEvidenceAnchor
+ */
+export type NormativeEvidenceAnchor = {
+    /**
+     * Quote
+     */
+    quote?: string;
+    /**
+     * Rects
+     */
+    rects?: Array<Array<number>>;
+    /**
+     * Source Id
+     */
+    source_id: string;
+};
+
+/**
+ * NormativeFacts
+ */
+export type NormativeFacts = {
+    /**
+     * Cross Section Mm2
+     */
+    cross_section_mm2?: string;
+    /**
+     * Height M
+     */
+    height_m?: string;
+    /**
+     * Included Height Exceeded
+     */
+    included_height_exceeded?: boolean | null;
+    /**
+     * Mass Kg Per M
+     */
+    mass_kg_per_m?: string;
+    /**
+     * Placement
+     */
+    placement?: '' | 'laid_pipes_blocks_boxes' | 'trench' | 'tray' | 'open';
+    /**
+     * Project Date
+     */
+    project_date?: string;
+    /**
+     * Quantity
+     */
+    quantity?: string;
+    /**
+     * Separate Connection Position
+     */
+    separate_connection_position?: boolean | null;
+    /**
+     * System
+     */
+    system?: '' | 'power' | 'contact_network' | 'lighting' | 'automation';
+    /**
+     * Unit
+     */
+    unit?: string;
+    /**
+     * Voltage Kv
+     */
+    voltage_kv?: string;
+};
+
+/**
+ * NormativeLibrary
+ */
+export type NormativeLibrary = {
+    /**
+     * Counts
+     */
+    counts: {
+        [key: string]: number;
+    };
+    /**
+     * Gaps
+     */
+    gaps: Array<{
+        [key: string]: string;
+    }>;
+    /**
+     * Identity
+     */
+    identity: {
+        [key: string]: string;
+    };
+    /**
+     * Sources
+     */
+    sources: Array<NormativeLibrarySource>;
+};
+
+/**
+ * NormativeLibrarySource
+ */
+export type NormativeLibrarySource = {
+    /**
+     * Designation
+     */
+    designation: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Pages
+     */
+    pages: number;
+    /**
+     * Readable Pages
+     */
+    readable_pages: number;
+};
+
+/**
+ * NormativeManagerDTO
+ */
+export type NormativeManagerDto = {
+    /**
+     * Collections
+     */
+    collections: Array<NormativeCatalogTypeDto>;
+    /**
+     * Profiles
+     */
+    profiles: Array<NormativeCorpusAdminDto>;
+};
+
+/**
+ * NormativeNumericCondition
+ */
+export type NormativeNumericCondition = {
+    /**
+     * Operator
+     */
+    operator: 'eq' | 'lt' | 'le' | 'gt' | 'ge';
+    /**
+     * Parameter
+     */
+    parameter: 'quantity' | 'thickness';
+    /**
+     * Quote
+     */
+    quote: string;
+    /**
+     * Unit
+     */
+    unit: string;
+    /**
+     * Value
+     */
+    value: string;
+};
+
+/**
+ * NormativeParameterCard
+ */
+export type NormativeParameterCard = {
+    /**
+     * Compared Value
+     */
+    compared_value?: string | null;
+    /**
+     * Conditions
+     */
+    conditions?: Array<string>;
+    /**
+     * Declared Value
+     */
+    declared_value: string;
+    /**
+     * Expression
+     */
+    expression?: string;
+    /**
+     * Found Unit
+     */
+    found_unit?: string | null;
+    /**
+     * Found Value
+     */
+    found_value?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Quote
+     */
+    quote?: string;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Required
+     */
+    required?: boolean;
+    /**
+     * Role
+     */
+    role: 'project_value' | 'coefficient' | 'unit_scale' | 'calculation';
+    /**
+     * Row
+     */
+    row?: number | null;
+    /**
+     * Source Anchors
+     */
+    source_anchors?: Array<NormativeEvidenceAnchor>;
+    /**
+     * Source Ids
+     */
+    source_ids?: Array<string>;
+    /**
+     * State
+     */
+    state: 'confirmed' | 'needs_facts' | 'possible_mismatch';
+    /**
+     * Unit
+     */
+    unit: string;
+};
+
+/**
+ * NormativeParameterProposal
+ */
+export type NormativeParameterProposal = {
+    /**
+     * Conditions
+     */
+    conditions?: Array<NormativeNumericCondition>;
+    /**
+     * Parameter
+     */
+    parameter: 'quantity' | 'thickness' | 'coefficient' | 'unit_scale';
+    /**
+     * Quote
+     */
+    quote: string;
+    /**
+     * Source Id
+     */
+    source_id: string;
+    /**
+     * Unit
+     */
+    unit: string;
+    /**
+     * Value
+     */
+    value: string;
+};
+
+/**
+ * NormativePositionCheck
+ */
+export type NormativePositionCheck = {
+    /**
+     * Items
+     */
+    items: Array<NormativePositionCheckItem>;
+    /**
+     * Local Rules Version
+     */
+    local_rules_version?: number;
+    /**
+     * Local Validation Version
+     */
+    local_validation_version?: number;
+    local_work_basis?: NormativeWorkBasis | null;
+    /**
+     * Parameter Cards
+     */
+    parameter_cards?: Array<NormativeParameterCard>;
+    /**
+     * Parameter Proposals
+     */
+    parameter_proposals?: Array<NormativeParameterProposal>;
+    /**
+     * Parameter Schema Version
+     */
+    parameter_schema_version?: number;
+    quantity_composition?: QuantityComposition | null;
+    /**
+     * Related Positions
+     */
+    related_positions: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Requires Engineer Review
+     */
+    requires_engineer_review?: boolean;
+    /**
+     * Sources
+     */
+    sources: Array<NormativeCheckSource>;
+    /**
+     * State
+     */
+    state: 'confirmed' | 'needs_facts' | 'possible_mismatch';
+    /**
+     * Summary
+     */
+    summary: string;
+    telemetry: NormativeContextAnalysis;
+};
+
+/**
+ * NormativePositionCheckItem
+ */
+export type NormativePositionCheckItem = {
+    /**
+     * Claim Ids
+     */
+    claim_ids?: Array<string>;
+    /**
+     * Explanation
+     */
+    explanation: string;
+    /**
+     * Normative Source Ids
+     */
+    normative_source_ids: Array<string>;
+    /**
+     * Project Source Ids
+     */
+    project_source_ids: Array<string>;
+    /**
+     * Required
+     */
+    required?: boolean;
+    /**
+     * State
+     */
+    state: 'confirmed' | 'needs_facts' | 'possible_mismatch';
+    /**
+     * Topic
+     */
+    topic: string;
+};
+
+/**
+ * NormativePositionCheckRequest
+ */
+export type NormativePositionCheckRequest = {
+    /**
+     * Pages
+     */
+    pages?: Array<number>;
+    /**
+     * Pdf Version Id
+     */
+    pdf_version_id?: string | null;
+    /**
+     * Question
+     */
+    question?: string;
+};
+
+/**
+ * NormativeProjectCitation
+ */
+export type NormativeProjectCitation = {
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Origin
+     */
+    origin: 'machine' | 'human';
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Quote
+     */
+    quote: string;
+    /**
+     * Version Id
+     */
+    version_id: string;
+};
+
+/**
+ * NormativeReleaseDTO
+ */
+export type NormativeReleaseDto = {
+    /**
+     * Counts
+     */
+    counts: {
+        [key: string]: number;
+    };
+    /**
+     * Current
+     */
+    current?: boolean;
+    /**
+     * Database
+     */
+    database: string;
+    /**
+     * Engineering Validation
+     */
+    engineering_validation?: string;
+    /**
+     * Foreign Keys
+     */
+    foreign_keys?: string;
+    /**
+     * Integrity
+     */
+    integrity?: string;
+    /**
+     * Observed On
+     */
+    observed_on?: string;
+    /**
+     * Parser Version
+     */
+    parser_version?: string;
+    /**
+     * Release Id
+     */
+    release_id: string;
+};
+
+/**
+ * NormativeResource
+ */
+export type NormativeResource = {
+    /**
+     * Citations
+     */
+    citations: Array<NormativeCitation>;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Quantity
+     */
+    quantity: string | null;
+    /**
+     * Quantity Kind
+     */
+    quantity_kind: string;
+    /**
+     * Raw Quantity
+     */
+    raw_quantity: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Unit
+     */
+    unit: string;
+};
+
+/**
+ * NormativeReviewDTO
+ */
+export type NormativeReviewDto = {
+    /**
+     * Actor
+     */
+    actor: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind: 'search' | 'selection' | 'check';
+    payload: NormativeSnapshot;
+};
+
+/**
+ * NormativeReviewIssueDTO
+ */
+export type NormativeReviewIssueDto = {
+    /**
+     * Designation
+     */
+    designation?: string;
+    /**
+     * Entity Id
+     */
+    entity_id?: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Page
+     */
+    page?: number | null;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Source Id
+     */
+    source_id?: string;
+};
+
+/**
+ * NormativeRule
+ */
+export type NormativeRule = {
+    /**
+     * Citations
+     */
+    citations: Array<NormativeCitation>;
+    /**
+     * Factor
+     */
+    factor?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Missing Facts
+     */
+    missing_facts: Array<string>;
+    /**
+     * State
+     */
+    state: 'candidate' | 'needs_facts' | 'not_applicable';
+    /**
+     * Target
+     */
+    target?: string;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * NormativeSearchRequest
+ */
+export type NormativeSearchRequest = {
+    facts?: NormativeFacts;
+    /**
+     * Kind
+     */
+    kind?: 'GESN' | 'SP' | 'GOST' | 'PUE' | 'ALL';
+    /**
+     * Mode
+     */
+    mode?: 'lexical' | 'context';
+    /**
+     * Query
+     */
+    query: string;
+};
+
+/**
+ * NormativeSelectionRequest
+ */
+export type NormativeSelectionRequest = {
+    /**
+     * Comment
+     */
+    comment?: string;
+    /**
+     * Norm Ids
+     */
+    norm_ids: Array<string>;
+    /**
+     * Search Id
+     */
+    search_id: string;
+};
+
+/**
+ * NormativeSnapshot
+ */
+export type NormativeSnapshot = {
+    /**
+     * Candidates
+     */
+    candidates: Array<NormativeCandidate>;
+    /**
+     * Checks
+     */
+    checks: Array<string>;
+    /**
+     * Comment
+     */
+    comment?: string;
+    context_analysis?: NormativeContextAnalysis | null;
+    /**
+     * Fact Origins
+     */
+    fact_origins: {
+        [key: string]: string;
+    };
+    facts: NormativeFacts;
+    /**
+     * Kb
+     */
+    kb: {
+        [key: string]: string;
+    };
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Missing Facts
+     */
+    missing_facts: Array<string>;
+    /**
+     * Mode
+     */
+    mode?: 'lexical' | 'context';
+    position_check?: NormativePositionCheck | null;
+    /**
+     * Position Key
+     */
+    position_key: string;
+    /**
+     * Project Citations
+     */
+    project_citations: Array<NormativeProjectCitation>;
+    /**
+     * Query
+     */
+    query: string;
+    /**
+     * Requires Engineer Review
+     */
+    requires_engineer_review?: boolean;
+    /**
+     * Search Id
+     */
+    search_id?: string;
+    /**
+     * Selected Ids
+     */
+    selected_ids?: Array<string>;
+    /**
+     * Status
+     */
+    status: 'candidate' | 'needs_facts' | 'possible_mismatch' | 'possible_duplicate';
+    /**
+     * Vor Version Id
+     */
+    vor_version_id: string;
+    /**
+     * Work Item Id
+     */
+    work_item_id: string;
+    /**
+     * Work Relations
+     */
+    work_relations?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * NormativeSourceAdminDTO
+ */
+export type NormativeSourceAdminDto = {
+    /**
+     * Designation
+     */
+    designation: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind?: string;
+    /**
+     * Pages
+     */
+    pages: number;
+    /**
+     * Readable Pages
+     */
+    readable_pages: number;
+    /**
+     * Role
+     */
+    role?: string;
+};
+
+/**
+ * NormativeStage
+ */
+export type NormativeStage = {
+    /**
+     * Attempts
+     */
+    attempts: number;
+    /**
+     * Message
+     */
+    message?: string;
+    /**
+     * Status
+     */
+    status: 'pending' | 'dispatched' | 'running' | 'done' | 'failed' | 'cancelled';
+};
+
+/**
+ * NormativeStateDTO
+ */
+export type NormativeStateDto = {
+    automatic_stage?: NormativeStage | null;
+    /**
+     * Fact Origins
+     */
+    fact_origins: {
+        [key: string]: string;
+    };
+    facts: NormativeFacts;
+    latest_check?: NormativeReviewDto | null;
+    latest_search?: NormativeReviewDto | null;
+    library?: NormativeLibrary | null;
+    /**
+     * Profile
+     */
+    profile?: 'electrical' | 'roads';
+    /**
+     * Project Citations
+     */
+    project_citations: Array<NormativeProjectCitation>;
+    selection?: NormativeReviewDto | null;
+    /**
+     * Work Name
+     */
+    work_name: string;
+};
+
+/**
+ * NormativeVORCheckDTO
+ */
+export type NormativeVorCheckDto = {
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Profile
+     */
+    profile: 'electrical' | 'roads';
+    /**
+     * Returned Positions
+     */
+    returned_positions: number;
+    /**
+     * Rows
+     */
+    rows: Array<NormativeVorRowDto>;
+    /**
+     * Total Positions
+     */
+    total_positions: number;
+    /**
+     * Truncated
+     */
+    truncated: boolean;
+};
+
+/**
+ * NormativeVORRowDTO
+ */
+export type NormativeVorRowDto = {
+    /**
+     * Candidates
+     */
+    candidates: Array<NormativeCandidate>;
+    /**
+     * Code Match
+     */
+    code_match?: boolean | null;
+    /**
+     * Index
+     */
+    index: number;
+    /**
+     * Name Similarity
+     */
+    name_similarity?: number | null;
+    /**
+     * Number
+     */
+    number: string;
+    /**
+     * Source Code
+     */
+    source_code?: string;
+    /**
+     * Status
+     */
+    status: 'matched' | 'unit_mismatch' | 'name_mismatch' | 'review' | 'not_found';
+    /**
+     * Unit
+     */
+    unit: string;
+    /**
+     * Unit Match
+     */
+    unit_match?: boolean | null;
+    /**
+     * Volume
+     */
+    volume: string;
+    /**
+     * Work Name
+     */
+    work_name: string;
+};
+
+/**
+ * NormativeWorkBasis
+ */
+export type NormativeWorkBasis = {
+    /**
+     * Anchors
+     */
+    anchors?: {
+        [key: string]: Array<NormativeEvidenceAnchor>;
+    };
+    /**
+     * Norm Scale
+     */
+    norm_scale: string;
+    /**
+     * Normative Source Ids
+     */
+    normative_source_ids: Array<string>;
+    /**
+     * Project Source Ids
+     */
+    project_source_ids: Array<string>;
+    /**
+     * Quantity
+     */
+    quantity: string;
+    /**
+     * Thickness Cm
+     */
+    thickness_cm: string;
+    /**
+     * Unit
+     */
+    unit: string;
+};
+
+/**
+ * NormativeWorkbenchSearchDTO
+ */
+export type NormativeWorkbenchSearchDto = {
+    /**
+     * Candidates
+     */
+    candidates: Array<NormativeCandidate>;
+    /**
+     * Identity
+     */
+    identity: {
+        [key: string]: string;
+    };
+    /**
+     * Profile
+     */
+    profile: 'electrical' | 'roads';
+    /**
+     * Query
+     */
+    query: string;
+};
+
+/**
+ * PdfBindingsDTO
+ */
+export type PdfBindingsDto = {
+    /**
+     * Bindings
+     */
+    bindings: {
+        [key: string]: string;
+    };
+    /**
+     * References
+     */
+    references: Array<string>;
+};
+
+/**
+ * PdfBindingsPatch
+ */
+export type PdfBindingsPatch = {
+    /**
+     * Bindings
+     */
+    bindings?: {
+        [key: string]: string;
+    };
 };
 
 /**
@@ -601,6 +2122,50 @@ export type PreflightRow = {
 };
 
 /**
+ * PreparedPageDTO
+ */
+export type PreparedPageDto = {
+    /**
+     * Blob Key
+     */
+    blob_key: string;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Origin
+     */
+    origin: string;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Pending
+     */
+    pending: boolean;
+    /**
+     * Quality
+     */
+    quality?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Sha256
+     */
+    sha256: string;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Truncated
+     */
+    truncated: boolean;
+};
+
+/**
  * ProjectCreate
  */
 export type ProjectCreate = {
@@ -644,6 +2209,66 @@ export type ProjectUpdate = {
      * Name
      */
     name?: string | null;
+};
+
+/**
+ * QuantityComposition
+ */
+export type QuantityComposition = {
+    /**
+     * Declared Value
+     */
+    declared_value: string;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Parent Position Index
+     */
+    parent_position_index?: number | null;
+    /**
+     * Rounded Total
+     */
+    rounded_total: string;
+    /**
+     * Source Id
+     */
+    source_id: string;
+    /**
+     * State
+     */
+    state: 'confirmed' | 'possible_mismatch';
+    /**
+     * Terms
+     */
+    terms: Array<QuantityTerm>;
+    /**
+     * Total
+     */
+    total: string;
+    /**
+     * Unit
+     */
+    unit: string;
+};
+
+/**
+ * QuantityTerm
+ */
+export type QuantityTerm = {
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Rect
+     */
+    rect: Array<number>;
+    /**
+     * Value
+     */
+    value: string;
 };
 
 /**
@@ -696,6 +2321,7 @@ export type ResultDto = {
      * Id
      */
     id: string;
+    matching_report_status?: ReportStatus | null;
     /**
      * Name
      */
@@ -715,8 +2341,17 @@ export type ResultDto = {
     /**
      * Queue
      */
-    queue: 'fix' | 'review' | 'missing' | 'ok';
-    report_status: ReportStatus;
+    queue: 'fix' | 'review' | 'missing' | 'ok' | 'pending';
+    /**
+     * Related Work
+     */
+    related_work?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Report Status
+     */
+    report_status: ReportStatus | 'Проверяется по нормативам';
     /**
      * Sheet
      */
@@ -741,6 +2376,78 @@ export type ResultDto = {
      * Work Found
      */
     work_found: boolean;
+};
+
+/**
+ * ResultVersionDTO
+ */
+export type ResultVersionDto = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Details
+     */
+    details: string;
+    /**
+     * Found Unit
+     */
+    found_unit: string;
+    /**
+     * Found Volume
+     */
+    found_volume: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * ReviewArtifactDTO
+ */
+export type ReviewArtifactDto = {
+    /**
+     * Actor
+     */
+    actor: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind: 'draft' | 'ocr';
+    preview: BasisPreviewDto;
+    selection: SpecifyBasisRequest;
+};
+
+/**
+ * ReviewHistoryDTO
+ */
+export type ReviewHistoryDto = {
+    /**
+     * Artifacts
+     */
+    artifacts: Array<ReviewArtifactDto>;
+    /**
+     * Bases
+     */
+    bases: Array<HumanBasisDto>;
+    /**
+     * Results
+     */
+    results: Array<ResultVersionDto>;
 };
 
 /**
@@ -789,6 +2496,12 @@ export type RunDto = {
      * Finished At
      */
     finished_at: string | null;
+    /**
+     * Normative Counts
+     */
+    normative_counts?: {
+        [key: string]: number;
+    };
     /**
      * Preparation Done
      */
@@ -849,6 +2562,53 @@ export type SourceHeading = {
      * Text
      */
     text: string;
+};
+
+/**
+ * SpecifyBasisRequest
+ */
+export type SpecifyBasisRequest = {
+    /**
+     * Comment
+     */
+    comment?: string;
+    /**
+     * Fragments
+     */
+    fragments?: Array<BasisFragmentRequest>;
+    /**
+     * Mode
+     */
+    mode?: 'row' | 'area' | 'text' | 'multi';
+    /**
+     * Ocr Key
+     */
+    ocr_key?: string | null;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Rect
+     */
+    rect: [
+        number,
+        number,
+        number,
+        number
+    ];
+    /**
+     * Rects
+     */
+    rects?: Array<Array<number>> | null;
+    /**
+     * Selection Digest
+     */
+    selection_digest?: string | null;
+    /**
+     * Version Id
+     */
+    version_id: string;
 };
 
 /**
@@ -980,6 +2740,10 @@ export type SummaryDto = {
     queues: {
         [key: string]: number;
     };
+    /**
+     * Ready Positions
+     */
+    ready_positions?: Array<number>;
     run: RunDto;
 };
 
@@ -1296,6 +3060,703 @@ export type CancelAuditApiV1AuditsRunIdCancelPostResponses = {
 
 export type CancelAuditApiV1AuditsRunIdCancelPostResponse = CancelAuditApiV1AuditsRunIdCancelPostResponses[keyof CancelAuditApiV1AuditsRunIdCancelPostResponses];
 
+export type HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/basis';
+};
+
+export type HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetError = HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetErrors[keyof HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetErrors];
+
+export type HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetResponses = {
+    /**
+     * Response Human Basis List Api V1 Audits  Run Id  Positions  Position Index  Basis Get
+     *
+     * Successful Response
+     */
+    200: Array<HumanBasisDto>;
+};
+
+export type HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetResponse = HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetResponses[keyof HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetResponses];
+
+export type HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostData = {
+    body: SpecifyBasisRequest;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/basis';
+};
+
+export type HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostError = HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostErrors[keyof HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostErrors];
+
+export type HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostResponses = {
+    /**
+     * Response Human Basis Specify Api V1 Audits  Run Id  Positions  Position Index  Basis Post
+     *
+     * Successful Response
+     */
+    200: Array<HumanBasisDto>;
+};
+
+export type HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostResponse = HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostResponses[keyof HumanBasisSpecifyApiV1AuditsRunIdPositionsPositionIndexBasisPostResponses];
+
+export type HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostData = {
+    body: ConfirmBasisRequest;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/basis/confirm';
+};
+
+export type HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostError = HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostErrors[keyof HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostErrors];
+
+export type HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostResponses = {
+    /**
+     * Response Human Basis Confirm Api V1 Audits  Run Id  Positions  Position Index  Basis Confirm Post
+     *
+     * Successful Response
+     */
+    200: Array<HumanBasisDto>;
+};
+
+export type HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostResponse = HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostResponses[keyof HumanBasisConfirmApiV1AuditsRunIdPositionsPositionIndexBasisConfirmPostResponses];
+
+export type SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostData = {
+    body: SpecifyBasisRequest;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/basis/drafts';
+};
+
+export type SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostError = SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostErrors[keyof SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostErrors];
+
+export type SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReviewArtifactDto;
+};
+
+export type SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostResponse = SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostResponses[keyof SaveBasisDraftApiV1AuditsRunIdPositionsPositionIndexBasisDraftsPostResponses];
+
+export type HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostData = {
+    body: SpecifyBasisRequest;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/basis/preview';
+};
+
+export type HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostError = HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostErrors[keyof HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostErrors];
+
+export type HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: BasisPreviewDto;
+};
+
+export type HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostResponse = HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostResponses[keyof HumanBasisPreviewApiV1AuditsRunIdPositionsPositionIndexBasisPreviewPostResponses];
+
+export type HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostData = {
+    body: SpecifyBasisRequest;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/basis/recognize';
+};
+
+export type HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostError = HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostErrors[keyof HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostErrors];
+
+export type HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: BasisPreviewDto;
+};
+
+export type HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostResponse = HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostResponses[keyof HumanBasisRecognizeApiV1AuditsRunIdPositionsPositionIndexBasisRecognizePostResponses];
+
+export type HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+        /**
+         * Basis Id
+         */
+        basis_id: string;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/basis/{basis_id}';
+};
+
+export type HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteError = HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteErrors[keyof HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteErrors];
+
+export type HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteResponses = {
+    /**
+     * Response Human Basis Revoke Api V1 Audits  Run Id  Positions  Position Index  Basis  Basis Id  Delete
+     *
+     * Successful Response
+     */
+    200: Array<HumanBasisDto>;
+};
+
+export type HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteResponse = HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteResponses[keyof HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteResponses];
+
+export type PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+    };
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/extraction';
+};
+
+export type PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetError = PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetErrors[keyof PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetErrors];
+
+export type PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PreparedPageDto;
+};
+
+export type PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetResponse = PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetResponses[keyof PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetResponses];
+
+export type ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/history';
+};
+
+export type ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetError = ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetErrors[keyof ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetErrors];
+
+export type ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ReviewHistoryDto;
+};
+
+export type ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetResponse = ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetResponses[keyof ReviewHistoryApiV1AuditsRunIdPositionsPositionIndexHistoryGetResponses];
+
+export type ReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+        /**
+         * Kind
+         */
+        kind: string;
+        /**
+         * Item Id
+         */
+        item_id: string;
+        /**
+         * Index
+         */
+        index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/history/{kind}/{item_id}/images/{index}';
+};
+
+export type ReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetError = ReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetErrors[keyof ReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetErrors];
+
+export type ReviewImageApiV1AuditsRunIdPositionsPositionIndexHistoryKindItemIdImagesIndexGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/normative';
+};
+
+export type StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetError = StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetErrors[keyof StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetErrors];
+
+export type StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: NormativeStateDto;
+};
+
+export type StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetResponse = StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetResponses[keyof StateApiV1AuditsRunIdPositionsPositionIndexNormativeGetResponses];
+
+export type CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostData = {
+    body: NormativePositionCheckRequest;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/check';
+};
+
+export type CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostError = CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostErrors[keyof CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostErrors];
+
+export type CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: NormativeReviewDto;
+};
+
+export type CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostResponse = CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostResponses[keyof CheckApiV1AuditsRunIdPositionsPositionIndexNormativeCheckPostResponses];
+
+export type LibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+        /**
+         * Source Id
+         */
+        source_id: string;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/library/{source_id}';
+};
+
+export type LibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type LibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetError = LibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetErrors[keyof LibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetErrors];
+
+export type LibraryPdfApiV1AuditsRunIdPositionsPositionIndexNormativeLibrarySourceIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostData = {
+    body: NormativeSearchRequest;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/search';
+};
+
+export type SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostError = SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostErrors[keyof SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostErrors];
+
+export type SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: NormativeReviewDto;
+};
+
+export type SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostResponse = SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostResponses[keyof SearchApiV1AuditsRunIdPositionsPositionIndexNormativeSearchPostResponses];
+
+export type SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostData = {
+    body: NormativeSelectionRequest;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/selection';
+};
+
+export type SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostError = SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostErrors[keyof SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostErrors];
+
+export type SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: NormativeReviewDto;
+};
+
+export type SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostResponse = SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostResponses[keyof SelectApiV1AuditsRunIdPositionsPositionIndexNormativeSelectionPostResponses];
+
+export type CheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+        /**
+         * Review Id
+         */
+        review_id: string;
+        /**
+         * Source Id
+         */
+        source_id: string;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/{review_id}/check-images/{source_id}';
+};
+
+export type CheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetError = CheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetErrors[keyof CheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetErrors];
+
+export type CheckImageApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckImagesSourceIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type CheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+        /**
+         * Review Id
+         */
+        review_id: string;
+        /**
+         * Source Id
+         */
+        source_id: string;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/{review_id}/check-ocr/{source_id}';
+};
+
+export type CheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetError = CheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetErrors[keyof CheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetErrors];
+
+export type CheckOcrApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdCheckOcrSourceIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type SourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+        /**
+         * Review Id
+         */
+        review_id: string;
+        /**
+         * Source Id
+         */
+        source_id: string;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/{review_id}/sources/{source_id}';
+};
+
+export type SourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetError = SourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetErrors[keyof SourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetErrors];
+
+export type SourceApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdSourcesSourceIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+        /**
+         * Review Id
+         */
+        review_id: string;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/normative/{review_id}/validate';
+};
+
+export type ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostError = ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostErrors[keyof ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostErrors];
+
+export type ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: NormativeReviewDto;
+};
+
+export type ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostResponse = ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostResponses[keyof ValidateSavedApiV1AuditsRunIdPositionsPositionIndexNormativeReviewIdValidatePostResponses];
+
 export type WorkspaceApiV1AuditsRunIdPositionsPositionIndexWorkspaceGetData = {
     body?: never;
     path: {
@@ -1421,6 +3882,36 @@ export type GetAuditResultsApiV1AuditsRunIdResultsGetResponses = {
 };
 
 export type GetAuditResultsApiV1AuditsRunIdResultsGetResponse = GetAuditResultsApiV1AuditsRunIdResultsGetResponses[keyof GetAuditResultsApiV1AuditsRunIdResultsGetResponses];
+
+export type ResumeAuditApiV1AuditsRunIdResumePostData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/resume';
+};
+
+export type ResumeAuditApiV1AuditsRunIdResumePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ResumeAuditApiV1AuditsRunIdResumePostError = ResumeAuditApiV1AuditsRunIdResumePostErrors[keyof ResumeAuditApiV1AuditsRunIdResumePostErrors];
+
+export type ResumeAuditApiV1AuditsRunIdResumePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: RunDto;
+};
+
+export type ResumeAuditApiV1AuditsRunIdResumePostResponse = ResumeAuditApiV1AuditsRunIdResumePostResponses[keyof ResumeAuditApiV1AuditsRunIdResumePostResponses];
 
 export type RowsApiV1AuditsRunIdRowsGetData = {
     body?: never;
@@ -1803,6 +4294,66 @@ export type UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchResponses =
 
 export type UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchResponse = UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchResponses[keyof UpdateVersionMetadataApiV1DocumentsVersionIdMetadataPatchResponses];
 
+export type PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetData = {
+    body?: never;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{version_id}/pdf-bindings';
+};
+
+export type PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetError = PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetErrors[keyof PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetErrors];
+
+export type PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PdfBindingsDto;
+};
+
+export type PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetResponse = PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetResponses[keyof PdfBindingsApiV1DocumentsVersionIdPdfBindingsGetResponses];
+
+export type UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutData = {
+    body: PdfBindingsPatch;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{version_id}/pdf-bindings';
+};
+
+export type UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutError = UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutErrors[keyof UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutErrors];
+
+export type UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: PdfBindingsDto;
+};
+
+export type UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutResponse = UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutResponses[keyof UpdatePdfBindingsApiV1DocumentsVersionIdPdfBindingsPutResponses];
+
 export type StructureApiV1DocumentsVersionIdStructureGetData = {
     body?: never;
     path: {
@@ -1943,6 +4494,137 @@ export type FormatWordUploadApiV1FormatWordPostErrors = {
 export type FormatWordUploadApiV1FormatWordPostError = FormatWordUploadApiV1FormatWordPostErrors[keyof FormatWordUploadApiV1FormatWordPostErrors];
 
 export type FormatWordUploadApiV1FormatWordPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type CatalogPdfApiV1NormativeCatalogPdfGetData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Path
+         */
+        path: string;
+    };
+    url: '/api/v1/normative/catalog/pdf';
+};
+
+export type CatalogPdfApiV1NormativeCatalogPdfGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CatalogPdfApiV1NormativeCatalogPdfGetError = CatalogPdfApiV1NormativeCatalogPdfGetErrors[keyof CatalogPdfApiV1NormativeCatalogPdfGetErrors];
+
+export type CatalogPdfApiV1NormativeCatalogPdfGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type NormativeManagerApiV1NormativeManagerGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/normative/manager';
+};
+
+export type NormativeManagerApiV1NormativeManagerGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: NormativeManagerDto;
+};
+
+export type NormativeManagerApiV1NormativeManagerGetResponse = NormativeManagerApiV1NormativeManagerGetResponses[keyof NormativeManagerApiV1NormativeManagerGetResponses];
+
+export type WorkbenchSearchApiV1NormativeSearchPostData = {
+    body: NormativeSearchRequest;
+    path?: never;
+    query?: {
+        /**
+         * Profile
+         */
+        profile?: string;
+    };
+    url: '/api/v1/normative/search';
+};
+
+export type WorkbenchSearchApiV1NormativeSearchPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type WorkbenchSearchApiV1NormativeSearchPostError = WorkbenchSearchApiV1NormativeSearchPostErrors[keyof WorkbenchSearchApiV1NormativeSearchPostErrors];
+
+export type WorkbenchSearchApiV1NormativeSearchPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: NormativeWorkbenchSearchDto;
+};
+
+export type WorkbenchSearchApiV1NormativeSearchPostResponse = WorkbenchSearchApiV1NormativeSearchPostResponses[keyof WorkbenchSearchApiV1NormativeSearchPostResponses];
+
+export type WorkbenchVorCheckApiV1NormativeVorCheckPostData = {
+    body: BodyWorkbenchVorCheckApiV1NormativeVorCheckPost;
+    path?: never;
+    query?: never;
+    url: '/api/v1/normative/vor-check';
+};
+
+export type WorkbenchVorCheckApiV1NormativeVorCheckPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type WorkbenchVorCheckApiV1NormativeVorCheckPostError = WorkbenchVorCheckApiV1NormativeVorCheckPostErrors[keyof WorkbenchVorCheckApiV1NormativeVorCheckPostErrors];
+
+export type WorkbenchVorCheckApiV1NormativeVorCheckPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: NormativeVorCheckDto;
+};
+
+export type WorkbenchVorCheckApiV1NormativeVorCheckPostResponse = WorkbenchVorCheckApiV1NormativeVorCheckPostResponses[keyof WorkbenchVorCheckApiV1NormativeVorCheckPostResponses];
+
+export type WorkbenchSourceApiV1NormativeProfileSourcesSourceIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Profile
+         */
+        profile: string;
+        /**
+         * Source Id
+         */
+        source_id: string;
+    };
+    query?: never;
+    url: '/api/v1/normative/{profile}/sources/{source_id}';
+};
+
+export type WorkbenchSourceApiV1NormativeProfileSourcesSourceIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type WorkbenchSourceApiV1NormativeProfileSourcesSourceIdGetError = WorkbenchSourceApiV1NormativeProfileSourcesSourceIdGetErrors[keyof WorkbenchSourceApiV1NormativeProfileSourcesSourceIdGetErrors];
+
+export type WorkbenchSourceApiV1NormativeProfileSourcesSourceIdGetResponses = {
     /**
      * Successful Response
      */
@@ -2225,3 +4907,17 @@ export type HealthzHealthzGetResponses = {
 };
 
 export type HealthzHealthzGetResponse = HealthzHealthzGetResponses[keyof HealthzHealthzGetResponses];
+
+export type MetricsMetricsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/metrics';
+};
+
+export type MetricsMetricsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};

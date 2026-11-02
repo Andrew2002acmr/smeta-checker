@@ -23,6 +23,7 @@ from audit_models import AuditResult, expected_scope_hint, position_source_dict,
 from audit_snapshot import decode_snapshot, encode_snapshot
 from audit_tracing import TracingRun
 from pdf_binding import (
+    clean_pdf_name,
     index_designations,
     resolve_pdf_name,
     resolve_position_pdfs,
@@ -108,7 +109,7 @@ def get_optimized_page_indices(doc, page_str):
     return mapped, note, pages
 
 
-def preflight_bindings(loaded_vors, target_vor_selection, pdf_pool_keys):
+def preflight_bindings(loaded_vors, target_vor_selection, pdf_pool_keys, bindings=None):
     """Check PDF references per VOR; returns (rows, has_critical_error)."""
     from vor_parse import load_vor_positions
 
@@ -129,11 +130,13 @@ def preflight_bindings(loaded_vors, target_vor_selection, pdf_pool_keys):
                 continue
             seen_bindings.add(binding_key)
             matched, _, _, error = resolve_position_pdfs(
-                refs, pdf_pool_keys, prev_meta.get("basis_code", "")
+                refs, pdf_pool_keys, prev_meta.get("basis_code", ""), bindings
             )
             if error:
                 bind_status = "🔴 " + error
                 has_critical_error = True
+            elif any(clean_pdf_name(ref) in (bindings or {}) for ref in refs):
+                bind_status = "🟢 Явная привязка пользователя"
             elif not refs:
                 bind_status = "🟡 По основанию / единственному PDF"
             else:
@@ -207,7 +210,9 @@ def _independent_checks(task, notes, consumption=None):
             "reasons": [kind], "facts": [],
         })
     calculation = task.get("calculation") or {}
-    if calculation:
+    from vor_formula import has_formula_text
+    if calculation and (calculation.get("status") in {"calculated", "error"}
+                        or has_formula_text(calculation.get("expression"))):
         state = calculation.get("status")
         checks.append({
             "claim_id": "workbook:formula", "kind": "workbook", "required": True,

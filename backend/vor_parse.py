@@ -16,7 +16,7 @@ import pandas as pd
 
 from audit_models import PositionSource, SourceHeading, VorMeta, VorPosition
 from pdf_binding import split_designation_refs, split_pdf_refs
-from vor_formula import calculate_cell, snapshot_cells
+from vor_formula import calculate_cell, snapshot_cells, has_formula_text
 
 
 
@@ -228,6 +228,11 @@ def _read_vor_sheet(file_source, filename, sheet_name=0):
 
 
     df.columns = [re.sub(r"\s+", " ", str(c)).strip() for c in df.columns]
+    amount_columns = [column for column in df.columns
+                      if "формула" not in str(column).casefold()
+                      and any(word in str(column).casefold().replace("ё", "е")
+                              for word in ("объем", "количество", "ед.", "единица измерения",
+                                           "единицы измерения"))]
 
     def is_work_row(row):
         col_pp = re.sub(r"\.0+$", "", str(row.iloc[0]).strip())
@@ -242,6 +247,19 @@ def _read_vor_sheet(file_source, filename, sheet_name=0):
             return True
         if re.match(r"^\d+$", col_pp) and len(col_name) > 3 and not col_name.isdigit():
             return True
+        if len(col_name) > 3 and col_name.casefold() not in {"nan", "none"} and not col_name.isdigit():
+            # A is a display label, not the identity of a work row. Keep a
+            # meaningful work with quantity/unit even if A is blank or text.
+            for column in amount_columns:
+                value = str(row[column]).strip().casefold()
+                if value in {"", "nan", "none", "-"}:
+                    continue
+                label = str(column).casefold()
+                if "ед." in label or "единиц" in label:
+                    return True
+                if value.startswith("=") or re.fullmatch(r"[+-]?\d+(?:[.,]\d+)?", value):
+                    return True
+            return False
         return False
 
     def is_continuation_row(row):
@@ -539,7 +557,7 @@ def _vor_positions(df):
         position_type = str(cell(type_col)).strip()
         if comment.lower() == "nan":
             comment = ""
-        if formula.lower() == "nan":
+        if not has_formula_text(formula):
             formula = ""
         if position_type.lower() == "nan":
             position_type = ""

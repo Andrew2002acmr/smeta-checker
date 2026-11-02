@@ -143,6 +143,220 @@
         "title": "AuditStatusResponse",
         "type": "object"
       },
+      "BasisFragmentDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "corrected_text": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrected Text"
+          },
+          "extracted_text": {
+            "default": "",
+            "title": "Extracted Text",
+            "type": "string"
+          },
+          "image_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Key"
+          },
+          "ocr_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Text"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "rect": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 4,
+            "minItems": 4,
+            "title": "Rect",
+            "type": "array"
+          },
+          "region": {
+            "$ref": "#/components/schemas/PdfRegionDTO"
+          },
+          "role": {
+            "default": "other",
+            "enum": [
+              "work",
+              "volume",
+              "unit",
+              "conditions",
+              "other"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "text": {
+            "default": "",
+            "title": "Text",
+            "type": "string"
+          },
+          "text_checked": {
+            "default": false,
+            "title": "Text Checked",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "page",
+          "rect",
+          "region"
+        ],
+        "title": "BasisFragmentDTO",
+        "type": "object"
+      },
+      "BasisFragmentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "corrected_text": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrected Text"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "rect": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 4,
+            "minItems": 4,
+            "title": "Rect",
+            "type": "array"
+          },
+          "role": {
+            "default": "other",
+            "enum": [
+              "work",
+              "volume",
+              "unit",
+              "conditions",
+              "other"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "text_checked": {
+            "default": false,
+            "title": "Text Checked",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "page",
+          "rect"
+        ],
+        "title": "BasisFragmentRequest",
+        "type": "object"
+      },
+      "BasisPreviewDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "fragments": {
+            "items": {
+              "$ref": "#/components/schemas/BasisFragmentDTO"
+            },
+            "title": "Fragments",
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "row",
+              "area",
+              "text",
+              "multi"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "ocr_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Key"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "rect": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Rect",
+            "type": "array"
+          },
+          "region": {
+            "$ref": "#/components/schemas/PdfRegionDTO"
+          },
+          "selection_digest": {
+            "title": "Selection Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "filename",
+          "page",
+          "quote",
+          "rect",
+          "region",
+          "selection_digest",
+          "mode"
+        ],
+        "title": "BasisPreviewDTO",
+        "type": "object"
+      },
       "Body_format_report_upload_api_v1_format_report_post": {
         "properties": {
           "file": {
@@ -224,6 +438,47 @@
           "project_id"
         ],
         "title": "Body_upload_document_api_v1_documents_post",
+        "type": "object"
+      },
+      "Body_workbench_vor_check_api_v1_normative_vor_check_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "profile": {
+            "default": "electrical",
+            "pattern": "^(electrical|roads)$",
+            "title": "Profile",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_workbench_vor_check_api_v1_normative_vor_check_post",
+        "type": "object"
+      },
+      "ConfirmBasisRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "comment": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Comment",
+            "type": "string"
+          },
+          "evidence_index": {
+            "minimum": 0.0,
+            "title": "Evidence Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "evidence_index"
+        ],
+        "title": "ConfirmBasisRequest",
         "type": "object"
       },
       "DocumentDTO": {
@@ -575,6 +830,11 @@
       "FormatDTO": {
         "additionalProperties": false,
         "properties": {
+          "check_count": {
+            "default": 0,
+            "title": "Check Count",
+            "type": "integer"
+          },
           "error_count": {
             "default": 0,
             "title": "Error Count",
@@ -586,6 +846,11 @@
             },
             "title": "Issues",
             "type": "array"
+          },
+          "position_count": {
+            "default": 0,
+            "title": "Position Count",
+            "type": "integer"
           },
           "sheet": {
             "default": "",
@@ -710,6 +975,163 @@
         "title": "HighlightDTO",
         "type": "object"
       },
+      "HumanBasisDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "comment": {
+            "title": "Comment",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "fragments": {
+            "items": {
+              "$ref": "#/components/schemas/BasisFragmentDTO"
+            },
+            "title": "Fragments",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "ocr_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Key"
+          },
+          "origin": {
+            "enum": [
+              "confirmed",
+              "specified"
+            ],
+            "title": "Origin",
+            "type": "string"
+          },
+          "outdated": {
+            "default": false,
+            "title": "Outdated",
+            "type": "boolean"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "pdf_version_id": {
+            "title": "Pdf Version Id",
+            "type": "string"
+          },
+          "position_index": {
+            "title": "Position Index",
+            "type": "integer"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "rect": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rect"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PdfRegionDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Version Id"
+          },
+          "reused": {
+            "title": "Reused",
+            "type": "boolean"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "revoked_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked By"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "position_index",
+          "pdf_version_id",
+          "filename",
+          "page",
+          "quote",
+          "rect",
+          "region",
+          "origin",
+          "comment",
+          "actor",
+          "created_at",
+          "reused"
+        ],
+        "title": "HumanBasisDTO",
+        "type": "object"
+      },
       "MetadataSourceDTO": {
         "additionalProperties": false,
         "properties": {
@@ -730,6 +1152,2207 @@
           }
         },
         "title": "MetadataSourceDTO",
+        "type": "object"
+      },
+      "NormativeCandidate": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeCitation"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "composition": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Composition",
+            "type": "array"
+          },
+          "context_reason": {
+            "default": "",
+            "title": "Context Reason",
+            "type": "string"
+          },
+          "designation": {
+            "title": "Designation",
+            "type": "string"
+          },
+          "edition_status": {
+            "title": "Edition Status",
+            "type": "string"
+          },
+          "entity_kind": {
+            "enum": [
+              "norm",
+              "clause"
+            ],
+            "title": "Entity Kind",
+            "type": "string"
+          },
+          "extraction_status": {
+            "title": "Extraction Status",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "missing_facts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Facts",
+            "type": "array"
+          },
+          "resources": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeResource"
+            },
+            "title": "Resources",
+            "type": "array"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeRule"
+            },
+            "title": "Rules",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "candidate",
+              "needs_facts",
+              "possible_mismatch",
+              "possible_duplicate"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "default": "",
+            "title": "Text",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "unit_base": {
+            "default": "",
+            "title": "Unit Base",
+            "type": "string"
+          },
+          "unit_raw": {
+            "default": "",
+            "title": "Unit Raw",
+            "type": "string"
+          },
+          "unit_scale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Scale"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "title",
+          "designation",
+          "entity_kind",
+          "status",
+          "extraction_status",
+          "edition_status",
+          "checks",
+          "missing_facts",
+          "composition",
+          "resources",
+          "rules",
+          "citations"
+        ],
+        "title": "NormativeCandidate",
+        "type": "object"
+      },
+      "NormativeCatalogFileDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "designation": {
+            "title": "Designation",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "imported": {
+            "title": "Imported",
+            "type": "boolean"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "designation",
+          "size_bytes",
+          "sha256",
+          "imported"
+        ],
+        "title": "NormativeCatalogFileDTO",
+        "type": "object"
+      },
+      "NormativeCatalogSectionDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeCatalogFileDTO"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "files"
+        ],
+        "title": "NormativeCatalogSectionDTO",
+        "type": "object"
+      },
+      "NormativeCatalogTypeDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "file_count": {
+            "title": "File Count",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeCatalogSectionDTO"
+            },
+            "title": "Sections",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "sections",
+          "file_count"
+        ],
+        "title": "NormativeCatalogTypeDTO",
+        "type": "object"
+      },
+      "NormativeCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "actual": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual"
+          },
+          "expected": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "norm_quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Norm Quantity"
+          },
+          "state": {
+            "enum": [
+              "match",
+              "mismatch",
+              "unknown"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "state"
+        ],
+        "title": "NormativeCheck",
+        "type": "object"
+      },
+      "NormativeCheckSource": {
+        "additionalProperties": false,
+        "properties": {
+          "engine": {
+            "default": "",
+            "title": "Engine",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "image_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Key"
+          },
+          "kind": {
+            "enum": [
+              "project",
+              "normative"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          },
+          "words_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Words Key"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "page",
+          "text",
+          "origin"
+        ],
+        "title": "NormativeCheckSource",
+        "type": "object"
+      },
+      "NormativeCitation": {
+        "additionalProperties": false,
+        "properties": {
+          "bbox": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bbox"
+          },
+          "coordinate_system": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coordinate System"
+          },
+          "designation": {
+            "title": "Designation",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "designation",
+          "page"
+        ],
+        "title": "NormativeCitation",
+        "type": "object"
+      },
+      "NormativeContextAnalysis": {
+        "additionalProperties": false,
+        "properties": {
+          "elapsed_seconds": {
+            "default": 0,
+            "title": "Elapsed Seconds",
+            "type": "number"
+          },
+          "interpretation": {
+            "default": "",
+            "title": "Interpretation",
+            "type": "string"
+          },
+          "missing_facts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Facts",
+            "type": "array"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "queries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Queries",
+            "type": "array"
+          },
+          "requests": {
+            "default": 0,
+            "title": "Requests",
+            "type": "integer"
+          },
+          "trace_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Id"
+          },
+          "trace_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Url"
+          },
+          "usage": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Usage",
+            "type": "object"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "model",
+          "provider"
+        ],
+        "title": "NormativeContextAnalysis",
+        "type": "object"
+      },
+      "NormativeCorpusAdminDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "gaps": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Gaps",
+            "type": "array"
+          },
+          "identity": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Identity",
+            "type": "object"
+          },
+          "profile": {
+            "enum": [
+              "electrical",
+              "roads"
+            ],
+            "title": "Profile",
+            "type": "string"
+          },
+          "releases": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeReleaseDTO"
+            },
+            "title": "Releases",
+            "type": "array"
+          },
+          "review_queue": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeReviewIssueDTO"
+            },
+            "title": "Review Queue",
+            "type": "array"
+          },
+          "review_queue_total": {
+            "title": "Review Queue Total",
+            "type": "integer"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeSourceAdminDTO"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile",
+          "title",
+          "identity",
+          "counts",
+          "releases",
+          "sources",
+          "gaps",
+          "review_queue",
+          "review_queue_total"
+        ],
+        "title": "NormativeCorpusAdminDTO",
+        "type": "object"
+      },
+      "NormativeEvidenceAnchor": {
+        "additionalProperties": false,
+        "properties": {
+          "quote": {
+            "default": "",
+            "title": "Quote",
+            "type": "string"
+          },
+          "rects": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "maxItems": 40,
+            "title": "Rects",
+            "type": "array"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id"
+        ],
+        "title": "NormativeEvidenceAnchor",
+        "type": "object"
+      },
+      "NormativeFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "cross_section_mm2": {
+            "default": "",
+            "maxLength": 32,
+            "title": "Cross Section Mm2",
+            "type": "string"
+          },
+          "height_m": {
+            "default": "",
+            "maxLength": 32,
+            "title": "Height M",
+            "type": "string"
+          },
+          "included_height_exceeded": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Included Height Exceeded"
+          },
+          "mass_kg_per_m": {
+            "default": "",
+            "maxLength": 32,
+            "title": "Mass Kg Per M",
+            "type": "string"
+          },
+          "placement": {
+            "default": "",
+            "enum": [
+              "",
+              "laid_pipes_blocks_boxes",
+              "trench",
+              "tray",
+              "open"
+            ],
+            "title": "Placement",
+            "type": "string"
+          },
+          "project_date": {
+            "default": "",
+            "maxLength": 10,
+            "title": "Project Date",
+            "type": "string"
+          },
+          "quantity": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Quantity",
+            "type": "string"
+          },
+          "separate_connection_position": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Separate Connection Position"
+          },
+          "system": {
+            "default": "",
+            "enum": [
+              "",
+              "power",
+              "contact_network",
+              "lighting",
+              "automation"
+            ],
+            "title": "System",
+            "type": "string"
+          },
+          "unit": {
+            "default": "",
+            "maxLength": 32,
+            "title": "Unit",
+            "type": "string"
+          },
+          "voltage_kv": {
+            "default": "",
+            "maxLength": 32,
+            "title": "Voltage Kv",
+            "type": "string"
+          }
+        },
+        "title": "NormativeFacts",
+        "type": "object"
+      },
+      "NormativeLibrary": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "gaps": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Gaps",
+            "type": "array"
+          },
+          "identity": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Identity",
+            "type": "object"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeLibrarySource"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "identity",
+          "sources",
+          "gaps",
+          "counts"
+        ],
+        "title": "NormativeLibrary",
+        "type": "object"
+      },
+      "NormativeLibrarySource": {
+        "additionalProperties": false,
+        "properties": {
+          "designation": {
+            "title": "Designation",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "pages": {
+            "title": "Pages",
+            "type": "integer"
+          },
+          "readable_pages": {
+            "title": "Readable Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "designation",
+          "pages",
+          "readable_pages"
+        ],
+        "title": "NormativeLibrarySource",
+        "type": "object"
+      },
+      "NormativeManagerDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "collections": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeCatalogTypeDTO"
+            },
+            "title": "Collections",
+            "type": "array"
+          },
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeCorpusAdminDTO"
+            },
+            "title": "Profiles",
+            "type": "array"
+          }
+        },
+        "required": [
+          "profiles",
+          "collections"
+        ],
+        "title": "NormativeManagerDTO",
+        "type": "object"
+      },
+      "NormativeNumericCondition": {
+        "additionalProperties": false,
+        "properties": {
+          "operator": {
+            "enum": [
+              "eq",
+              "lt",
+              "le",
+              "gt",
+              "ge"
+            ],
+            "title": "Operator",
+            "type": "string"
+          },
+          "parameter": {
+            "enum": [
+              "quantity",
+              "thickness"
+            ],
+            "title": "Parameter",
+            "type": "string"
+          },
+          "quote": {
+            "maxLength": 700,
+            "title": "Quote",
+            "type": "string"
+          },
+          "unit": {
+            "maxLength": 30,
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 40,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "parameter",
+          "operator",
+          "value",
+          "unit",
+          "quote"
+        ],
+        "title": "NormativeNumericCondition",
+        "type": "object"
+      },
+      "NormativeParameterCard": {
+        "additionalProperties": false,
+        "properties": {
+          "compared_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compared Value"
+          },
+          "conditions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Conditions",
+            "type": "array"
+          },
+          "declared_value": {
+            "title": "Declared Value",
+            "type": "string"
+          },
+          "expression": {
+            "default": "",
+            "title": "Expression",
+            "type": "string"
+          },
+          "found_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Found Unit"
+          },
+          "found_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Found Value"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "quote": {
+            "default": "",
+            "title": "Quote",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "role": {
+            "enum": [
+              "project_value",
+              "coefficient",
+              "unit_scale",
+              "calculation"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "row": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row"
+          },
+          "source_anchors": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeEvidenceAnchor"
+            },
+            "title": "Source Anchors",
+            "type": "array"
+          },
+          "source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Ids",
+            "type": "array"
+          },
+          "state": {
+            "enum": [
+              "confirmed",
+              "needs_facts",
+              "possible_mismatch"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "role",
+          "declared_value",
+          "unit",
+          "state",
+          "reason"
+        ],
+        "title": "NormativeParameterCard",
+        "type": "object"
+      },
+      "NormativeParameterProposal": {
+        "additionalProperties": false,
+        "properties": {
+          "conditions": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeNumericCondition"
+            },
+            "maxItems": 6,
+            "title": "Conditions",
+            "type": "array"
+          },
+          "parameter": {
+            "enum": [
+              "quantity",
+              "thickness",
+              "coefficient",
+              "unit_scale"
+            ],
+            "title": "Parameter",
+            "type": "string"
+          },
+          "quote": {
+            "maxLength": 900,
+            "title": "Quote",
+            "type": "string"
+          },
+          "source_id": {
+            "maxLength": 80,
+            "title": "Source Id",
+            "type": "string"
+          },
+          "unit": {
+            "maxLength": 30,
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 40,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "parameter",
+          "value",
+          "unit",
+          "source_id",
+          "quote"
+        ],
+        "title": "NormativeParameterProposal",
+        "type": "object"
+      },
+      "NormativePositionCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NormativePositionCheckItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "local_rules_version": {
+            "default": 0,
+            "title": "Local Rules Version",
+            "type": "integer"
+          },
+          "local_validation_version": {
+            "default": 0,
+            "title": "Local Validation Version",
+            "type": "integer"
+          },
+          "local_work_basis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NormativeWorkBasis"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parameter_cards": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeParameterCard"
+            },
+            "title": "Parameter Cards",
+            "type": "array"
+          },
+          "parameter_proposals": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeParameterProposal"
+            },
+            "title": "Parameter Proposals",
+            "type": "array"
+          },
+          "parameter_schema_version": {
+            "default": 0,
+            "title": "Parameter Schema Version",
+            "type": "integer"
+          },
+          "quantity_composition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuantityComposition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "related_positions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Related Positions",
+            "type": "array"
+          },
+          "requires_engineer_review": {
+            "default": true,
+            "title": "Requires Engineer Review",
+            "type": "boolean"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeCheckSource"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "state": {
+            "enum": [
+              "confirmed",
+              "needs_facts",
+              "possible_mismatch"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "telemetry": {
+            "$ref": "#/components/schemas/NormativeContextAnalysis"
+          }
+        },
+        "required": [
+          "summary",
+          "state",
+          "items",
+          "sources",
+          "related_positions",
+          "telemetry"
+        ],
+        "title": "NormativePositionCheck",
+        "type": "object"
+      },
+      "NormativePositionCheckItem": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Claim Ids",
+            "type": "array"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "normative_source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Normative Source Ids",
+            "type": "array"
+          },
+          "project_source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Project Source Ids",
+            "type": "array"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "state": {
+            "enum": [
+              "confirmed",
+              "needs_facts",
+              "possible_mismatch"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic",
+          "state",
+          "explanation",
+          "project_source_ids",
+          "normative_source_ids"
+        ],
+        "title": "NormativePositionCheckItem",
+        "type": "object"
+      },
+      "NormativePositionCheckRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "pages": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 6,
+            "title": "Pages",
+            "type": "array"
+          },
+          "pdf_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdf Version Id"
+          },
+          "question": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "title": "NormativePositionCheckRequest",
+        "type": "object"
+      },
+      "NormativeProjectCitation": {
+        "additionalProperties": false,
+        "properties": {
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "machine",
+              "human"
+            ],
+            "title": "Origin",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "version_id": {
+            "title": "Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version_id",
+          "filename",
+          "page",
+          "quote",
+          "origin"
+        ],
+        "title": "NormativeProjectCitation",
+        "type": "object"
+      },
+      "NormativeReleaseDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "current": {
+            "default": false,
+            "title": "Current",
+            "type": "boolean"
+          },
+          "database": {
+            "title": "Database",
+            "type": "string"
+          },
+          "engineering_validation": {
+            "default": "not_full",
+            "title": "Engineering Validation",
+            "type": "string"
+          },
+          "foreign_keys": {
+            "default": "unknown",
+            "title": "Foreign Keys",
+            "type": "string"
+          },
+          "integrity": {
+            "default": "unknown",
+            "title": "Integrity",
+            "type": "string"
+          },
+          "observed_on": {
+            "default": "",
+            "title": "Observed On",
+            "type": "string"
+          },
+          "parser_version": {
+            "default": "",
+            "title": "Parser Version",
+            "type": "string"
+          },
+          "release_id": {
+            "title": "Release Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "release_id",
+          "database",
+          "counts"
+        ],
+        "title": "NormativeReleaseDTO",
+        "type": "object"
+      },
+      "NormativeResource": {
+        "additionalProperties": false,
+        "properties": {
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeCitation"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "quantity_kind": {
+            "title": "Quantity Kind",
+            "type": "string"
+          },
+          "raw_quantity": {
+            "title": "Raw Quantity",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "unit",
+          "quantity",
+          "quantity_kind",
+          "raw_quantity",
+          "status",
+          "citations"
+        ],
+        "title": "NormativeResource",
+        "type": "object"
+      },
+      "NormativeReviewDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "search",
+              "selection",
+              "check"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/NormativeSnapshot"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "actor",
+          "created_at",
+          "payload"
+        ],
+        "title": "NormativeReviewDTO",
+        "type": "object"
+      },
+      "NormativeReviewIssueDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "designation": {
+            "default": "",
+            "title": "Designation",
+            "type": "string"
+          },
+          "entity_id": {
+            "default": "",
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "source_id": {
+            "default": "",
+            "title": "Source Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reason"
+        ],
+        "title": "NormativeReviewIssueDTO",
+        "type": "object"
+      },
+      "NormativeRule": {
+        "additionalProperties": false,
+        "properties": {
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeCitation"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "factor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Factor"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "missing_facts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Facts",
+            "type": "array"
+          },
+          "state": {
+            "enum": [
+              "candidate",
+              "needs_facts",
+              "not_applicable"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "target": {
+            "default": "",
+            "title": "Target",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "state",
+          "missing_facts",
+          "citations"
+        ],
+        "title": "NormativeRule",
+        "type": "object"
+      },
+      "NormativeSearchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "facts": {
+            "$ref": "#/components/schemas/NormativeFacts"
+          },
+          "kind": {
+            "default": "GESN",
+            "enum": [
+              "GESN",
+              "SP",
+              "GOST",
+              "PUE",
+              "ALL"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "mode": {
+            "default": "lexical",
+            "enum": [
+              "lexical",
+              "context"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "query": {
+            "maxLength": 2000,
+            "minLength": 2,
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "NormativeSearchRequest",
+        "type": "object"
+      },
+      "NormativeSelectionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "comment": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Comment",
+            "type": "string"
+          },
+          "norm_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Norm Ids",
+            "type": "array"
+          },
+          "search_id": {
+            "title": "Search Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "search_id",
+          "norm_ids"
+        ],
+        "title": "NormativeSelectionRequest",
+        "type": "object"
+      },
+      "NormativeSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeCandidate"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "checks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "comment": {
+            "default": "",
+            "title": "Comment",
+            "type": "string"
+          },
+          "context_analysis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NormativeContextAnalysis"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fact_origins": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Fact Origins",
+            "type": "object"
+          },
+          "facts": {
+            "$ref": "#/components/schemas/NormativeFacts"
+          },
+          "kb": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Kb",
+            "type": "object"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "missing_facts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Facts",
+            "type": "array"
+          },
+          "mode": {
+            "default": "lexical",
+            "enum": [
+              "lexical",
+              "context"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "position_check": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NormativePositionCheck"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position_key": {
+            "title": "Position Key",
+            "type": "string"
+          },
+          "project_citations": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeProjectCitation"
+            },
+            "title": "Project Citations",
+            "type": "array"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "requires_engineer_review": {
+            "default": true,
+            "title": "Requires Engineer Review",
+            "type": "boolean"
+          },
+          "search_id": {
+            "default": "",
+            "title": "Search Id",
+            "type": "string"
+          },
+          "selected_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Selected Ids",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "candidate",
+              "needs_facts",
+              "possible_mismatch",
+              "possible_duplicate"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "vor_version_id": {
+            "title": "Vor Version Id",
+            "type": "string"
+          },
+          "work_item_id": {
+            "title": "Work Item Id",
+            "type": "string"
+          },
+          "work_relations": {
+            "additionalProperties": true,
+            "title": "Work Relations",
+            "type": "object"
+          }
+        },
+        "required": [
+          "work_item_id",
+          "query",
+          "kind",
+          "facts",
+          "fact_origins",
+          "kb",
+          "vor_version_id",
+          "position_key",
+          "status",
+          "candidates",
+          "missing_facts",
+          "checks",
+          "project_citations"
+        ],
+        "title": "NormativeSnapshot",
+        "type": "object"
+      },
+      "NormativeSourceAdminDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "designation": {
+            "title": "Designation",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "default": "",
+            "title": "Kind",
+            "type": "string"
+          },
+          "pages": {
+            "title": "Pages",
+            "type": "integer"
+          },
+          "readable_pages": {
+            "title": "Readable Pages",
+            "type": "integer"
+          },
+          "role": {
+            "default": "",
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "designation",
+          "pages",
+          "readable_pages"
+        ],
+        "title": "NormativeSourceAdminDTO",
+        "type": "object"
+      },
+      "NormativeStage": {
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "dispatched",
+              "running",
+              "done",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "attempts"
+        ],
+        "title": "NormativeStage",
+        "type": "object"
+      },
+      "NormativeStateDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "automatic_stage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NormativeStage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fact_origins": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Fact Origins",
+            "type": "object"
+          },
+          "facts": {
+            "$ref": "#/components/schemas/NormativeFacts"
+          },
+          "latest_check": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NormativeReviewDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_search": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NormativeReviewDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "library": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NormativeLibrary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "profile": {
+            "default": "electrical",
+            "enum": [
+              "electrical",
+              "roads"
+            ],
+            "title": "Profile",
+            "type": "string"
+          },
+          "project_citations": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeProjectCitation"
+            },
+            "title": "Project Citations",
+            "type": "array"
+          },
+          "selection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NormativeReviewDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "work_name": {
+            "title": "Work Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "work_name",
+          "facts",
+          "fact_origins",
+          "project_citations"
+        ],
+        "title": "NormativeStateDTO",
+        "type": "object"
+      },
+      "NormativeVORCheckDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "profile": {
+            "enum": [
+              "electrical",
+              "roads"
+            ],
+            "title": "Profile",
+            "type": "string"
+          },
+          "returned_positions": {
+            "title": "Returned Positions",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeVORRowDTO"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "total_positions": {
+            "title": "Total Positions",
+            "type": "integer"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "filename",
+          "profile",
+          "total_positions",
+          "returned_positions",
+          "truncated",
+          "rows"
+        ],
+        "title": "NormativeVORCheckDTO",
+        "type": "object"
+      },
+      "NormativeVORRowDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeCandidate"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "code_match": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Match"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "name_similarity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Similarity"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "source_code": {
+            "default": "",
+            "title": "Source Code",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "matched",
+              "unit_mismatch",
+              "name_mismatch",
+              "review",
+              "not_found"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "unit_match": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Match"
+          },
+          "volume": {
+            "title": "Volume",
+            "type": "string"
+          },
+          "work_name": {
+            "title": "Work Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "number",
+          "work_name",
+          "volume",
+          "unit",
+          "status",
+          "candidates"
+        ],
+        "title": "NormativeVORRowDTO",
+        "type": "object"
+      },
+      "NormativeWorkBasis": {
+        "additionalProperties": false,
+        "properties": {
+          "anchors": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/NormativeEvidenceAnchor"
+              },
+              "type": "array"
+            },
+            "title": "Anchors",
+            "type": "object"
+          },
+          "norm_scale": {
+            "title": "Norm Scale",
+            "type": "string"
+          },
+          "normative_source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Normative Source Ids",
+            "type": "array"
+          },
+          "project_source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Project Source Ids",
+            "type": "array"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "string"
+          },
+          "thickness_cm": {
+            "title": "Thickness Cm",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quantity",
+          "unit",
+          "thickness_cm",
+          "norm_scale",
+          "project_source_ids",
+          "normative_source_ids"
+        ],
+        "title": "NormativeWorkBasis",
+        "type": "object"
+      },
+      "NormativeWorkbenchSearchDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeCandidate"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "identity": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Identity",
+            "type": "object"
+          },
+          "profile": {
+            "enum": [
+              "electrical",
+              "roads"
+            ],
+            "title": "Profile",
+            "type": "string"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile",
+          "identity",
+          "query",
+          "candidates"
+        ],
+        "title": "NormativeWorkbenchSearchDTO",
+        "type": "object"
+      },
+      "PdfBindingsDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "bindings": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Bindings",
+            "type": "object"
+          },
+          "references": {
+            "items": {
+              "type": "string"
+            },
+            "title": "References",
+            "type": "array"
+          }
+        },
+        "required": [
+          "references",
+          "bindings"
+        ],
+        "title": "PdfBindingsDTO",
+        "type": "object"
+      },
+      "PdfBindingsPatch": {
+        "additionalProperties": false,
+        "properties": {
+          "bindings": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 500,
+            "title": "Bindings",
+            "type": "object"
+          }
+        },
+        "title": "PdfBindingsPatch",
         "type": "object"
       },
       "PdfRegionDTO": {
@@ -888,6 +3511,73 @@
         "title": "PreflightRow",
         "type": "object"
       },
+      "PreparedPageDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "blob_key": {
+            "title": "Blob Key",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "pending": {
+            "title": "Pending",
+            "type": "boolean"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "page",
+          "text",
+          "pending",
+          "origin",
+          "blob_key",
+          "sha256",
+          "truncated"
+        ],
+        "title": "PreparedPageDTO",
+        "type": "object"
+      },
       "ProjectCreate": {
         "additionalProperties": false,
         "properties": {
@@ -971,6 +3661,100 @@
         "title": "ProjectUpdate",
         "type": "object"
       },
+      "QuantityComposition": {
+        "additionalProperties": false,
+        "properties": {
+          "declared_value": {
+            "title": "Declared Value",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "parent_position_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Position Index"
+          },
+          "rounded_total": {
+            "title": "Rounded Total",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "confirmed",
+              "possible_mismatch"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "terms": {
+            "items": {
+              "$ref": "#/components/schemas/QuantityTerm"
+            },
+            "title": "Terms",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "unit",
+          "total",
+          "rounded_total",
+          "declared_value",
+          "source_id",
+          "page",
+          "terms"
+        ],
+        "title": "QuantityComposition",
+        "type": "object"
+      },
+      "QuantityTerm": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "rect": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Rect",
+            "type": "array"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "value",
+          "rect"
+        ],
+        "title": "QuantityTerm",
+        "type": "object"
+      },
       "ReportStatus": {
         "description": "User-facing report bucket; derived from flags, never invented.",
         "enum": [
@@ -1041,6 +3825,16 @@
             "title": "Id",
             "type": "string"
           },
+          "matching_report_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -1062,13 +3856,35 @@
               "fix",
               "review",
               "missing",
-              "ok"
+              "ok",
+              "pending"
             ],
             "title": "Queue",
             "type": "string"
           },
+          "related_work": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related Work"
+          },
           "report_status": {
-            "$ref": "#/components/schemas/ReportStatus"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportStatus"
+              },
+              {
+                "const": "Проверяется по нормативам",
+                "type": "string"
+              }
+            ],
+            "title": "Report Status"
           },
           "sheet": {
             "title": "Sheet",
@@ -1127,6 +3943,121 @@
           "details"
         ],
         "title": "ResultDTO",
+        "type": "object"
+      },
+      "ResultVersionDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "details": {
+            "title": "Details",
+            "type": "string"
+          },
+          "found_unit": {
+            "title": "Found Unit",
+            "type": "string"
+          },
+          "found_volume": {
+            "title": "Found Volume",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "status",
+          "found_volume",
+          "found_unit",
+          "details"
+        ],
+        "title": "ResultVersionDTO",
+        "type": "object"
+      },
+      "ReviewArtifactDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "draft",
+              "ocr"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/BasisPreviewDTO"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/SpecifyBasisRequest"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "actor",
+          "created_at",
+          "selection",
+          "preview"
+        ],
+        "title": "ReviewArtifactDTO",
+        "type": "object"
+      },
+      "ReviewHistoryDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "artifacts": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewArtifactDTO"
+            },
+            "title": "Artifacts",
+            "type": "array"
+          },
+          "bases": {
+            "items": {
+              "$ref": "#/components/schemas/HumanBasisDTO"
+            },
+            "title": "Bases",
+            "type": "array"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ResultVersionDTO"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "results",
+          "artifacts",
+          "bases"
+        ],
+        "title": "ReviewHistoryDTO",
         "type": "object"
       },
       "RowsDTO": {
@@ -1200,6 +4131,13 @@
               }
             ],
             "title": "Finished At"
+          },
+          "normative_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Normative Counts",
+            "type": "object"
           },
           "preparation_done": {
             "default": 0,
@@ -1310,6 +4248,104 @@
           "text"
         ],
         "title": "SourceHeading",
+        "type": "object"
+      },
+      "SpecifyBasisRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "comment": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Comment",
+            "type": "string"
+          },
+          "fragments": {
+            "items": {
+              "$ref": "#/components/schemas/BasisFragmentRequest"
+            },
+            "maxItems": 20,
+            "title": "Fragments",
+            "type": "array"
+          },
+          "mode": {
+            "default": "area",
+            "enum": [
+              "row",
+              "area",
+              "text",
+              "multi"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "ocr_key": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{2}/[a-f0-9]{2}/[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Key"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "rect": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 4,
+            "minItems": 4,
+            "title": "Rect",
+            "type": "array"
+          },
+          "rects": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "maxItems": 200,
+                "minItems": 1,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rects"
+          },
+          "selection_digest": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selection Digest"
+          },
+          "version_id": {
+            "title": "Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version_id",
+          "page",
+          "rect"
+        ],
+        "title": "SpecifyBasisRequest",
         "type": "object"
       },
       "StructureDTO": {
@@ -1521,6 +4557,13 @@
             },
             "title": "Queues",
             "type": "object"
+          },
+          "ready_positions": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Ready Positions",
+            "type": "array"
           },
           "run": {
             "$ref": "#/components/schemas/RunDTO"
@@ -2017,6 +5060,1121 @@
         "summary": "Cancel Audit"
       }
     },
+    "/api/v1/audits/{run_id}/positions/{position_index}/basis": {
+      "get": {
+        "operationId": "human_basis_list_api_v1_audits__run_id__positions__position_index__basis_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HumanBasisDTO"
+                  },
+                  "title": "Response Human Basis List Api V1 Audits  Run Id  Positions  Position Index  Basis Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Human Basis List"
+      },
+      "post": {
+        "operationId": "human_basis_specify_api_v1_audits__run_id__positions__position_index__basis_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpecifyBasisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HumanBasisDTO"
+                  },
+                  "title": "Response Human Basis Specify Api V1 Audits  Run Id  Positions  Position Index  Basis Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Human Basis Specify"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/basis/confirm": {
+      "post": {
+        "operationId": "human_basis_confirm_api_v1_audits__run_id__positions__position_index__basis_confirm_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmBasisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HumanBasisDTO"
+                  },
+                  "title": "Response Human Basis Confirm Api V1 Audits  Run Id  Positions  Position Index  Basis Confirm Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Human Basis Confirm"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/basis/drafts": {
+      "post": {
+        "operationId": "save_basis_draft_api_v1_audits__run_id__positions__position_index__basis_drafts_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpecifyBasisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewArtifactDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Basis Draft"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/basis/preview": {
+      "post": {
+        "operationId": "human_basis_preview_api_v1_audits__run_id__positions__position_index__basis_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpecifyBasisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BasisPreviewDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Human Basis Preview"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/basis/recognize": {
+      "post": {
+        "operationId": "human_basis_recognize_api_v1_audits__run_id__positions__position_index__basis_recognize_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpecifyBasisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BasisPreviewDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Human Basis Recognize"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/basis/{basis_id}": {
+      "delete": {
+        "operationId": "human_basis_revoke_api_v1_audits__run_id__positions__position_index__basis__basis_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "basis_id",
+            "required": true,
+            "schema": {
+              "title": "Basis Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HumanBasisDTO"
+                  },
+                  "title": "Response Human Basis Revoke Api V1 Audits  Run Id  Positions  Position Index  Basis  Basis Id  Delete",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Human Basis Revoke"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/extraction": {
+      "get": {
+        "operationId": "prepared_page_api_v1_audits__run_id__positions__position_index__extraction_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreparedPageDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Prepared Page"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/history": {
+      "get": {
+        "operationId": "review_history_api_v1_audits__run_id__positions__position_index__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewHistoryDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Review History"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/history/{kind}/{item_id}/images/{index}": {
+      "get": {
+        "operationId": "review_image_api_v1_audits__run_id__positions__position_index__history__kind___item_id__images__index__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "title": "Item Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "index",
+            "required": true,
+            "schema": {
+              "title": "Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Review Image"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/normative": {
+      "get": {
+        "operationId": "state_api_v1_audits__run_id__positions__position_index__normative_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NormativeStateDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "State"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/normative/check": {
+      "post": {
+        "operationId": "check_api_v1_audits__run_id__positions__position_index__normative_check_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NormativePositionCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NormativeReviewDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/normative/library/{source_id}": {
+      "get": {
+        "operationId": "library_pdf_api_v1_audits__run_id__positions__position_index__normative_library__source_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Library Pdf"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/normative/search": {
+      "post": {
+        "operationId": "search_api_v1_audits__run_id__positions__position_index__normative_search_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NormativeSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NormativeReviewDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/normative/selection": {
+      "post": {
+        "operationId": "select_api_v1_audits__run_id__positions__position_index__normative_selection_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NormativeSelectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NormativeReviewDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Select"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/normative/{review_id}/check-images/{source_id}": {
+      "get": {
+        "operationId": "check_image_api_v1_audits__run_id__positions__position_index__normative__review_id__check_images__source_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "title": "Review Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check Image"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/normative/{review_id}/check-ocr/{source_id}": {
+      "get": {
+        "operationId": "check_ocr_api_v1_audits__run_id__positions__position_index__normative__review_id__check_ocr__source_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "title": "Review Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check Ocr"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/normative/{review_id}/sources/{source_id}": {
+      "get": {
+        "operationId": "source_api_v1_audits__run_id__positions__position_index__normative__review_id__sources__source_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "title": "Review Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/normative/{review_id}/validate": {
+      "post": {
+        "operationId": "validate_saved_api_v1_audits__run_id__positions__position_index__normative__review_id__validate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "title": "Review Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NormativeReviewDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Validate Saved"
+      }
+    },
     "/api/v1/audits/{run_id}/positions/{position_index}/workspace": {
       "get": {
         "operationId": "workspace_api_v1_audits__run_id__positions__position_index__workspace_get",
@@ -2189,6 +6347,45 @@
         "summary": "Get Audit Results"
       }
     },
+    "/api/v1/audits/{run_id}/resume": {
+      "post": {
+        "operationId": "resume_audit_api_v1_audits__run_id__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resume Audit"
+      }
+    },
     "/api/v1/audits/{run_id}/rows": {
       "get": {
         "operationId": "rows_api_v1_audits__run_id__rows_get",
@@ -2208,7 +6405,7 @@
             "required": false,
             "schema": {
               "default": "all",
-              "pattern": "^(all|fix|review|missing|ok)$",
+              "pattern": "^(all|fix|review|missing|ok|pending)$",
               "title": "Focus",
               "type": "string"
             }
@@ -2240,7 +6437,7 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "default": 100,
+              "default": 10,
               "maximum": 200,
               "minimum": 1,
               "title": "Limit",
@@ -2773,6 +6970,92 @@
         "summary": "Update Version Metadata"
       }
     },
+    "/api/v1/documents/{version_id}/pdf-bindings": {
+      "get": {
+        "operationId": "pdf_bindings_api_v1_documents__version_id__pdf_bindings_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfBindingsDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Pdf Bindings"
+      },
+      "put": {
+        "operationId": "update_pdf_bindings_api_v1_documents__version_id__pdf_bindings_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PdfBindingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfBindingsDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Pdf Bindings"
+      }
+    },
     "/api/v1/documents/{version_id}/structure": {
       "get": {
         "operationId": "structure_api_v1_documents__version_id__structure_get",
@@ -3016,6 +7299,198 @@
           }
         },
         "summary": "Format Word Upload"
+      }
+    },
+    "/api/v1/normative/catalog/pdf": {
+      "get": {
+        "operationId": "catalog_pdf_api_v1_normative_catalog_pdf_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "maxLength": 1024,
+              "minLength": 1,
+              "title": "Path",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Catalog Pdf"
+      }
+    },
+    "/api/v1/normative/manager": {
+      "get": {
+        "operationId": "normative_manager_api_v1_normative_manager_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NormativeManagerDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Normative Manager"
+      }
+    },
+    "/api/v1/normative/search": {
+      "post": {
+        "operationId": "workbench_search_api_v1_normative_search_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "profile",
+            "required": false,
+            "schema": {
+              "default": "electrical",
+              "pattern": "^(electrical|roads)$",
+              "title": "Profile",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NormativeSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NormativeWorkbenchSearchDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Workbench Search"
+      }
+    },
+    "/api/v1/normative/vor-check": {
+      "post": {
+        "operationId": "workbench_vor_check_api_v1_normative_vor_check_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_workbench_vor_check_api_v1_normative_vor_check_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NormativeVORCheckDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Workbench Vor Check"
+      }
+    },
+    "/api/v1/normative/{profile}/sources/{source_id}": {
+      "get": {
+        "operationId": "workbench_source_api_v1_normative__profile__sources__source_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile",
+            "required": true,
+            "schema": {
+              "title": "Profile",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Workbench Source"
       }
     },
     "/api/v1/projects": {
@@ -3403,6 +7878,22 @@
           }
         },
         "summary": "Healthz"
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "metrics_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Metrics"
       }
     }
   }

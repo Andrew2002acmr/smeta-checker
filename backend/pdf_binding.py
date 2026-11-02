@@ -162,7 +162,7 @@ def resolve_pdf_name(ref, pool_keys):
     return None, NOT_FOUND
 
 
-def resolve_position_pdfs(refs, pool_keys, basis_code=""):
+def resolve_position_pdfs(refs, pool_keys, basis_code="", bindings=None):
     """Resolve a position once for both preflight and execution.
 
     Returns (matched keys, missing references, ambiguity details, error).
@@ -185,7 +185,11 @@ def resolve_position_pdfs(refs, pool_keys, basis_code=""):
         return [], [], [], "Не указан однозначный PDF для позиции"
     matched, missing, ambiguous = [], [], []
     for ref in refs:
-        key, status = resolve_pdf_name(ref, keys)
+        target = (bindings or {}).get(clean_pdf_name(ref))
+        if target is not None:
+            key, status = (target, EXACT_MATCH) if target in keys else (None, NOT_FOUND)
+        else:
+            key, status = resolve_pdf_name(ref, keys)
         if key is not None and key not in matched:
             matched.append(key)
         elif key is None:

@@ -1,0 +1,28 @@
+[
+  {
+    "path": "D:\\VOR\\analysis\\road-audit-deep-2026-10-30\\sources\\ROSDORNII_FSNB_monitoring_9.pdf",
+    "url": "https://rosdornii.ru/upload/iblock/dfc/gcyt88sdzsykj42xb9b69zfp8jn5g4s1/Monitoring-izmenenij-FSNB_2022-_-9.pdf",
+    "sha256": "7c92bb08f01aee5213e377c32f7f0b7222587168e5ded89ae3dc4c3c49456ee0",
+    "bytes": 370220,
+    "pages": 17,
+    "content_type": "application/pdf",
+    "last_modified_header": "Thu, 04 Jul 2024 14:08:08 GMT",
+    "downloaded_at": "2026-10-30T02:02:29.058001+00:00",
+    "edition_warning": "Snapshot only; applicable project estimate edition and subsequent amendments require reconciliation."
+  },
+  {
+    "url": "https://api.rosdorspk.ru/STORAGE/materials/Monitoring%20izmenenij%20FSNB-2022%20%E2%84%96%2013.pdf",
+    "download_error": "HTTP Error 404: Not Found"
+  },
+  {
+    "path": "D:\\VOR\\analysis\\road-audit-deep-2026-10-30\\sources\\Minstroy_order_69pr_2025_02_07_copy.pdf",
+    "url": "https://ekspbur.ru/upload/iblock/a34/w7vso48z33sk21lzdy9gr9u2uisldkej.pdf",
+    "sha256": "52cda1ffc7dde8c5c28a711da3343a92417488b0583647428d3c9f45849c1681",
+    "bytes": 11292631,
+    "pages": 827,
+    "content_type": "application/pdf",
+    "last_modified_header": "Wed, 12 Feb 2025 02:30:11 GMT",
+    "downloaded_at": "2026-10-30T02:02:33.826406+00:00",
+    "edition_warning": "Snapshot only; applicable project estimate edition and subsequent amendments require reconciliation."
+  }
+]

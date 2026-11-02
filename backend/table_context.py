@@ -184,3 +184,22 @@ def resolve_fragment(tables, text):
             return None
         return locator if rendered == text else None
     return None
+
+
+def resolve_row(tables, fragment, quote):
+    """Resolve a verbatim body row within a verified bounded table fragment."""
+    match = _FRAGMENT.match(fragment)
+    if not match:
+        return None
+    table_id, start, end = match.groups()
+    for table in tables:
+        if escape(str(table["table_id"]), quote=True) != table_id:
+            continue
+        matches = []
+        for row in range(int(start), int(end)):
+            rendered, locator = render_table(table, row, row + 1)
+            body = re.search(r"<tbody>(.*?)</tbody>", rendered, re.S)
+            if body and body.group(1) == quote and quote in fragment:
+                matches.append(locator)
+        return matches[0] if len(matches) == 1 else None
+    return None

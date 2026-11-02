@@ -147,3 +147,22 @@
     scrollbar-color: var(--ui-border-accented) transparent;
   }
 }
+/* Review tables fit their pane; long names, formulas and notes wrap. */
+.table-wrap table,
+.project-table table {
+  table-layout: fixed;
+  width: 100%;
+}
+.table-wrap th,
+.table-wrap td,
+.project-table th,
+.project-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.table-wrap button,
+.project-table button {
+  white-space: normal;
+  max-width: 100%;
+}

@@ -17,6 +17,13 @@ from pdf_binding import (  # noqa: E402
 
 
 class PdfBindingTests(unittest.TestCase):
+    def test_explicit_copy_wins_over_an_exact_filename(self):
+        result = resolve_position_pdfs(["original.pdf"], ["original.pdf", "copy.pdf"], bindings={"original.pdf": "copy.pdf"})
+        self.assertEqual(result[0], ["copy.pdf"])
+        self.assertIsNone(result[3])
+        unavailable = resolve_position_pdfs(["original.pdf"], ["original.pdf"], bindings={"original.pdf": "copy.pdf"})
+        self.assertIsNotNone(unavailable[3])
+
     def test_split_refs_newline_semicolon_and_quotes(self):
         self.assertEqual(
             split_pdf_refs('"a.pdf";\n b.PDF \r\n"a.pdf"'),

@@ -169,6 +169,81 @@ def canonical_unit(text: str) -> tuple[str, str] | None:
     return _UNIT_ALIASES.get(normalized)
 
 
+def paired_units(text: str) -> tuple[tuple[str, str], ...]:
+    """Ordered alternative units, not a physical rate such as кг/м2 or л/с."""
+    if canonical_unit(text) is not None:
+        return ()
+    parts = re.split(r"\s*/\s*", str(text).strip())
+    if not 2 <= len(parts) <= 3:
+        return ()
+    units = tuple(canonical_unit(part) for part in parts)
+    return units if all(units) else ()
+
+
+def paired_measurements(values: str, units: str) -> list["Measurement"]:
+    """Zip explicitly ordered value/unit cells without choosing by expected value."""
+    labels = paired_units(units)
+    parts = re.split(r"\s*/\s*", _squeeze_thousands(str(values).strip()))
+    if not labels or len(parts) != len(labels) or any(
+            re.fullmatch(r"[+-]?\d+(?:[.,]\d+)?", part.strip()) is None for part in parts):
+        return []
+    return [Measurement(raw=f"{value} {unit}", status="exact", value=_decimal(value.strip()),
+                        operator="eq", unit=unit, dimension=dimension)
+            for value, (unit, dimension) in zip(parts, labels)]
+
+
+_PAIR_UNIT_ATOM = r"(?:м[23²³]|мм|см|км|шт\.?|pcs|компл\.?|кг|м|т)"
+_PAIR_NUMBER_ATOM = r"[+-]?\d+(?:[.,]\d+)?"
+_PAIR_UNIT_RE = re.compile(
+    rf"(?<!\w)({_PAIR_UNIT_ATOM}\s*/\s*{_PAIR_UNIT_ATOM}(?:\s*/\s*{_PAIR_UNIT_ATOM})?)(?!\w)", re.I)
+_PAIR_VALUES = rf"{_PAIR_NUMBER_ATOM}\s*/\s*{_PAIR_NUMBER_ATOM}(?:\s*/\s*{_PAIR_NUMBER_ATOM})?"
+
+
+def has_paired_units(text: str) -> bool:
+    return any(paired_units(m.group(1)) for m in _PAIR_UNIT_RE.finditer(str(text)))
+
+
+def iter_paired_measurements(text: str) -> list["Measurement"]:
+    """Recognize same-row шт./т | 114/23,53 and inline paired schedules.
+
+    A slash in a known dimensional unit remains a rate. Missing units or
+    unequal component counts never manufacture a numeric fact.
+    """
+    normalized = _squeeze_thousands(unicodedata.normalize("NFKC", str(text)))
+    cells = [part.strip() for part in normalized.split("|")]
+    found = []
+    if len(cells) > 1:
+        for index, cell in enumerate(cells):
+            if not paired_units(cell):
+                continue
+            for neighbour in (index + 1, index - 1):
+                if 0 <= neighbour < len(cells):
+                    found.extend(paired_measurements(cells[neighbour], cell))
+        if found:
+            return found
+    for match in _PAIR_UNIT_RE.finditer(normalized):
+        units = match.group(1)
+        if not paired_units(units):
+            continue
+        after = re.match(rf"\s*[:=]?\s*({_PAIR_VALUES})(?![\w/.,])", normalized[match.end():])
+        before = re.search(rf"(?<![\w/.,])({_PAIR_VALUES})\s*$", normalized[:match.start()])
+        if after:
+            found.extend(paired_measurements(after.group(1), units))
+        elif before:
+            found.extend(paired_measurements(before.group(1), units))
+    if found:
+        return found
+    # Inline dual values: 114 шт./23,53 т. Require the slash to be the
+    # entire separator between two independently dimensioned measurements.
+    atoms = iter_measurements(normalized)
+    for first, second in zip(atoms, atoms[1:]):
+        start = normalized.find(first.raw)
+        end = normalized.find(second.raw, start + len(first.raw))
+        if start >= 0 and end >= 0 and re.fullmatch(r"[.\s]*/\s*", normalized[start + len(first.raw):end]):
+            found.extend((first, second))
+    return found
+
+
 def convert_to_base(value: Decimal, canonical: str, dimension: str) -> Decimal:
     factor, _ = _UNIT_FACTORS[(canonical, dimension)]
     return value * factor

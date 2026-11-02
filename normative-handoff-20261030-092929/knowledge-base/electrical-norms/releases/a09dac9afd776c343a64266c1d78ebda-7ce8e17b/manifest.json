@@ -1,0 +1,752 @@
+{
+  "release_id": "a09dac9afd776c343a64266c1d78ebda",
+  "parser_version": "electrical-normative-2",
+  "sources": [
+    {
+      "id": "a863a84d8c22f01ec87bd77768860f3f",
+      "key": "ГЭСН33",
+      "designation": "ГЭСН 33 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "core",
+      "title": "Сборник ГЭСН33 Линии электропередачи",
+      "family": "ГЭСН",
+      "sha256": "2be64c41503c21b879795bdcb622f0a3d21c2ba0445a2edce7bbac2a2ec94674",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН33 Линии электропередачи.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН33 Линии электропередачи.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/2b/2be64c41503c21b879795bdcb622f0a3d21c2ba0445a2edce7bbac2a2ec94674.pdf",
+      "pages": 84
+    },
+    {
+      "id": "e5976b7d028fe9e096c664bdadaa97b0",
+      "key": "ГЭСНм08",
+      "designation": "ГЭСНм 08 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "core",
+      "title": "Сборник ГЭСНм08 Электротехнические установки",
+      "family": "ГЭСНм",
+      "sha256": "a3829c338a4f77622ebc0da56b8ac831badbc1ba2af20a0dd78cd305054c7ab2",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\02 Государственные элементные сметные нормы на монтаж оборудования\\Сборник ГЭСНм08 Электротехнические установки.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\02 Государственные элементные сметные нормы на монтаж оборудования\\Сборник ГЭСНм08 Электротехнические установки.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/a3/a3829c338a4f77622ebc0da56b8ac831badbc1ba2af20a0dd78cd305054c7ab2.pdf",
+      "pages": 291
+    },
+    {
+      "id": "e3ab75606e50c738320493be1e060d48",
+      "key": "ГЭСНп01",
+      "designation": "ГЭСНп 01 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "core",
+      "title": "Сборник ГЭСНп01 Электротехнические устройства",
+      "family": "ГЭСНп",
+      "sha256": "3fc232fa3963a8815bfdf1c85d01c23ea253ee71bab2f0006fc5082daf596f6b",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\04 Государственные элементные сметные нормы на пусконаладочные работы\\Сборник ГЭСНп01 Электротехнические устройства.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\04 Государственные элементные сметные нормы на пусконаладочные работы\\Сборник ГЭСНп01 Электротехнические устройства.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/3f/3fc232fa3963a8815bfdf1c85d01c23ea253ee71bab2f0006fc5082daf596f6b.pdf",
+      "pages": 67
+    },
+    {
+      "id": "2e5533e238260484e8326b5955b489d2",
+      "key": "ГЭСНр67",
+      "designation": "ГЭСНр 67 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "core",
+      "title": "Сборник ГЭСНр67 Электромонтажные работы",
+      "family": "ГЭСНр",
+      "sha256": "86d7910d3c0f1ae6c483b9b20eddcb8485969d36d263ae26a421136dee0c9cb1",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\05 Государственные элементные сметные нормы на ремонтно-строительные работы\\Сборник ГЭСНр67 Электромонтажные работы.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\05 Государственные элементные сметные нормы на ремонтно-строительные работы\\Сборник ГЭСНр67 Электромонтажные работы.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/86/86d7910d3c0f1ae6c483b9b20eddcb8485969d36d263ae26a421136dee0c9cb1.pdf",
+      "pages": 6
+    },
+    {
+      "id": "4f799788a139f191f3462c78205b3249",
+      "key": "ГЭСН34",
+      "designation": "ГЭСН 34 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "adjacent",
+      "title": "Сборник ГЭСН34 Сооружения связи, радиовещания и телевидения",
+      "family": "ГЭСН",
+      "sha256": "3a4957e2120e8fc7a4b6c125774ccab3c69947e2a706de3de05cde9fb21d2627",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН34 Сооружения связи, радиовещания и телевидения.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН34 Сооружения связи, радиовещания и телевидения.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/3a/3a4957e2120e8fc7a4b6c125774ccab3c69947e2a706de3de05cde9fb21d2627.pdf",
+      "pages": 43
+    },
+    {
+      "id": "d45d6533421b216684a3380fb123d521",
+      "key": "ГЭСНм10",
+      "designation": "ГЭСНм 10 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "adjacent",
+      "title": "Сборник ГЭСНм10 Оборудование связи",
+      "family": "ГЭСНм",
+      "sha256": "36d6d9a4551f4b1716425ec6a8e1470a310f20c5a80544a86c18507941313949",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\02 Государственные элементные сметные нормы на монтаж оборудования\\Сборник ГЭСНм10 Оборудование связи.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\02 Государственные элементные сметные нормы на монтаж оборудования\\Сборник ГЭСНм10 Оборудование связи.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/36/36d6d9a4551f4b1716425ec6a8e1470a310f20c5a80544a86c18507941313949.pdf",
+      "pages": 184
+    },
+    {
+      "id": "97764868e9fb2afa7fa0e2e8007fc80f",
+      "key": "ГЭСНм11",
+      "designation": "ГЭСНм 11 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "adjacent",
+      "title": "Сборник ГЭСНм11 Приборы, средства автоматизации и вычислительной техники",
+      "family": "ГЭСНм",
+      "sha256": "066056b0291b626aaf262248ca045cabe789517eb94af0cae99347e536a686f0",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\02 Государственные элементные сметные нормы на монтаж оборудования\\Сборник ГЭСНм11 Приборы, средства автоматизации и вычислительной техники.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\02 Государственные элементные сметные нормы на монтаж оборудования\\Сборник ГЭСНм11 Приборы, средства автоматизации и вычислительной техники.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/06/066056b0291b626aaf262248ca045cabe789517eb94af0cae99347e536a686f0.pdf",
+      "pages": 29
+    },
+    {
+      "id": "4cff548038f4ed2ee2bb34ae0ba78faf",
+      "key": "ГЭСНп02",
+      "designation": "ГЭСНп 02 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "adjacent",
+      "title": "Сборник ГЭСНп02 Автоматизированные системы управления",
+      "family": "ГЭСНп",
+      "sha256": "9db32eef0a36c24ad99a7348dd4440eade976c9ffd136766eebcf583e8cbef4f",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\04 Государственные элементные сметные нормы на пусконаладочные работы\\Сборник ГЭСНп02 Автоматизированные системы управления.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\04 Государственные элементные сметные нормы на пусконаладочные работы\\Сборник ГЭСНп02 Автоматизированные системы управления.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/9d/9db32eef0a36c24ad99a7348dd4440eade976c9ffd136766eebcf583e8cbef4f.pdf",
+      "pages": 20
+    },
+    {
+      "id": "7eff1e68f6d21fd01c101c5ad42fe9bd",
+      "key": "ГЭСН01",
+      "designation": "ГЭСН 01 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "supporting",
+      "title": "Сборник ГЭСН01 Земляные работы",
+      "family": "ГЭСН",
+      "sha256": "c6521074871f22b02adc16d7462ee06f76914b873b41b711c6066df88975f9f4",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН01 Земляные работы.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН01 Земляные работы.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/c6/c6521074871f22b02adc16d7462ee06f76914b873b41b711c6066df88975f9f4.pdf",
+      "pages": 216
+    },
+    {
+      "id": "e2b1120dc1fe1efed1bbaf11a55b359b",
+      "key": "ГЭСН05",
+      "designation": "ГЭСН 05 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "supporting",
+      "title": "Сборник ГЭСН05 Свайные работы, опускные колодцы, закрепление грунтов",
+      "family": "ГЭСН",
+      "sha256": "7b858fc940141425f9f94410d47341d8ebf90c55404001e817509250580c0527",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН05 Свайные работы, опускные колодцы, закрепление грунтов.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН05 Свайные работы, опускные колодцы, закрепление грунтов.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/7b/7b858fc940141425f9f94410d47341d8ebf90c55404001e817509250580c0527.pdf",
+      "pages": 196
+    },
+    {
+      "id": "d4e8488815ef0c2cf84c02de1b2ab93f",
+      "key": "ГЭСН06",
+      "designation": "ГЭСН 06 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "supporting",
+      "title": "Сборник ГЭСН06 Бетонные и железобетонные конструкции монолитные",
+      "family": "ГЭСН",
+      "sha256": "39e884687d609c81ec78d27c7f14b9ffb8270f923d127aeec47ccdb576d2ad55",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН06 Бетонные и железобетонные конструкции монолитные.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН06 Бетонные и железобетонные конструкции монолитные.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/39/39e884687d609c81ec78d27c7f14b9ffb8270f923d127aeec47ccdb576d2ad55.pdf",
+      "pages": 125
+    },
+    {
+      "id": "dc2f087256f51133bbdc8a1c008d6074",
+      "key": "ГЭСН07",
+      "designation": "ГЭСН 07 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "supporting",
+      "title": "Сборник ГЭСН07 Бетонные и железобетонные конструкции сборные",
+      "family": "ГЭСН",
+      "sha256": "329a2b6f23e05688720f82576da5d03f1a56f089f59aa3f9985191e738a356d3",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН07 Бетонные и железобетонные конструкции сборные.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН07 Бетонные и железобетонные конструкции сборные.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/32/329a2b6f23e05688720f82576da5d03f1a56f089f59aa3f9985191e738a356d3.pdf",
+      "pages": 116
+    },
+    {
+      "id": "a0c4ea0886ae3c0f2c3631c8d0cec2ed",
+      "key": "ГЭСН09",
+      "designation": "ГЭСН 09 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "supporting",
+      "title": "Сборник ГЭСН09 Строительные металлические конструкции",
+      "family": "ГЭСН",
+      "sha256": "ab7deb798c7bcd9b35abfef6a5d8d603d29f8e287c4c4fda6babd65b16a6f47e",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН09 Строительные металлические конструкции.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН09 Строительные металлические конструкции.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/ab/ab7deb798c7bcd9b35abfef6a5d8d603d29f8e287c4c4fda6babd65b16a6f47e.pdf",
+      "pages": 105
+    },
+    {
+      "id": "7cb23d5fcd7239493a9478a807aa6454",
+      "key": "ГЭСН30",
+      "designation": "ГЭСН 30 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "supporting",
+      "title": "Сборник ГЭСН30 Мосты и трубы",
+      "family": "ГЭСН",
+      "sha256": "0b63a21ec8f2af705249e9ab70ee24bb93d932901a468bd3f9aef182dca41e30",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН30 Мосты и трубы.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН30 Мосты и трубы.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/0b/0b63a21ec8f2af705249e9ab70ee24bb93d932901a468bd3f9aef182dca41e30.pdf",
+      "pages": 111
+    },
+    {
+      "id": "db119b08b4c1e315f58719ed71175c96",
+      "key": "ГЭСН32",
+      "designation": "ГЭСН 32 ФСНБ-2022",
+      "kind": "GESN",
+      "role": "supporting",
+      "title": "Сборник ГЭСН32 Трамвайные пути",
+      "family": "ГЭСН",
+      "sha256": "f878a5a4d4c793efbc1320363e916d1284456fcc242234886a798fb33a3517b2",
+      "input_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН32 Трамвайные пути.pdf",
+      "metadata": {
+        "original_path": "C:\\Users\\a.kriuchkov\\Desktop\\Норм база\\01 Государственные элементные сметные нормы на строительные работы и специальные строительные работы\\Сборник ГЭСН32 Трамвайные пути.pdf",
+        "edition_state": "source_snapshot_not_independently_confirmed_full_edition",
+        "origin": "user_supplied_FGIS_CS_export",
+        "observed_on": "2026-10-26"
+      },
+      "blob_path": "blobs/f8/f878a5a4d4c793efbc1320363e916d1284456fcc242234886a798fb33a3517b2.pdf",
+      "pages": 23
+    },
+    {
+      "id": "a621a3f02344780bc2b18259a4cd891b",
+      "key": "GOST_21_110_2013",
+      "designation": "ГОСТ 21.110-2013",
+      "kind": "GOST",
+      "role": "core",
+      "title": "Спецификация оборудования, изделий и материалов",
+      "family": null,
+      "sha256": "5a496093484ac26e7a03cdec006477c4cdd8eda7695760baa01c0694ba2bfa46",
+      "input_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\GOST_21_110_2013.pdf",
+      "metadata": {
+        "key": "GOST_21_110_2013",
+        "designation": "ГОСТ 21.110-2013",
+        "kind": "GOST",
+        "role": "core",
+        "title": "Спецификация оборудования, изделий и материалов",
+        "url": "https://files.stroyinf.ru/Data/566/56647.pdf",
+        "official_card": "https://protect.gost.ru/gost/details/e135d52a-eccd-4b7d-b96f-e758c3fce18c",
+        "effective_from": "2015-01-01",
+        "edition_state": "downloaded_text_correction_2015_requires_reconciliation",
+        "known_amendments": [
+          "Поправка ИУС 7-2015"
+        ],
+        "downloaded_url": "https://files.stroyinf.ru/Data/566/56647.pdf",
+        "local_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\GOST_21_110_2013.pdf",
+        "sha256": "5a496093484ac26e7a03cdec006477c4cdd8eda7695760baa01c0694ba2bfa46",
+        "bytes": 658163,
+        "acquisition_status": "downloaded",
+        "downloaded_at_utc": "2026-10-26T03:23:27Z"
+      },
+      "blob_path": "blobs/5a/5a496093484ac26e7a03cdec006477c4cdd8eda7695760baa01c0694ba2bfa46.pdf",
+      "pages": 9
+    },
+    {
+      "id": "7b5c02729802fbfe0223e61c51c9c720",
+      "key": "GOST_21_607_2014",
+      "designation": "ГОСТ 21.607-2014",
+      "kind": "GOST",
+      "role": "core",
+      "title": "Правила выполнения рабочей документации наружного электрического освещения",
+      "family": null,
+      "sha256": "466029b5d1de98cde3312209b9f42e7cd5096d70b4a1fca0c59b6b565d299832",
+      "input_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\GOST_21_607_2014.pdf",
+      "metadata": {
+        "key": "GOST_21_607_2014",
+        "designation": "ГОСТ 21.607-2014",
+        "kind": "GOST",
+        "role": "core",
+        "title": "Правила выполнения рабочей документации наружного электрического освещения",
+        "url": "https://files.stroyinf.ru/Data2/1/4293767/4293767644.pdf",
+        "official_card": "https://protect.gost.ru/gost/details/5588e5f9-4408-4de6-bdec-8888698ca5f7",
+        "effective_from": "2015-07-01",
+        "edition_state": "downloaded_text_corrections_2021_2023_require_reconciliation",
+        "known_amendments": [
+          "Поправка ИУС 1-2021",
+          "Поправка ИУС 7-2023"
+        ],
+        "downloaded_url": "https://files.stroyinf.ru/Data2/1/4293767/4293767644.pdf",
+        "local_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\GOST_21_607_2014.pdf",
+        "sha256": "466029b5d1de98cde3312209b9f42e7cd5096d70b4a1fca0c59b6b565d299832",
+        "bytes": 372176,
+        "acquisition_status": "downloaded",
+        "downloaded_at_utc": "2026-10-26T03:23:27Z"
+      },
+      "blob_path": "blobs/46/466029b5d1de98cde3312209b9f42e7cd5096d70b4a1fca0c59b6b565d299832.pdf",
+      "pages": 17
+    },
+    {
+      "id": "35e2dcec67dc7dda458e084e2ad3ab8d",
+      "key": "GOST_21_613_2014",
+      "designation": "ГОСТ 21.613-2014",
+      "kind": "GOST",
+      "role": "core",
+      "title": "Правила выполнения рабочей документации силового электрооборудования",
+      "family": null,
+      "sha256": "b1c676e1445aedd0cc8ae4639b678a6ba156fd33470a8890f3564c746462dc62",
+      "input_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\GOST_21_613_2014.pdf",
+      "metadata": {
+        "key": "GOST_21_613_2014",
+        "designation": "ГОСТ 21.613-2014",
+        "kind": "GOST",
+        "role": "core",
+        "title": "Правила выполнения рабочей документации силового электрооборудования",
+        "url": "https://www.elec.ru/files/2018/06/28/gost_21.613-2014.pdf",
+        "bibliography_card": "https://search.rsl.ru/ru/record/01007903046",
+        "effective_from": "2015-07-01",
+        "edition_state": "downloaded_text_amendment_closure_requires_confirmation",
+        "local_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\GOST_21_613_2014.pdf",
+        "sha256": "b1c676e1445aedd0cc8ae4639b678a6ba156fd33470a8890f3564c746462dc62",
+        "bytes": 1038924,
+        "acquisition_status": "cached"
+      },
+      "blob_path": "blobs/b1/b1c676e1445aedd0cc8ae4639b678a6ba156fd33470a8890f3564c746462dc62.pdf",
+      "pages": 28
+    },
+    {
+      "id": "23a9ce9269666d108edb29a8aa8be7fb",
+      "key": "GOST_R_21_101_2026",
+      "designation": "ГОСТ Р 21.101-2026",
+      "kind": "GOST",
+      "role": "core",
+      "title": "Основные требования к проектной и рабочей документации",
+      "family": null,
+      "sha256": "bdd8e1b9576660f4234aa6fe6d93b269d28507c9eb84757be72ab25dec00f7a1",
+      "input_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\GOST_R_21_101_2026.pdf",
+      "metadata": {
+        "key": "GOST_R_21_101_2026",
+        "designation": "ГОСТ Р 21.101-2026",
+        "kind": "GOST",
+        "role": "core",
+        "title": "Основные требования к проектной и рабочей документации",
+        "url": "https://pravdaosro.ru/wp-content/uploads/2026/03/GOST-R-21.101-2026.pdf",
+        "official_card": "https://protect.gost.ru/gost/details/17bc12e8-6579-4145-b141-56855e772e7f",
+        "effective_from": "2026-04-01",
+        "edition_state": "downloaded_text_amendment_closure_requires_confirmation",
+        "replaces": "ГОСТ Р 21.101-2020",
+        "local_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\GOST_R_21_101_2026.pdf",
+        "sha256": "bdd8e1b9576660f4234aa6fe6d93b269d28507c9eb84757be72ab25dec00f7a1",
+        "bytes": 6872862,
+        "acquisition_status": "cached",
+        "downloaded_url": "https://pravdaosro.ru/wp-content/uploads/2026/03/GOST-R-21.101-2026.pdf"
+      },
+      "blob_path": "blobs/bd/bdd8e1b9576660f4234aa6fe6d93b269d28507c9eb84757be72ab25dec00f7a1.pdf",
+      "pages": 70
+    },
+    {
+      "id": "57c3ea485b82bd17bfb1259f34cc9645",
+      "key": "GOST_R_55706_2023",
+      "designation": "ГОСТ Р 55706-2023",
+      "kind": "GOST",
+      "role": "core",
+      "title": "Освещение наружное утилитарное. Классификация и нормы",
+      "family": null,
+      "sha256": "8dbe0856840dfcbcff3d5a425cc7a03d78c3864be63a99bd57f4077822c47269",
+      "input_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\GOST_R_55706_2023.pdf",
+      "metadata": {
+        "key": "GOST_R_55706_2023",
+        "designation": "ГОСТ Р 55706-2023",
+        "kind": "GOST",
+        "role": "core",
+        "title": "Освещение наружное утилитарное. Классификация и нормы",
+        "url": "https://files.stroyinf.ru/Data/801/80165.pdf",
+        "official_card": "https://protect.gost.ru/gost/details/8e827c8c-2279-42bf-8c6b-973bac8b957d",
+        "effective_from": "2023-10-01",
+        "edition_state": "downloaded_text_amendment_closure_requires_confirmation",
+        "replaces": "ГОСТ Р 55706-2013",
+        "local_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\GOST_R_55706_2023.pdf",
+        "sha256": "8dbe0856840dfcbcff3d5a425cc7a03d78c3864be63a99bd57f4077822c47269",
+        "bytes": 6261586,
+        "acquisition_status": "cached"
+      },
+      "blob_path": "blobs/8d/8dbe0856840dfcbcff3d5a425cc7a03d78c3864be63a99bd57f4077822c47269.pdf",
+      "pages": 20
+    },
+    {
+      "id": "88aa2b022ec5e13d16f8794b18b8bc78",
+      "key": "PUE_6_7",
+      "designation": "ПУЭ 6 и 7 издания",
+      "kind": "PUE",
+      "role": "core",
+      "title": "Правила устройства электроустановок. Сборник глав",
+      "family": null,
+      "sha256": "dd129c7dbbfd3e63484664b2f10d4feb3ad74cb9a74b44d6f413e346b2b1ae3b",
+      "input_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\PUE_6_7.pdf",
+      "metadata": {
+        "key": "PUE_6_7",
+        "designation": "ПУЭ 6 и 7 издания",
+        "kind": "PUE",
+        "role": "core",
+        "title": "Правила устройства электроустановок. Сборник глав",
+        "url": "https://gktgs.ru/assets/files/gost/pue-6-7-izdanie.pdf",
+        "edition_state": "chapter_specific_edition_and_orders_require_confirmation",
+        "note": "Смешанный сборник не считается единой юридической редакцией ПУЭ. Применимость подтверждается по конкретной главе и приказу.",
+        "local_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\PUE_6_7.pdf",
+        "sha256": "dd129c7dbbfd3e63484664b2f10d4feb3ad74cb9a74b44d6f413e346b2b1ae3b",
+        "bytes": 4631846,
+        "acquisition_status": "cached"
+      },
+      "blob_path": "blobs/dd/dd129c7dbbfd3e63484664b2f10d4feb3ad74cb9a74b44d6f413e346b2b1ae3b.pdf",
+      "pages": 499
+    },
+    {
+      "id": "67015943d2c984167b9abfb43245556e",
+      "key": "SP52_2016",
+      "designation": "СП 52.13330.2016",
+      "kind": "SP",
+      "role": "core",
+      "title": "Естественное и искусственное освещение",
+      "family": null,
+      "sha256": "63152293ca0186faa2038fa82f0a6eb88a41173e9f7c3e68d0efa8e7b94946ba",
+      "input_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\SP52_2016.pdf",
+      "metadata": {
+        "key": "SP52_2016",
+        "designation": "СП 52.13330.2016",
+        "kind": "SP",
+        "role": "core",
+        "title": "Естественное и искусственное освещение",
+        "url": "https://files.stroyinf.ru/Data2/1/4293747/4293747646.pdf",
+        "official_card": "https://protect.gost.ru/sp/details/9c938e6d-bd3f-4c81-904f-ba8d4c14357b",
+        "effective_from": "2017-05-08",
+        "edition_state": "base_text_amendments_1_2_must_be_checked",
+        "known_amendments": [
+          "Изменение 1, приказ 699/пр от 20.11.2019",
+          "Изменение 2, приказ 1029/пр от 28.12.2021"
+        ],
+        "local_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\SP52_2016.pdf",
+        "sha256": "63152293ca0186faa2038fa82f0a6eb88a41173e9f7c3e68d0efa8e7b94946ba",
+        "bytes": 2559466,
+        "acquisition_status": "cached"
+      },
+      "blob_path": "blobs/63/63152293ca0186faa2038fa82f0a6eb88a41173e9f7c3e68d0efa8e7b94946ba.pdf",
+      "pages": 121
+    },
+    {
+      "id": "7796b015b4d8a7ad416b495ca5ad9768",
+      "key": "SP76_2016",
+      "designation": "СП 76.13330.2016",
+      "kind": "SP",
+      "role": "core",
+      "title": "Электротехнические устройства",
+      "family": null,
+      "sha256": "61d7d35a50d6c6faba5ce0748aeeb9af6ed1ccbd6385b264057e4317f95917fe",
+      "input_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\SP76_2016.pdf",
+      "metadata": {
+        "key": "SP76_2016",
+        "designation": "СП 76.13330.2016",
+        "kind": "SP",
+        "role": "core",
+        "title": "Электротехнические устройства",
+        "url": "https://files.stroyinf.ru/Data2/1/4293747/4293747637.pdf",
+        "fallback_urls": [
+          "https://www.elec.ru/files/2021/12/07/SP-76133302016.pdf"
+        ],
+        "official_card": "https://protect.gost.ru/sp/details/e7468d76-0b61-4d89-b386-c3b2682caee5",
+        "effective_from": "2017-06-17",
+        "edition_state": "base_text_amendment_closure_requires_confirmation",
+        "local_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\SP76_2016.pdf",
+        "sha256": "61d7d35a50d6c6faba5ce0748aeeb9af6ed1ccbd6385b264057e4317f95917fe",
+        "bytes": 1651748,
+        "acquisition_status": "cached"
+      },
+      "blob_path": "blobs/61/61d7d35a50d6c6faba5ce0748aeeb9af6ed1ccbd6385b264057e4317f95917fe.pdf",
+      "pages": 73
+    },
+    {
+      "id": "0402505b10f640f7190552ae6ed6a860",
+      "key": "SP98_2018",
+      "designation": "СП 98.13330.2018",
+      "kind": "SP",
+      "role": "core",
+      "title": "Трамвайные и троллейбусные линии",
+      "family": null,
+      "sha256": "357d53198f2d8b625f46428a460c0e9f1a9d5c21dc9c2b9ea14664e548ad90c1",
+      "input_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\SP98_2018.pdf",
+      "metadata": {
+        "key": "SP98_2018",
+        "designation": "СП 98.13330.2018",
+        "kind": "SP",
+        "role": "core",
+        "title": "Трамвайные и троллейбусные линии",
+        "url": "https://files.stroyinf.ru/Data2/1/4293733/4293733057.pdf",
+        "official_card": "https://protect.gost.ru/sp/details/85ac00be-a146-4e9a-8755-75fb6e875759",
+        "effective_from": "2019-05-21",
+        "edition_state": "base_text_amendment_closure_requires_confirmation",
+        "local_path": "D:\\VOR\\knowledge-base\\electrical-norms\\inputs\\SP98_2018.pdf",
+        "sha256": "357d53198f2d8b625f46428a460c0e9f1a9d5c21dc9c2b9ea14664e548ad90c1",
+        "bytes": 1291444,
+        "acquisition_status": "cached"
+      },
+      "blob_path": "blobs/35/357d53198f2d8b625f46428a460c0e9f1a9d5c21dc9c2b9ea14664e548ad90c1.pdf",
+      "pages": 58
+    }
+  ],
+  "statistics": {
+    "counts": {
+      "sources": 24,
+      "pages": 2511,
+      "clauses": 6606,
+      "norm_tables": 935,
+      "norms": 5634,
+      "resources": 51973,
+      "rules": 12,
+      "relations": 9,
+      "gaps": 10,
+      "review_queue": 786,
+      "chunks": 15696
+    },
+    "sources": [
+      {
+        "designation": "ГЭСН 01 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "supporting",
+        "pages": 216
+      },
+      {
+        "designation": "ГЭСН 05 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "supporting",
+        "pages": 196
+      },
+      {
+        "designation": "ГЭСН 06 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "supporting",
+        "pages": 125
+      },
+      {
+        "designation": "ГЭСН 07 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "supporting",
+        "pages": 116
+      },
+      {
+        "designation": "ГЭСН 09 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "supporting",
+        "pages": 105
+      },
+      {
+        "designation": "ГЭСН 30 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "supporting",
+        "pages": 111
+      },
+      {
+        "designation": "ГЭСН 32 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "supporting",
+        "pages": 23
+      },
+      {
+        "designation": "ГЭСН 33 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "core",
+        "pages": 84
+      },
+      {
+        "designation": "ГЭСН 34 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "adjacent",
+        "pages": 43
+      },
+      {
+        "designation": "ГЭСНм 08 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "core",
+        "pages": 291
+      },
+      {
+        "designation": "ГЭСНм 10 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "adjacent",
+        "pages": 184
+      },
+      {
+        "designation": "ГЭСНм 11 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "adjacent",
+        "pages": 29
+      },
+      {
+        "designation": "ГЭСНп 01 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "core",
+        "pages": 67
+      },
+      {
+        "designation": "ГЭСНп 02 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "adjacent",
+        "pages": 20
+      },
+      {
+        "designation": "ГЭСНр 67 ФСНБ-2022",
+        "kind": "GESN",
+        "role": "core",
+        "pages": 6
+      },
+      {
+        "designation": "ГОСТ 21.110-2013",
+        "kind": "GOST",
+        "role": "core",
+        "pages": 9
+      },
+      {
+        "designation": "ГОСТ 21.607-2014",
+        "kind": "GOST",
+        "role": "core",
+        "pages": 17
+      },
+      {
+        "designation": "ГОСТ 21.613-2014",
+        "kind": "GOST",
+        "role": "core",
+        "pages": 28
+      },
+      {
+        "designation": "ГОСТ Р 21.101-2026",
+        "kind": "GOST",
+        "role": "core",
+        "pages": 70
+      },
+      {
+        "designation": "ГОСТ Р 55706-2023",
+        "kind": "GOST",
+        "role": "core",
+        "pages": 20
+      },
+      {
+        "designation": "ПУЭ 6 и 7 издания",
+        "kind": "PUE",
+        "role": "core",
+        "pages": 499
+      },
+      {
+        "designation": "СП 52.13330.2016",
+        "kind": "SP",
+        "role": "core",
+        "pages": 121
+      },
+      {
+        "designation": "СП 76.13330.2016",
+        "kind": "SP",
+        "role": "core",
+        "pages": 73
+      },
+      {
+        "designation": "СП 98.13330.2018",
+        "kind": "SP",
+        "role": "core",
+        "pages": 58
+      }
+    ],
+    "resource_states": [
+      {
+        "quantity_kind": "blank",
+        "count": 9027
+      },
+      {
+        "quantity_kind": "by_project",
+        "count": 1488
+      },
+      {
+        "quantity_kind": "numeric",
+        "count": 40672
+      },
+      {
+        "quantity_kind": "unparsed",
+        "count": 786
+      }
+    ],
+    "norm_states": [
+      {
+        "status": "definition_reviewed",
+        "count": 9
+      },
+      {
+        "status": "extracted_needs_review",
+        "count": 5625
+      }
+    ]
+  }
+}

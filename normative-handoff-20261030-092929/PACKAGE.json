@@ -1,0 +1,413 @@
+{
+  "format": "normative-corpus-handoff-v1",
+  "created_at": "2026-10-30T09:29:29.316945+07:00",
+  "python": "3.11+",
+  "profiles": [
+    {
+      "name": "road-norms",
+      "database": "releases/8931b071d4d2907d54ee40a06d2955e4-60b6a94e/knowledge.sqlite",
+      "metadata": {
+        "schema_version": "1.0",
+        "parser_version": "road-normative-v1",
+        "release_id": "8931b071d4d2907d54ee40a06d2955e4",
+        "profile": "roads",
+        "observed_on": "2026-10-28",
+        "contains_project_documents": false,
+        "gesn_scope": [
+          [
+            "ГЭСН",
+            "27"
+          ],
+          [
+            "ГЭСН",
+            "47"
+          ]
+        ]
+      },
+      "counts": {
+        "sources": 19,
+        "pages": 1055,
+        "clauses": 2363,
+        "norm_tables": 312,
+        "norms": 1299,
+        "resources": 12449,
+        "rules": 0,
+        "relations": 0,
+        "gaps": 5,
+        "review_queue": 476,
+        "chunks": 4929
+      },
+      "pages": 1055,
+      "sources": [
+        {
+          "id": "05a22e3d7c466b4565b4ef422b724660",
+          "designation": "ГЭСН 47 ФСНБ-2022",
+          "sha256": "b6fefcd14e5b5356bd26b64d0ad1e4e827e4143229a11761c8a318e873a51efe",
+          "blob_path": "blobs/b6/b6fefcd14e5b5356bd26b64d0ad1e4e827e4143229a11761c8a318e873a51efe.pdf",
+          "pages": 64
+        },
+        {
+          "id": "14e132bf7e52126379b32f0c74b6a433",
+          "designation": "ГЭСН 27 ФСНБ-2022",
+          "sha256": "45a5445bc9b51b87edb1a45b4466c345aa000894478427d33b1a15048bba55e5",
+          "blob_path": "blobs/45/45a5445bc9b51b87edb1a45b4466c345aa000894478427d33b1a15048bba55e5.pdf",
+          "pages": 142
+        },
+        {
+          "id": "1a6126f20f2e165c8c7075ba85aba19d",
+          "designation": "СП 34.13330.2021",
+          "sha256": "8837d156502361a5733b8f55f2fdb33e991d26af4ea26aec91468f5f226037dd",
+          "blob_path": "blobs/88/8837d156502361a5733b8f55f2fdb33e991d26af4ea26aec91468f5f226037dd.pdf",
+          "pages": 99
+        },
+        {
+          "id": "1fee526fc00e03df1bc6727613af787e",
+          "designation": "СП 78.13330.2012",
+          "sha256": "340190c46606b19fbffdd113cdc5c30b3f5fb859c66824bc75c209d0334a2bf7",
+          "blob_path": "blobs/34/340190c46606b19fbffdd113cdc5c30b3f5fb859c66824bc75c209d0334a2bf7.pdf",
+          "pages": 118
+        },
+        {
+          "id": "2ca6abcc8b63adb478da2f9bb432db36",
+          "designation": "ГОСТ 32961-2014",
+          "sha256": "e3c09a64a789a2246ddecd45c7a1fc4a5425bfd2d293a2db2bdbc883264a5b60",
+          "blob_path": "blobs/e3/e3c09a64a789a2246ddecd45c7a1fc4a5425bfd2d293a2db2bdbc883264a5b60.pdf",
+          "pages": 11
+        },
+        {
+          "id": "340c9d0fa6323615328d496d56a35fe0",
+          "designation": "ГОСТ 6665-91",
+          "sha256": "954aae66bfea185f14a7b996b06b5d2964d509c14b09b5d3f5ad13edba8d5432",
+          "blob_path": "blobs/95/954aae66bfea185f14a7b996b06b5d2964d509c14b09b5d3f5ad13edba8d5432.pdf",
+          "pages": 31
+        },
+        {
+          "id": "383f2010c06a152d5c5d94e7b3bb5a9f",
+          "designation": "ГОСТ Р 52056-2003",
+          "sha256": "9f2bdab7262fdfe5dcc2b4ca9078e1b37470914c558ad101781db5556a2a6ba1",
+          "blob_path": "blobs/9f/9f2bdab7262fdfe5dcc2b4ca9078e1b37470914c558ad101781db5556a2a6ba1.pdf",
+          "pages": 6
+        },
+        {
+          "id": "3b892dcbbdbba920bc8ada17b73b42b7",
+          "designation": "ГОСТ Р 58952.1-2020",
+          "sha256": "6e8109d8b65b592bdc8527870d8d6bdcf08a8bf6f1b291a639821b2f0beedfb8",
+          "blob_path": "blobs/6e/6e8109d8b65b592bdc8527870d8d6bdcf08a8bf6f1b291a639821b2f0beedfb8.pdf",
+          "pages": 19
+        },
+        {
+          "id": "5ffb5a23228ff6c6d011f8cc3089da8b",
+          "designation": "ГОСТ Р 70458-2022",
+          "sha256": "eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748",
+          "blob_path": "blobs/eb/eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748.pdf",
+          "pages": 18
+        },
+        {
+          "id": "7eff1e68f6d21fd01c101c5ad42fe9bd",
+          "designation": "ГЭСН 01 ФСНБ-2022",
+          "sha256": "c6521074871f22b02adc16d7462ee06f76914b873b41b711c6066df88975f9f4",
+          "blob_path": "blobs/c6/c6521074871f22b02adc16d7462ee06f76914b873b41b711c6066df88975f9f4.pdf",
+          "pages": 216
+        },
+        {
+          "id": "84b87d3295b59243014046ed26f8ca2e",
+          "designation": "ГЭСНр 68 ФСНБ-2022",
+          "sha256": "4f6067247ca2fca5aee0a5e2fc19316a4c464e12b7df173179681c4b3bd11bcd",
+          "blob_path": "blobs/4f/4f6067247ca2fca5aee0a5e2fc19316a4c464e12b7df173179681c4b3bd11bcd.pdf",
+          "pages": 24
+        },
+        {
+          "id": "866b8847b0f8d369c2d6c1e872741cfb",
+          "designation": "ГОСТ 33133-2014",
+          "sha256": "bef003a6c2b2998b3bc1a7e1f0ceb20bdf7b839f5c480d333ca0a7807a55f983",
+          "blob_path": "blobs/be/bef003a6c2b2998b3bc1a7e1f0ceb20bdf7b839f5c480d333ca0a7807a55f983.pdf",
+          "pages": 8
+        },
+        {
+          "id": "b0cfe833f15b742f357aab32035db0fd",
+          "designation": "ГОСТ Р 58406.1-2020",
+          "sha256": "610cf478f31d6bd7426252ddcec9772cddbb3fda402d84c618471ed8ee1be56f",
+          "blob_path": "blobs/61/610cf478f31d6bd7426252ddcec9772cddbb3fda402d84c618471ed8ee1be56f.pdf",
+          "pages": 28
+        },
+        {
+          "id": "c4ac3efb65a7f3b28fe7b92b8608c28f",
+          "designation": "ГОСТ 7473-2010",
+          "sha256": "bbc0d6358e802d8d3b96171ef3c39586497171582437c09c5faf0276e2a03d12",
+          "blob_path": "blobs/bb/bbc0d6358e802d8d3b96171ef3c39586497171582437c09c5faf0276e2a03d12.pdf",
+          "pages": 19
+        },
+        {
+          "id": "ccd852cec8490c353a34d577cc601274",
+          "designation": "СП 396.1325800.2018",
+          "sha256": "047e6b9b0adae4f68479d0c5db7ca342992b412fc4517c540957d09f78caebc0",
+          "blob_path": "blobs/04/047e6b9b0adae4f68479d0c5db7ca342992b412fc4517c540957d09f78caebc0.pdf",
+          "pages": 57
+        },
+        {
+          "id": "d0c65d8a51cbdf3a21936cf051c402ba",
+          "designation": "СП 82.13330.2016",
+          "sha256": "55731f649dbc19cd5188a034a136044c529abc39e7c117f1b7d0b40ac6259271",
+          "blob_path": "blobs/55/55731f649dbc19cd5188a034a136044c529abc39e7c117f1b7d0b40ac6259271.pdf",
+          "pages": 28
+        },
+        {
+          "id": "d1ecf4cdfffe42e20a598d7905a1c3bc",
+          "designation": "ГОСТ 26633-2015",
+          "sha256": "56e516ed61046ebac720733905ba47604135b7a204e35bfba4f7c3719c719f7c",
+          "blob_path": "blobs/56/56e516ed61046ebac720733905ba47604135b7a204e35bfba4f7c3719c719f7c.pdf",
+          "pages": 13
+        },
+        {
+          "id": "d4e8488815ef0c2cf84c02de1b2ab93f",
+          "designation": "ГЭСН 06 ФСНБ-2022",
+          "sha256": "39e884687d609c81ec78d27c7f14b9ffb8270f923d127aeec47ccdb576d2ad55",
+          "blob_path": "blobs/39/39e884687d609c81ec78d27c7f14b9ffb8270f923d127aeec47ccdb576d2ad55.pdf",
+          "pages": 125
+        },
+        {
+          "id": "f5ac620c1836c91bc9aee90cb26b0574",
+          "designation": "ГОСТ Р 58406.2-2020",
+          "sha256": "ce51ce70720c495b4138af04e1a1760de8504005ed0ba4e45505d9ffbe664464",
+          "blob_path": "blobs/ce/ce51ce70720c495b4138af04e1a1760de8504005ed0ba4e45505d9ffbe664464.pdf",
+          "pages": 29
+        }
+      ],
+      "logical_sha256": {
+        "metadata": "75c8e52c3e695b598e4dc9eaf7b837afe99cb67d875026a6ef35f505a2d0004b",
+        "sources": "19eb26ac35cd072f81fb1791eafc3d21283b66cd077b1de8cf27f3f2cffcea48",
+        "pages": "6111ad5a831bcb3f66c214ab0d25cfc16f1a0202c6913082344bedd883e72e7d",
+        "clauses": "8a86c1b28a1c9b4f18dddc8946890776966919b50591fe76a96e40fed29b508e",
+        "norm_tables": "ac08e2a6d8bc3734ec8e4ed91d37c389fdac47ec780783e0ab32b6196b9ecb22",
+        "norms": "d9e89f9dde68c35c8e5f0332df230212d739e15898b45842e03aacdb4c5a0d0c",
+        "resources": "889c1f289514615d81176cd72e0afd93214fa98b25e4ac6f62a93c2c7fc8e105",
+        "rules": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "relations": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "gaps": "62961f6eeb3519cc2bce51ec25e893799328cb88a16a90d8c8754cb539db7a24",
+        "review_queue": "ebd88eb8af970b3243d7608c89acd53ccdaca824d9ed14ae29c3e736b8b9b7fc",
+        "chunks": "71a56c801f83a90f902b9b5161e673fbb39724805272a17e271cf5fb0b224976",
+        "search_fts": "d214d860a3f823623db5fe4462281cdf8411d0305934c261a827d10f099bed5f"
+      },
+      "sqlite_sha256": "6242a590d837e7a015b0df50608d5569fa5026774a8fc5ea631c8a45199c2442",
+      "sql_restore_verified": true
+    },
+    {
+      "name": "electrical-norms",
+      "database": "releases/a09dac9afd776c343a64266c1d78ebda-7ce8e17b/knowledge.sqlite",
+      "metadata": {
+        "schema_version": "1.0",
+        "parser_version": "electrical-normative-2",
+        "release_id": "a09dac9afd776c343a64266c1d78ebda",
+        "profile": "electrical-engineering",
+        "observed_on": "2026-10-26",
+        "contains_project_documents": false
+      },
+      "counts": {
+        "sources": 24,
+        "pages": 2511,
+        "clauses": 6606,
+        "norm_tables": 935,
+        "norms": 5634,
+        "resources": 51973,
+        "rules": 12,
+        "relations": 9,
+        "gaps": 10,
+        "review_queue": 786,
+        "chunks": 15696
+      },
+      "pages": 2511,
+      "sources": [
+        {
+          "id": "0402505b10f640f7190552ae6ed6a860",
+          "designation": "СП 98.13330.2018",
+          "sha256": "357d53198f2d8b625f46428a460c0e9f1a9d5c21dc9c2b9ea14664e548ad90c1",
+          "blob_path": "blobs/35/357d53198f2d8b625f46428a460c0e9f1a9d5c21dc9c2b9ea14664e548ad90c1.pdf",
+          "pages": 58
+        },
+        {
+          "id": "23a9ce9269666d108edb29a8aa8be7fb",
+          "designation": "ГОСТ Р 21.101-2026",
+          "sha256": "bdd8e1b9576660f4234aa6fe6d93b269d28507c9eb84757be72ab25dec00f7a1",
+          "blob_path": "blobs/bd/bdd8e1b9576660f4234aa6fe6d93b269d28507c9eb84757be72ab25dec00f7a1.pdf",
+          "pages": 70
+        },
+        {
+          "id": "2e5533e238260484e8326b5955b489d2",
+          "designation": "ГЭСНр 67 ФСНБ-2022",
+          "sha256": "86d7910d3c0f1ae6c483b9b20eddcb8485969d36d263ae26a421136dee0c9cb1",
+          "blob_path": "blobs/86/86d7910d3c0f1ae6c483b9b20eddcb8485969d36d263ae26a421136dee0c9cb1.pdf",
+          "pages": 6
+        },
+        {
+          "id": "35e2dcec67dc7dda458e084e2ad3ab8d",
+          "designation": "ГОСТ 21.613-2014",
+          "sha256": "b1c676e1445aedd0cc8ae4639b678a6ba156fd33470a8890f3564c746462dc62",
+          "blob_path": "blobs/b1/b1c676e1445aedd0cc8ae4639b678a6ba156fd33470a8890f3564c746462dc62.pdf",
+          "pages": 28
+        },
+        {
+          "id": "4cff548038f4ed2ee2bb34ae0ba78faf",
+          "designation": "ГЭСНп 02 ФСНБ-2022",
+          "sha256": "9db32eef0a36c24ad99a7348dd4440eade976c9ffd136766eebcf583e8cbef4f",
+          "blob_path": "blobs/9d/9db32eef0a36c24ad99a7348dd4440eade976c9ffd136766eebcf583e8cbef4f.pdf",
+          "pages": 20
+        },
+        {
+          "id": "4f799788a139f191f3462c78205b3249",
+          "designation": "ГЭСН 34 ФСНБ-2022",
+          "sha256": "3a4957e2120e8fc7a4b6c125774ccab3c69947e2a706de3de05cde9fb21d2627",
+          "blob_path": "blobs/3a/3a4957e2120e8fc7a4b6c125774ccab3c69947e2a706de3de05cde9fb21d2627.pdf",
+          "pages": 43
+        },
+        {
+          "id": "57c3ea485b82bd17bfb1259f34cc9645",
+          "designation": "ГОСТ Р 55706-2023",
+          "sha256": "8dbe0856840dfcbcff3d5a425cc7a03d78c3864be63a99bd57f4077822c47269",
+          "blob_path": "blobs/8d/8dbe0856840dfcbcff3d5a425cc7a03d78c3864be63a99bd57f4077822c47269.pdf",
+          "pages": 20
+        },
+        {
+          "id": "67015943d2c984167b9abfb43245556e",
+          "designation": "СП 52.13330.2016",
+          "sha256": "63152293ca0186faa2038fa82f0a6eb88a41173e9f7c3e68d0efa8e7b94946ba",
+          "blob_path": "blobs/63/63152293ca0186faa2038fa82f0a6eb88a41173e9f7c3e68d0efa8e7b94946ba.pdf",
+          "pages": 121
+        },
+        {
+          "id": "7796b015b4d8a7ad416b495ca5ad9768",
+          "designation": "СП 76.13330.2016",
+          "sha256": "61d7d35a50d6c6faba5ce0748aeeb9af6ed1ccbd6385b264057e4317f95917fe",
+          "blob_path": "blobs/61/61d7d35a50d6c6faba5ce0748aeeb9af6ed1ccbd6385b264057e4317f95917fe.pdf",
+          "pages": 73
+        },
+        {
+          "id": "7b5c02729802fbfe0223e61c51c9c720",
+          "designation": "ГОСТ 21.607-2014",
+          "sha256": "466029b5d1de98cde3312209b9f42e7cd5096d70b4a1fca0c59b6b565d299832",
+          "blob_path": "blobs/46/466029b5d1de98cde3312209b9f42e7cd5096d70b4a1fca0c59b6b565d299832.pdf",
+          "pages": 17
+        },
+        {
+          "id": "7cb23d5fcd7239493a9478a807aa6454",
+          "designation": "ГЭСН 30 ФСНБ-2022",
+          "sha256": "0b63a21ec8f2af705249e9ab70ee24bb93d932901a468bd3f9aef182dca41e30",
+          "blob_path": "blobs/0b/0b63a21ec8f2af705249e9ab70ee24bb93d932901a468bd3f9aef182dca41e30.pdf",
+          "pages": 111
+        },
+        {
+          "id": "7eff1e68f6d21fd01c101c5ad42fe9bd",
+          "designation": "ГЭСН 01 ФСНБ-2022",
+          "sha256": "c6521074871f22b02adc16d7462ee06f76914b873b41b711c6066df88975f9f4",
+          "blob_path": "blobs/c6/c6521074871f22b02adc16d7462ee06f76914b873b41b711c6066df88975f9f4.pdf",
+          "pages": 216
+        },
+        {
+          "id": "88aa2b022ec5e13d16f8794b18b8bc78",
+          "designation": "ПУЭ 6 и 7 издания",
+          "sha256": "dd129c7dbbfd3e63484664b2f10d4feb3ad74cb9a74b44d6f413e346b2b1ae3b",
+          "blob_path": "blobs/dd/dd129c7dbbfd3e63484664b2f10d4feb3ad74cb9a74b44d6f413e346b2b1ae3b.pdf",
+          "pages": 499
+        },
+        {
+          "id": "97764868e9fb2afa7fa0e2e8007fc80f",
+          "designation": "ГЭСНм 11 ФСНБ-2022",
+          "sha256": "066056b0291b626aaf262248ca045cabe789517eb94af0cae99347e536a686f0",
+          "blob_path": "blobs/06/066056b0291b626aaf262248ca045cabe789517eb94af0cae99347e536a686f0.pdf",
+          "pages": 29
+        },
+        {
+          "id": "a0c4ea0886ae3c0f2c3631c8d0cec2ed",
+          "designation": "ГЭСН 09 ФСНБ-2022",
+          "sha256": "ab7deb798c7bcd9b35abfef6a5d8d603d29f8e287c4c4fda6babd65b16a6f47e",
+          "blob_path": "blobs/ab/ab7deb798c7bcd9b35abfef6a5d8d603d29f8e287c4c4fda6babd65b16a6f47e.pdf",
+          "pages": 105
+        },
+        {
+          "id": "a621a3f02344780bc2b18259a4cd891b",
+          "designation": "ГОСТ 21.110-2013",
+          "sha256": "5a496093484ac26e7a03cdec006477c4cdd8eda7695760baa01c0694ba2bfa46",
+          "blob_path": "blobs/5a/5a496093484ac26e7a03cdec006477c4cdd8eda7695760baa01c0694ba2bfa46.pdf",
+          "pages": 9
+        },
+        {
+          "id": "a863a84d8c22f01ec87bd77768860f3f",
+          "designation": "ГЭСН 33 ФСНБ-2022",
+          "sha256": "2be64c41503c21b879795bdcb622f0a3d21c2ba0445a2edce7bbac2a2ec94674",
+          "blob_path": "blobs/2b/2be64c41503c21b879795bdcb622f0a3d21c2ba0445a2edce7bbac2a2ec94674.pdf",
+          "pages": 84
+        },
+        {
+          "id": "d45d6533421b216684a3380fb123d521",
+          "designation": "ГЭСНм 10 ФСНБ-2022",
+          "sha256": "36d6d9a4551f4b1716425ec6a8e1470a310f20c5a80544a86c18507941313949",
+          "blob_path": "blobs/36/36d6d9a4551f4b1716425ec6a8e1470a310f20c5a80544a86c18507941313949.pdf",
+          "pages": 184
+        },
+        {
+          "id": "d4e8488815ef0c2cf84c02de1b2ab93f",
+          "designation": "ГЭСН 06 ФСНБ-2022",
+          "sha256": "39e884687d609c81ec78d27c7f14b9ffb8270f923d127aeec47ccdb576d2ad55",
+          "blob_path": "blobs/39/39e884687d609c81ec78d27c7f14b9ffb8270f923d127aeec47ccdb576d2ad55.pdf",
+          "pages": 125
+        },
+        {
+          "id": "db119b08b4c1e315f58719ed71175c96",
+          "designation": "ГЭСН 32 ФСНБ-2022",
+          "sha256": "f878a5a4d4c793efbc1320363e916d1284456fcc242234886a798fb33a3517b2",
+          "blob_path": "blobs/f8/f878a5a4d4c793efbc1320363e916d1284456fcc242234886a798fb33a3517b2.pdf",
+          "pages": 23
+        },
+        {
+          "id": "dc2f087256f51133bbdc8a1c008d6074",
+          "designation": "ГЭСН 07 ФСНБ-2022",
+          "sha256": "329a2b6f23e05688720f82576da5d03f1a56f089f59aa3f9985191e738a356d3",
+          "blob_path": "blobs/32/329a2b6f23e05688720f82576da5d03f1a56f089f59aa3f9985191e738a356d3.pdf",
+          "pages": 116
+        },
+        {
+          "id": "e2b1120dc1fe1efed1bbaf11a55b359b",
+          "designation": "ГЭСН 05 ФСНБ-2022",
+          "sha256": "7b858fc940141425f9f94410d47341d8ebf90c55404001e817509250580c0527",
+          "blob_path": "blobs/7b/7b858fc940141425f9f94410d47341d8ebf90c55404001e817509250580c0527.pdf",
+          "pages": 196
+        },
+        {
+          "id": "e3ab75606e50c738320493be1e060d48",
+          "designation": "ГЭСНп 01 ФСНБ-2022",
+          "sha256": "3fc232fa3963a8815bfdf1c85d01c23ea253ee71bab2f0006fc5082daf596f6b",
+          "blob_path": "blobs/3f/3fc232fa3963a8815bfdf1c85d01c23ea253ee71bab2f0006fc5082daf596f6b.pdf",
+          "pages": 67
+        },
+        {
+          "id": "e5976b7d028fe9e096c664bdadaa97b0",
+          "designation": "ГЭСНм 08 ФСНБ-2022",
+          "sha256": "a3829c338a4f77622ebc0da56b8ac831badbc1ba2af20a0dd78cd305054c7ab2",
+          "blob_path": "blobs/a3/a3829c338a4f77622ebc0da56b8ac831badbc1ba2af20a0dd78cd305054c7ab2.pdf",
+          "pages": 291
+        }
+      ],
+      "logical_sha256": {
+        "metadata": "1b0438b21d82fbcc2ae46761ebb103b503c5cc0dcf771305107d6571ad318ed1",
+        "sources": "5be4c0cc0cde38d6781b92384164d0aa04908934380cfea587570e81a9f5742c",
+        "pages": "6098515248ee0979eaebd317be14e4c1700f703e30b9e24d9ff98ddb57019e94",
+        "clauses": "ee58e67c171ee29869b8c493e78b4825f31afdcd1e25f3a1251f20526762427f",
+        "norm_tables": "bd8cb3b21af679900f9fda2f295a1339f433a14c3226784c56e90fafd505f116",
+        "norms": "7abcddf346a77cdfe4df25b53d5605fba850e93e7dc736a298cde4075bdfaa60",
+        "resources": "20c3b89434295b0935a75dee7fb40c4610c64ceb1b352343e250d6a6156dcf48",
+        "rules": "d72b4dad2f3c571edc05ed7c540c532d2db1c20e0f096709c8d582dac61ededa",
+        "relations": "de9cb26dbde390ee0fe9e91e7af8f8d85b34f8212159049118a85837316376f5",
+        "gaps": "ad90f968ea434252bb585f33a71e5ac1cfac47366c22412d663971282ff8b0fb",
+        "review_queue": "0926d0c1507e16255fb363e73060766c855170076a8620778a4b684c97cd1e16",
+        "chunks": "ead36715ccb23337a3975051a128757383ed4e543127ee3f886a0801dbe43b9c",
+        "search_fts": "8916e0d8270213510a1c5468d19017c17e0c17606bd4b4755c3218d538bb3f85"
+      },
+      "sqlite_sha256": "038cbf74c9bd546d06493912b794230df15b767b1b2454b000314eef94222d81",
+      "sql_restore_verified": true
+    }
+  ],
+  "supplemental_documents_index": "supplemental-documents/INDEX.json",
+  "contains_project_documents": false,
+  "contains_credentials": false,
+  "application_database_included": false,
+  "adapter_sha256": "d378729522fb0c8b79965b32efba18fbecdbf78d535de3d9ba5015178a5b0acf"
+}
