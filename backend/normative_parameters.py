@@ -250,7 +250,7 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
                     total = sum((v for v in values if v is not None), Decimal(0))
                     c.update(found_value=str(total), found_unit=p['unit'], source_ids=ids,
                         source_anchors=[dict(source_id=i, quote=s['text'].rsplit('\n', 1)[-1], rects=s.get('rects', []))
-                            for i,s in zip(ids, operands)],
+                            for i,s in zip(ids, operands, strict=True)],
                         reason='Слагаемые найдены; принадлежность, единица или независимое подтверждение OCR ещё не проверены. Сравнение не выполнено.')
             if not matches and kind == 'quantity':
                 previous = next((v for v in result.get('items') or []

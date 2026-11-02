@@ -1,5 +1,6 @@
 """Real read-only corpus + isolated PostgreSQL; no paid model or network calls."""
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -11,7 +12,11 @@ from normative_corpus import Corpus, condition
 import test_api as fixtures
 import test_workspace as workspace_fixtures
 
-ROOT = Path(__file__).resolve().parents[3] / "knowledge-base/electrical-norms"
+ROOT = Path(os.environ.get(
+    "NORMATIVE_KB_ROOT",
+    Path(__file__).resolve().parents[2]
+    / "normative-handoff-20261030-092929/knowledge-base/electrical-norms",
+))
 
 
 def test_three_valued_rules_and_unit_scale():

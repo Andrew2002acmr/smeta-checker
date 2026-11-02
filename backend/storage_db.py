@@ -598,7 +598,7 @@ class Repository:
         ``run_audit(..., run_id=...)`` reuses this for API-created runs so the
         stored payload shape stays identical across all entry points.
         """
-        for task, track, result in zip(tasks, tracking, results):
+        for task, track, result in zip(tasks, tracking, results, strict=False):
             from audit_models import serialize_position_result
             payload = serialize_position_result(
                 task, result, track, pdf_versions)

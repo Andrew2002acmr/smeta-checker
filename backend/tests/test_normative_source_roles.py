@@ -22,7 +22,7 @@ CLAIM = 'method:comment:equipment:1'
 def sources():
     raw = json.loads((Path(__file__).parent / 'fixtures/manufacturer-hd130-reviewed.json').read_text(encoding='utf8'))
     result = [dict(id='p', kind='project', label='PD', page=1, origin='native', text='Project work.')]
-    for expected, metadata in zip(SOURCES, raw):
+    for expected, metadata in zip(SOURCES, raw, strict=True):
         result.append(dict(id='manufacturer:' + expected['clause_id'], kind='normative',
             label=expected['designation'], page=expected['page'], origin='reviewed_literal_transcription',
             text=metadata['reviewed_clauses'][0]['text'], source_id=expected['source_id'],

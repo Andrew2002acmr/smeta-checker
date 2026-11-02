@@ -167,9 +167,12 @@ class RedactionTests(unittest.TestCase):
                 seen["start"] = kwargs
                 yield FakeObs()
 
-        active = ContextVar("test_redact_client", default=FakeClient())
-        redact = ContextVar("test_redact_flag", default=flags.get("redact", False))
-        mask = ContextVar("test_mask_flag", default=flags.get("mask", False))
+        active = ContextVar("test_redact_client")
+        active.set(FakeClient())
+        redact = ContextVar("test_redact_flag")
+        redact.set(flags.get("redact", False))
+        mask = ContextVar("test_mask_flag")
+        mask.set(flags.get("mask", False))
         return seen, active, redact, mask
 
     def test_redact_pdf_replaces_fragments_keeps_routing(self):

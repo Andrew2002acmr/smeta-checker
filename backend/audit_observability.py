@@ -28,12 +28,12 @@ from typing import Any
 _SECRET_MARKERS = ("key", "secret", "token", "password", "auth", "cookie")
 REDACTED = "[redacted]"
 
-_context: ContextVar[dict[str, Any]] = ContextVar("audit_log_context", default={})
+_context: ContextVar[dict[str, Any] | None] = ContextVar("audit_log_context", default=None)
 
 
 def bind(**fields: Any) -> Any:
     """Attach correlation fields to subsequent log records; returns a token."""
-    merged = dict(_context.get())
+    merged = dict(_context.get() or {})
     merged.update({key: value for key, value in fields.items() if value is not None})
     return _context.set(merged)
 
@@ -45,7 +45,7 @@ def reset(token: Any) -> None:
 
 def snapshot() -> dict[str, Any]:
     """Copy the current correlation fields for another thread/task."""
-    return dict(_context.get())
+    return dict(_context.get() or {})
 
 
 def restore(fields: dict[str, Any]) -> Any:
@@ -55,7 +55,7 @@ def restore(fields: dict[str, Any]) -> Any:
 
 def current() -> dict[str, Any]:
     """Return the active correlation mapping (empty outside a run)."""
-    return dict(_context.get())
+    return dict(_context.get() or {})
 
 
 def scrub(value: Any) -> Any:
@@ -76,7 +76,7 @@ def scrub(value: Any) -> Any:
 
 class _ContextFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
-        for key, value in _context.get().items():
+        for key, value in (_context.get() or {}).items():
             if not hasattr(record, key):
                 setattr(record, key, value)
         return True

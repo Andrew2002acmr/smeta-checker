@@ -52,7 +52,7 @@ async function refreshVerdict() {
 }
 const previousReady = computed(() =>
   props.readyPositions
-    ? ([...props.readyPositions].filter((i) => i < props.positionIndex).sort((a, b) => b - a)[0] ??
+    ? (props.readyPositions.filter((i) => i < props.positionIndex).toSorted((a, b) => b - a)[0] ??
       null)
     : props.positionIndex > 0
       ? props.positionIndex - 1
@@ -60,7 +60,7 @@ const previousReady = computed(() =>
 )
 const nextReady = computed(() =>
   props.readyPositions
-    ? ([...props.readyPositions].filter((i) => i > props.positionIndex).sort((a, b) => a - b)[0] ??
+    ? (props.readyPositions.filter((i) => i > props.positionIndex).toSorted((a, b) => a - b)[0] ??
       null)
     : typeof props.positionCount === 'number' && props.positionIndex + 1 < props.positionCount
       ? props.positionIndex + 1

@@ -36,7 +36,7 @@ class BaselineTests(unittest.TestCase):
             ("Технический сбой", "-", "-", "-", []),
         ]
         self.assertEqual(len(self.summary["cases"]), 5)
-        for case, (status, page, volume, unit, pages) in zip(self.summary["cases"], expected):
+        for case, (status, page, volume, unit, pages) in zip(self.summary["cases"], expected, strict=True):
             with self.subTest(position=case["position"]):
                 self.assertEqual(case["status"], status)
                 self.assertEqual(case["page"], page)
@@ -52,7 +52,7 @@ class BaselineTests(unittest.TestCase):
             (False, False, False, True, False),
             (False, False, False, False, False),
         ]
-        for case, flags in zip(self.summary["cases"], expected):
+        for case, flags in zip(self.summary["cases"], expected, strict=True):
             with self.subTest(position=case["position"]):
                 self.assertEqual(
                     (case["work_found"], case["volume_confirmed"],

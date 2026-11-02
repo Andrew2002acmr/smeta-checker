@@ -133,8 +133,8 @@ def run_tsv(png_bytes, language="rus+eng", psm=OVERVIEW_PSM,
         proc = subprocess.run(
             cmd, input=png_bytes, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, timeout=timeout)
-    except subprocess.TimeoutExpired:
-        raise RuntimeError("TSV pass timeout (%d с, PSM %d)" % (timeout, psm))
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("TSV pass timeout (%d с, PSM %d)" % (timeout, psm)) from exc
     if proc.returncode != 0:
         detail = proc.stderr.decode("utf-8", "replace").strip()[:200]
         raise RuntimeError("Tesseract TSV (PSM %d): %s" % (psm, detail or "exit %d" % proc.returncode))
@@ -391,7 +391,7 @@ def _glue_line(words):
     if len(words) < 2:
         return " ".join(word["text"] for word in words)
     parts = [words[0]["text"]]
-    for prev, word in zip(words, words[1:]):
+    for prev, word in zip(words, words[1:], strict=False):
         left, right = prev["text"], word["text"]
         previous_box, current_box = prev.get('_tbox', prev['bbox']), word.get('_tbox', word['bbox'])
         gap = current_box[0] - previous_box[2]
@@ -427,7 +427,7 @@ def _column_strips(words, reading_angle=0, min_gap=8.0):
         return []
     votes: list[float] = []
     for members in rows:
-        for left, right in zip(members, members[1:]):
+        for left, right in zip(members, members[1:], strict=False):
             if '_tbox' in left and '_tbox' in right:
                 gap = right["_tx"] - left["_tx1"]
                 if gap >= max(min_gap, 20.0):

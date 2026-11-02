@@ -171,8 +171,8 @@ def _fake_open_pdf(*args, **kwargs):
             pass
     try:
         return _CLONE_ORIGINS[stream]
-    except KeyError:
-        raise AssertionError("FakeSourceTests: unknown PDF stream for pymupdf.open")
+    except KeyError as exc:
+        raise AssertionError("FakeSourceTests: unknown PDF stream for pymupdf.open") from exc
 
 
 def fake_recognize_page(page, **kwargs):

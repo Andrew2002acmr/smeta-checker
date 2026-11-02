@@ -189,7 +189,7 @@ def paired_measurements(values: str, units: str) -> list["Measurement"]:
         return []
     return [Measurement(raw=f"{value} {unit}", status="exact", value=_decimal(value.strip()),
                         operator="eq", unit=unit, dimension=dimension)
-            for value, (unit, dimension) in zip(parts, labels)]
+            for value, (unit, dimension) in zip(parts, labels, strict=True)]
 
 
 _PAIR_UNIT_ATOM = r"(?:м[23²³]|мм|см|км|шт\.?|pcs|компл\.?|кг|м|т)"
@@ -236,7 +236,7 @@ def iter_paired_measurements(text: str) -> list["Measurement"]:
     # Inline dual values: 114 шт./23,53 т. Require the slash to be the
     # entire separator between two independently dimensioned measurements.
     atoms = iter_measurements(normalized)
-    for first, second in zip(atoms, atoms[1:]):
+    for first, second in zip(atoms, atoms[1:], strict=False):
         start = normalized.find(first.raw)
         end = normalized.find(second.raw, start + len(first.raw))
         if start >= 0 and end >= 0 and re.fullmatch(r"[.\s]*/\s*", normalized[start + len(first.raw):end]):
@@ -447,7 +447,7 @@ def compare_measurements(expected: Measurement, actual: Measurement) -> dict[str
         if len(expected_parts) != 2 or len(actual_parts) != 2:
             return {"state": "review_required", "reason": "directed_pair_mismatch"}
         states = [compare_measurements(item_expected, item_actual)["state"]
-                  for item_expected, item_actual in zip(expected_parts, actual_parts)]
+                  for item_expected, item_actual in zip(expected_parts, actual_parts, strict=True)]
         if all(state == "confirmed" for state in states):
             return {"state": "confirmed", "reason": "directed_pair_equal"}
         if "contradiction" in states:

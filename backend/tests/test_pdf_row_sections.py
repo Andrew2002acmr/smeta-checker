@@ -44,7 +44,7 @@ def test_sections_stop_at_blank_divider_and_never_become_grand_total_headers():
     assert cs['e']['row_scope']==dict(state='total_without_section',section_id=None)
     assert row_scope_context(t,cs['e'])=='Строка итога: Всего:'
     assert t['column_units']==before['column_units']
-    for old,new in zip(before['cells'],t['cells']):
+    for old,new in zip(before['cells'],t['cells'],strict=True):
         assert all(old[k]==new[k] for k in old if k not in {'role','header_ids'})
     frozen=deepcopy(t)
     assert not apply(t) and t==frozen

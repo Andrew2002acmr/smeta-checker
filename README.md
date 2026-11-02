@@ -18,6 +18,28 @@ python3 scripts/install-normative-data.py
 перезаписывает. Данные скачиваются отдельно для каждого места установки;
 история Git их по-прежнему содержит до отдельной очистки истории.
 
+Для интеграционных тестов нормативной проверки нужны оба настоящих корпуса из
+того же релиза и отдельная тестовая PostgreSQL. При установке данных в корень
+проекта тесты находят корпуса автоматически. Для установки вне корня, например
+так же, как в CI, выполните из корня проекта:
+
+```bash
+python3 scripts/install-normative-data.py --dest .audit_cache/normative-ci
+export NORMATIVE_KB_ROOT="$PWD/.audit_cache/normative-ci/normative-handoff-20261030-092929/knowledge-base/electrical-norms"
+export NORMATIVE_ROAD_KB_ROOT="$PWD/.audit_cache/normative-ci/normative-handoff-20261030-092929/knowledge-base/road-norms"
+export TEST_POSTGRES_URL="postgresql+psycopg://postgres:postgres@localhost:5432/smeta_test"
+cd backend
+uv sync --frozen
+uv run pytest tests/test_normative_integration.py tests/test_normative_position_check.py
+```
+
+URL PostgreSQL следует заменить на адрес отдельной тестовой базы. Повторно
+скачивать уже установленные данные не нужно: установщик отказывается
+перезаписывать существующие каталоги. В GitHub Actions release скачивается
+через `GH_TOKEN` из `github.token`; токену необходим доступ на чтение релиза
+репозитория. При отсутствии доступа или несовпадении SHA-256 job завершается
+ошибкой, а не пропускает проверки.
+
 ## Интерфейс КДФП / Nuxt
 
 Nuxt-интерфейс подключён к настоящему REST API и постоянному хранилищу
@@ -115,6 +137,11 @@ uv run uvicorn api:get_app --factory
 `uv export --frozen --no-dev --format requirements.txt -o requirements.txt`.
 Проверки (из `backend/`): `uv run ruff check .`, `uv run pyright`, `uv run pytest`.
 Новые `.py`-файлы должны проходить `ruff format --check`.
+Ruff проверяет группы `E4`, `E7`, `E9`, `F` и `B`; стандартные фабрики FastAPI
+`Depends` и `File` разрешены в значениях по умолчанию. Pyright пока проверяет
+модули, явно перечисленные в `tool.pyright.include`, а не весь backend.
+По умолчанию `uv sync --frozen` устанавливает группы `dev` и `full`; slim-образ
+исключает `full` явно.
 
 Перед запуском заполните корневой `.env`. Провайдер по умолчанию — Yandex Cloud:
 нужны `YANDEX_CLOUD_API_KEY` и `YANDEX_CLOUD_FOLDER`.

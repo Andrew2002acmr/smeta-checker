@@ -196,7 +196,7 @@ def _read_vor_sheet(file_source, filename, sheet_name=0):
                 continue
             record_numbers[data_index] = record_no
             row = {}
-            for name, cell in zip(fieldnames, cells[: len(fieldnames)]):
+            for name, cell in zip(fieldnames, cells[: len(fieldnames)], strict=True):
                 # Pandas inferred numerics before; preserve its display dtype
                 # while keeping logical CSV records (no Excel addresses).
                 if re.fullmatch(r"[+-]?\d+", cell or ""):
@@ -542,7 +542,7 @@ def _vor_positions(df):
     for index in range(len(df_reset)):
         row = df_reset.iloc[index]
 
-        def cell(col):
+        def cell(col, row=row):
             return "" if col is None else row.get(col, "")
 
         number = re.sub(r"\.0+$", "", str(row.iloc[0]).strip())
@@ -712,7 +712,7 @@ def load_vor_frame_positions(file_source, filename):
         # offset, formula snapshot, and provenance maps; indexes are global.
         labels = df.attrs.get("vor_sheet_labels") or []
         positions, start = [], 0
-        for ordinal, (name, count) in enumerate(zip(names, counts)):
+        for ordinal, (name, count) in enumerate(zip(names, counts, strict=True)):
             bundle = sheets.get(name) or {}
             part = df.iloc[start:start + count].copy()
             if ordinal < len(labels) and len(labels[ordinal]) == len(part):
