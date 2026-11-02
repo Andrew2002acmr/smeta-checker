@@ -418,7 +418,7 @@ def project_sources(context, record, position, citations, payload, warnings, *, 
                         pages.append(neighbor)
             pages = list(dict.fromkeys(pages))[:4 if automatic else 6]
         for page in pages:
-            def build():
+            def build(*, page=page):
                 obj = doc[page-1]
                 text = str(native.get(page) or obj.get_text(sort=True) or "")
                 image_key = None

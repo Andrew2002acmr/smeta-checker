@@ -25,7 +25,7 @@ class ReportTests(unittest.TestCase):
                                "[ВОР] Заявленный объем": "120", "[ВОР] Ед. изм.": "м³",
                                "[ПД] Запросов": 6} for i, (status, _) in enumerate(cases)], index=range(17, 17 + len(cases)))
         sources, tasks = [], []
-        for status, overrides in cases:
+        for _, overrides in cases:
             source = {"pdf_name": "кр.pdf", "found_page": 18, "found_pages": [18, 19],
                       "vor_pages": [18], "work_found": True, "volume_confirmed": True,
                       "unit_confirmed": True, "comment_confirmed": True,

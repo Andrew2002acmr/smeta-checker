@@ -106,14 +106,14 @@ function focusAnchor() {
   let start = content.indexOf(target)
   while (start >= 0 && /^[\d.-]+$/.test(target) && /\d/.test(content[start + target.length] ?? ''))
     start = content.indexOf(target, start + 1)
-  const first = owners[start],
+  const firstOwner = owners[start],
     last = owners[start + target.length - 1]
-  if (start < 0 || !first || !last) {
+  if (start < 0 || !firstOwner || !last) {
     emit('focused', false)
     return
   }
   const range = document.createRange()
-  range.setStart(first.node, first.offset)
+  range.setStart(firstOwner.node, firstOwner.offset)
   range.setEnd(last.node, last.offset + 1)
   const box = canvas.value.getBoundingClientRect()
   focusMarks.value = [...range.getClientRects()]

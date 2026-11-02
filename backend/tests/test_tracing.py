@@ -30,7 +30,8 @@ class TracingIsolationTests(unittest.TestCase):
             def start_as_current_observation(self, **kwargs):
                 raise ConnectionError("Tracing unavailable")
 
-        active = ContextVar("test_tracing_client", default=BrokenClient())
+        active = ContextVar("test_tracing_client")
+        active.set(BrokenClient())
         with patch("audit_tracing._client", active), self.assertLogs("audit_tracing", level="WARNING"):
             result, _ = test_audit.AdapterTests().run_adapter([test_audit.AdapterTests.valid()])
         self.assertEqual(result["status"], "ОК")
@@ -48,7 +49,8 @@ class TracingIsolationTests(unittest.TestCase):
                     raise ConnectionError("Exporter close failed")
 
         original = ValueError("Quote not present on the supplied page")
-        active = ContextVar("test_tracing_client", default=BrokenClient())
+        active = ContextVar("test_tracing_client")
+        active.set(BrokenClient())
         with patch("audit_tracing._client", active), self.assertLogs("audit_tracing", level="WARNING"):
             with self.assertRaises(ValueError) as raised:
                 with span("validate-audit-response"):

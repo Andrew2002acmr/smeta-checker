@@ -182,7 +182,7 @@ def build_user_report(df, tracking, tasks):
     if len(rows) != len(tracking) or len(rows) != len(tasks):
         raise ValueError("Данные позиций и источников отчёта не согласованы")
     records = []
-    for row, source, task in zip(rows, tracking, tasks):
+    for row, source, task in zip(rows, tracking, tasks, strict=True):
         from audit_review_policy import review_source
         source = review_source(source, task)
         files = [_basename(ref) for ref in split_pdf_refs(task.get("file_refs", ""))]
@@ -434,7 +434,7 @@ def build_user_report(df, tracking, tasks):
                 notes.append(_human_claim_note(check))
         records.append(dict(zip(REPORT_COLUMNS, [row.get("№"), task["w_name"], status,
             " ".join(remarks + notes) if remarks or notes else "Расхождений не обнаружено.",
-            "\n".join(files) or "Не указан", location])))
+            "\n".join(files) or "Не указан", location], strict=True)))
     return sorted(records, key=lambda r: STATUS_ORDER.get(r["Статус аудита"], 9))
 
 
@@ -459,7 +459,7 @@ def generate_word_report(report, meta):
     table = doc.add_table(rows=1, cols=4)
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     table.style = "Table Grid"
-    for cell, text in zip(table.rows[0].cells, ("№", "Наименование работ", "Статус аудита", "Результат и действия")):
+    for cell, text in zip(table.rows[0].cells, ("№", "Наименование работ", "Статус аудита", "Результат и действия"), strict=True):
         cell.text = text
         cell.paragraphs[0].runs[0].bold = True
     repeat = OxmlElement("w:tblHeader")
@@ -491,7 +491,7 @@ def generate_word_report(report, meta):
             paragraph.add_run(row["Наименование файла"])
         paragraph.add_run("; " + row["Где проверить"] + ".")
     for word_row in table.rows:
-        for cell, width in zip(word_row.cells, (0.4, 1.5, 1.2, 3.9)):
+        for cell, width in zip(word_row.cells, (0.4, 1.5, 1.2, 3.9), strict=True):
             cell.width = Inches(width)
     out = io.BytesIO()
     doc.save(out)

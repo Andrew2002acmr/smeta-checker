@@ -1,18 +1,24 @@
 import { test, expect } from './auth'
+import type { Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-test.beforeEach(() => {
-  test.skip(
-    process.env.E2E_NORMATIVE_PROFILE !== 'roads',
-    'Requires an external roads normative release and configured fixture API',
-  )
-})
+async function savePositionCheck(page: Page, run: string) {
+  const response = await page.request.post(`/api/v1/audits/${run}/positions/0/normative/check`, {
+    headers: { Origin: process.env.FRONTEND_URL! },
+    data: { pages: [1] },
+    timeout: 60000,
+  })
+  expect(
+    response.ok(),
+    `Position check failed: ${response.status()} ${await response.text()}`,
+  ).toBe(true)
+}
 
 test('one position uses road norms and preserves batch results', async ({ page }) => {
   test.skip(!process.env.E2E_FIXTURE_ROOT, 'Requires isolated road-profile fixture API')
   const { run_id: run } = JSON.parse(
-    readFileSync(resolve(process.env.E2E_FIXTURE_ROOT!, 'table-run.json'), 'utf8'),
+    readFileSync(resolve(process.env.E2E_FIXTURE_ROOT!, 'road-run.json'), 'utf8'),
   )
   const base = `/api/v1/audits/${run}`
   const before = await (await page.request.get(`${base}/rows?offset=0&limit=200`)).json()
@@ -32,7 +38,9 @@ test('one position uses road norms and preserves batch results', async ({ page }
   await expect(check.getByRole('alert')).toContainText('шести')
   await check.getByLabel('Страницы ПД для проверки').fill('1')
   await check.getByRole('button', { name: 'Проверить только эту позицию', exact: true }).click()
-  await expect(check).toContainText('Синтетическая точечная проверка', { timeout: 25000 })
+  await expect(check.getByRole('region', { name: 'Итог и действия', exact: true })).toBeVisible({
+    timeout: 25000,
+  })
   await check.locator('.decision-evidence > summary').click()
   await expect(check.getByRole('region', { name: 'Проверяемые параметры' })).toContainText(
     'Объём по проекту',
@@ -70,7 +78,9 @@ test('one position uses road norms and preserves batch results', async ({ page }
   )
   await page.reload()
   await expect(page.locator('.normative-panel')).toHaveJSProperty('open', true)
-  await expect(check).toContainText('Синтетическая точечная проверка', { timeout: 25000 })
+  await expect(check.getByRole('region', { name: 'Итог и действия', exact: true })).toBeVisible({
+    timeout: 25000,
+  })
   const width = await check.evaluate((el) => ({ client: el.clientWidth, scroll: el.scrollWidth }))
   expect(width.scroll).toBeLessThanOrEqual(width.client + 1)
   await check.screenshot({ path: '../.audit_cache/normative-position-check.png' })
@@ -79,8 +89,9 @@ test('one position uses road norms and preserves batch results', async ({ page }
 test('automatic stage refreshes without blocking the saved position', async ({ page }) => {
   test.skip(!process.env.E2E_FIXTURE_ROOT, 'Requires isolated fixture API')
   const { run_id: run } = JSON.parse(
-    readFileSync(resolve(process.env.E2E_FIXTURE_ROOT!, 'table-run.json'), 'utf8'),
+    readFileSync(resolve(process.env.E2E_FIXTURE_ROOT!, 'road-run.json'), 'utf8'),
   )
+  await savePositionCheck(page, run)
   const endpoint = `/api/v1/audits/${run}/positions/0/normative`
   let reads = 0
   await page.route(`**/api/v1/audits/${run}/positions/0/workspace`, async (route) => {
@@ -111,7 +122,7 @@ test('automatic stage refreshes without blocking the saved position', async ({ p
   await expect(page.locator('.aw-verdict')).not.toContainText('Проверяется по нормативам', {
     timeout: 15000,
   })
-  await expect(panel).toContainText('Синтетическая точечная проверка')
+  await expect(panel.getByRole('region', { name: 'Итог и действия', exact: true })).toBeVisible()
   await page.screenshot({ path: '../.audit_cache/normative-background.png', fullPage: true })
 })
 
@@ -120,7 +131,8 @@ test('saved cell rectangles highlight a scan without a text layer and exclude th
 }) => {
   test.skip(!process.env.E2E_FIXTURE_ROOT, 'Requires isolated fixture API')
   const root = process.env.E2E_FIXTURE_ROOT!
-  const { run_id: run } = JSON.parse(readFileSync(resolve(root, 'table-run.json'), 'utf8'))
+  const { run_id: run } = JSON.parse(readFileSync(resolve(root, 'road-run.json'), 'utf8'))
+  await savePositionCheck(page, run)
   await page.route(`**/api/v1/audits/${run}/positions/0/normative`, async (route) => {
     const response = await route.fetch()
     const state = await response.json()
@@ -213,8 +225,9 @@ test('saved cell rectangles highlight a scan without a text layer and exclude th
 test('decision offers concrete actions while calculations stay collapsed', async ({ page }) => {
   test.skip(!process.env.E2E_FIXTURE_ROOT, 'Requires isolated fixture API')
   const { run_id: run } = JSON.parse(
-    readFileSync(resolve(process.env.E2E_FIXTURE_ROOT!, 'table-run.json'), 'utf8'),
+    readFileSync(resolve(process.env.E2E_FIXTURE_ROOT!, 'road-run.json'), 'utf8'),
   )
+  await savePositionCheck(page, run)
   await page.route(`**/api/v1/audits/${run}/positions/0/workspace`, async (route) => {
     const response = await route.fetch(),
       data = await response.json()
@@ -280,7 +293,8 @@ test('quantity sum is visible immediately and opens both operands or one cell', 
 }) => {
   test.skip(!process.env.E2E_FIXTURE_ROOT, 'Requires isolated fixture API')
   const root = process.env.E2E_FIXTURE_ROOT!
-  const { run_id: run } = JSON.parse(readFileSync(resolve(root, 'table-run.json'), 'utf8'))
+  const { run_id: run } = JSON.parse(readFileSync(resolve(root, 'road-run.json'), 'utf8'))
+  await savePositionCheck(page, run)
   await page.route(`**/api/v1/audits/${run}/positions/0/normative`, async (route) => {
     const response = await route.fetch(),
       state = await response.json()
@@ -306,7 +320,7 @@ test('quantity sum is visible immediately and opens both operands or one cell', 
     await route.fulfill({
       status: 200,
       contentType: 'application/pdf',
-      body: readFileSync(resolve(root, 'quantity-composition-scan.pdf')),
+      body: readFileSync(resolve(root, 'multi-scan.pdf')),
     })
   })
   await page.goto(`/audits/${run}?position=0`)

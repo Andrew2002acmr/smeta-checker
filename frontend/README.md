@@ -93,6 +93,15 @@ pnpm --dir frontend run test:unit
 pnpm --dir frontend run build
 ```
 
+Oxlint настроен в `frontend/.oxlintrc.json`: категории `correctness` и
+`suspicious`, а также `no-unused-vars` и `no-debugger` считаются ошибками.
+Проверка включает плагины Vue и Vitest и отклоняет также предупреждения.
+Генерируемый SDK, зависимости, сборочные каталоги, `public` и временный каталог
+проверки API исключены из lint. Запуск: `pnpm --dir frontend run lint`;
+для автоматических исправлений — `pnpm --dir frontend run lint:fix`.
+Форматирование проверяется отдельно командой `pnpm --dir frontend run fmt:check`,
+а применяется командой `pnpm --dir frontend run fmt`.
+
 Источник схем — реальные Pydantic DTO в `backend/workspace_models.py`, `backend/audit_models.py` и `backend/api.py`. Сгенерированный SDK/TS/Zod находится в `app/generated/`; вручную его не редактируют. Экспорт OpenAPI не открывает БД и не запускает OCR/LLM.
 
 Unit-тесты чистых функций и контрактов выполняются в Node, без запуска Nuxt. Пользовательские сценарии и компоненты проверяются E2E на собранном приложении.
@@ -108,13 +117,6 @@ Unit-тесты чистых функций и контрактов выполн
 к Python). PDF для выделения и OCR создаются самим `workspace_server.py`;
 OCR-тест требует установленного Tesseract с языками rus и eng.
 
-Тесты `normative-pilot`, `normative-context` и `normative-position-check`
-требуют внешнего нормативного выпуска и соответствующего тестового профиля API.
-Запускайте их отдельно с `E2E_NORMATIVE_PROFILE=electrical` или `roads` и
-`workspace_server.py --normative-profile <профиль>`. Без этого они явно пропускаются:
-корпуса и PDF нормативов не входят в checkout, а эти сценарии читают реальные
-нормативы и сохранённый результат предыдущего шага. Остальные браузерные тесты
-работают на синтетических данных без нормативного корпуса.
 
 E2E выполняет вход один раз в `tests/e2e/setup.ts`, передаёт синтетическую
 сессию worker-процессам только через окружение и отзывает её после прогона.

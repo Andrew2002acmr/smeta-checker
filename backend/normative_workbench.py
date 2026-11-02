@@ -116,8 +116,9 @@ def code_from_position(work_name: str, reference: str) -> str:
 
 
 def title_similarity(left: str, right: str) -> int:
-    def words(value):
+    def words(value: str) -> set[str]:
         return set(re.findall(r"[а-яёa-z0-9]+", value.casefold()))
+
     a, b = words(left), words(right)
     token_score = (2 * len(a & b) / (len(a) + len(b))) if a and b else 0
     sequence_score = SequenceMatcher(None, " ".join(sorted(a)), " ".join(sorted(b))).ratio()

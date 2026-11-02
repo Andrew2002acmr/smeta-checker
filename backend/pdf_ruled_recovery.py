@@ -143,7 +143,7 @@ def rebuild(boxes, logical, words, *, page, source_table_ids=()):
     table_id = 'ruled-'+_digest([geometry_hash, words_hash])[:16]
     cells = [dict(row=int(r0), column=int(c0), rowspan=int(r1-r0+1), colspan=int(c1-c0+1),
         bbox=list(map(float, box)), text='', words=[], numeric_verified=False)
-        for box, (r0, r1, c0, c1) in zip(boxes, logical)]
+        for box, (r0, r1, c0, c1) in zip(boxes, logical, strict=False)]
     if not cells:
         raise ValueError('Cannot rebuild an empty physical grid')
     unassigned = []

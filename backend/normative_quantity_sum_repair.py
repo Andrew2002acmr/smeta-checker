@@ -228,7 +228,7 @@ def repair_quantity_sum(answer, tools, *, owner_work='', work_scope='', owner_un
     if any(r is None for r in records):
         return False
     records=[r for r in records if r is not None]
-    for p,r in zip(proposals,records):
+    for p,r in zip(proposals,records,strict=True):
         if (r['source']['version_id']!=tools.version or r['value']<=0
                 or number(p.value)!=r['value'] or measure('1',p.unit)!=measure('1',owner_unit)
                 or literal_parameter_issues(p,r['source'])

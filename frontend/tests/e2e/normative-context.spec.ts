@@ -2,13 +2,6 @@ import { test, expect } from './auth'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-test.beforeEach(() => {
-  test.skip(
-    process.env.E2E_NORMATIVE_PROFILE !== 'electrical',
-    'Requires an external electrical normative release and configured fixture API',
-  )
-})
-
 test('context question and grounded explanations are readable without paid model calls', async ({
   page,
 }) => {

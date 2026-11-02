@@ -25,7 +25,7 @@ function walk(dir, prefix = '') {
         ? walk(join(dir, entry.name), prefix + entry.name + '/')
         : [prefix + entry.name],
     )
-    .sort()
+    .toSorted()
 }
 try {
   mkdirSync(temporary, { recursive: true })

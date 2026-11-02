@@ -10,6 +10,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import uvicorn
 from fastapi.testclient import TestClient
+import pymupdf
+from sqlalchemy.engine import make_url
 from openpyxl import Workbook
 
 from api import ApiContext, create_app
@@ -19,31 +21,31 @@ from storage_db import open_repository
 from test_api import _fake_pdf_bytes, _ok_client_factory
 
 
-def selection_pdfs(root):
-    """Create portable synthetic inputs required by the browser selection tests."""
-    import pymupdf
-
+def write_selection_fixtures(root: Path) -> None:
+    """Create a text table and two image-only pages for real PDF selection/OCR."""
     with pymupdf.open() as document:
         page = document.new_page(width=600, height=400)
         for x in (50, 350, 420, 550):
             page.draw_line((x, 80), (x, 180))
         for y in (80, 110, 145, 180):
             page.draw_line((50, y), (550, y))
-        for x, y, text in [
+        for x, y, text in (
             (60, 100, "Work"), (360, 100, "Unit"), (430, 100, "Quantity"),
             (60, 132, "Copper cable"), (360, 132, "m"), (430, 132, "45"),
             (60, 167, "NEXT ROW"), (360, 167, "m"), (430, 167, "999"),
-        ]:
+        ):
             page.insert_text((x, y), text, fontsize=11)
         document.save(root / "selection-table.pdf")
+
     with pymupdf.open() as scan:
-        for label in ("COPPER CABLE", "UNIT"):
-            with pymupdf.open() as native:
-                page = native.new_page(width=400, height=400)
-                page.insert_text((40, 62), label, fontsize=16)
-                page.insert_text((285, 62), "222.78", fontsize=16)
+        for left, right in (("COPPER CABLE", "222.78"), ("UNIT", "")):
+            with pymupdf.open() as source:
+                page = source.new_page(width=600, height=400)
+                page.insert_text((50, 60), left, fontsize=24)
+                if right:
+                    page.insert_text((415, 60), right, fontsize=24)
                 image = page.get_pixmap(matrix=pymupdf.Matrix(3, 3)).tobytes("png")
-            page = scan.new_page(width=400, height=400)
+            page = scan.new_page(width=600, height=400)
             page.insert_image(page.rect, stream=image)
         scan.save(root / "multi-scan.pdf")
 
@@ -70,10 +72,12 @@ def main():
             return result.stdout.decode("utf-8")
         ocr_engine.run_tsv = container_tsv
     database = os.environ["TEST_POSTGRES_URL"]
-    if "/smeta_test_ui" not in database:
+    if make_url(database).database != "smeta_test_ui":
         raise SystemExit("E2E requires its own smeta_test_ui database")
-    if args.root.exists() and not args.resume:
-        raise SystemExit("Use a fresh E2E root; existing files are never reset")
+    fixture_files = ("run-id.txt", "vor.xlsx", "project.pdf", "selection-table.pdf",
+                     "multi-scan.pdf", "table-run.json", "road-run.json", "progressive-run.json")
+    if not args.resume and any((args.root / name).exists() for name in fixture_files):
+        raise SystemExit("Use a fresh E2E fixture root; existing fixtures are never reset")
     if args.resume and not (args.root / "run-id.txt").is_file():
         raise SystemExit("Resume requires a previously initialized E2E fixture")
     args.root.mkdir(parents=True, exist_ok=True)
@@ -88,22 +92,36 @@ def main():
         yandex_cloud_api_key="synthetic-not-a-provider-key",
         yandex_cloud_folder="synthetic-test",
     )
-    client_factory = _ok_client_factory()
-    if args.normative_profile:
-        import json
-        from types import SimpleNamespace
-        import normative_service
-        settings.yandex_cloud_model = "synthetic-normative-check"
-        normative_service.profile_for = lambda record: args.normative_profile
+    import json
+    from types import SimpleNamespace
+    import normative_service
 
-        def complete_check(**kwargs):
-            data = json.loads(kwargs["input"])
+    def profile_for(record):
+        for filename, profile in (("road-run.json", "roads"), ("table-run.json", "electrical")):
+            path = args.root / filename
+            if path.is_file() and str(record["project_id"]) == json.loads(path.read_text())["project_id"]:
+                return profile
+        return args.normative_profile or "electrical"
+
+    normative_service.profile_for = profile_for
+    audit_client_factory = _ok_client_factory()
+
+    def client_factory(**kwargs):
+        audit_client = audit_client_factory(**kwargs)
+
+        def complete(**request):
+            try:
+                data = json.loads(request["input"])
+            except (ValueError, TypeError):
+                data = None
+            if not isinstance(data, dict) or "sources" not in data:
+                return audit_client.responses.create(**request)
             project = next(s for s in data["sources"] if s["kind"] == "project")
             norm = next(s for s in data["sources"] if s["kind"] == "normative")
             answer = dict(summary="Синтетическая точечная проверка: исходный прогон не изменён.", items=[dict(topic="ПД и норматив", state="needs_facts", explanation="Синтетический стенд: проверьте исходный норматив и проектную строку.", project_source_ids=[project["id"]], normative_source_ids=[norm["id"]])])
             return SimpleNamespace(output_text=json.dumps(answer), usage=SimpleNamespace(input_tokens=120, output_tokens=30, total_tokens=150))
-        def client_factory(**kwargs):
-            return SimpleNamespace(responses=SimpleNamespace(create=complete_check), close=lambda: None)
+
+        return SimpleNamespace(responses=SimpleNamespace(create=complete), close=audit_client.close)
     app = create_app(
         ApiContext(
             settings=settings,
@@ -136,7 +154,7 @@ def main():
     book.close()
     (args.root / "vor.xlsx").write_bytes(output.getvalue())
     (args.root / "project.pdf").write_bytes(_fake_pdf_bytes())
-    selection_pdfs(args.root)
+    write_selection_fixtures(args.root)
     with TestClient(app) as client:
         client.headers["Authorization"] = "Bearer synthetic-e2e-only"
         created = client.post(
@@ -175,6 +193,12 @@ def main():
         if not app.state.runner.wait(UUID(run), 30):
             raise RuntimeError("Synthetic audit did not complete")
         (args.root / "run-id.txt").write_text(run, encoding="utf-8")
+    from progressive_fixture import seed as seed_progressive
+    from table_layout_fixture import seed as seed_table
+
+    seed_table(args.root, repository, blobs)
+    seed_table(args.root, repository, blobs, road=True)
+    seed_progressive(args.root, repository)
     uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")
 
 

@@ -131,7 +131,7 @@ def pack_sources(value, sources, preferred=(), *, limit, planning=False, measure
         if planning and sid not in critical and sid not in embedded and len(text) > cap:
             cap = min(cap, 450)
 
-        def preview(length):
+        def preview(length, *, brief=brief, text=text, sid=sid):
             part = dict(brief, text=text[:length], excerpt_truncated=len(text) > length,
                         full_length=len(text), next_offset=length if len(text) > length else None)
             if sid in embedded:

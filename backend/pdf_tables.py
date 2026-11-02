@@ -423,14 +423,14 @@ def _recognize_crop(image, ocr, engine, geometry=None):
     tables = []
     if geometry is None:
         result = engine(image)
-        geometries = zip(result.cell_bboxes, result.logic_points)
+        geometries = zip(result.cell_bboxes, result.logic_points, strict=False)
     else:
         geometries = [geometry]
     for number, (boxes, logic) in enumerate(geometries, 1):
         if len(boxes) != len(logic):
             raise ValueError("Raster table geometry/structure cell count mismatch")
         cells = []
-        for box, (r0, r1, c0, c1) in zip(boxes, logic):
+        for box, (r0, r1, c0, c1) in zip(boxes, logic, strict=True):
             points = np.asarray(box).reshape(-1, 2)
             bbox = [
                 float(points[:, 0].min()),
@@ -451,7 +451,7 @@ def _recognize_crop(image, ocr, engine, geometry=None):
             )
         unassigned = []
         for box, text, confidence in zip(
-            recognized.boxes, recognized.txts, recognized.scores
+            recognized.boxes, recognized.txts, recognized.scores, strict=False
         ):
             points = np.asarray(box).reshape(-1, 2)
             word = {

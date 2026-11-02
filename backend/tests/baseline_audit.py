@@ -155,7 +155,7 @@ def summarize(saved, inputs):
     table, tracking = saved["df"], saved["tracking"]
     word = docx.Document(io.BytesIO(saved["word_bytes"]))
     cases = []
-    for (_, row), track in zip(table.iterrows(), tracking):
+    for (_, row), track in zip(table.iterrows(), tracking, strict=False):
         position = str(row.iloc[0]).removesuffix(".0")
         cases.append({
             "position": position,
@@ -242,7 +242,7 @@ def compare_summaries(old, new):
               "volume_confirmed", "unit_confirmed", "comment_confirmed",
               "search_complete", "requests", "contexts",
               "evidence", "word_status", "exports_match")
-    for before, after in zip(old["cases"], new["cases"]):
+    for before, after in zip(old["cases"], new["cases"], strict=False):
         if before["position"] != after["position"] or before["work"] != after["work"]:
             raise ValueError("Position order changed; inputs are not comparable")
         row = {"position": before["position"], "work": before["work"],

@@ -46,7 +46,8 @@ def work_variants(kb,query,facts):
 def adjustment_references(item,base):
     """Follow a literal reference/range, never infer a neighbour from its code."""
     from normative_thickness_rules import adjustment_rule
-    return adjustment_rule(item,base) is not None
+    definition = item if item.get('text') else {**item, 'text': item.get('title', '')}
+    return adjustment_rule(definition,base) is not None
 
 
 def same_table_adjustments(kb,bases,facts,*,limit=2):
@@ -72,7 +73,7 @@ def same_table_adjustments(kb,bases,facts,*,limit=2):
             # A lexical reference is only navigation; the full literal link,
             # step and direction are validated below. Never guess a next table.
             cross=db.execute('SELECT id FROM norms WHERE source_id=? AND family=? AND table_code!=? '
-                'AND text LIKE ? ORDER BY code,id LIMIT 33',(source_id,family,table_code,'%'+table_code+'%')).fetchall()
+                'AND title LIKE ? ORDER BY code,id LIMIT 33',(source_id,family,table_code,'%'+table_code+'%')).fetchall()
         if len(cross)<=32:
             rows=[*rows,*cross]
         for row in rows:

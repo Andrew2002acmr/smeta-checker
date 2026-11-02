@@ -125,7 +125,7 @@ def augment(context, record, position, result):
             elif len(re.sub(r'\s','',text)) < 100:
                 if time.monotonic() + 10 > deadline:
                     return result
-                def overview():
+                def overview(*, page=page):
                     pix = page.get_pixmap(dpi=100)
                     words = ocr_engine.parse_tsv(ocr_engine.run_tsv(pix.tobytes('png'),language='rus+eng',psm=11,timeout=8))
                     return dict(text=' '.join(w['text'] for w in words if w['conf'] >= 35))

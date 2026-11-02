@@ -912,7 +912,7 @@ def finalize_run(
         tasks: list[dict[str, Any]] = []
         tracking: list[dict[str, Any]] = []
         results_list: list[dict[str, Any]] = []
-        for position, stored, job in zip(positions, ordered, ordered_jobs):
+        for position, stored, job in zip(positions, ordered, ordered_jobs, strict=True):
             if job.status not in {"done", "failed"}:
                 raise RuntimeError(
                     f"position {position.index} is {job.status}; finalize needs done/failed"
@@ -949,7 +949,7 @@ def finalize_run(
         metrics.record_stage("finalize", time.monotonic() - started)
         if isinstance(config.get("prepare_seconds"), (int, float)):
             metrics.record_stage("prepare", float(config["prepare_seconds"]))
-        for stored, job in zip(ordered, ordered_jobs):
+        for stored, job in zip(ordered, ordered_jobs, strict=True):
             payload = dict(stored or {})
             if not payload and job.result:
                 payload = {"status": "Технический сбой"}
