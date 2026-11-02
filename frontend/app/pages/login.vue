@@ -43,7 +43,13 @@ onMounted(async () => {
       <div class="login-center">
         <UCard class="login-card">
           <div class="login-brand">
-            <img src="/kdfp-logo-light.svg" alt="КДФП" class="login-logo" width="80" height="80" />
+            <img
+              src="/kdfp-logo-light.svg"
+              alt="КДФП"
+              class="login-logo"
+              width="120"
+              height="120"
+            />
           </div>
           <h1 class="login-heading">Вход в систему</h1>
           <p v-if="checking" class="empty" role="status">Проверяем доступ…</p>
@@ -138,8 +144,8 @@ onMounted(async () => {
   margin-bottom: 24px;
 }
 .login-logo {
-  width: 80px;
-  height: 80px;
+  width: 120px;
+  height: 120px;
   border-radius: 12px;
   flex-shrink: 0;
 }
@@ -163,8 +169,8 @@ onMounted(async () => {
     padding: 24px;
   }
   .login-logo {
-    width: 64px;
-    height: 64px;
+    width: 96px;
+    height: 96px;
   }
   .login-center {
     max-width: 100%;
