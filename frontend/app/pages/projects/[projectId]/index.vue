@@ -306,7 +306,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div>
-    <WorkspaceHeader active="projects" />
+    <WorkspaceHeader active="check" />
     <main id="main-content" tabindex="-1" class="shell project">
       <nav aria-label="Навигация">
         <UButton to="/" variant="link" color="neutral" icon="i-lucide-arrow-left"

@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-VERSION = "physical-cells-v9-separated-row-sections"
+VERSION = "physical-cells-v10-frame-recovery"
 
 
 def recover_unit_headers(tables, words):

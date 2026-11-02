@@ -20,6 +20,9 @@ import {
   zPdfBindingsDto,
   zNormativeStateDto,
   zNormativeReviewDto,
+  zNormativeWorkbenchSearchDto,
+  zNormativeVorCheckDto,
+  zNormativeManagerDto,
 } from '~/generated/zod.gen'
 
 export function readableError(error: unknown): string {
@@ -224,6 +227,24 @@ export function useBackend() {
         method: 'POST',
         body: JSON.stringify(body),
       }),
+    searchNormativeLibrary: (profile: 'electrical' | 'roads', body: unknown) =>
+      json(`${root}/normative/search?profile=${profile}`, zNormativeWorkbenchSearchDto, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    checkNormativeVor: (form: FormData) =>
+      json(`${root}/normative/vor-check`, zNormativeVorCheckDto, {
+        method: 'POST',
+        body: form,
+      }),
+    normativeManager: () =>
+      json(`${root}/normative/manager`, zNormativeManagerDto, {
+        signal: AbortSignal.timeout(120_000),
+      }),
+    normativeSourceUrl: (profile: 'electrical' | 'roads', sourceId: string) =>
+      `${root}/normative/${profile}/sources/${encodeURIComponent(sourceId)}`,
+    normativeCatalogPdfUrl: (fileId: string) =>
+      `${root}/normative/catalog/pdf?${new URLSearchParams({ path: fileId })}`,
     runs: (id: string, offset = 0) =>
       json(
         `${root}/projects/${encodeURIComponent(id)}/audits?offset=${offset}&limit=50`,

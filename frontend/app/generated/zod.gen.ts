@@ -108,6 +108,14 @@ export const zBodyUploadDocumentApiV1DocumentsPost = z.object({
 });
 
 /**
+ * Body_workbench_vor_check_api_v1_normative_vor_check_post
+ */
+export const zBodyWorkbenchVorCheckApiV1NormativeVorCheckPost = z.object({
+    file: z.string(),
+    profile: z.string().regex(/^(electrical|roads)$/).optional().default('electrical')
+});
+
+/**
  * ConfirmBasisRequest
  */
 export const zConfirmBasisRequest = z.object({
@@ -197,8 +205,10 @@ export const zFormatIssueDto = z.object({
  * FormatDTO
  */
 export const zFormatDto = z.object({
+    check_count: z.int().optional().default(0),
     error_count: z.int().optional().default(0),
     issues: z.array(zFormatIssueDto),
+    position_count: z.int().optional().default(0),
     sheet: z.string().optional().default(''),
     sheets: z.array(z.string()).optional(),
     version_id: z.string(),
@@ -233,6 +243,34 @@ export const zDocumentMetadataDto = z.object({
     pd_reference: z.string().optional().default(''),
     raw_title: z.string().optional().default(''),
     sources: z.record(z.string(), zMetadataSourceDto).optional()
+});
+
+/**
+ * NormativeCatalogFileDTO
+ */
+export const zNormativeCatalogFileDto = z.object({
+    designation: z.string(),
+    id: z.string(),
+    imported: z.boolean(),
+    sha256: z.string(),
+    size_bytes: z.int()
+});
+
+/**
+ * NormativeCatalogSectionDTO
+ */
+export const zNormativeCatalogSectionDto = z.object({
+    files: z.array(zNormativeCatalogFileDto),
+    title: z.string()
+});
+
+/**
+ * NormativeCatalogTypeDTO
+ */
+export const zNormativeCatalogTypeDto = z.object({
+    file_count: z.int(),
+    kind: z.string(),
+    sections: z.array(zNormativeCatalogSectionDto)
 });
 
 /**
@@ -467,6 +505,21 @@ export const zNormativeProjectCitation = z.object({
 });
 
 /**
+ * NormativeReleaseDTO
+ */
+export const zNormativeReleaseDto = z.object({
+    counts: z.record(z.string(), z.int()),
+    current: z.boolean().optional().default(false),
+    database: z.string(),
+    engineering_validation: z.string().optional().default('not_full'),
+    foreign_keys: z.string().optional().default('unknown'),
+    integrity: z.string().optional().default('unknown'),
+    observed_on: z.string().optional().default(''),
+    parser_version: z.string().optional().default(''),
+    release_id: z.string()
+});
+
+/**
  * NormativeResource
  */
 export const zNormativeResource = z.object({
@@ -478,6 +531,18 @@ export const zNormativeResource = z.object({
     raw_quantity: z.string(),
     status: z.string(),
     unit: z.string()
+});
+
+/**
+ * NormativeReviewIssueDTO
+ */
+export const zNormativeReviewIssueDto = z.object({
+    designation: z.string().optional().default(''),
+    entity_id: z.string().optional().default(''),
+    id: z.string(),
+    page: z.int().nullish(),
+    reason: z.string(),
+    source_id: z.string().optional().default('')
 });
 
 /**
@@ -554,6 +619,41 @@ export const zNormativeSelectionRequest = z.object({
 });
 
 /**
+ * NormativeSourceAdminDTO
+ */
+export const zNormativeSourceAdminDto = z.object({
+    designation: z.string(),
+    id: z.string(),
+    kind: z.string().optional().default(''),
+    pages: z.int(),
+    readable_pages: z.int(),
+    role: z.string().optional().default('')
+});
+
+/**
+ * NormativeCorpusAdminDTO
+ */
+export const zNormativeCorpusAdminDto = z.object({
+    counts: z.record(z.string(), z.int()),
+    gaps: z.array(z.record(z.string(), z.unknown())),
+    identity: z.record(z.string(), z.string()),
+    profile: z.enum(['electrical', 'roads']),
+    releases: z.array(zNormativeReleaseDto),
+    review_queue: z.array(zNormativeReviewIssueDto),
+    review_queue_total: z.int(),
+    sources: z.array(zNormativeSourceAdminDto),
+    title: z.string()
+});
+
+/**
+ * NormativeManagerDTO
+ */
+export const zNormativeManagerDto = z.object({
+    collections: z.array(zNormativeCatalogTypeDto),
+    profiles: z.array(zNormativeCorpusAdminDto)
+});
+
+/**
  * NormativeStage
  */
 export const zNormativeStage = z.object({
@@ -570,6 +670,41 @@ export const zNormativeStage = z.object({
 });
 
 /**
+ * NormativeVORRowDTO
+ */
+export const zNormativeVorRowDto = z.object({
+    candidates: z.array(zNormativeCandidate),
+    code_match: z.boolean().nullish(),
+    index: z.int(),
+    name_similarity: z.int().nullish(),
+    number: z.string(),
+    source_code: z.string().optional().default(''),
+    status: z.enum([
+        'matched',
+        'unit_mismatch',
+        'name_mismatch',
+        'review',
+        'not_found'
+    ]),
+    unit: z.string(),
+    unit_match: z.boolean().nullish(),
+    volume: z.string(),
+    work_name: z.string()
+});
+
+/**
+ * NormativeVORCheckDTO
+ */
+export const zNormativeVorCheckDto = z.object({
+    filename: z.string(),
+    profile: z.enum(['electrical', 'roads']),
+    returned_positions: z.int(),
+    rows: z.array(zNormativeVorRowDto),
+    total_positions: z.int(),
+    truncated: z.boolean()
+});
+
+/**
  * NormativeWorkBasis
  */
 export const zNormativeWorkBasis = z.object({
@@ -580,6 +715,16 @@ export const zNormativeWorkBasis = z.object({
     quantity: z.string(),
     thickness_cm: z.string(),
     unit: z.string()
+});
+
+/**
+ * NormativeWorkbenchSearchDTO
+ */
+export const zNormativeWorkbenchSearchDto = z.object({
+    candidates: z.array(zNormativeCandidate),
+    identity: z.record(z.string(), z.string()),
+    profile: z.enum(['electrical', 'roads']),
+    query: z.string()
 });
 
 /**
@@ -1664,6 +1809,38 @@ export const zFormatWordUploadApiV1FormatWordPostBody = zBodyFormatWordUploadApi
 
 export const zFormatWordUploadApiV1FormatWordPostQuery = z.object({
     sheet: z.string().max(100).nullish()
+});
+
+export const zCatalogPdfApiV1NormativeCatalogPdfGetQuery = z.object({
+    path: z.string().min(1).max(1024)
+});
+
+/**
+ * Successful Response
+ */
+export const zNormativeManagerApiV1NormativeManagerGetResponse = zNormativeManagerDto;
+
+export const zWorkbenchSearchApiV1NormativeSearchPostBody = zNormativeSearchRequest;
+
+export const zWorkbenchSearchApiV1NormativeSearchPostQuery = z.object({
+    profile: z.string().regex(/^(electrical|roads)$/).optional().default('electrical')
+});
+
+/**
+ * Successful Response
+ */
+export const zWorkbenchSearchApiV1NormativeSearchPostResponse = zNormativeWorkbenchSearchDto;
+
+export const zWorkbenchVorCheckApiV1NormativeVorCheckPostBody = zBodyWorkbenchVorCheckApiV1NormativeVorCheckPost;
+
+/**
+ * Successful Response
+ */
+export const zWorkbenchVorCheckApiV1NormativeVorCheckPostResponse = zNormativeVorCheckDto;
+
+export const zWorkbenchSourceApiV1NormativeProfileSourcesSourceIdGetPath = z.object({
+    profile: z.string(),
+    source_id: z.string()
 });
 
 export const zProjectsApiV1ProjectsGetQuery = z.object({

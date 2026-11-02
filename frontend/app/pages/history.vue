@@ -119,7 +119,7 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <div>
-    <WorkspaceHeader active="projects" />
+    <WorkspaceHeader active="check" />
     <main id="main-content" tabindex="-1" class="shell">
       <div class="page-heading">
         <div>

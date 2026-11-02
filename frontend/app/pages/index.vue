@@ -301,7 +301,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="dashboard-page">
-    <WorkspaceHeader active="projects" />
+    <WorkspaceHeader active="check" />
     <main id="main-content" tabindex="-1" class="shell dashboard">
       <div class="dashboard-heading">
         <div class="dashboard-title">

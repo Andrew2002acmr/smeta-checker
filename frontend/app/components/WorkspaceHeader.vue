@@ -1,7 +1,11 @@
 <script setup lang="ts">
-const props = defineProps<{ active?: 'projects' | 'create' }>()
-const onProjects = computed(() => props.active !== 'create')
+const props = defineProps<{ active?: 'check' | 'format' | 'knowledge' | 'projects' | 'create' }>()
 const route = useRoute()
+const activeTab = computed(() => {
+  if (props.active === 'format' || route.path === '/formatting') return 'format'
+  if (props.active === 'knowledge' || route.path === '/knowledge-base') return 'knowledge'
+  return 'check'
+})
 const backend = useBackend()
 const connected = useState('workspace-connected', () => false)
 const signingOut = ref(false)
@@ -33,14 +37,28 @@ async function logout() {
     <nav class="header-navigation" aria-label="Основная навигация">
       <UButton
         to="/"
-        aria-label="Проекты"
         color="neutral"
-        :variant="onProjects ? 'soft' : 'ghost'"
-        :aria-current="onProjects ? 'page' : undefined"
+        :variant="activeTab === 'check' ? 'soft' : 'ghost'"
+        :aria-current="activeTab === 'check' ? 'page' : undefined"
         icon="i-lucide-layout-dashboard"
-        ><span class="header-project-label">Проекты</span></UButton
+        >Проверка ВОР</UButton
       >
-      <VorFormatProbe />
+      <UButton
+        to="/formatting"
+        color="neutral"
+        :variant="activeTab === 'format' ? 'soft' : 'ghost'"
+        :aria-current="activeTab === 'format' ? 'page' : undefined"
+        icon="i-lucide-spell-check"
+        >Оформление ВОР</UButton
+      >
+      <UButton
+        to="/knowledge-base"
+        color="neutral"
+        :variant="activeTab === 'knowledge' ? 'soft' : 'ghost'"
+        :aria-current="activeTab === 'knowledge' ? 'page' : undefined"
+        icon="i-lucide-book-open"
+        >Проверка по нормативам</UButton
+      >
       <UColorModeButton
         class="theme-button"
         aria-label="Переключить светлую и тёмную тему"
@@ -110,6 +128,8 @@ async function logout() {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+  justify-content: flex-end;
+  min-width: 0;
 }
 .theme-button {
   min-width: 44px;
@@ -127,6 +147,14 @@ async function logout() {
   }
   .header-navigation {
     width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+  .header-navigation :deep(a) {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
   .theme-button {
     margin-inline-start: auto;

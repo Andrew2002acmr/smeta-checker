@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!config.backendToken)
     throw createError({ statusCode: 503, statusMessage: 'Сервер проверки не подключён' })
   if (
-    !/^\/api\/v1\/(projects|documents|audits|format-checks|format-report|format-word)(?:[/?]|$)/.test(
+    !/^\/api\/v1\/(projects|documents|audits|format-checks|format-report|format-word|normative)(?:[/?]|$)/.test(
       event.path,
     )
   )

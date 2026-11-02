@@ -66,6 +66,9 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smeta}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-smeta}
       BLOB_STORE_URL: file:///srv/smeta/.audit_blobs
       NORMATIVE_PREPARED_CACHE_ROOT: /prepared-cache/pdf
+      NORMATIVE_KB_ROOT: /knowledge/electrical-norms
+      NORMATIVE_ROAD_KB_ROOT: /knowledge/road-norms
+      NORMATIVE_CATALOG_ROOT: /normative-base
       CELERY_BROKER_URL: redis://redis:6379/0
       AUDIT_API_TOKEN: ${AUDIT_API_TOKEN:?Set AUDIT_API_TOKEN in .env}
       YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
@@ -93,6 +96,24 @@ services:
     volumes:
       - blobs:/srv/smeta/.audit_blobs
       - pdfcache:/prepared-cache:ro
+      - type: bind
+        source: ${NORMATIVE_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/electrical-norms}
+        target: /knowledge/electrical-norms
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${NORMATIVE_ROAD_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/road-norms}
+        target: /knowledge/road-norms
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./base
+        target: /normative-base
+        read_only: true
+        bind:
+          create_host_path: false
     ports:
       - "${API_PORT:-8000}:8000"
     healthcheck:
@@ -220,6 +241,19 @@ services:
       AUDIT_TASK_SOFT_TIME_LIMIT: "210"
       NORMATIVE_KB_ROOT: /knowledge/electrical-norms
       NORMATIVE_ROAD_KB_ROOT: /knowledge/road-norms
+    volumes:
+      - type: bind
+        source: ${NORMATIVE_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/electrical-norms}
+        target: /knowledge/electrical-norms
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${NORMATIVE_ROAD_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/road-norms}
+        target: /knowledge/road-norms
+        read_only: true
+        bind:
+          create_host_path: false
     command: ["celery", "-A", "audit_tasks:worker", "worker", "-Q", "normative", "-c", "${AUDIT_NORMATIVE_CONCURRENCY:-2}", "--loglevel=INFO", "--max-memory-per-child", "750000", "--max-tasks-per-child", "25", "-n", "normative-worker@%h", "--pidfile", "/tmp/celery-normative.pid"]
     healthcheck:
       test: ["CMD-SHELL", "kill -0 $(cat /tmp/celery-normative.pid)"]

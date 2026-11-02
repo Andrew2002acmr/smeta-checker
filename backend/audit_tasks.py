@@ -262,6 +262,7 @@ def prepare_run(
         redact_pdf=context.settings.telemetry_redact_pdf,
         mask_prompts=context.settings.telemetry_mask_prompts,
     )
+
     queued: list[int] = []
     failed: list[int] = []
     try:
@@ -414,19 +415,9 @@ def prepare_run(
             extra={"queued": len(queued), "failed": len(failed)},
         )
         prepare_seconds = round(float(previous_config.get("prepare_elapsed_seconds", 0)) + time.monotonic() - started, 3)
-        # Publish the latest CPU-prepared document references for the normative
-        # agent without replacing the frozen per-position matching evidence.
-        normative_corpora = dict(previous_config.get('normative_corpora') or {})
-        for job in context.repository.list_position_jobs(run_id, include_results=False):
-            name = job.payload.get('pdf_name')
-            ref = job.payload.get('snapshot')
-            version = (job.payload.get('pdf_versions') or {}).get(name)
-            if ref and version:
-                normative_corpora[version] = ref
         try:
             context.repository.update_run_config(
-                run_id, {"prepare_seconds": prepare_seconds, "prepare_complete": True,
-                    "normative_corpora":normative_corpora}
+                run_id, {"prepare_seconds": prepare_seconds, "prepare_complete": True}
             )
         except Exception:
             logger.warning("could not persist prepare timing", exc_info=True)

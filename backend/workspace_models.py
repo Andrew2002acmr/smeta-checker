@@ -356,6 +356,101 @@ class NormativeStateDTO(DTO):
     latest_check: NormativeReviewDTO | None = None
 
 
+class NormativeWorkbenchSearchDTO(DTO):
+    profile: Literal["electrical", "roads"]
+    identity: dict[str, str]
+    query: str
+    candidates: list[NormativeCandidate]
+
+
+class NormativeVORRowDTO(DTO):
+    index: int
+    number: str
+    work_name: str
+    volume: str
+    unit: str
+    source_code: str = ""
+    code_match: bool | None = None
+    unit_match: bool | None = None
+    name_similarity: int | None = None
+    status: Literal["matched", "unit_mismatch", "name_mismatch", "review", "not_found"]
+    candidates: list[NormativeCandidate]
+
+
+class NormativeVORCheckDTO(DTO):
+    filename: str
+    profile: Literal["electrical", "roads"]
+    total_positions: int
+    returned_positions: int
+    truncated: bool
+    rows: list[NormativeVORRowDTO]
+
+
+class NormativeReleaseDTO(DTO):
+    release_id: str
+    database: str
+    observed_on: str = ""
+    parser_version: str = ""
+    current: bool = False
+    counts: dict[str, int]
+    integrity: str = "unknown"
+    foreign_keys: str = "unknown"
+    engineering_validation: str = "not_full"
+
+
+class NormativeSourceAdminDTO(DTO):
+    id: str
+    designation: str
+    kind: str = ""
+    role: str = ""
+    pages: int
+    readable_pages: int
+
+
+class NormativeReviewIssueDTO(DTO):
+    id: str
+    source_id: str = ""
+    designation: str = ""
+    entity_id: str = ""
+    reason: str
+    page: int | None = None
+
+
+class NormativeCorpusAdminDTO(DTO):
+    profile: Literal["electrical", "roads"]
+    title: str
+    identity: dict[str, str]
+    counts: dict[str, int]
+    releases: list[NormativeReleaseDTO]
+    sources: list[NormativeSourceAdminDTO]
+    gaps: list[dict[str, Any]]
+    review_queue: list[NormativeReviewIssueDTO]
+    review_queue_total: int
+
+
+class NormativeCatalogFileDTO(DTO):
+    id: str
+    designation: str
+    size_bytes: int
+    sha256: str
+    imported: bool
+
+
+class NormativeCatalogSectionDTO(DTO):
+    title: str
+    files: list[NormativeCatalogFileDTO]
+
+
+class NormativeCatalogTypeDTO(DTO):
+    kind: str
+    sections: list[NormativeCatalogSectionDTO]
+    file_count: int
+
+
+class NormativeManagerDTO(DTO):
+    profiles: list[NormativeCorpusAdminDTO]
+    collections: list[NormativeCatalogTypeDTO]
+
 class ProjectDTO(DTO):
     id: str
     name: str
@@ -692,6 +787,8 @@ class FormatDTO(DTO):
     version_id: str
     sheet: str = ""
     sheets: list[str] = Field(default_factory=list)
+    position_count: int = 0
+    check_count: int = 0
     error_count: int = 0
     warning_count: int = 0
     issues: list[FormatIssueDTO]

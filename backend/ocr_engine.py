@@ -30,7 +30,7 @@ from functools import lru_cache
 
 from PIL import Image
 
-ALGO_VERSION = "ocr-tsv-v4"
+ALGO_VERSION = "ocr-tsv-v5"
 CACHE_FORMAT = "ocr-tsv-v1"
 CACHE_SCHEMA = 2
 ORIENTATIONS = (0, 90, 180, 270)

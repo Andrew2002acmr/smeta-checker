@@ -760,6 +760,7 @@ def workspace_router(get_context) -> APIRouter:
     ):
         import io
         from vor_rules import (
+            count_vor_positions,
             summarize_format_rows,
             validate_vor_formatting,
             vor_sheet_names,
@@ -781,6 +782,9 @@ def workspace_router(get_context) -> APIRouter:
         except KeyError as exc:
             raise ApiError(404, "sheet_not_found", "Лист ВОР не найден") from exc
         issues, errors = summarize_format_rows(rows)
+        position_count = count_vor_positions(
+            io.BytesIO(blob), sheet_name=active or None
+        )
         from datetime import datetime, timezone
 
         context.repository.record_format_status(
@@ -797,6 +801,8 @@ def workspace_router(get_context) -> APIRouter:
             "version_id": version_id,
             "sheet": active,
             "sheets": sheets,
+            "position_count": position_count,
+            "check_count": len(rows),
             "error_count": errors,
             "warning_count": len(issues) - errors,
             "issues": issues,
@@ -817,6 +823,7 @@ def workspace_router(get_context) -> APIRouter:
 
         import io
         from vor_rules import (
+            count_vor_positions,
             summarize_format_rows,
             validate_vor_formatting,
             vor_sheet_names,
@@ -848,10 +855,15 @@ def workspace_router(get_context) -> APIRouter:
                 400, "invalid_vor", f"Не удалось прочитать ВОР: {exc}"
             ) from exc
         issues, errors = summarize_format_rows(rows)
+        position_count = count_vor_positions(
+            io.BytesIO(bytes(data)), sheet_name=active or None
+        )
         return {
             "version_id": "",
             "sheet": active,
             "sheets": sheets,
+            "position_count": position_count,
+            "check_count": len(rows),
             "error_count": errors,
             "warning_count": len(issues) - errors,
             "issues": issues,

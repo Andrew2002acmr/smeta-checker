@@ -191,6 +191,33 @@ def _group_for(row):
     return f"{kind}:misc", "Прочие замечания", "Исправьте по тексту замечания"
 
 
+def count_vor_positions(file_source, sheet_name=None):
+    """Count work-position rows using the same row classification as validation."""
+    wb = openpyxl.load_workbook(file_source, data_only=True, read_only=True)
+    ws = wb[wb.sheetnames[0]] if not sheet_name else wb[sheet_name]
+    count = 0
+    for row in ws.iter_rows(min_row=17, min_col=1, max_col=11, values_only=True):
+        values = [
+            ""
+            if value is None
+            else str(int(value))
+            if isinstance(value, float) and value.is_integer()
+            else value
+            for value in row
+        ]
+        val_a, val_b, val_c, val_d, val_k = (
+            values[0],
+            values[1],
+            values[2],
+            values[3],
+            values[10],
+        )
+        if str(val_a).strip().isdigit() or (val_b and (val_c or val_d or val_k)):
+            count += 1
+    wb.close()
+    return count
+
+
 def summarize_format_rows(rows):
     """Keep findings (no OK), ordered for a human: positions and formulas
     first, sections next, header requisites after, stray-column noise last.

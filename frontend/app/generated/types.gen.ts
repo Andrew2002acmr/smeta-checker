@@ -274,6 +274,20 @@ export type BodyUploadDocumentApiV1DocumentsPost = {
 };
 
 /**
+ * Body_workbench_vor_check_api_v1_normative_vor_check_post
+ */
+export type BodyWorkbenchVorCheckApiV1NormativeVorCheckPost = {
+    /**
+     * File
+     */
+    file: Blob | File;
+    /**
+     * Profile
+     */
+    profile?: string;
+};
+
+/**
  * ConfirmBasisRequest
  */
 export type ConfirmBasisRequest = {
@@ -507,6 +521,10 @@ export type ExcelRowDto = {
  */
 export type FormatDto = {
     /**
+     * Check Count
+     */
+    check_count?: number;
+    /**
      * Error Count
      */
     error_count?: number;
@@ -514,6 +532,10 @@ export type FormatDto = {
      * Issues
      */
     issues: Array<FormatIssueDto>;
+    /**
+     * Position Count
+     */
+    position_count?: number;
     /**
      * Sheet
      */
@@ -786,6 +808,64 @@ export type NormativeCandidate = {
 };
 
 /**
+ * NormativeCatalogFileDTO
+ */
+export type NormativeCatalogFileDto = {
+    /**
+     * Designation
+     */
+    designation: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Imported
+     */
+    imported: boolean;
+    /**
+     * Sha256
+     */
+    sha256: string;
+    /**
+     * Size Bytes
+     */
+    size_bytes: number;
+};
+
+/**
+ * NormativeCatalogSectionDTO
+ */
+export type NormativeCatalogSectionDto = {
+    /**
+     * Files
+     */
+    files: Array<NormativeCatalogFileDto>;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * NormativeCatalogTypeDTO
+ */
+export type NormativeCatalogTypeDto = {
+    /**
+     * File Count
+     */
+    file_count: number;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Sections
+     */
+    sections: Array<NormativeCatalogSectionDto>;
+};
+
+/**
  * NormativeCheck
  */
 export type NormativeCheck = {
@@ -966,6 +1046,54 @@ export type NormativeContextAnalysis = {
 };
 
 /**
+ * NormativeCorpusAdminDTO
+ */
+export type NormativeCorpusAdminDto = {
+    /**
+     * Counts
+     */
+    counts: {
+        [key: string]: number;
+    };
+    /**
+     * Gaps
+     */
+    gaps: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Identity
+     */
+    identity: {
+        [key: string]: string;
+    };
+    /**
+     * Profile
+     */
+    profile: 'electrical' | 'roads';
+    /**
+     * Releases
+     */
+    releases: Array<NormativeReleaseDto>;
+    /**
+     * Review Queue
+     */
+    review_queue: Array<NormativeReviewIssueDto>;
+    /**
+     * Review Queue Total
+     */
+    review_queue_total: number;
+    /**
+     * Sources
+     */
+    sources: Array<NormativeSourceAdminDto>;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
  * NormativeEvidenceAnchor
  */
 export type NormativeEvidenceAnchor = {
@@ -1081,6 +1209,20 @@ export type NormativeLibrarySource = {
      * Readable Pages
      */
     readable_pages: number;
+};
+
+/**
+ * NormativeManagerDTO
+ */
+export type NormativeManagerDto = {
+    /**
+     * Collections
+     */
+    collections: Array<NormativeCatalogTypeDto>;
+    /**
+     * Profiles
+     */
+    profiles: Array<NormativeCorpusAdminDto>;
 };
 
 /**
@@ -1383,6 +1525,50 @@ export type NormativeProjectCitation = {
 };
 
 /**
+ * NormativeReleaseDTO
+ */
+export type NormativeReleaseDto = {
+    /**
+     * Counts
+     */
+    counts: {
+        [key: string]: number;
+    };
+    /**
+     * Current
+     */
+    current?: boolean;
+    /**
+     * Database
+     */
+    database: string;
+    /**
+     * Engineering Validation
+     */
+    engineering_validation?: string;
+    /**
+     * Foreign Keys
+     */
+    foreign_keys?: string;
+    /**
+     * Integrity
+     */
+    integrity?: string;
+    /**
+     * Observed On
+     */
+    observed_on?: string;
+    /**
+     * Parser Version
+     */
+    parser_version?: string;
+    /**
+     * Release Id
+     */
+    release_id: string;
+};
+
+/**
  * NormativeResource
  */
 export type NormativeResource = {
@@ -1441,6 +1627,36 @@ export type NormativeReviewDto = {
      */
     kind: 'search' | 'selection' | 'check';
     payload: NormativeSnapshot;
+};
+
+/**
+ * NormativeReviewIssueDTO
+ */
+export type NormativeReviewIssueDto = {
+    /**
+     * Designation
+     */
+    designation?: string;
+    /**
+     * Entity Id
+     */
+    entity_id?: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Page
+     */
+    page?: number | null;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Source Id
+     */
+    source_id?: string;
 };
 
 /**
@@ -1606,6 +1822,36 @@ export type NormativeSnapshot = {
 };
 
 /**
+ * NormativeSourceAdminDTO
+ */
+export type NormativeSourceAdminDto = {
+    /**
+     * Designation
+     */
+    designation: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind?: string;
+    /**
+     * Pages
+     */
+    pages: number;
+    /**
+     * Readable Pages
+     */
+    readable_pages: number;
+    /**
+     * Role
+     */
+    role?: string;
+};
+
+/**
  * NormativeStage
  */
 export type NormativeStage = {
@@ -1654,6 +1900,86 @@ export type NormativeStateDto = {
 };
 
 /**
+ * NormativeVORCheckDTO
+ */
+export type NormativeVorCheckDto = {
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Profile
+     */
+    profile: 'electrical' | 'roads';
+    /**
+     * Returned Positions
+     */
+    returned_positions: number;
+    /**
+     * Rows
+     */
+    rows: Array<NormativeVorRowDto>;
+    /**
+     * Total Positions
+     */
+    total_positions: number;
+    /**
+     * Truncated
+     */
+    truncated: boolean;
+};
+
+/**
+ * NormativeVORRowDTO
+ */
+export type NormativeVorRowDto = {
+    /**
+     * Candidates
+     */
+    candidates: Array<NormativeCandidate>;
+    /**
+     * Code Match
+     */
+    code_match?: boolean | null;
+    /**
+     * Index
+     */
+    index: number;
+    /**
+     * Name Similarity
+     */
+    name_similarity?: number | null;
+    /**
+     * Number
+     */
+    number: string;
+    /**
+     * Source Code
+     */
+    source_code?: string;
+    /**
+     * Status
+     */
+    status: 'matched' | 'unit_mismatch' | 'name_mismatch' | 'review' | 'not_found';
+    /**
+     * Unit
+     */
+    unit: string;
+    /**
+     * Unit Match
+     */
+    unit_match?: boolean | null;
+    /**
+     * Volume
+     */
+    volume: string;
+    /**
+     * Work Name
+     */
+    work_name: string;
+};
+
+/**
  * NormativeWorkBasis
  */
 export type NormativeWorkBasis = {
@@ -1687,6 +2013,30 @@ export type NormativeWorkBasis = {
      * Unit
      */
     unit: string;
+};
+
+/**
+ * NormativeWorkbenchSearchDTO
+ */
+export type NormativeWorkbenchSearchDto = {
+    /**
+     * Candidates
+     */
+    candidates: Array<NormativeCandidate>;
+    /**
+     * Identity
+     */
+    identity: {
+        [key: string]: string;
+    };
+    /**
+     * Profile
+     */
+    profile: 'electrical' | 'roads';
+    /**
+     * Query
+     */
+    query: string;
 };
 
 /**
@@ -4202,6 +4552,137 @@ export type FormatWordUploadApiV1FormatWordPostErrors = {
 export type FormatWordUploadApiV1FormatWordPostError = FormatWordUploadApiV1FormatWordPostErrors[keyof FormatWordUploadApiV1FormatWordPostErrors];
 
 export type FormatWordUploadApiV1FormatWordPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type CatalogPdfApiV1NormativeCatalogPdfGetData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Path
+         */
+        path: string;
+    };
+    url: '/api/v1/normative/catalog/pdf';
+};
+
+export type CatalogPdfApiV1NormativeCatalogPdfGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CatalogPdfApiV1NormativeCatalogPdfGetError = CatalogPdfApiV1NormativeCatalogPdfGetErrors[keyof CatalogPdfApiV1NormativeCatalogPdfGetErrors];
+
+export type CatalogPdfApiV1NormativeCatalogPdfGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type NormativeManagerApiV1NormativeManagerGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/normative/manager';
+};
+
+export type NormativeManagerApiV1NormativeManagerGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: NormativeManagerDto;
+};
+
+export type NormativeManagerApiV1NormativeManagerGetResponse = NormativeManagerApiV1NormativeManagerGetResponses[keyof NormativeManagerApiV1NormativeManagerGetResponses];
+
+export type WorkbenchSearchApiV1NormativeSearchPostData = {
+    body: NormativeSearchRequest;
+    path?: never;
+    query?: {
+        /**
+         * Profile
+         */
+        profile?: string;
+    };
+    url: '/api/v1/normative/search';
+};
+
+export type WorkbenchSearchApiV1NormativeSearchPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type WorkbenchSearchApiV1NormativeSearchPostError = WorkbenchSearchApiV1NormativeSearchPostErrors[keyof WorkbenchSearchApiV1NormativeSearchPostErrors];
+
+export type WorkbenchSearchApiV1NormativeSearchPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: NormativeWorkbenchSearchDto;
+};
+
+export type WorkbenchSearchApiV1NormativeSearchPostResponse = WorkbenchSearchApiV1NormativeSearchPostResponses[keyof WorkbenchSearchApiV1NormativeSearchPostResponses];
+
+export type WorkbenchVorCheckApiV1NormativeVorCheckPostData = {
+    body: BodyWorkbenchVorCheckApiV1NormativeVorCheckPost;
+    path?: never;
+    query?: never;
+    url: '/api/v1/normative/vor-check';
+};
+
+export type WorkbenchVorCheckApiV1NormativeVorCheckPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type WorkbenchVorCheckApiV1NormativeVorCheckPostError = WorkbenchVorCheckApiV1NormativeVorCheckPostErrors[keyof WorkbenchVorCheckApiV1NormativeVorCheckPostErrors];
+
+export type WorkbenchVorCheckApiV1NormativeVorCheckPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: NormativeVorCheckDto;
+};
+
+export type WorkbenchVorCheckApiV1NormativeVorCheckPostResponse = WorkbenchVorCheckApiV1NormativeVorCheckPostResponses[keyof WorkbenchVorCheckApiV1NormativeVorCheckPostResponses];
+
+export type WorkbenchSourceApiV1NormativeProfileSourcesSourceIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Profile
+         */
+        profile: string;
+        /**
+         * Source Id
+         */
+        source_id: string;
+    };
+    query?: never;
+    url: '/api/v1/normative/{profile}/sources/{source_id}';
+};
+
+export type WorkbenchSourceApiV1NormativeProfileSourcesSourceIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type WorkbenchSourceApiV1NormativeProfileSourcesSourceIdGetError = WorkbenchSourceApiV1NormativeProfileSourcesSourceIdGetErrors[keyof WorkbenchSourceApiV1NormativeProfileSourcesSourceIdGetErrors];
+
+export type WorkbenchSourceApiV1NormativeProfileSourcesSourceIdGetResponses = {
     /**
      * Successful Response
      */
