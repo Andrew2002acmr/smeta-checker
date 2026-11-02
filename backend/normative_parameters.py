@@ -14,9 +14,11 @@ PARAMETER_SCHEMA_VERSION = 9
 
 
 def _parameter_claim(claim, kind):
+    # A normative threshold (geometry:comment:thickness:*) is a different
+    # obligation from the literal physical thickness extracted from the PD.
     if kind == 'quantity':
         return claim == 'quantity'
-    return claim == 'thickness' or (claim.startswith('geometry:') and 'thickness' in claim)
+    return claim in {'geometry:thickness', 'thickness'}
 
 
 def material_fractions(text):

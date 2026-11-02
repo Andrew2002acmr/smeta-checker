@@ -12,7 +12,9 @@ from normative_parameters import build_cards
 from normative_position_check import AgentAnswer,validate_items
 
 
-CLAIM='geometry:comment:thickness:1'
+# The checkpoint protects an actual project parameter, not the independent
+# normative thickness threshold found in a VOR comment.
+CLAIM='geometry:thickness'
 
 
 def fixture():
