@@ -1,0 +1,30 @@
+Git handoff and validation, 2026-11-02
+
+Destination: https://github.com/KDFP-IT/smeta-checker
+Branch: feature/normative-pipeline-v30
+
+Remote state inspected before publication:
+main: 5d9c22217064c2d9df2b0eb2605bfc63b2acb443
+ dev: 9c76b811ecd1926a019fdb0bf4ba193b88c224a7
+codex/import-current-project: ac85a8756dac5782d5a4db4aa40ee8bcfc786d20
+main is an ancestor of dev (107 commits behind). Local ca801ae is a descendant of dev (12 commits ahead). The import branch diverges by one independent import commit; it was inspected, not silently merged or overwritten.
+
+Publication preserves the 12 local commits after dev, imports the verified home backend checkpoint, then adds the general dimensioned-rate/related-work interpretation. No force push or changes to main/dev.
+
+Commits:
+b3218ef Restore home v29 evidence pipeline and PDF table recovery
+2cd9529 Interpret dimensioned VOR rates and related work areas
+Final documentation commit records this validation report.
+
+Validation:
+- Broad related backend suite with an isolated throwaway PostgreSQL instance and read-only normative corpora: 1916 passed, 2 failed, 1 skipped; 30 subtests passed. Not a green repository-wide result.
+- Failure: test_normative_geometry_checkpoint.py::test_separately_confirmed_live_geometry_survives_only_unrelated_child_gap (line57).
+- Failure: test_normative_geometry_checkpoint.py::test_frozen_or_legacy_mixed_claim_without_live_checkpoint_cannot_be_promoted (line74).
+Both expect needs_facts for thickness while current v28+ numeric recovery returns confirmed. Both failures were reproduced against the original home versions of the changed modules, before today's rate interpreter. Neither assertions nor production behavior were changed merely to pass tests. Their thickness-vs-live-checkpoint contract needs a separate resolution.
+- Skip: test_pdf_text.py real OCR test requires TESSDATA_PREFIX.
+- Warnings include SQLAlchemy DISTINCT ON deprecation and a Pydantic fixture SourceHeading serialization warning.
+- All frontend unit tests: 109 passed in 11 files.
+- Today's focused backend set: 115 passed. Changed backend modules Ruff/Pyright: clean. Changed frontend files oxlint: clean. Frontend production build succeeded.
+- git diff --check passed. Credential-pattern scans found no tokens in changed source/fixtures. .env.local, database dumps, volume archives and full normative corpora are excluded.
+
+The restored application continues to run from D:/VOR/home-v29-20261102 using compose project smeta-v29-work. Git operations did not restart or resume user audits. Runtime data and local settings remain separate from Git.
