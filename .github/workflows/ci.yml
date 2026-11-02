@@ -44,11 +44,11 @@ jobs:
 
       - name: Sync environment
         working-directory: backend
-        run: uv sync --frozen
+        run: uv sync --frozen --group full
 
       - name: Lint
         working-directory: backend
-        run: uv run ruff check .
+        run: uv run --no-sync ruff check .
 
       - name: Format (new files only)
         working-directory: backend
@@ -56,18 +56,18 @@ jobs:
           files=$(git diff --name-only --diff-filter=A origin/${{ github.base_ref || 'dev' }}...HEAD -- 'backend/*.py' | sed 's|^backend/||')
           if [ -n "$files" ]; then
             # shellcheck disable=SC2086
-            uv run ruff format --check $files
+            uv run --no-sync ruff format --check $files
           else
             echo "No new Python files."
           fi
 
       - name: Type-check
         working-directory: backend
-        run: uv run pyright
+        run: uv run --no-sync pyright
 
       - name: Tests
         working-directory: backend
-        run: uv run pytest
+        run: uv run --no-sync pytest
         env:
           TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@localhost:5432/smeta_test
 
@@ -107,9 +107,9 @@ jobs:
           WORKSPACE_LOGIN: e2e-workspace
           WORKSPACE_PASSWORD: synthetic-workspace-only
         run: |
-          uv --project backend run python -c "import psycopg; psycopg.connect('postgresql://postgres:postgres@localhost:5432/postgres', autocommit=True).execute('CREATE DATABASE smeta_test_ui')"
+          uv --project backend run --no-sync python -c "import psycopg; psycopg.connect('postgresql://postgres:postgres@localhost:5432/postgres', autocommit=True).execute('CREATE DATABASE smeta_test_ui')"
           mkdir -p .audit_cache
-          uv --project backend run python backend/tests/workspace_server.py --root .audit_cache/e2e-fixture --port 8116 > .audit_cache/e2e-api.log 2>&1 &
+          uv --project backend run --no-sync python backend/tests/workspace_server.py --root .audit_cache/e2e-fixture --port 8116 > .audit_cache/e2e-api.log 2>&1 &
           node frontend/.output/server/index.mjs > .audit_cache/e2e-frontend.log 2>&1 &
           for i in $(seq 1 60); do
             if curl -fsS http://127.0.0.1:8116/healthz > /dev/null && curl -fsS http://127.0.0.1:3016/ > /dev/null; then exit 0; fi
