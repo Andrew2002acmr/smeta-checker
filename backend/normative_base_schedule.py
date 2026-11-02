@@ -12,6 +12,23 @@ DEPTH = re.compile(r"\bh\s*=\s*(\d+(?:[.,]\d+)?)\s*(см|мм|м|m)\b", re.I)
 FAMILY = re.compile(r"щпс|щеб[её]ночно[\s-]*песчан", re.I)
 
 
+def _subsites(text):
+    """Keep explicit subsite designations; a category alone is not identity."""
+    return {
+        (m[1], re.sub(r"\s+", "", m[2]).strip('«»"'))
+        for m in re.finditer(
+            r"(съезд|останов|тротуар|ровик)\w*\s*(?:№|no\.?\s*)?\s*"
+            r'(\d+[а-яa-z]?(?:[./-]\d+)*|«[^»]+»|"[^"]+")',
+            clean(text),
+        )
+    }
+
+
+def _same_subsite(declared, actual):
+    wanted = _subsites(declared)
+    return not wanted or wanted == _subsites(actual)
+
+
 def identity(position, materials, positions):
     from normative_layer_assembly import layer_assembly
 
@@ -114,6 +131,8 @@ def native_construction(result, key, version):
                     for word in ("съезд", "останов", "тротуар", "ровик")
                 ):
                     continue
+                if not _same_subsite(declared, title):
+                    continue
                 found[(version, clean(heading[0]), clean(clause))] = dict(
                     source_id=source["id"],
                     construction_title=heading[0],
@@ -178,6 +197,8 @@ def select(tables, key, native):
             if measure("1", column_unit(table, cell)) != measure("1", "м2"):
                 continue
             scope = clean(text)
+            if not _same_subsite(key["sections"], text):
+                continue
             if native["scope"] == "widening" and not (
                 "ровик" in scope and "уширени" in scope
             ):

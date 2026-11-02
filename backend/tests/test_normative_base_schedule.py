@@ -207,6 +207,58 @@ def test_parent_sum_supersedes_only_the_childs_exact_direct_parts():
     )
     assert card["state"] == "confirmed"
 
+    from normative_parent_basis import _clear_geometry
+
+    restored = _clear_geometry(reused, positions[0].index)
+    assert restored["parameter_proposals"] == parts
+    assert not restored["evidence_trace"]
+    assert _clear_geometry(restored, positions[0].index) == restored
+    rebound = _reuse_geometry(
+        restored, positions[0], basis, positions, {}, {"id": "donor"}, child=child
+    )
+    assert rebound == reused
+
+
+@pytest.mark.parametrize(
+    "declared,actual,accepted",
+    [
+        ("Съезд №1", "Съезд №2", False),
+        ("Съезд №1", "Съезд №10", False),
+        ("Съезд №1", "Съезды", False),
+        ("Съезд №1", "Съезд №1", True),
+        ("Съезды", "Съезд №2", True),
+        ("Остановка «Мост»", "Остановка «Завод»", False),
+        ("Остановка «Мост»", "Остановка «Мост»", True),
+    ],
+)
+def test_native_construction_requires_the_declared_subsite(declared, actual, accepted):
+    from normative_base_schedule import identity, native_construction
+
+    positions, result, tools, materials = fixture()
+    for position in positions.values():
+        position.position_source.sections[0].text = declared
+    source = result["sources"][0]
+    source["text"] = source["text"].replace("ровиков уширения", actual)
+    key = identity(positions[0], materials, positions)
+    assert (native_construction(result, key, tools.version) is not None) is accepted
+
+
+@pytest.mark.parametrize(
+    "title,accepted", [("Съезд №1", True), ("Съезд №2", False), ("Съезды", False)]
+)
+def test_numbered_subsite_requires_the_same_schedule(title, accepted):
+    from normative_base_schedule import identity, select
+
+    positions, _, tools, materials = fixture()
+    for position in positions.values():
+        position.position_source.sections[0].text = "Съезд №1"
+    key = identity(positions[0], materials, positions)
+    table = tools.index.tables[0][0]
+    for cell in table["cells"]:
+        if cell["cell_id"].startswith("w"):
+            cell["text"] = title
+    assert (select([(1, table)], key, dict(scope="exits")) is not None) is accepted
+
 
 def test_multi_layer_page_excerpt_does_not_compete_with_exact_layer_sentence():
     positions, result, tools, materials = fixture()

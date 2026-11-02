@@ -797,10 +797,8 @@ def check(context, record, index, payload, actor, *, automatic=False):
                 tools.events.extend(scoped['evidence_trace'])
         canonicalize_cell_parameters(parsed,sources,work_scope=parameter_work_scope,
             height_cm=declared_layer_group['height'] if declared_layer_group else None,section_context=section_context)
-        from normative_quantity_sum_repair import repair_quantity_sum
-        repair_quantity_sum(parsed,tools,owner_work=(parent_position or position).work_name,
-            work_scope=parameter_work_scope,owner_unit=(parent_position or position).unit,
-            section_context=section_context,height_cm=declared_layer_group['height'] if declared_layer_group else None)
+        # V5 must preserve the model's choice of operands vs. their total.
+        # A calculated candidate is not permission to replace direct readings.
         parsed=retain_literal_parameters(parsed,sources,tools)
         from normative_parameters import number
         from normative_parameter_anchors import resolve_anchors
@@ -848,7 +846,7 @@ def check(context, record, index, payload, actor, *, automatic=False):
         tracing.close()
     result = dict(**answer, state="possible_mismatch" if any(v["state"] == "possible_mismatch" for v in answer["items"]) else "needs_facts",
         pipeline_version=PIPELINE_VERSION, execution_state=execution_state,
-        decision_origin='model_with_validated_sources',
+        decision_origin='model_with_validated_sources' if execution_state == 'complete' else None,
         evidence_trace=tools.events, coverage=tools.coverage,
         sources=sources, related_positions=related, telemetry=stats, requires_engineer_review=True,
         quantity_composition=discovered.get('quantity_composition'))

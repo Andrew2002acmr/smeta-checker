@@ -77,15 +77,24 @@ def _clear_geometry(result,parent_index):
     output=deepcopy(result)
     prefix=f'parent-{parent_index}:geometry:'
     if (not any(s['id'].startswith(prefix) for s in output['sources'])
-            and not any(e.get('kind') in {GEOMETRY_TRACE,DEPENDENCY_TRACE}
+            and not any(e.get('kind') in {GEOMETRY_TRACE,DEPENDENCY_TRACE,'parent_sum_supersedes_parts_v1'}
                 and e.get('position_index')==parent_index for e in output.get('evidence_trace',[]))):
         return output
     output['sources']=[s for s in output['sources'] if not s['id'].startswith(prefix)]
     output['parameter_proposals']=[p for p in output.get('parameter_proposals',[])
         if not p.get('source_id','').startswith(prefix)]
     output['items']=[i for i in output.get('items',[]) if not i.get('topic','').startswith(GEOMETRY_TOPIC)]
+    available={s['id'] for s in output['sources']}
+    for event in output.get('evidence_trace',[]):
+        if event.get('kind')!='parent_sum_supersedes_parts_v1' or event.get('position_index')!=parent_index:
+            continue
+        for original in event.get('original_parameters',[]):
+            if (original.get('source_id') in available
+                    and all(sid in available for sid in original.get('operand_source_ids',[]))
+                    and original not in output['parameter_proposals']):
+                output['parameter_proposals'].append(deepcopy(original))
     output['evidence_trace']=[e for e in output.get('evidence_trace',[])
-        if not (e.get('kind') in {GEOMETRY_TRACE,DEPENDENCY_TRACE} and e.get('position_index')==parent_index)]
+        if not (e.get('kind') in {GEOMETRY_TRACE,DEPENDENCY_TRACE,'parent_sum_supersedes_parts_v1'} and e.get('position_index')==parent_index)]
     return output
 
 
