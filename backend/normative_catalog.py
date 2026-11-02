@@ -1,4 +1,4 @@
-"""Read-only catalog of source PDFs kept in the repository's base directory."""
+"""Read-only catalog of source PDFs in the configured base directory."""
 from __future__ import annotations
 
 import hashlib

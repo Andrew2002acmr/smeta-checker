@@ -10,7 +10,11 @@ macOS и Linux.
    (на Linux — Docker Engine + Compose plugin).
 2. **Git** — https://git-scm.com/downloads.
 
-Больше ничего не нужно: Python, Node и PostgreSQL живут внутри контейнеров.
+3. **Python 3.12+** — для установки нормативных данных на хост.
+4. **GitHub CLI** — https://cli.github.com/; учётная запись должна иметь доступ
+   к приватному репозиторию.
+
+Node и PostgreSQL живут внутри контейнеров.
 
 Проверьте, что Docker работает:
 
@@ -25,10 +29,22 @@ docker compose version
 ## Шаг 1. Скачать проект
 
 ```powershell
-git clone https://github.com/koden585/smeta-checker.git
+git clone https://github.com/KDFP-IT/smeta-checker.git
 cd smeta-checker
 git checkout dev
 ```
+
+Затем войдите в GitHub CLI и установите нормативные данные:
+
+```powershell
+gh auth login
+python scripts/install-normative-data.py
+```
+
+На macOS/Linux используйте `python3`. Скрипт скачивает архивы отдельно от Git,
+проверяет SHA-256 и не перезаписывает существующие каталоги `base/` и
+`normative-handoff-20261030-092929/`. Без этих каталогов стандартный Compose
+не сможет смонтировать нормативные данные.
 
 ## Шаг 2. Создать файл с секретами
 
