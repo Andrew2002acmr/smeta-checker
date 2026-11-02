@@ -72,17 +72,13 @@ docker compose -p smeta-checker-local --env-file .env.local -f compose.yaml -f c
 docker compose -p smeta-checker-local --env-file .env.local -f compose.yaml -f compose.local.yaml logs --tail 100 api worker-pdf worker-llm task-relay
 ```
 
-Сначала штатно сделайте резервную копию БД и blobs. Обновление требует миграции
-`0006_task_outbox` и нового сервиса `task-relay`. Обновляйте API и воркеры одним
-комплектом; оставлять старый API с новыми воркерами не следует.
-
-Пример последовательности из каталога проекта при уже работающих db/redis:
+Перед обновлением сделайте согласованную резервную копию БД и blobs; порядок,
+ограничения скриптов и предосторожности при восстановлении приведены в
+[data-migration.md](data-migration.md). Обновляйте API, workspace, все воркеры
+и relay одним комплектом, чтобы версии кода и схемы не расходились:
 
 ```bash
-docker compose stop api worker-pdf worker-llm task-relay
-docker compose build api migrate worker-pdf worker-llm task-relay
-docker compose run --rm migrate
-docker compose up -d api worker-pdf worker-llm task-relay
+docker compose up -d --build
 ```
 
 При недоступном relay сохранённые задания остаются в БД. Следите за его
