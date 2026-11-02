@@ -1,0 +1,862 @@
+{
+  "provenance": {
+    "purpose": "Offline v10 regression: exact immutable KB entities for actual position74; no synthetic normative wording",
+    "kb_identity": {
+      "database": "releases/home-5a7370bcaeb18050d3d5f6a3/knowledge.sqlite",
+      "sha256": "e7371dad6abb16c28b97c08aba247c66ffb76779857bac124c812c9907683108",
+      "release_id": "home-5a7370bcaeb18050d3d5f6a3",
+      "profile": "roads"
+    },
+    "source_pdf_sha256": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5",
+    "source_pdf_physical_pages": [
+      3,
+      58
+    ],
+    "visual_comparison": "Complete physical PDF pages3 and58 visually checked; native extraction/edition statuses remain unchanged"
+  },
+  "source": {
+    "id": "pdf-6aa5203d913dd5eb1538a4c2",
+    "designation": "ГЭСН 27 ФСНБ-2022",
+    "kind": "GESN",
+    "pages": 142,
+    "sha256": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5",
+    "blob_path": "blobs/6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5.pdf",
+    "metadata_json": "{\"bytes\":8168758,\"designation\":\"ГЭСН 27 ФСНБ-2022\",\"edition\":\"base designation verified; all amendments not verified\",\"edition_state\":\"metadata_checked_amendments_incomplete\",\"ocr_unreviewed_pages\":[],\"pages\":142,\"provenance\":\"institutional mirror; originating publisher not verified\",\"registry\":\"normative-sources/sources.json\",\"sha256\":\"6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5\",\"status\":\"pdf_verified\",\"supplement\":false,\"title\":\"ГЭСН 27 ФСНБ-2022\",\"url\":\"https://www.i-tat.ru/file/filemanag/2c4b502b6c2fe756f912fe206d8d1181.pdf\"}"
+  },
+  "norms": [
+    {
+      "id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+      "source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+      "family": "ГЭСН",
+      "code": "27-06-031-01",
+      "table_code": "27-06-031",
+      "title": "Устройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками третьего и четвертого типоразмеров · Устройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками: · третьего типоразмера, ширина укладки до 6 м, толщина слоя 4 см",
+      "text": "Таблица ГЭСН 27-06-031 Устройство покрытия из горячих асфальтобетонных смесей\nасфальтоукладчиками третьего и четвертого типоразмеров\nИзмеритель: 1000 м2\nУстройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками:\n27-06-031-01 третьего типоразмера, ширина укладки до 6 м, толщина слоя 4 см\nСостав работ:\n01. Разбивочные работы.\n02. Очистка основания.\n03. Проливка битумом.\n04. Прием асфальтобетонной смеси в перегружатель, укладка смеси с обрубкой краев, устранением дефектов, трамбованием\nмест, недоступных укатке.\n05. Укатка.\n06. Вырубка образцов и заделка вырубок.",
+      "status": "extracted_native_unreviewed",
+      "designation": "ГЭСН 27 ФСНБ-2022",
+      "source_kind": "GESN",
+      "unit": {
+        "raw": "1000 м2",
+        "scale": "1000",
+        "status": "parsed",
+        "unit": "м2"
+      },
+      "attributes": {},
+      "citations": [
+        {
+          "bbox": [
+            56.63999938964844,
+            403.2709655761719,
+            404.79998779296875,
+            413.2339782714844
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            64.2239990234375,
+            378.31097412109375,
+            161.4499969482422,
+            388.27398681640625
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            130.5800018310547,
+            390.67095947265625,
+            453.54998779296875,
+            400.63397216796875
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            82.94400024414062,
+            305.8309631347656,
+            180.8300018310547,
+            315.7939758300781
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            82.94400024414062,
+            316.1509704589844,
+            175.19000244140625,
+            326.1139831542969
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            82.94400024414062,
+            326.4709777832031,
+            174.35000610351562,
+            336.4339904785156
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            82.94400024414062,
+            336.9109802246094,
+            573.4798583984375,
+            346.8739929199219
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            82.94400024414062,
+            347.1109619140625,
+            187.42999267578125,
+            357.073974609375
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            82.94400024414062,
+            357.43096923828125,
+            128.02999877929688,
+            367.39398193359375
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            82.94400024414062,
+            367.7509765625,
+            245.17999267578125,
+            377.7139892578125
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            56.63999938964844,
+            269.8133239746094,
+            504.3096923828125,
+            282.03460693359375
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            199.97000122070312,
+            282.4133605957031,
+            498.4144287109375,
+            294.6346435546875
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        }
+      ],
+      "edition": {
+        "bytes": 8168758,
+        "designation": "ГЭСН 27 ФСНБ-2022",
+        "edition": "base designation verified; all amendments not verified",
+        "edition_state": "metadata_checked_amendments_incomplete",
+        "ocr_unreviewed_pages": [],
+        "pages": 142,
+        "provenance": "institutional mirror; originating publisher not verified",
+        "registry": "normative-sources/sources.json",
+        "sha256": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5",
+        "status": "pdf_verified",
+        "supplement": false,
+        "title": "ГЭСН 27 ФСНБ-2022",
+        "url": "https://www.i-tat.ru/file/filemanag/2c4b502b6c2fe756f912fe206d8d1181.pdf"
+      },
+      "entity_kind": "norm",
+      "resources": [
+        {
+          "id": "resource-0791a4616cc494326925c9ca000c55b4",
+          "norm_id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+          "resource_code": "1-100-37",
+          "name": "Средний разряд работы 3,7",
+          "unit": "чел.-ч",
+          "raw_quantity": "16,63",
+          "quantity": "16.63",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              456.4209838867188,
+              524.739990234375,
+              466.6839965820312
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 58,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-b29b220706c8ea08df7fff88e98d9dcd",
+          "norm_id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+          "resource_code": "2",
+          "name": "Затраты труда машинистов",
+          "unit": "чел.-ч",
+          "raw_quantity": "7,86",
+          "quantity": "7.86",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              468.30095825195315,
+              524.739990234375,
+              478.5639709472656
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 58,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-e76cea6d84a9298655271c97e009a4c7",
+          "norm_id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+          "resource_code": "91.08.01-024",
+          "name": "Асфальтоукладчики гусеничные, максимальная ширина укладки 7 м, скорость укладки до 24 м/мин, производительность 600 т/ч",
+          "unit": "маш.-ч",
+          "raw_quantity": "1,42",
+          "quantity": "1.42",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              510.30095825195315,
+              524.739990234375,
+              520.5639404296875
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 58,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-e7ce52677881a3ecf320dc113c0a292b",
+          "norm_id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+          "resource_code": "91.08.02-002",
+          "name": "Автогудронаторы, емкость цистерны 7000 л",
+          "unit": "маш.-ч",
+          "raw_quantity": "0,33",
+          "quantity": "0.33",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              530.8210083007813,
+              524.739990234375,
+              541.0839599609375
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 58,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-9473baaec35a861d080e53e6c6ac7f65",
+          "norm_id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+          "resource_code": "91.08.02-011",
+          "name": "Гудронаторы ручные",
+          "unit": "маш.-ч",
+          "raw_quantity": "0,1",
+          "quantity": "0.1",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              541.860986328125,
+              524.739990234375,
+              552.1239379882812
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 58,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-b304daeef62df481a6c29a22ab69afef",
+          "norm_id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+          "resource_code": "91.08.03-025",
+          "name": "Катки самоходные комбинированные вибрационные, масса 7 т",
+          "unit": "маш.-ч",
+          "raw_quantity": "2,05",
+          "quantity": "2.05",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              553.0209594726563,
+              524.739990234375,
+              563.2839111328125
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 58,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-ee067d197493284f0fe8e40615ec6c49",
+          "norm_id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+          "resource_code": "91.08.03-045",
+          "name": "Катки самоходные гладкие вибрационные, масса 7 т",
+          "unit": "маш.-ч",
+          "raw_quantity": "1,6",
+          "quantity": "1.6",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              564.0609985351563,
+              524.739990234375,
+              574.3239501953125
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 58,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-d506ab93ae3c33bda5167ca49375508c",
+          "norm_id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+          "resource_code": "91.08.11-031",
+          "name": "Перегружатели асфальтовой смеси, емкость бункера до 25 т",
+          "unit": "маш.-ч",
+          "raw_quantity": "1,42",
+          "quantity": "1.42",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              575.2210327148438,
+              524.739990234375,
+              585.483984375
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 58,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-afd0b5671908b5a8176c97451443d7fb",
+          "norm_id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+          "resource_code": "91.13.01-038",
+          "name": "Машины поливомоечные, вместимость цистерны 6 м3",
+          "unit": "маш.-ч",
+          "raw_quantity": "0,71",
+          "quantity": "0.71",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              586.2610107421875,
+              524.739990234375,
+              596.5239624023437
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 58,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-e6228708cd8c4624dc71539ac15a4a74",
+          "norm_id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+          "resource_code": "01.2.01.01",
+          "name": "Битумы нефтяные дорожные",
+          "unit": "т",
+          "raw_quantity": "0,7",
+          "quantity": "0.7",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              608.4610229492188,
+              524.739990234375,
+              618.723974609375
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 58,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-a2f7b89b2d365d7b1d77dadfd7e101a4",
+          "norm_id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+          "resource_code": "01.3.01.03-0002",
+          "name": "Керосин для технических целей",
+          "unit": "т",
+          "raw_quantity": "0,0028",
+          "quantity": "0.0028",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              619.6509643554688,
+              524.739990234375,
+              629.913916015625
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 58,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-6f734d3f7bf48a4b86bbfb16e8f54cd0",
+          "norm_id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+          "resource_code": "01.7.03.01-0001",
+          "name": "Вода",
+          "unit": "м3",
+          "raw_quantity": "3,2",
+          "quantity": "3.2",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              630.6910034179688,
+              524.739990234375,
+              640.953955078125
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 58,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-3a84e1f1cf5e23b06713143d8edcbbb5",
+          "norm_id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+          "resource_code": "04.2.01.01",
+          "name": "Смеси асфальтобетонные",
+          "unit": "т",
+          "raw_quantity": "П",
+          "quantity": null,
+          "quantity_kind": "project",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              641.8510375976563,
+              524.739990234375,
+              652.1139892578125
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 58,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        }
+      ],
+      "composition": [
+        "01. Разбивочные работы.\n       02. Очистка основания.\n       03. Проливка битумом.\n       04. Прием асфальтобетонной смеси в перегружатель, укладка смеси с обрубкой краев, устранением дефектов, трамбованием\n       мест, недоступных укатке.\n       05. Укатка.\n       06. Вырубка образцов и заделка вырубок."
+      ]
+    },
+    {
+      "id": "norm-fce868e39fcfdd40a678e4284b8dc091",
+      "source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+      "family": "ГЭСН",
+      "code": "27-06-032-01",
+      "table_code": "27-06-032",
+      "title": "Нормы для корректировки таблицы 27-06-031 · При изменении толщины покрытия на 0,5 см добавлять или исключать: · к норме 27-06-031-01",
+      "text": "Таблица ГЭСН 27-06-032 Нормы для корректировки таблицы 27-06-031\nИзмеритель: 1000 м2\nПри изменении толщины покрытия на 0,5 см добавлять или исключать:\n27-06-032-01 к норме 27-06-031-01\nСостав работ:\n01. Прием асфальтобетонной смеси в перегружатель, укладка смеси с обрубкой краев, устранением дефектов, трамбованием\nмест недоступных укатке.\n02. Укатка.",
+      "status": "extracted_native_unreviewed",
+      "designation": "ГЭСН 27 ФСНБ-2022",
+      "source_kind": "GESN",
+      "unit": {
+        "raw": "1000 м2",
+        "scale": "1000",
+        "status": "parsed",
+        "unit": "м2"
+      },
+      "attributes": {},
+      "citations": [
+        {
+          "bbox": [
+            56.63999938964844,
+            748.43701171875,
+            233.4199981689453,
+            758.3999633789062
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            64.2239990234375,
+            723.4810180664062,
+            161.4499969482422,
+            733.4439697265625
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            130.5800018310547,
+            735.8369750976562,
+            408.8800048828125,
+            745.7999267578125
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            82.94400024414062,
+            692.4010009765625,
+            573.4798583984375,
+            702.3639526367188
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            82.94400024414062,
+            702.7210083007812,
+            185.27000427246094,
+            712.6839599609375
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            82.94400024414062,
+            712.9210205078125,
+            128.02999877929688,
+            722.8839721679688
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        },
+        {
+          "bbox": [
+            56.63999938964844,
+            666.5833740234375,
+            431.94854736328125,
+            678.8046264648438
+          ],
+          "coordinate_system": "pdf-points",
+          "physical_page": 58,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        }
+      ],
+      "edition": {
+        "bytes": 8168758,
+        "designation": "ГЭСН 27 ФСНБ-2022",
+        "edition": "base designation verified; all amendments not verified",
+        "edition_state": "metadata_checked_amendments_incomplete",
+        "ocr_unreviewed_pages": [],
+        "pages": 142,
+        "provenance": "institutional mirror; originating publisher not verified",
+        "registry": "normative-sources/sources.json",
+        "sha256": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5",
+        "status": "pdf_verified",
+        "supplement": false,
+        "title": "ГЭСН 27 ФСНБ-2022",
+        "url": "https://www.i-tat.ru/file/filemanag/2c4b502b6c2fe756f912fe206d8d1181.pdf"
+      },
+      "entity_kind": "norm",
+      "resources": [
+        {
+          "id": "resource-061c54e345b486fd2803716ab3c9ed36",
+          "norm_id": "norm-fce868e39fcfdd40a678e4284b8dc091",
+          "resource_code": "2",
+          "name": "Затраты труда машинистов",
+          "unit": "чел.-ч",
+          "raw_quantity": "0,41",
+          "quantity": "0.41",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              52.67096481323242,
+              524.739990234375,
+              62.933966064453124
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 59,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-5a8b92f0920b36ade6a4463346daa48d",
+          "norm_id": "norm-fce868e39fcfdd40a678e4284b8dc091",
+          "resource_code": "1-100-27",
+          "name": "Средний разряд работы 2,7",
+          "unit": "чел.-ч",
+          "raw_quantity": "0,58",
+          "quantity": "0.58",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              40.79095993041992,
+              524.739990234375,
+              51.053961181640624
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 59,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-5cecbca121e81027c2dfc9e6d5d9373a",
+          "norm_id": "norm-fce868e39fcfdd40a678e4284b8dc091",
+          "resource_code": "91.08.03-025",
+          "name": "Катки самоходные комбинированные вибрационные, масса 7 т",
+          "unit": "маш.-ч",
+          "raw_quantity": "0,12",
+          "quantity": "0.12",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              115.21100769042968,
+              524.739990234375,
+              125.47400512695313
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 59,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-6ddfeb9998d3b10a8935b63cfee64409",
+          "norm_id": "norm-fce868e39fcfdd40a678e4284b8dc091",
+          "resource_code": "91.08.03-045",
+          "name": "Катки самоходные гладкие вибрационные, масса 7 т",
+          "unit": "маш.-ч",
+          "raw_quantity": "0,13",
+          "quantity": "0.13",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              126.25098571777343,
+              524.739990234375,
+              136.51398315429688
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 59,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-85e1f83cef800e2abd13528fb1b0b370",
+          "norm_id": "norm-fce868e39fcfdd40a678e4284b8dc091",
+          "resource_code": "91.08.01-024",
+          "name": "Асфальтоукладчики гусеничные, максимальная ширина укладки 7 м, скорость укладки до 24 м/мин, производительность 600 т/ч",
+          "unit": "маш.-ч",
+          "raw_quantity": "0,08",
+          "quantity": "0.08",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              94.57099304199218,
+              524.739990234375,
+              104.83399047851563
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 59,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-99441496bfdbc8807bf8c200935f0361",
+          "norm_id": "norm-fce868e39fcfdd40a678e4284b8dc091",
+          "resource_code": "04.2.01.01",
+          "name": "Смеси асфальтобетонные",
+          "unit": "т",
+          "raw_quantity": "П",
+          "quantity": null,
+          "quantity_kind": "project",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              159.61097106933593,
+              524.739990234375,
+              169.87396850585938
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 59,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        },
+        {
+          "id": "resource-db23c45edfc03a92278d5c053233fdad",
+          "norm_id": "norm-fce868e39fcfdd40a678e4284b8dc091",
+          "resource_code": "91.08.11-031",
+          "name": "Перегружатели асфальтовой смеси, емкость бункера до 25 т",
+          "unit": "маш.-ч",
+          "raw_quantity": "0,08",
+          "quantity": "0.08",
+          "quantity_kind": "numeric",
+          "status": "extracted_native_geometric_row_unreviewed",
+          "citation": {
+            "bbox": [
+              485.02000427246094,
+              137.41095886230468,
+              524.739990234375,
+              147.67395629882813
+            ],
+            "coordinate_system": "pdf-points",
+            "physical_page": 59,
+            "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+          }
+        }
+      ],
+      "composition": [
+        "01. Прием асфальтобетонной смеси в перегружатель, укладка смеси с обрубкой краев, устранением дефектов, трамбованием\n      мест недоступных укатке.\n       02. Укатка."
+      ]
+    }
+  ],
+  "clauses": [
+    {
+      "id": "clause-d7fb04d617811bd6b4ffa2e8e065774e",
+      "source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+      "label": "page-3-offset-0",
+      "title": "page-3-offset-0",
+      "text": "                                                ГЭСН 81-02-27-2022 Автомобильные дороги\n    а) при устройстве изоляционного слоя из бумаги двухслойной, пропитанной битумом, – 100 м2, битум жидкий –\n0,02 т;\n   б) при устройстве изоляционного слоя из черного песка: песок черный – 33 м3.\n   1.27.32.  Устройство  однослойных  покрытий  средствами  малой  механизации,  определяется  по  нормам\n27-06-002-17, 27-06-002-18, что обосновывается проектом.\n   1.27.33. При поверхностной обработке органическими вяжущими материалами  с применением битумной\nэмульсии в нормах табл. 27-06-023 фракции щебня мытого принимать по проекту.\n   1.27.34. Основания, устраиваемые из черного щебня с использованием двух расклинивающихся фракций щебня,\nопределяется по норме 27-06-018-01.\n   1.27.35. При определении затрат на устройство покрытий толщиной 4 см из горячих асфальтобетонных смесей с\nприменением норм табл. с 27-06-029 по 27-06-032 норму расхода асфальтобетонной смеси принимать на основании\nпроектных данных.\n  При применении щебёночно-мастичных асфальтобетонных смесей укладку определять по нормам 27-06-029-01,\n27-06-030-01, 27-06-031-01, 27-06-031-02, 27-06-032-01, 27-06-032-02, состав смеси подбирать индивидуально. Норму\nрасхода асфальтобетонной смеси принимать на основании проектных данных.\n  При определении затрат на устройство асфальтобетонного лотка вдоль кромки проезжей части с применением\nнорм 27-06-030-02, 27-06-069-01 норму расхода асфальтобетонной смеси принимать на основании проектных данных.\n   1.27.36. При укладке асфальтобетонных смесей во влажный и холодный периоды года при просушке оснований к\nнормам на укладку 1000 м2 покрытия добавлять нормы для разогревателей асфальтобетона, маш.-ч: при щебеночных\nили гравийных основаниях – 12,5, при бетонных основаниях – 9,4, при булыжных мостовых – 6,3. Необходимость\nпрогревания обосновывается проектом.\n       1.27.37. При устройстве покрытия из асфальтобетонных смесей не учтены работы по розливу вяжущих\n материалов.\n     При необходимости эти затраты определяются по табл. 27-06-026 или 27-06-035, а расход принимать по\n проекту.\n     Нормами табл. 27-06-029, 27-06-030, 27-06-031, 27-06-032 пользоваться при толщине слоя до 8 см. При\n толщине слоя более 8 см его устройство нормировать в два слоя (для каждого слоя отдельно) по нормам табл. 27-06-\n 029, 27-06-031 с корректировкой нормами табл. 27-06-030 и 27-06-032.\n   1.27.38. ",
+      "status": "extracted_native_unreviewed",
+      "designation": "ГЭСН 27 ФСНБ-2022",
+      "source_kind": "GESN",
+      "citations": [
+        {
+          "physical_page": 3,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        }
+      ],
+      "edition": {
+        "bytes": 8168758,
+        "designation": "ГЭСН 27 ФСНБ-2022",
+        "edition": "base designation verified; all amendments not verified",
+        "edition_state": "metadata_checked_amendments_incomplete",
+        "ocr_unreviewed_pages": [],
+        "pages": 142,
+        "provenance": "institutional mirror; originating publisher not verified",
+        "registry": "normative-sources/sources.json",
+        "sha256": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5",
+        "status": "pdf_verified",
+        "supplement": false,
+        "title": "ГЭСН 27 ФСНБ-2022",
+        "url": "https://www.i-tat.ru/file/filemanag/2c4b502b6c2fe756f912fe206d8d1181.pdf"
+      },
+      "entity_kind": "clause",
+      "fixture_text_sha256": "34ba24df79735511e48e15461faf4c718547657df9c0b6a5619b1f26424e3426"
+    },
+    {
+      "id": "clause-f5438c0614763ae35d504f92130290c7",
+      "source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+      "label": "page-3-offset-2200",
+      "title": "page-3-offset-2200",
+      "text": "покрытия из асфальтобетонных смесей не учтены работы по розливу вяжущих\n материалов.\n     При необходимости эти затраты определяются по табл. 27-06-026 или 27-06-035, а расход принимать по\n проекту.\n     Нормами табл. 27-06-029, 27-06-030, 27-06-031, 27-06-032 пользоваться при толщине слоя до 8 см. При\n толщине слоя более 8 см его устройство нормировать в два слоя (для каждого слоя отдельно) по нормам табл. 27-06-\n 029, 27-06-031 с корректировкой нормами табл. 27-06-030 и 27-06-032.\n   1.27.38. Нормами 27-06-010-02, 27-06-010-03 не предусмотрены швы расширения при устройстве покрытия на\nоснованиях  из  цементобетона  низких  марок  (тощего)  или  каменных  материалов и  грунтов,  укрепленных\nнеорганическими вяжущими 1 класса прочности. При устройстве покрытия, определяемого по нормам 27-06-010-02,\n27-06-010-03 на других основаниях и температуре воздуха во время бетонирования менее +10°С, устраиваются швы\nрасширения и добавляются ресурсы по табл. 27-06-011. Нарезку швов в затвердевшем бетоне принимать по табл. 27-\n06-007 в объеме, предусмотренном проектом.\n   1.27.39. Нормами табл. 27-07-004 не предусмотрено антисептирование древесины, при необходимости указанные\nзатраты учитываются дополнительно согласно проектной документации.\n   1.27.40. В нормах табл. 27-08-001 предусмотрено устройство укрепительных полос по готовому основанию,\nустраиваемому одновременно с основанием дорожной одежды.\n   1.27.41. Нормой табл. 27-09-006 предусмотрено устройство средств технического регулирования движения\nавтотранспорта при переключении движения с одной полосы на другую. Эти затраты учитываются в главе 1\n«Подготовка  территории  строительства»  сводного  сметного  расчета  стоимости  строительства.  Затраты  по\nамортизации блоков и импульсных стрелок учитывать дополнительно, исходя из времени аренды блоков.\n   Затраты по заполнению блоков водой учитываются дополнительно на основании проектной документации.\n   Затраты на мытье блоков учтены в накладных расходах и дополнительному включению в сметные расчеты не\nподлежат.\n   1.27.42. Нормами табл. с 27-09-009 по 27-09-012 работа автовышки не учтена. При необходимости учитывать\nдополнительно согласно проекту.\n  При установке дорожных знаков на присыпных бермах дороги дополнительно учитывать устройство присыпных\nберм по проектным данным.\n   1.27.43. В нормах табл. с 27-10-001 по 27-10-004 приведены ориентировочные составы приготовления смесей, при\nпривязке к местным условиям строительства состав смесей корректировать согласно данным проекта.\n   1.27.44. Затраты на разработку, прогрохотку и измельчение грунтов в нормах табл. 27-10-007 не учтены.\n   1.27.45. Затраты на транспортировку асфальтогранулобетонной смеси к месту прои",
+      "status": "extracted_native_unreviewed",
+      "designation": "ГЭСН 27 ФСНБ-2022",
+      "source_kind": "GESN",
+      "citations": [
+        {
+          "physical_page": 3,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        }
+      ],
+      "edition": {
+        "bytes": 8168758,
+        "designation": "ГЭСН 27 ФСНБ-2022",
+        "edition": "base designation verified; all amendments not verified",
+        "edition_state": "metadata_checked_amendments_incomplete",
+        "ocr_unreviewed_pages": [],
+        "pages": 142,
+        "provenance": "institutional mirror; originating publisher not verified",
+        "registry": "normative-sources/sources.json",
+        "sha256": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5",
+        "status": "pdf_verified",
+        "supplement": false,
+        "title": "ГЭСН 27 ФСНБ-2022",
+        "url": "https://www.i-tat.ru/file/filemanag/2c4b502b6c2fe756f912fe206d8d1181.pdf"
+      },
+      "entity_kind": "clause",
+      "fixture_text_sha256": "c7feffcf52754e6dc97b68bacb216cd06174579daa693090886ff54d328f368c"
+    },
+    {
+      "id": "clause-2db486a5228b71b34f95e8cd13a067b2",
+      "source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+      "label": "1.27.74",
+      "title": "1.27.74",
+      "text": "1.27.74. Нормой 27-06-030-02 предусмотрено устройство асфальтобетонных лотков вдоль кромки проезжей части\nпри устройстве покрытия из горячих асфальтобетонных смесей асфальтоукладчиками второго, третьего и четвертого\nтипоразмеров. Норма 27-06-030-02 применяется одновременно с нормами табл. 27-06-029 и 27-06-031.\n   Затраты на устройство водоотводных асфальтобетонных лотков вдоль кромки проезжей части существующих\nпокрытий предусмотрены нормой 27-06-069-01.",
+      "status": "extracted_native_unreviewed",
+      "designation": "ГЭСН 27 ФСНБ-2022",
+      "source_kind": "GESN",
+      "citations": [
+        {
+          "physical_page": 5,
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2"
+        }
+      ],
+      "edition": {
+        "bytes": 8168758,
+        "designation": "ГЭСН 27 ФСНБ-2022",
+        "edition": "base designation verified; all amendments not verified",
+        "edition_state": "metadata_checked_amendments_incomplete",
+        "ocr_unreviewed_pages": [],
+        "pages": 142,
+        "provenance": "institutional mirror; originating publisher not verified",
+        "registry": "normative-sources/sources.json",
+        "sha256": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5",
+        "status": "pdf_verified",
+        "supplement": false,
+        "title": "ГЭСН 27 ФСНБ-2022",
+        "url": "https://www.i-tat.ru/file/filemanag/2c4b502b6c2fe756f912fe206d8d1181.pdf"
+      },
+      "entity_kind": "clause",
+      "fixture_text_sha256": "41a6e6281022d2187e2d082b556b658cab361aee252606d0573fb6255d818de6"
+    }
+  ]
+}

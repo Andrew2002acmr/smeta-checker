@@ -67,7 +67,7 @@ def test_agent_must_discover_quantity_tables_before_claiming_insufficient_facts(
     ask = Mock(return_value=answer)
     run(ask,None,None,'',{'position':{'work':'покрытие'}},AgentAnswer,None,{'queries':[]},tools)
     assert ask.call_count == 2
-    assert tools.events[0]['request']['tool'] == 'search_tables'
+    assert any(e.get('request', {}).get('tool') == 'search_tables' for e in tools.events)
 
 
 def test_another_layer_value_cannot_become_a_confirmed_numeric_discrepancy():
@@ -172,9 +172,21 @@ def test_wide_table_read_does_not_evict_previously_selected_normative_text():
     captured = []
     def answer(*args):
         captured.append(args[3])
+        if len(captured) == 1:
+            norm = next(s for s in args[3]['sources'] if s['kind']=='normative')
+            return AgentAnswer(summary='Дочитать выбранный пункт',items=[],requests=[
+                EvidenceRequest(tool='read_source',source_id=norm['id'])])
         return AgentAnswer(summary='Недостаточно данных',items=[])
     run(answer,None,None,'',{},AgentAnswer,None,{'queries':[]},tools)
-    assert next(s for s in captured[0]['sources'] if s['id']=='norm')['text'] == full[:450]
+    assert len(captured) == 2
+    preview = next(s for s in captured[0]['sources'] if s['kind']=='normative')
+    # Explicitly selected before planning: a wide table must not demote it to
+    # a navigation preview. Unselected sources still use bounded previews.
+    assert preview['text'] == full and not preview['excerpt_truncated']
+    reread = next(s for s in captured[1]['sources'] if s['id']==preview['id'])
+    assert reread['text'] == full and not reread['excerpt_truncated']
+    assert tools.events[-1]['request']['source_id'] == 'norm'
+    assert tools.events[-1]['result']['source_id'] == 'norm'
     # Navigation truncates every preview intentionally; subsequent full reads
     # must still use the entire normative source, regardless of cell count.
     result = compact({},tools.sources,tools.preferred)

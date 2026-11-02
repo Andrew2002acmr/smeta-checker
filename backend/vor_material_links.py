@@ -22,7 +22,19 @@ def _family(name):
     for family in ("асфальтобетон", "бетон", "щебен", "песок"):
         if family in name:
             return family
+    if "эмульс" in name and ("битум" in name or re.search(r"\bэбд[а-я]*\b", name)):
+        return "эмульсия"
+    if "битум" in name:
+        return "битум"
+    if "подгрунтовоч" in name:
+        return "подгрунтовка"
     return ""
+
+
+def _compatible_family(work, material):
+    # A priming work without a named binder can own either resource. This does
+    # not make bitumen and emulsion interchangeable when the binder is named.
+    return work == material or (work == "подгрунтовка" and material in {"эмульсия", "битум"})
 
 
 def material_links(tasks):
@@ -31,7 +43,8 @@ def material_links(tasks):
     for task in tasks:
         source = task.get("position_source") or {}
         if source.get("sheet") and isinstance(source.get("row"), int):
-            by_sheet.setdefault(source["sheet"], []).append(task)
+            region = (source.get("document_sha256"), source["sheet"], source.get("header_row"))
+            by_sheet.setdefault(region, []).append(task)
     for sheet_tasks in by_sheet.values():
         ordered = sorted(sheet_tasks, key=lambda t: t["position_source"]["row"])
         for i, task in enumerate(ordered):
@@ -51,28 +64,25 @@ def material_links(tasks):
             # Nearest preceding work; material siblings may occur between rows.
             parent = next((t for t in reversed(ordered[:i])
                            if str(t.get("position_type", "")).casefold() == "работа"), None)
-            if parent is None or _family(parent.get("w_name")) != family:
+            if parent is None or not _compatible_family(_family(parent.get("w_name")), family):
                 continue
             source, parent_source = task["position_source"], parent["position_source"]
             if source.get("sections") != parent_source.get("sections"):
                 continue
-            parent_value = _number(parent.get("w_vol"))
-            deps = calc.get("dependencies") or []
-            parent_cell = f"D{parent_source['row']}"
-            literal_match = parent_value is not None and parent_value > 0 and any(
-                _number(d.get("value")) == parent_value for d in deps)
-            cell_match = any(str(d.get("cell", "")).replace("$", "").upper() == parent_cell for d in deps)
-            if not (cell_match or literal_match):
-                continue
-            # Area -> volume requires the work's stated thickness in the formula.
+            # Workbook structure establishes ownership, not numeric equality.
+            # Rounded or incorrect formula bases must retain their real parent
+            # so the numeric checker can expose the difference separately.
             parent_unit = str(parent.get("w_unit", "")).replace("²", "2").replace("³", "3").strip()
             material_unit = str(task.get("w_unit", "")).replace("²", "2").replace("³", "3").strip()
-            if parent_unit != material_unit:
+            if not parent_unit or not material_unit:
+                continue
+            area_to_asphalt_mass = (family == 'асфальтобетон' and parent_unit == 'м2'
+                                    and material_unit in {'т', 'кг'})
+            if parent_unit != material_unit and not area_to_asphalt_mass:
                 thickness = re.search(r"\bh\s*=\s*(\d+(?:[.,]\d+)?)\s*(мм|см|м)\b", parent.get("w_name", ""), re.I)
                 if parent_unit != "м2" or material_unit != "м3" or not thickness:
                     continue
-                depth = _number(thickness[1]) / {"мм": 1000, "см": 100, "м": 1}[thickness[2].lower()]
-                if not any(_number(d.get("value")) == depth for d in deps):
+                if _number(thickness[1]) <= 0:
                     continue
             links[task.get("idx")] = {
                 "index": parent.get("idx"),

@@ -13,7 +13,7 @@ from normative_retrieval import terms
 from pdf_cell_ocr import column_unit
 
 
-def grouped_totals(table, query, *, unit='', height_cm=None):
+def grouped_totals(table, query, *, unit='', height_cm=None, include_single=False):
     cells = table['cells']
     headers = {c['cell_id']: c for c in cells if c.get('role') == 'header'}
     totals = [c['row'] for c in cells if c['text'].strip().casefold().rstrip(':') == 'всего']
@@ -43,7 +43,7 @@ def grouped_totals(table, query, *, unit='', height_cm=None):
     fractions = material_fractions(query)
     output = []
     for signature, members in groups.items():
-        if not 2 <= len(members) <= 12:
+        if not (1 if include_single else 2) <= len(members) <= 12:
             continue
         text = ' | '.join(dict.fromkeys(h['text'] for _, ancestry in members for h in ancestry))
         score = len(wanted & terms(text))
@@ -65,6 +65,8 @@ def grouped_totals(table, query, *, unit='', height_cm=None):
             score += 2
         values = [number(c['text']) for c,_ in members]
         output.append(dict(score=score, row=total_row, columns=[c['column'] for c,_ in members],
+            cell_ids=[c['cell_id'] for c,_ in members],
+            operation='direct' if len(members) == 1 else 'sum',
             values=[c['text'] for c,_ in members],
             calculated_sum=str(sum((v for v in values if v is not None), Decimal(0))),
             headers=list(dict.fromkeys(s[0] for s in signature)),

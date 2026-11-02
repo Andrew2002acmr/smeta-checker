@@ -116,6 +116,10 @@ def test_normative_replay_is_bound_to_kb_human_corrections_related_rows_and_ques
         record['config']['position_inputs'].append({'index':1,'formula':'changed'})
         assert normative_identity(ctx,record,0,request)!=original
         record['config']['position_inputs'].pop()
+        record['config']['normative_corpora']={'version':{'snapshot_sha256':'repaired-grid','corpus_id':'new-cells'}}
+        assert normative_identity(ctx,record,0,request)!=original
+        record['config'].pop('normative_corpora')
+        assert normative_identity(ctx,record,0,request)==original
         assert normative_identity(ctx,record,0,NormativePositionCheckRequest(question='Different task'))!=original
         ctx.repository.analysis_human_revision=lambda *args:'parent-corrected'
         assert normative_identity(ctx,record,0,request)!=original

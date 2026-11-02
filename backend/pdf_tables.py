@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-VERSION = "physical-cells-v6-cell-refinement"
+VERSION = "physical-cells-v9-separated-row-sections"
 
 
 def recover_unit_headers(tables, words):
@@ -334,14 +334,30 @@ def physical_table_regions(grid, width, height):
     return sorted(set(regions),key=lambda box:(box[1],box[0]))[:8]
 
 
+def station_value(text):
+    """A literal station/range is body data even when adjacent OCR is blank."""
+    compact=re.sub(r'\s+','',text).upper().replace('K','К').replace('O','О')
+    station=r'(?:ПК)?[\dО]+\+\d+(?:[.,]\d+)?'
+    return bool(re.fullmatch(station+r'(?:[-–—]'+station+r')?',compact))
+
+
+def physical_data_value(text):
+    return bool(re.fullmatch(r'[+-]?\d+(?:[.,]\d+)?',text.strip())) or station_value(text)
+
+
 def physical_header_rows(cells):
     """Conservative first numeric data row; h=0.12/unit headers are not data."""
+    candidates=[]
     for row in sorted({c['row'] for c in cells}):
         values = [c['text'].strip() for c in cells if c['row']==row and c['text'].strip()]
-        numeric = sum(bool(re.fullmatch(r'\d+(?:[.,]\d+)?', value)) for value in values)
-        if 0 < row <= 12 and numeric >= 2 and numeric >= len(values)*.5:
+        numeric = sum(bool(re.fullmatch(r'[+-]?\d+(?:[.,]\d+)?', value)) for value in values)
+        station=any(c['row']==row and c.get('column')==0 and c.get('colspan',1)==1
+            and station_value(c['text']) for c in cells)
+        if 0 < row <= 12 and station and numeric>=1:
             return row
-    return None
+        if 0 < row <= 12 and numeric >= 2 and numeric >= len(values)*.5:
+            candidates.append(row)
+    return candidates[0] if candidates else None
 
 
 def ruled_geometry(grid):
@@ -612,7 +628,11 @@ def raster_tables(page, *, rotation=0, timeout=90):
             cell["bbox"] = mapped(cell["bbox"])
             for word in cell.get("words", []):
                 word["bbox"] = mapped(word["bbox"])
-    return tables
+    # Separate embedded tables can have different column grids. Reuse the
+    # words already recognised above, but restore closed physical cells before
+    # independent numeric/header verification. Recovery never confirms OCR.
+    from pdf_ruled_recovery import recover_page
+    return recover_page(page, tables, rotation=rotation)['tables']
 
 
 if __name__ == "__main__":

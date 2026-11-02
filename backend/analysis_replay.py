@@ -144,6 +144,10 @@ def normative_identity(context,record,index,payload):
     human_revision=revision(record['project_id'],record['vor_version_id'],list((record['config'].get('pdf_versions') or {}).values())) if revision else ''
     inputs=dict(matching=digest(matching),matching_facts=digest(matching_facts(raw)),
         kb=service.corpus(profile=service.profile_for(record)).identity,
+        # The matching job stays frozen when table preparation is corrected.
+        # Normative retrieval, however, reads this newer document snapshot.
+        # Reusing an answer from the old grid would silently undo that repair.
+        prepared_corpora=digest(record['config'].get('normative_corpora') or {}),
         positions=digest(record['config'].get('position_inputs') or []),
         human_basis=digest(human),human_revision=human_revision,
         request=dict(question=payload.question or DEFAULT_QUESTION,pages=list(payload.pages),pdf_version_id=payload.pdf_version_id))
@@ -156,6 +160,9 @@ def replay_normative(context,record,index,payload,actor):
     ident=normative_identity(context,record,index,payload)
     artifact=get(context,ident) if ident else None
     if not artifact:
+        if ident is not None:
+            from normative_evidence_cache import replay_evidence
+            return replay_evidence(context,record,index,ident,actor)
         return None
     from normative_position_check import validate_agent_saved
     row=dict(id=artifact['origin']['review_id'],payload=deepcopy(artifact['snapshot']))
@@ -170,6 +177,8 @@ def store_normative(context,record,index,payload,saved):
     ident=normative_identity(context,record,index,payload)
     if ident is None:
         return saved
+    from normative_evidence_cache import store_evidence_index
+    store_evidence_index(context,record,index,saved,ident)
     artifact=put(context,ident,dict(snapshot=saved['payload'],origin=dict(run_id=str(record['id']),review_id=saved['id'])))
     if artifact['origin']['review_id']==saved['id']:
         return saved

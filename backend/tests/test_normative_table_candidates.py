@@ -54,3 +54,16 @@ def test_known_construction_parameters_are_constraints_not_just_ranking_hints():
         if c['cell_id'] in {'m0','m2'}:
             c['text']='Смесь 0/63 h=0,18 м'
     assert grouped_totals(value,'Смесь 0/31,5',height_cm='18')==[]
+
+
+def test_single_total_column_is_a_direct_candidate_not_a_synthetic_sum():
+    value = table()
+    value['cells'] = [c for c in value['cells'] if c['cell_id'] not in {'s2','m2','u2','u3','v2','v3'}]
+    candidates = grouped_totals(value, 'Материал Б', unit='м2', include_single=True)
+    assert len(candidates) == 1
+    assert candidates[0]['columns'] == [0]
+    assert candidates[0]['operation'] == 'direct'
+    assert candidates[0]['calculated_sum'] == '10'
+    assert candidates[0]['scope_verified'] is False
+    value['cells'][-1]['text'] = 'Итог по участку:'
+    assert grouped_totals(value, 'Материал Б', unit='м2', include_single=True) == []

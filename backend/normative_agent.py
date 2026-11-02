@@ -6,6 +6,7 @@ table and cell identities; the model chooses scope, the server owns evidence.
 from __future__ import annotations
 
 import json
+import re
 import time
 from decimal import Decimal
 from copy import deepcopy
@@ -17,6 +18,31 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 PIPELINE_VERSION = 4
 MAX_ROUNDS = 3
 MAX_CONTEXT = 58000
+
+
+def search_evidence(kb, query, facts, *, limit=3):
+    """Retrieve definitions AND clauses; Corpus.ALL searches clauses only.
+
+    Document-specific and clause-specific queries stay scoped. For a work-name
+    query, interleave the two independently ranked indexes within the budget.
+    Neither retrieval nor a resource match proves applicability.
+    """
+    if re.search(r'(?:ГОСТ|СП|ПНСТ|ОДМ)\s*(?:Р\s*)?\d', query, re.I) or re.fullmatch(r'\d+(?:\.\d+)+', query.strip()):
+        return kb.search(query, kind='ALL', facts=facts, limit=limit)
+    if re.fullmatch(r'\d{2}-\d{2}-\d{3}-\d{2,3}', query.strip()):
+        return kb.search(query, kind='GESN', facts=facts, limit=limit)
+    norms = kb.search(query, kind='GESN', facts=facts, limit=limit)
+    clauses = kb.search(query, kind='ALL', facts=facts, limit=limit)
+    output, seen = [], set()
+    for index in range(max(len(norms), len(clauses))):
+        for pool in (norms, clauses):
+            if index < len(pool):
+                hit = pool[index]
+                key = (hit.get('entity_kind'), hit['id'])
+                if key not in seen:
+                    output.append(hit)
+                    seen.add(key)
+    return output[:limit]
 
 
 def cell_source_id(version, page, table_id, cell_id):
@@ -43,8 +69,12 @@ TOOLS = """
 Ты работаешь как агент проверки. Если источников недостаточно, верни requests
 и пустые items/parameters; не завершай проверку только потому, что первоначальная
 выдержка не содержит таблицу. До 4 requests за шаг:
-search_project(query): смысл работы/конструкция/участок, без ожидаемого числа ВОР;
-search_tables(query): ведомости объёмов, площади, количества и заголовки таблиц;
+search_project(query, offset): смысл работы/конструкция/участок, без ожидаемого числа ВОР;
+search_tables(query, offset): ведомости объёмов, площади, количества и заголовки таблиц;
+offset здесь — курсор страниц результатов (первый 0), следующий — search.next_offset.
+Повтор того же запроса и курсора не добавляет доказательств. Если search.truncated=true,
+остаются другие кандидаты: уточни запрос или продолжи с next_offset. Выдача не доказывает
+отсутствие данных в ПД; даже исчерпанный поиск относится только к подготовленному тексту.
 read_page(page, offset): следующие 3500 символов физической страницы;
 read_source(source_id, offset): дочитать конкретный источник; его текст не исчезает;
 read_table(page, table_id, row_ids, column_ids): точные строки и столбцы с заголовками
@@ -62,6 +92,9 @@ sum_cells(operand_ids, unit): сумма 2–12 числовых ячеек с �
 Сумму можно вернуть сразу в parameters: operation="sum", operand_source_ids —
 точные ID числовых ячеек, value — полученная сумма, unit — единица заголовка.
 Программа сама пересчитает и проверит операнды без дополнительного запроса модели.
+Кандидат с operation="direct" содержит одну итоговую ячейку: передай её source_id,
+operation="direct" и точную цитату с числом, единицей и заголовками из её источника.
+Не создавай сумму из одной ячейки и не подставляй единицу, отсутствующую в источнике.
 В каждом parameters для quantity/thickness передай scope_state="verified" и
 scope_quote — точную короткую цитату того же участка/конструкции/слоя, ВКЛЮЧАЯ
 число и единицу. Цитата от другого слоя недопустима. Если принадлежность
@@ -73,20 +106,36 @@ scope_quote — точную короткую цитату того же уча�
 row_ids — не более 12, column_ids — не более 32; выбирай итог и нужный материал,
 а не всю таблицу. Каждый аспект items должен относиться к одному claim_id
 (quantity/unit/presence можно объединить). Не объединяй свою работу и related:*.
+В каждом item project_source_ids и normative_source_ids содержат не более 8 ID
+каждого типа; предпочтительно 1–4 непосредственно подтверждающих этот вывод.
+Разные аспекты разнеси по items; не повторяй весь каталог источников в каждом item.
 source_id копируй точно из sources.id или результата инструмента source_id.
 Не используй ID нормативного PDF вместо ID конкретной выдержки.
+normative_work_owner задаёт работу, для которой выбирается норма и её измеритель:
+у расчётного материала это родительская работа, её единица может отличаться от единицы материала.
+Для parameter=unit_scale используй только буквальную строку «Измеритель» выбранной
+нормы этой работы из источника kind=normative. Единица ресурса и число в ПД не являются
+измерителем нормы. Найди эту строку через read_source; при отсутствии не подставляй 1.
+Расход материала ищи в ресурсах той же применимой нормы по наименованию, виду и
+характеристикам материала, а не по совпадению числа с формулой ВОР. Укажи точную строку
+ресурса, его единицу и расход на измеритель нормы в отдельном item с разрешённым
+claim_id: derived:rate для текущего материала, related:<index>:rate для дочернего. Размерный расход
+т/1000 м2 не является безразмерным coefficient. Найденный, но ещё не проверенный расход
+опиши как неподтверждённое основание с источником; не называй его отсутствующим.
 """
 
 
-def resource_sources(item, prefix):
+def resource_sources(item, prefix, *, evidence_trace=None):
     """Read existing KB resource rows with their own physical-page citations."""
+    from normative_resource_consumption import record_candidates,resource_quote
+    record_candidates(item,prefix,evidence_trace)
     pages = {}
     for resource in item.get('resources',[])[:80]:
         for citation in resource.get('citations',[])[:1]:
             page = citation.get('page')
             if not page:
                 continue
-            text = f"{resource['code']} {resource['name']}; {resource['unit']}: {resource.get('raw_quantity') or resource.get('quantity') or '[не разобрано]'}"
+            text = resource_quote(resource)
             pages.setdefault((citation['source_id'],page),[]).append(text)
     return [dict(id=f'{prefix}:resources:{page}',kind='normative',page=page,source_id=source_id,
         label=item['designation']+' · '+item['code']+' · ресурсы',origin=item['extraction_status'],
@@ -139,7 +188,7 @@ def model_result(result, budget=10000):
     return output
 
 
-def compact(inputs, sources, preferred=()):
+def compact(inputs, sources, preferred=(), *, planning=False, measure=None):
     """Exclude bulky untrusted fact graphs, retaining claim identity and state."""
     value = deepcopy(inputs)
     value['matching_checks'] = [
@@ -148,31 +197,9 @@ def compact(inputs, sources, preferred=()):
     value['sources'] = []
     if 'prepared_quantity_tables' in value:
         value['prepared_quantity_tables'] = model_result(value['prepared_quantity_tables'],6000)
-    # Exact reads first, then search previews. Registry remains intact; adding
-    # a table never shrinks a previously selected paragraph to 750 characters.
-    preferred = set(preferred)
-    ordered = sorted(enumerate(sources), key=lambda item: (
-        0 if item[1]['id'] in preferred and ':cell:' not in item[1]['id'] else
-        1 if item[1]['kind']=='normative' else 2,
-        item[0] if item[1]['kind']=='normative' and item[1]['id'] not in preferred else -item[0]))
-    remaining = max(0, min(26000, MAX_CONTEXT-len(json.dumps(value, ensure_ascii=False))-20000))
-    for _, source in ordered:
-        brief = {k: source[k] for k in ('id', 'kind', 'page', 'label', 'version_id', 'origin',
-            'numeric_verified','unit_verified','unit') if k in source}
-        text = str(source.get('text', ''))
-        allowance = min(len(text), 3500 if source['id'] in preferred and ':cell:' not in source['id'] else
-            1300 if source.get('kind') == 'normative' else 1000 if ':cell:' in source['id'] else 500, max(0, remaining-300))
-        if allowance == 0:
-            continue
-        brief.update(text=text[:allowance], excerpt_truncated=len(text) > allowance,
-            full_length=len(text), next_offset=allowance if len(text) > allowance else None)
-        value['sources'].append(brief)
-        remaining -= allowance+300
     value['pipeline_version'] = PIPELINE_VERSION
-    if len(json.dumps(value, ensure_ascii=False)) > MAX_CONTEXT:
-        # Explicitly fail before spending quota; never silently drop claim IDs.
-        raise ValueError('Agent context metadata exceeds budget')
-    return value
+    from normative_context_packing import pack_sources
+    return pack_sources(value,sources,preferred,limit=MAX_CONTEXT,planning=planning,measure=measure)
 
 
 def model_source_aliases(supplied, sources):
@@ -189,7 +216,7 @@ def model_source_aliases(supplied, sources):
             return {k:visit(v,k) for k,v in value.items()}
         if isinstance(value,list):
             return [visit(v,key) for v in value]
-        return to_model.get(value,value) if isinstance(value,str) and (key in keys or key.endswith('_source_id')) else value
+        return to_model.get(value,value) if isinstance(value,str) and (key in keys or key.endswith(('_source_id','_source_ids'))) else value
     return visit(supplied), {v:k for k,v in to_model.items()}
 
 
@@ -200,6 +227,9 @@ def restore_source_ids(answer, aliases):
     for proposal in getattr(answer,'parameters',[]):
         proposal.source_id=aliases.get(proposal.source_id,proposal.source_id)
         proposal.operand_source_ids=[aliases.get(s,s) for s in proposal.operand_source_ids]
+    for proposal in getattr(answer,'adjustments',[]):
+        proposal.base_source_id=aliases.get(proposal.base_source_id,proposal.base_source_id)
+        proposal.adjustment_source_id=aliases.get(proposal.adjustment_source_id,proposal.adjustment_source_id)
     for request in getattr(answer,'requests',[]):
         request.source_id=aliases.get(request.source_id,request.source_id)
         request.operand_ids=[aliases.get(s,s) for s in request.operand_ids]
@@ -208,12 +238,18 @@ def restore_source_ids(answer, aliases):
 
 class EvidenceTools:
     def __init__(self, context, record, index, sources, kb, facts):
+        self.context, self.record = context, record
         self.sources, self.kb, self.facts = sources, kb, facts
         self.cells = {}
+        self.quantity_sums = []
+        self.conditional_repair_candidates: list[dict[str,Any]] = []
+        self.invalid_project_parameter_kinds: set[str] = set()
         self.index: Any = None
         self.events = []
         self.preferred = []
         self.table_search_done = False
+        self.project_search: Any = None
+        self.project_search_results = {}
         self.snapshot_refs = []
         self.coverage: dict[str, Any] = {}
         self.blob_store = context.blob_store
@@ -265,6 +301,12 @@ class EvidenceTools:
             table_catalog_truncated=len(catalogue)>80)
 
     def _add(self, source):
+        context = getattr(self, 'context', None)
+        if context is not None and getattr(context.repository, 'supports_analysis_replay', False) is True:
+            from normative_confirmed_units import attach
+            resolved = attach(context, self.record, dict(sources=[source], evidence_trace=[]))
+            source = resolved['sources'][0]
+            self.events.extend(e for e in resolved['evidence_trace'] if e not in self.events)
         existing = next((s for s in self.sources if s['id'] == source['id']), None)
         if existing is None:
             if len(self.sources) >= 1024:
@@ -272,24 +314,54 @@ class EvidenceTools:
             self.sources.append(source)
         return {'source_id': source['id']}
 
-    def quantity_candidates(self, query, *, unit='', height_cm=None) -> list[dict[str, Any]]:
+    def quantity_candidates(self, query, *, unit='', height_cm=None, section_context='') -> list[dict[str, Any]]:
         """Precompute bounded alternatives; never use the declared VOR amount."""
         if self.index is None or not self.version:
             return []
         from normative_table_candidates import grouped_totals
+        from normative_retrieval import terms
+        scope_terms = terms(section_context)-terms(query)
         ranked = []
         # Coverage is a bounded MODEL preview, not an internal search index.
         # Drawing frames can fill that preview before quantity schedules at
         # the end of a large PDF. Search every prepared table exactly once.
         for page, tables in enumerate(self.index.tables or []):
             for table in tables:
-                for candidate in grouped_totals(table, query, unit=unit, height_cm=height_cm):
-                    ranked.append(dict(**candidate, page=page+1, table_id=table['table_id']))
-        ranked.sort(key=lambda c: -c['score'])
+                captions = [c['text'] for c in table['cells'] if c.get('role')=='header'
+                    and c.get('colspan',1)>=table['col_count'] and c.get('text','').strip()]
+                for candidate in grouped_totals(table, section_context+' '+query, unit=unit, height_cm=height_cm, include_single=True):
+                    scoped_text = ' '.join([*candidate['headers'],*captions])
+                    found_terms = terms(scoped_text)
+                    abbreviations = re.findall(r'\b([а-я]{3,5})\.',scoped_text.casefold())
+                    matched = {term for term in scope_terms if term in found_terms
+                        or any(min(len(term),len(found))>=4 and (term.startswith(found) or found.startswith(term)) for found in found_terms)
+                        or any(term.startswith(abbreviation) for abbreviation in abbreviations)}
+                    # Section context is a bounded extra signal. A common
+                    # street caption must not outrank an exact material and
+                    # thickness match merely because it has one more word.
+                    ranking_score=candidate['score']+min(8,2*len(matched))+2*bool(candidate['unit_verified'])
+                    ranked.append(dict(**candidate, page=page+1, table_id=table['table_id'],
+                        section_match_terms=sorted(matched),context_headers=captions,ranking_score=ranking_score))
+        ranked.sort(key=lambda c: (-c['ranking_score'],not c['unit_verified'],-c['score']))
         for candidate in ranked[:4]:
             result = self.execute(EvidenceRequest(tool='read_table', page=candidate['page'],
                 table_id=candidate['table_id'], row_ids=[candidate['row']], column_ids=candidate['columns']))
-            candidate['operand_source_ids'] = [c['source_id'] for c in result['rows'] if 'source_id' in c]
+            candidate['operand_source_ids'] = [c['source_id'] for c in result['rows']
+                if 'source_id' in c and c['cell_id'] in candidate['cell_ids']]
+            if candidate['operation']=='sum' and candidate['numeric_verified'] and candidate['unit_verified']:
+                computed = self.execute(EvidenceRequest(tool='sum_cells',
+                    operand_ids=candidate['operand_source_ids'], unit=unit))
+                if 'error' not in computed:
+                    # This proves arithmetic over this exact physical group,
+                    # never its applicability to the current VOR construction.
+                    equation = computed['equation'].rsplit('\n',1)[-1].partition(' Ячейки:')[0]
+                    candidate.update(source_id=computed['source_id'], equation=equation,
+                        calculated_sum=computed['value'], unit=unit)
+                    self.preferred.append(computed['source_id'])
+                    self.events.append(dict(kind='prepared_quantity_sum',source_id=computed['source_id'],
+                        operand_source_ids=candidate['operand_source_ids'],page=candidate['page'],
+                        table_id=candidate['table_id'],row=candidate['row'],columns=candidate['columns'],
+                        unit=unit,scope_verified=False))
         return ranked[:4]
 
     def execute(self, request):
@@ -309,7 +381,7 @@ class EvidenceTools:
         if request.tool == 'search_norms':
             from normative_service import candidate
             results = []
-            for hit in self.kb.search(request.query, kind='ALL', facts=self.facts, limit=3):
+            for hit in search_evidence(self.kb, request.query, self.facts, limit=3):
                 item = candidate(self.kb, hit, self.facts)
                 if not item['citations']:
                     continue
@@ -318,18 +390,31 @@ class EvidenceTools:
                     source_id=ref['source_id'], page=ref['page'], label=item['designation']+' · '+item['code'],
                     origin=item['extraction_status'], text=item['text'][:2800])
                 results.append(self._add(source))
-                results.extend(self._add(resource) for resource in resource_sources(item,source['id']))
+                results.extend(self._add(resource) for resource in resource_sources(item,source['id'],evidence_trace=self.events))
             return {'results': results}
         if self.index is None or not self.version:
             return {'error': 'prepared_corpus_unavailable', 'coverage': self.coverage}
         if request.tool in {'search_project', 'search_tables'}:
-            from normative_retrieval import DocumentSearch
+            from normative_retrieval import document_search
             self.table_search_done |= request.tool == 'search_tables'
-            ranked = DocumentSearch(self.index.texts).search(request.query, tables=request.tool == 'search_tables')
+            if getattr(self, 'project_search', None) is None:
+                self.project_search = document_search(self.index.texts)
+            cache = getattr(self, 'project_search_results', {})
+            self.project_search_results = cache
+            key = (request.tool, request.query, request.offset)
+            if key in cache:
+                return {**deepcopy(cache[key]), 'repeated_query': True}
+            search = self.project_search.search_page(request.query,
+                tables=request.tool == 'search_tables', offset=request.offset)
             pages = []
-            for hit in ranked:
+            for hit in search['hits']:
                 pages.append(dict(**self._page(hit['page'], hit['offset']), preview=hit['preview']))
-            return {'pages': pages, 'coverage': self.coverage}
+            search = {k: v for k, v in search.items() if k != 'hits'}
+            self.events.append(dict(kind='project_retrieval_page_v1', tool=request.tool,
+                query=request.query, **search, returned_pages=[p['page'] for p in pages]))
+            response = {'pages': pages, 'coverage': self.coverage, 'search': search}
+            cache[key] = deepcopy(response)
+            return response
         if request.page > len(self.index.texts):
             return {'error': 'page_out_of_range'}
         if request.tool == 'read_page':
@@ -346,6 +431,10 @@ class EvidenceTools:
         output = []
         for cell in selected:
             header_text = ' | '.join(str(h['text']) for h in cells if h['cell_id'] in cell.get('header_ids', []))
+            from pdf_row_sections import row_scope_context
+            row_context=row_scope_context(table,cell)
+            if row_context:
+                header_text+='\n'+row_context
             from pdf_cell_ocr import column_unit
             resolved_unit = column_unit(table, cell)
             if resolved_unit:
@@ -354,7 +443,8 @@ class EvidenceTools:
             row = sorted((c for c in cells if c['row'] == cell['row'] and c['column'] < 2), key=lambda c: c['column'])
             text += '\n' + ' | '.join(str(c['text']) for c in row) + '\n' + cell['text']
             cell_id = cell_source_id(self.version, request.page, table['table_id'], cell['cell_id'])
-            self.cells[cell_id] = dict(cell=cell, headers=text, header_text=header_text, page=request.page,unit=resolved_unit)
+            self.cells[cell_id] = dict(cell=cell, headers=text, header_text=header_text, page=request.page,unit=resolved_unit,
+                version_id=self.version,table_id=table['table_id'])
             geometry = (getattr(self.index, 'metadata', {}).get('page_geometry') or {}).get(str(request.page-1))
             rects = []
             if geometry and cell.get('bbox'):
@@ -372,7 +462,7 @@ class EvidenceTools:
         from normative_retrieval import terms
         wanted = terms(request.query)
         matching_rows = sorted({c['row'] for c in cells if wanted & terms(c['text'])})[:20]
-        return {'cells': output, 'matching_rows': matching_rows, 'columns': table_outline(table)['columns'], 'rows': [dict(**{k: c[k] for k in ('cell_id', 'row', 'column', 'text', 'header_ids', 'bbox', 'quality', 'numeric_verified') if k in c},
+        return {'cells': output, 'matching_rows': matching_rows, 'columns': table_outline(table)['columns'], 'rows': [dict(**{k: c[k] for k in ('cell_id', 'row', 'column', 'text', 'header_ids', 'bbox', 'quality', 'numeric_verified','row_scope') if k in c},
             **output[i]) for i,c in enumerate(selected)], 'next_offset': request.offset+4, 'row_count': table['row_count']}
 
     def _sum(self, request):
@@ -402,6 +492,11 @@ class EvidenceTools:
             page=cells[0]['page'], version_id=self.version, label=self.filename, origin='calculated_from_cells', text=text,
             numeric_verified=True,unit_verified=True,unit=request.unit,
             rects=[rect for source in self.sources if source['id'] in ids for rect in source.get('rects', [])][:40]))
+        if 'source_id' in result:
+            records=getattr(self,'quantity_sums',[])
+            if not any(r['source_id']==result['source_id'] for r in records):
+                records.append(dict(source_id=result['source_id'],operand_source_ids=list(ids),value=str(total),unit=request.unit))
+            self.quantity_sums=records
         return dict(**result, equation=text, value=str(total), operands=ids, scope_verified=False)
 
     def _page(self, page, offset, *, exact=False):
@@ -427,7 +522,7 @@ class EvidenceTools:
         """
         tables = self.index.tables[page-1] if self.index.tables else []
         if tables:
-            return tables
+            return self._verified_tables(page,tables)
         from audit_snapshot import load_json, load_snapshot
         for ref in self.snapshot_refs:
             if ref.get('snapshot_storage') == 'pages-v1':
@@ -442,8 +537,14 @@ class EvidenceTools:
                 other = load_snapshot(self.blob_store, ref)
                 tables = other.tables[page-1] if other.tables else []
             if tables:
-                return tables
+                return self._verified_tables(page,tables)
         return []
+
+    def _verified_tables(self,page,tables):
+        if not hasattr(self,'context'):
+            return tables
+        from normative_table_headers import apply
+        return apply(self.context,self.record,self.version,page,tables,self.events)
 
 
 def table_outline(table):
@@ -462,20 +563,31 @@ def table_outline(table):
 
 
 def run(ask, client, credentials, instructions, inputs, schema, trace, stats, tools, *, verify_answer=None):
-    """At most three model calls; failed acquisition cannot become a verdict."""
+    """Three calls; one source-only repair for a newly exposed conditional error."""
+    from normative_context import ModelProviderResponseError
     started = time.monotonic()
     history = []
     feedback = []
-    for step in range(MAX_ROUNDS):
-        supplied = compact(inputs, tools.sources, tools.preferred)
+    seen_conditions=set()
+    previous_invalid_parameters=set()
+    late_repair=False
+    for step in range(MAX_ROUNDS+1):
+        if step==MAX_ROUNDS and not late_repair:
+            break
+        supplied = deepcopy(inputs)
         bounded_history = [dict(request=e['request'],result=model_result(e['result'],4000)) for e in history]
-        supplied.update(coverage=tools.coverage, tool_results=bounded_history, remaining_steps=MAX_ROUNDS-step-1)
+        supplied.update(coverage={key:value for key,value in tools.coverage.items() if key!='model_context_packing'},
+            tool_results=bounded_history, remaining_steps=max(0,MAX_ROUNDS-step-1))
         if feedback:
             supplied['answer_validation'] = feedback
+        supplied['conditional_repair_candidates'] = list(getattr(tools,'conditional_repair_candidates',()))
         # Literal anchors must be refreshed AFTER tool reads. Initial candidates
         # cannot describe a construction paragraph discovered in a later round.
         from normative_parameter_anchors import parameter_candidates,thickness_adjustments
         supplied['parameter_candidates'] = parameter_candidates(tools.sources)
+        from normative_quantity_anchors import quantity_parameter_candidates
+        supplied['quantity_parameter_candidates'] = quantity_parameter_candidates(
+            tools.sources,getattr(tools,'cells',{}),getattr(tools,'quantity_sums',()))
         supplied['previous_literal_parameters'] = list(getattr(tools,'parameter_evidence',{}).values())
         supplied['normative_thickness_adjustments'] = thickness_adjustments(inputs.get('position',{}).get('work',''),tools.sources)
         stage = 'normative-evidence-plan' if step == 0 else f'normative-evidence-{step}'
@@ -483,30 +595,47 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
         if step == 0 and MAX_ROUNDS > 1:
             # Navigation is a separate bounded task, not a full audit of every
             # preliminary claim before the underlying table has been read.
-            supplied['sources'] = [{**source, 'text':source['text'][:450],
-                'excerpt_truncated':len(source['text'])>450 or source['excerpt_truncated']} for source in supplied['sources']]
             step_instructions = TOOLS + '\nСейчас ТОЛЬКО выбери до четырёх точных чтений. Приоритет: проектная конструкция, итоговые строки ведомости с подходящими заголовками columns, затем норматив. Используй row_ids из total_rows и column_ids подходящего материала/единицы. Начало таблицы без чисел не заменяет чтение итогов. Не проверяй всю позицию на этом шаге. summary до 200 символов, items=[], parameters=[], requests. На следующем шаге выполни проверку по полученным данным.'
             step_instructions += '\nvor_layer_group.height — сумма технологических слоёв одной конструкции ВОР в см; выбирай проектный столбец полной толщины, а не требуй отдельный столбец каждой технологической операции.'
-        if step == MAX_ROUNDS-1:
-            step_instructions += '\nЭто ОКОНЧАТЕЛЬНЫЙ шаг: requests=[] обязательно. Не ищи снова. Сохрани найденные факты, точные ID ячеек и параметры; непроверенные аспекты — needs_facts с конкретной причиной, не ошибка ВОР. summary до 600 символов, до 5 items с пояснениями до 350 символов.'
-        supplied['archived_source_ids'] = []
-        while len(json.dumps(supplied, ensure_ascii=False)) > MAX_CONTEXT and len(supplied['sources']) > 1:
-            source = supplied['sources'].pop()
-            supplied['archived_source_ids'].append(source['id'])
-        if len(json.dumps(supplied, ensure_ascii=False)) > MAX_CONTEXT:
-            raise ValueError('Agent tool results exceed budget')
+        if step >= MAX_ROUNDS-1:
+            step_instructions += '\nЭто ОКОНЧАТЕЛЬНЫЙ шаг: requests=[] обязательно. Не ищи снова. Сохрани найденные факты, точные ID ячеек и параметры; непроверенные аспекты — needs_facts с конкретной причиной, не ошибка ВОР. summary до 600 символов, до 8 items с пояснениями до 350 символов.'
+            step_instructions += '\nСохраняй отдельные выводы по собственной геометрии, нормативной применимости и related:* расходу дочернего материала. Не объединяй подтверждённую геометрию с неизвестным коэффициентом ради сокращения числа items; объедини только однородные подтверждённые аспекты или сократи пояснения.'
+            step_instructions += '\nДля каждого item — до 8 project_source_ids и до 8 normative_source_ids, предпочтительно 1–4 прямых основания каждого типа. Разделяй разные аспекты; не копируй весь каталог источников.'
+        if step==MAX_ROUNDS:
+            step_instructions += '\nДополнительное исправление: уточнённый параметр ПД впервые выявил несогласованный выбор нормы. '
+            step_instructions += 'Используй только уже прочитанные conditional_repair_candidates; никаких новых поисков. Исправь выбор, только если источники доказывают применимость, иначе needs_facts.'
+        # All dynamic anchors, history and coverage are now known. Budget the
+        # actual aliased request instead of reserving a fixed 20k beforehand.
+        from normative_context_packing import serialize_context
+        supplied = compact(supplied,tools.sources,tools.preferred,planning=step==0,
+            measure=lambda value: len(serialize_context(model_source_aliases(value,tools.sources)[0])))
+        from normative_embedded_context import packing_record
+        packing = packing_record(supplied,tools.sources,stage)
         supplied, aliases = model_source_aliases(supplied,tools.sources)
+        encoded = serialize_context(supplied)
+        packing.update(input_json_characters=len(encoded),input_json_utf8_bytes=len(encoded.encode()),
+            character_limit=MAX_CONTEXT)
+        tools.coverage.setdefault('model_context_packing',[]).append(packing)
         step_instructions += '\nСсылки s0, s1 и т.д. — точные handles источников этого запроса. Копируй их без изменения; для суммы используй operand_source_ids подходящего quantity_candidates. Не ищи числа по ВОР и не подставляй ID соседней ячейки. previous_literal_parameters — уже прочитанные буквальные числовые основания. Сохрани их, если не нашёл противоречие конструкции; исправление другого аспекта не стирает найденные слагаемые.'
+        step_instructions += '\nquantity_parameter_candidates содержит готовый proposal с буквальным числом, единицей и цитатами: переноси эти поля без переписывания и округления. Метаданные provenance/scope_verified не входят в parameters. scope_state=unresolved и scope_verified=false означают, что программа ещё не проверила инженерную принадлежность. Сам проверь участок, материал, конструкцию и слой; только при доказанной связи установи scope_state=verified, сохранив буквальные цитаты ПД. Для группы слоёв ВОР цитируй полную толщину конструкции ПД, не подставляй в цитату толщину отдельной операции.'
+        step_instructions += '\nЕсли у источника указан text_embedded_at и embedded_text_complete=true, полный буквальный текст с тем же source_id уже передан по этому пути в контексте. Короткий sources.text — только навигационный отрывок. Прочитай полный текст и все его условия там; повторное read_source ради того же текста не требуется.'
         try:
             answer = restore_source_ids(ask(client, credentials, step_instructions, supplied, schema, trace, stage, stats),aliases)
         except ValidationError as exc:
-            if step == MAX_ROUNDS-1:
+            if step >= MAX_ROUNDS-1:
                 raise
-            feedback = ['Ошибка формата: '+'.'.join(map(str,e['loc']))+' '+e['type'] for e in exc.errors(include_input=False)][:8]
+            feedback = []
+            for error in exc.errors(include_input=False)[:8]:
+                message = 'Ошибка формата: '+'.'.join(map(str,error['loc']))+' '+error['type']
+                limit = (error.get('ctx') or {}).get('max_length')
+                if isinstance(limit, int) and not isinstance(limit, bool) and limit >= 0:
+                    message += f' (max_length={limit})'
+                feedback.append(message)
             continue
-        except (openai.APIConnectionError,openai.APIStatusError) as exc:
-            retryable=isinstance(exc,openai.APIConnectionError) or exc.status_code in {408,429,500,502,503,504}
-            if not retryable or step==MAX_ROUNDS-1:
+        except (openai.APIConnectionError,openai.APIStatusError,ModelProviderResponseError) as exc:
+            code = exc.code if isinstance(exc, ModelProviderResponseError) else getattr(exc, 'status_code', None)
+            retryable=isinstance(exc,openai.APIConnectionError) or code in {408,429,500,502,503,504}
+            if not retryable or step>=MAX_ROUNDS-1:
                 raise
             stats.setdefault('warnings',[]).append('Временный сбой провайдера; повтор в оставшемся бюджете шагов, без повторного OCR.')
             feedback=['Предыдущий запрос не завершился из-за временного сбоя соединения. Прочитанные источники сохранены; выполни проверку по ним.']
@@ -514,17 +643,33 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
         requests = getattr(answer, 'requests', [])
         if not requests:
             feedback = verify_answer(answer) if verify_answer is not None else []
+            candidates: list[dict[str,Any]]=list(getattr(tools,'conditional_repair_candidates',()))
+            signatures={json.dumps([c['condition_source_id'],c['condition_quote'],
+                sorted(b['code'] for b in c['allowed_base_candidates'])],ensure_ascii=False)
+                for c in candidates if c.get('project_fact_confirmed') and c.get('allowed_base_candidates')}
+            fresh=signatures-seen_conditions
+            eligible=(step==MAX_ROUNDS-1 and bool(feedback) and bool(fresh)
+                and 'thickness' in previous_invalid_parameters
+                and 'thickness' not in getattr(tools,'invalid_project_parameter_kinds',set()))
+            seen_conditions.update(signatures)
+            previous_invalid_parameters=set(getattr(tools,'invalid_project_parameter_kinds',set()))
+            if eligible:
+                late_repair=True
+                tools.events.append(dict(kind='late_conditional_repair',reason='corrected_project_thickness_exposed_new_condition',
+                    extra_calls_limit=1,search_allowed=False,condition_count=len(fresh)))
+                stats.setdefault('warnings',[]).append('Один дополнительный запрос: исправленная толщина ПД впервые выявила условие выбора нормы; используются только прочитанные источники.')
+                continue
             if feedback and step < MAX_ROUNDS-1:
                 tools.events.append(dict(kind='answer_validation',issues=feedback))
                 continue
             unresolved_quantity = any(v.state == 'needs_facts' and set(v.claim_ids) & {'quantity', 'unit'} for v in getattr(answer, 'items', []))
             if unresolved_quantity and not tools.table_search_done:
-                if step == MAX_ROUNDS-1:
+                if step >= MAX_ROUNDS-1:
                     raise TimeoutError('Quantity search incomplete: table discovery not performed')
                 requests = [EvidenceRequest(tool='search_tables', query=str(inputs.get('position', {}).get('work', ''))[:300])]
             else:
                 return answer
-        if step == MAX_ROUNDS-1 and getattr(answer, 'items', []):
+        if step >= MAX_ROUNDS-1 and getattr(answer, 'items', []):
             # Preserve useful partial evidence without granting a confirmed
             # verdict while the model still requests additional source reads.
             pending = ', '.join(r.tool for r in requests)
@@ -535,13 +680,18 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
                     item.explanation += ' Поиск связанных источников не завершён.'
             answer.requests = []
             return answer
-        if step == MAX_ROUNDS-1 or time.monotonic()-started > 120:
+        if step >= MAX_ROUNDS-1 or time.monotonic()-started > 120:
             raise TimeoutError('Evidence acquisition budget exhausted')
         history = []
         for request in requests:
             result = tools.execute(request)
+            if result.get('repeated_query') and result.get('search', {}).get('next_offset') is not None:
+                request = request.model_copy(update={'offset': result['search']['next_offset']})
+                result = tools.execute(request)
             # Table row text is carried by source IDs; keep the reply bounded.
             history.append(dict(request=request.model_dump(), result=result))
         tools.events.extend(history)
+        if history and all(h['result'].get('repeated_query') for h in history):
+            raise TimeoutError('Evidence search made no progress: repeated exhausted queries; no further model call')
         stats.setdefault('queries', []).extend(f'{r.tool}: {r.query or r.page}' for r in requests)
     raise RuntimeError('Agent did not finish')

@@ -59,6 +59,11 @@ def reuse_layer_check(context, record, index, actor):
     project=[s for s in proof['sources'] if s['kind']=='project']
     if not project or any(s.get('version_id') not in pinned for s in project):
         return None
+    # Revalidate a donor under the current rules before trusting its published
+    # status. An older green selection may contradict a cited condition.
+    from normative_conditional_selection import apply_guard
+    proof=deepcopy(proof)
+    apply_guard(peer,proof,positions,data.get('work_relations') or {})
     def stored_for(p):
         raw=next((r['result'] for r in record['indexed_results'] if r['position_index']==p.index),None)
         return review_source(raw,p.legacy_task()) if raw is not None else None

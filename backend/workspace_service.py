@@ -130,10 +130,10 @@ def present_results(context, record) -> list[ResultDTO]:
         from normative_verdict import publish, verified_quantity
         from human_basis import position_key
         report = publish(report, stored, position_key(position), validation.get(index),
-            enabled=bool(record['config'].get('normative_after_match')), derived=bool(links.get(index)))
+            enabled=bool(record['config'].get('normative_after_match')), derived=bool(links.get(index)),position=position)
         report_status = report["Статус аудита"]
         quantity = verified_quantity((validation.get(index) or {}).get('review'),
-            position_key(position), position.unit, derived=bool(links.get(index)))
+            position_key(position), position.unit, derived=bool(links.get(index)),position=position)
         queues: dict[str, Literal['fix', 'review', 'missing', 'ok', 'pending']] = {
             "Обнаружено расхождение": "fix",
             "Требуется ручная проверка": "review",
@@ -183,8 +183,11 @@ def present_results(context, record) -> list[ResultDTO]:
             )
         )
     from normative_verdict import apply_parent_verdicts
+    from normative_parent_basis import verified_geometry_dependency
+    verified_dependencies={index for index, entry in validation.items() if index in links
+        and verified_geometry_dependency(entry.get('review') or {},positions.get(index))}
     return apply_parent_verdicts(result, enabled=bool(record['config'].get('normative_after_match')) or bool(validation),
-        running=record['status'] == 'running')
+        running=record['status'] == 'running',verified_dependencies=verified_dependencies)
 
 
 def validated_word_report(context, record):

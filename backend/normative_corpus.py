@@ -8,8 +8,10 @@ import hashlib
 import json
 import re
 import sqlite3
+import unicodedata
 from contextlib import contextmanager
 from decimal import Decimal, InvalidOperation
+from functools import lru_cache
 from pathlib import Path
 
 
@@ -19,6 +21,33 @@ def decode(row):
         if key.endswith('_json'):
             item[key[:-5]] = json.loads(item.pop(key))
     return item
+
+
+def _search_tokens(text):
+    text = unicodedata.normalize("NFKC", str(text)).casefold().replace("ё", "е")
+    ignored = {"для", "при", "или", "работы", "работ", "по", "на", "и", "в", "из", "с", "м", "шт", "п", "пункт"}
+    output = []
+    aliases = {"щпс": "щебеночно песчаная", "пгс": "песчано гравийная", "пбв": "полимерно битумное"}
+    text = re.sub(r"\b(?:щпс|пгс|пбв)\b", lambda m: m[0] + " " + aliases[m[0]], text)
+    for word in re.findall(r"[^\W_]+", text):
+        if word in ignored:
+            continue
+        if re.fullmatch(r"[а-я]+", word) and len(word) >= 4:
+            stem = re.sub(r"(иями|ами|ого|ему|ыми|ими|ий|ый|ой|ая|яя|ое|ее|ые|ие|ых|их|ов|ев|ам|ям|ах|ях|ом|ем|ы|и|а|я|у|ю|е|ь)$", "", word)
+            word = (stem if len(stem) >= 3 else word)[:6]
+        if word not in output:
+            output.append(word)
+        if len(output) == 18:
+            break
+    return output
+
+
+def _document_matches(number, designation):
+    candidates = re.findall(r"\d[\d.\-]+", designation)
+    if re.search(r"-\d{4}$", number):
+        return number in candidates
+    return any(value.split("-", 1)[0] == number or value.split("-", 1)[0].startswith(number + ".")
+               for value in candidates)
 
 
 def decimal(value):
@@ -71,10 +100,14 @@ class Corpus:
             metadata = {r['key']: json.loads(r['value']) for r in db.execute('SELECT * FROM metadata')}
             self.release = metadata['release_id']
             self.profile = 'roads' if metadata.get('profile') == 'roads' else 'electrical'
-            self.gesn_scope = metadata.get('gesn_scope') or [['ГЭСНм', '08']]
+            self.gesn_scope = metadata.get('gesn_scope', [['ГЭСНм', '08']])
             self.counts = {table: db.execute(f'SELECT count(*) FROM {table}').fetchone()[0]
                            for table in ('sources', 'norms', 'clauses', 'rules')}
             self.source_index = {r['id']: dict(r) for r in db.execute('SELECT id,designation,pages FROM sources')}
+        # This instance is pinned to one verified database SHA/release. Cache
+        # only immutable retrieval IDs, never facts, mutable entities or a
+        # SQLite connection. A new release/instance starts with an empty LRU.
+        self._cached_search_pool = lru_cache(maxsize=256)(self._search_pool)
 
     @contextmanager
     def connect(self):
@@ -115,47 +148,59 @@ class Corpus:
                 item['composition'] = json.loads(t[0]) if t else []
             return item
 
-    def search(self, query, kind='GESN', facts=None, limit=12):
-        facts = facts or {}
-        words = re.findall(r'[^\W_]+', query.casefold())[:18]
-        stems = {'кабель': 'кабел', 'кабели': 'кабел', 'кабеля': 'кабел', 'заземление': 'заземл',
-                 'прокладка': 'проклад', 'проводов': 'провод', 'освещение': 'освещ'}
-        ignored = {'для', 'при', 'или', 'работы', 'работ', 'по', 'на', 'и', 'в', 'из', 'с', 'м', 'шт'}
-        words = [stems.get(w, w) for w in words if w not in ignored]
-        if not words:
-            return []
-        expr = ' OR '.join('"' + w + '"*' for w in words)
+    def _search_pool(self, query, kind, gesn_scope):
+        """Exact and FTS candidates in original order, before fact-dependent ranking."""
         entity_kind = 'norm' if kind == 'GESN' else 'clause'
-        document = re.search(r'(?:ГОСТ\s*(?:Р\s*)?|СП\s*)(\d[\d.\-]+)', query, re.I)
-        source_filter = ''
+        document = re.search(r'(?:ГОСТ\s*(?:Р\s*)?|СП\s*|ПНСТ\s*|ОДМ\s*)(\d[\d.\-]*)', query, re.I)
+        source_ids = []
+        remaining = query
         if document and entity_kind == 'clause':
             designation = document[1].rstrip('.')
-            source_filter = next((s['id'] for s in self.source_index.values()
-                if designation in re.findall(r'\d[\d.\-]+', s['designation'])), '')
-            if not source_filter:
-                return []
-        scope_sql = ' OR '.join('(n.family=? AND n.code LIKE ?)' for _ in self.gesn_scope)
-        scope_args = [value for family, number in self.gesn_scope for value in (family, number + '-%')]
+            source_ids = [s['id'] for s in self.source_index.values()
+                          if _document_matches(designation, s['designation'])]
+            if not source_ids:
+                return (), ()
+            remaining = query[:document.start()] + query[document.end():]
+        words = _search_tokens(remaining)
+        if not words:
+            words = _search_tokens(query)
+        if not words:
+            return (), ()
+        expr = ' OR '.join('"' + w + '"*' for w in words)
+        source_sql = ' AND c.source_id IN (' + ','.join('?' for _ in source_ids) + ')' if source_ids else ''
+        scope_sql = ' OR '.join('(n.family=? AND n.code LIKE ?)' for _ in gesn_scope) or '0'
+        scope_args = [value for family, number in gesn_scope for value in (family, number + '-%')]
         with self.connect() as db:
             exact = []
             code = re.search(r'\d{2}-\d{2}-\d{3}-\d{2,3}', query)
-            if code and entity_kind == 'norm' and not any(code[0].startswith(number + '-') for _, number in self.gesn_scope):
-                return []
+            if code and entity_kind == 'norm' and not any(code[0].startswith(number + '-') for _, number in gesn_scope):
+                return (), ()
             if code and entity_kind == 'norm':
                 exact = [r[0] for r in db.execute("SELECT id FROM norms WHERE code=?", (code[0],))]
             if entity_kind == 'clause':
-                clause = re.search(r'\b\d+(?:\.\d+){1,4}\b', query)
+                clause = re.search(r'\b\d+(?:\.\d+){1,4}\b', remaining)
                 if clause:
-                    exact = [r[0] for r in db.execute("SELECT c.id FROM clauses c JOIN sources s ON s.id=c.source_id WHERE c.label=? AND (?='ALL' OR s.kind=?) AND (?='' OR c.source_id=?)", (clause[0], kind, kind, source_filter, source_filter))]
+                    exact = [r[0] for r in db.execute(
+                        "SELECT c.id FROM clauses c JOIN sources s ON s.id=c.source_id WHERE c.label=? AND (?='ALL' OR s.kind=?)"
+                        + source_sql, (clause[0], kind, kind, *source_ids))]
             rows = db.execute(
                 'SELECT c.entity_id,bm25(search_fts,0,5,1) AS rank FROM search_fts '
                 'JOIN chunks c ON c.id=search_fts.chunk_id JOIN sources s ON s.id=c.source_id '
                 "WHERE search_fts MATCH ? AND c.entity_type=? AND (?='ALL' OR s.kind=?) "
-                "AND (?='' OR c.source_id=?) "
+                + source_sql + " "
                 f"AND (c.entity_type!='norm' OR EXISTS (SELECT 1 FROM norms n WHERE n.id=c.entity_id AND ({scope_sql}))) "
                 "ORDER BY rank,c.id LIMIT 80",
-                (expr, entity_kind, kind, kind, source_filter, source_filter, *scope_args)).fetchall()
+                (expr, entity_kind, kind, kind, *source_ids, *scope_args)).fetchall()
         ids = list(dict.fromkeys(exact + [r['entity_id'] for r in rows]))
+        return tuple(exact), tuple(ids)
+
+    def search(self, query, kind='GESN', facts=None, limit=12):
+        facts = facts or {}
+        query = unicodedata.normalize("NFKC", str(query)).replace("ё", "е")
+        query = re.sub(r"[‐‑‒–—−]", "-", query)
+        query = re.sub(r"(?<=\d)\s*-\s*(?=\d)", "-", query)
+        entity_kind = 'norm' if kind == 'GESN' else 'clause'
+        exact, ids = self._cached_search_pool(query, kind, tuple(tuple(scope) for scope in self.gesn_scope))
         output = []
         for ordinal, entity_id in enumerate(ids):
             item = self.entity(entity_kind, entity_id)
@@ -209,7 +254,7 @@ class Corpus:
             checks.append({'label': 'Измеритель', 'state': 'unknown', 'actual': facts.get('unit'), 'expected': unit.get('raw')})
             missing.append('Уточнение измерителя нормы')
         elif facts.get('unit'):
-            aliases = {'м': ('м', Decimal(1)), 'm': ('м', Decimal(1)), 'км': ('м', Decimal(1000)), 'м2': ('м2', Decimal(1)), 'м3': ('м3', Decimal(1)), 'шт': ('шт', Decimal(1)), 'т': ('кг', Decimal(1000)), 'кг': ('кг', Decimal(1))}
+            aliases = {'м': ('м', Decimal(1)), 'm': ('м', Decimal(1)), 'км': ('м', Decimal(1000)), 'м2': ('м2', Decimal(1)), 'га': ('м2', Decimal(10000)), 'м3': ('м3', Decimal(1)), 'шт': ('шт', Decimal(1)), 'т': ('кг', Decimal(1000)), 'кг': ('кг', Decimal(1))}
             def normalized(value):
                 value = str(value or '').strip().casefold().rstrip('.').replace('²', '2').replace('³', '3')
                 return aliases.get(value, (value, Decimal(1)))

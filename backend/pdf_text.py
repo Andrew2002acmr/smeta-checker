@@ -628,6 +628,11 @@ class PDFTextSource:
     def _table_key_for(max_cell_chars):
         engine = pymupdf.VersionBind
         from pdf_tables import VERSION
+        from pdf_table_verification import VERSION as HEADER_VERSION
+        from pdf_table_verification import SEMANTIC_VERSION
+        from pdf_header_geometry import VERSION as GEOMETRY_VERSION
+        from pdf_row_sections import VERSION as ROW_SECTION_VERSION
+        from pdf_cell_ocr import VERSION as CELL_VERSION, NUMERIC_RECOVERY_VERSION
 
         raw = _cache_payload(
             {
@@ -635,6 +640,12 @@ class PDFTextSource:
                 "pymupdf": str(engine),
                 "max_cell_chars": max_cell_chars,
                 "physical_cells": VERSION,
+                "header_verification": HEADER_VERSION,
+                "semantic_header_verification": SEMANTIC_VERSION,
+                "header_geometry_verification": GEOMETRY_VERSION,
+                "row_section_classification": ROW_SECTION_VERSION,
+                "cell_verification": CELL_VERSION,
+                "numeric_recovery": NUMERIC_RECOVERY_VERSION,
                 "rapidocr": _pkg_version("rapidocr"),
                 "rapid_table": _pkg_version("rapid-table"),
                 "opencv": _pkg_version("opencv-python"),
@@ -1009,7 +1020,11 @@ class PDFTextSource:
             recover_unit_headers(tables, (self._ocr_pages.get(idx) or {}).get('words') or [])
             verify_numeric_cells(tables, (self._ocr_pages.get(idx) or {}).get('words') or [])
             from pdf_cell_ocr import refine_tables
-            refine_tables(self._doc[idx],tables,rotation=int(orientation),cache_dir=self._cache_dir)
+            from pdf_table_verification import verify_recovered_tables
+            refine_tables(self._doc[idx],[t for t in tables if not t.get('recovery')],
+                rotation=int(orientation),cache_dir=self._cache_dir)
+            verify_recovered_tables(self._doc[idx],tables,rotation=int(orientation),
+                cache_dir=self._cache_dir,seconds=90,max_headers=32,max_numbers=32)
             # Reuse the pipeline's locale normalization without changing source words.
             for table in tables:
                 for cell in table["cells"]:
@@ -1123,7 +1138,12 @@ class PDFTextSource:
             return None
         self._structured_tables[idx] = tables
         self._table_origins[idx] = envelope.get("origin", "native")
-        return (tuple(rows), tuple(locators))
+        # The preflight in for_position also reads this envelope. Restore all
+        # views together: origin="ocr" makes _scan_grid_for return immediately,
+        # so leaving _table_rows empty would lose cached text and cell locators.
+        result = tuple(rows), tuple(locators)
+        self._table_rows[idx] = result
+        return result
 
     def _write_cached_table_rows(self, idx, grid_result):
         """Persist grid rows+locators, including empty results; failures are ignored."""

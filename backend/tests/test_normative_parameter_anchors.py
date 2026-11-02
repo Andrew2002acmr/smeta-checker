@@ -10,8 +10,10 @@ def sources():
 
 def test_thickness_adjustment_uses_literal_base_step_and_requested_thickness():
     from normative_parameter_anchors import thickness_adjustments
-    items=[dict(id='base',kind='normative',label='01-02-003-01',text='Основание толщиной 16 см.'),
-        dict(id='step',kind='normative',label='01-02-003-02',text='На каждый 1 см изменения толщины слоя.')]
+    items=[dict(id='base',kind='normative',origin='native',source_id='pdf',label='ГЭСН 01-02-003-01',
+        text='Измеритель: 1000 м2\n01-02-003-01 Основание толщиной 16 см.'),
+        dict(id='step',kind='normative',origin='native',source_id='pdf',label='ГЭСН 01-02-003-02',
+        text='Измеритель: 1000 м2\n01-02-003-02 На каждый 1 см изменения толщины слоя добавлять или исключать к норме 01-02-003-01.')]
     result=thickness_adjustments('Устройство слоя h=11 см',items)
     assert result[0]['signed_steps']=='-5'
     assert result[0]['base_source_id']=='base' and not result[0]['scope_verified']

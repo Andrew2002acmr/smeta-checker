@@ -8,6 +8,17 @@ from normative_parent_basis import bind_parent_basis
 from test_normative_layer_reuse import fixture
 
 
+def test_explicit_historical_release_does_not_borrow_an_active_release_parent():
+    parent,peer,donor,record,context=fixture()
+    result=dict(items=[],sources=[],parameter_proposals=[])
+    before=deepcopy(result)
+    with patch('normative_service.position_key',return_value='key-0'):
+        donor['payload']['position_key']='key-0'
+        returned=bind_parent_basis(context,record,result,{0:parent},dict(parent={'index':0}),
+            expected_kb={'database':'another-immutable-release'})
+    assert returned==before
+
+
 def run_binding(unknown=False):
     parent,peer,donor,record,context=fixture()
     donor['payload']['position_key']='key-0'
@@ -34,15 +45,19 @@ def run_binding(unknown=False):
     return output,child,positions,relation
 
 
-def test_parent_geometry_is_reused_but_material_factor_remains_unconfirmed():
+def test_parent_geometry_is_reused_and_named_factor_uses_user_policy():
     output,child,positions,relation=run_binding()
     assert output['evidence_trace'][0]['kind']=='reused_parent_parameters'
     assert any('derived:parent' in i['claim_ids'] and i['state']=='confirmed' for i in output['items'])
     assert any('derived:rate' in i['claim_ids'] and i['state']=='needs_facts' for i in output['items'])
-    cards=enrich(child,output,positions,relation)['parameter_cards']
+    enriched=enrich(child,output,positions,relation)
+    cards=enriched['parameter_cards']
     assert next(c for c in cards if c['id']=='quantity')['state']=='confirmed'
     assert next(c for c in cards if c['id']=='thickness')['state']=='confirmed'
-    assert next(c for c in cards if c['role']=='coefficient')['state']=='needs_facts'
+    assert next(c for c in cards if c['role']=='coefficient')['state']=='confirmed'
+    policy=next(e for e in enriched['evidence_trace'] if e['kind']=='named_coefficient_policy_v1')
+    assert policy['normative_value_proven'] is False
+    assert policy['clarification_deferred'] is True
 
 
 def test_unconfirmed_parent_cannot_supply_verified_geometry():

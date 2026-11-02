@@ -93,8 +93,10 @@ def test_read_sum_survives_unrelated_answer_repair_but_not_withdrawn_scope():
     from normative_position_check import answer_feedback,retain_literal_parameters
     tools=toolkit()
     tools.execute(EvidenceRequest(tool='read_table',table_id='t1'))
+    summed=tools.execute(EvidenceRequest(tool='sum_cells',operand_ids=[sid('c1'),sid('c2')],unit='м2'))
     first=AgentAnswer(summary='Read',items=[],parameters=[dict(parameter='quantity',operation='sum',
-        operand_source_ids=[sid('c1'),sid('c2')],scope_state='verified',value='69.12',unit='м2',quote='sum')])
+        operand_source_ids=[sid('c1'),sid('c2')],scope_state='verified',value='69.12',unit='м2',
+        source_id=summed['source_id'],quote=summed['equation'],scope_quote=summed['equation'])])
     assert answer_feedback(first,tools.sources,tools)==[]
     final=AgentAnswer(summary='Correct another aspect',items=[],parameters=[dict(parameter='quantity',
         value='69.12',unit='м2',source_id=sid('c1'),quote='invented sum',scope_state='verified')])
