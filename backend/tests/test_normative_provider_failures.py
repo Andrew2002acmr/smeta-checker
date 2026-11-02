@@ -93,7 +93,7 @@ def test_empty_truncated_response_keeps_token_limit_diagnostic():
     assert stats['responses'][0]['finish_reason']=='length'
 
 
-def test_position_failure_survives_finalization_without_engineering_gap_cards():
+def position_review(*, direct_pair=False):
     response=SimpleNamespace(choices=None, error={'code':503, 'message':'secret upstream 502'})
     client, credentials, _, trace=fixture(response)
     settings=SimpleNamespace(llm_credentials=lambda:credentials, allowed_llm_hosts=('routerai.ru',),
@@ -111,7 +111,17 @@ def test_position_failure_survives_finalization_without_engineering_gap_cards():
     kb=SimpleNamespace(profile='roads', identity={'release':'test'})
     tools=SimpleNamespace(index=None, version=None, events=[], coverage={}, preferred=[], quantity_candidates=lambda *a,**k:[])
 
+    parsed = None
+    if direct_pair:
+        from test_normative_quantity_sum_repair import setup
+        _, tools, parsed, _ = setup()
+        tools.coverage = {}
+        tools.index = None
+        tools.quantity_candidates = lambda *a, **k: []
+
     def ask_failure(ask, client, credentials, instructions, inputs, schema, trace, stats, tools, **kwargs):
+        if parsed is not None:
+            return parsed.model_copy(deep=True)
         return ask(client, credentials, instructions, inputs, schema, trace, 'normative-evidence-plan', stats)
 
     with ExitStack() as stack:
@@ -126,17 +136,23 @@ def test_position_failure_survives_finalization_without_engineering_gap_cards():
             'workspace_service.inputs_for_run':dict(return_value=[position]),
             'normative_preflight.preflight_candidates':dict(return_value=[]),
             'normative_position_check.EvidenceTools':dict(return_value=tools),
-            'normative_position_check.project_sources':dict(return_value=[]),
+            'normative_position_check.project_sources':dict(return_value=tools.sources if direct_pair else []),
             'normative_position_check.TracingRun':dict(return_value=SimpleNamespace(position=lambda **_:trace,close=lambda:None)),
             'normative_position_check.run_agent':dict(side_effect=ask_failure),
-            'normative_parameters.enrich':dict(side_effect=AssertionError('A technical failure is not a missing quantity')),
-            'normative_parent_basis.bind_parent_basis':dict(side_effect=AssertionError('Do not bind failed response')),
+            'normative_parameters.enrich':dict(side_effect=(lambda position,result,*_:result) if direct_pair else AssertionError('A technical failure is not a missing quantity')),
+            'normative_parent_basis.bind_parent_basis':dict(side_effect=(lambda context,record,result,*args,**kwargs:result) if direct_pair else AssertionError('Do not bind failed response')),
         }
         for target, kwargs in patches.items():
             stack.enter_context(patch(target,**kwargs))
         saved=check(context, record, 0, NormativePositionCheckRequest(), 'test')
+    return saved, record, original, client
+
+
+def test_position_failure_survives_finalization_without_engineering_gap_cards():
+    saved, record, original, client = position_review()
     review=saved['payload']['position_check']
     assert review['execution_state']=='technical_failure'
+    assert review['decision_origin'] is None
     assert review['state']=='needs_facts' and review['items']==[]
     assert not review.get('parameter_cards')
     assert 'код 503' in review['summary'] and 'secret' not in json.dumps(saved)
@@ -148,6 +164,21 @@ def test_position_failure_survives_finalization_without_engineering_gap_cards():
     assert published['Что не так']==review['summary']
     assert record==original
 
+
+
+def test_live_v5_postprocessing_preserves_the_models_two_direct_readings():
+    with patch('normative_quantity_sum_repair.repair_quantity_sum',
+            side_effect=AssertionError('V5 cannot choose a total for the model')) as repair:
+        saved, _, _, _ = position_review(direct_pair=True)
+    review = saved['payload']['position_check']
+    assert review['execution_state'] == 'complete', review['summary']
+    assert review['decision_origin'] == 'model_with_validated_sources'
+    quantities = [p for p in review['parameter_proposals'] if p['parameter'] == 'quantity']
+    assert len(quantities) == 2
+    assert all(p['operation'] == 'direct' for p in quantities)
+    repair.assert_not_called()
+    assert not any(e.get('kind') == 'repaired_physical_quantity_pair_v1'
+        for e in review['evidence_trace'])
 
 def agent_response(answer=None, *, code=None):
     if code is not None:

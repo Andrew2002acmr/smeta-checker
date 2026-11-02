@@ -1382,6 +1382,10 @@ export type NormativePositionCheck = {
         [key: string]: unknown;
     };
     /**
+     * Decision Origin
+     */
+    decision_origin?: 'model_with_validated_sources' | null;
+    /**
      * Evidence Trace
      */
     evidence_trace?: Array<{

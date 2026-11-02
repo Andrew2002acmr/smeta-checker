@@ -9,6 +9,7 @@ from uuid import UUID
 import unittest
 
 from normative_corpus import Corpus
+from normative_agent import PIPELINE_VERSION
 from normative_position_check import _excerpt, validate_items, CheckedItem
 import test_normative_integration as fixtures
 
@@ -19,6 +20,7 @@ ROAD = Path(os.environ.get(
 ))
 
 
+@unittest.skipUnless((ROAD / "CURRENT.json").is_file(), "Requires external road normative release")
 def test_road_profile_is_separate_and_technical_clause_is_searchable():
     kb = Corpus(ROAD)
     hits = kb.search("27-04-003-06")
@@ -59,6 +61,7 @@ def test_unknown_source_cannot_confirm_a_check():
     assert result[0]["normative_source_ids"] == []
 
 
+@unittest.skipUnless((ROAD / "CURRENT.json").is_file() and (fixtures.ROOT / "CURRENT.json").is_file(), "Requires external road and electrical normative releases")
 class PositionCheckTests(unittest.TestCase):
     _open_app = fixtures.NormativeApiTests._open_app
     _upload = fixtures.NormativeApiTests._upload
@@ -93,7 +96,7 @@ class PositionCheckTests(unittest.TestCase):
             first = review_position(context, UUID(self.run), 0)
             assert first['review_id']
             saved = repo.normative_review(UUID(self.run), 0, first['review_id'])['payload']['position_check']
-            assert saved['pipeline_version'] == 4
+            assert saved['pipeline_version'] == PIPELINE_VERSION
             assert saved['execution_state'] == 'complete'
             assert saved['state'] == 'needs_facts'
             assert review_position(context, UUID(self.run), 0) == {'skipped': 'already_reviewed'}
@@ -134,7 +137,7 @@ class PositionCheckTests(unittest.TestCase):
             assert data["kind"] == "check"
             check = data["payload"]["position_check"]
             assert len(calls) == 1
-            assert check['pipeline_version'] == 4
+            assert check['pipeline_version'] == PIPELINE_VERSION
             assert check['execution_state'] == 'complete'
             assert check['telemetry']['requests'] == 1
             assert check['telemetry']['usage']['total'] == 150

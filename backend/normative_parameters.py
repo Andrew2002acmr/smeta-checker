@@ -13,6 +13,14 @@ from vor_formula import calculate_cell
 PARAMETER_SCHEMA_VERSION = 9
 
 
+def _parameter_claim(claim, kind):
+    # A normative threshold (geometry:comment:thickness:*) is a different
+    # obligation from the literal physical thickness extracted from the PD.
+    if kind == 'quantity':
+        return claim == 'quantity'
+    return claim in {'geometry:thickness', 'thickness'}
+
+
 def material_fractions(text):
     # A drawing designation such as 006/26 is not aggregate grading. Bind
     # slash values to material vocabulary instead of scanning arbitrary IDs.
@@ -196,6 +204,9 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
         if kind in {'quantity','thickness'}:
             valid = [p for p in matches if p.get('scope_state')=='verified'
                 and not construction_conflict(p.get('scope_quote',''),work_scope,comparison_group['height'] if comparison_group else None)
+                and (kind != 'thickness' or not re.findall(r'нижн|средн|верхн', clean(owner.work_name))
+                    or set(re.findall(r'нижн|средн|верхн', clean(p.get('scope_quote', ''))))
+                        == set(re.findall(r'нижн|средн|верхн', clean(owner.work_name))))
                 and quoted(p['value'],p['quote'],sources[p['source_id']]['text'])]
             if valid:
                 # A claimed same-scope fact with a broken numeric citation is
@@ -221,7 +232,7 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
                         else scope, work_scope, comparison_group['height'] if comparison_group else None)
                     and not re.search(r'\b(?:не более|не менее|до\s*\d|от\s*\d|в пределах|диапазон)', clean(p['quote']))
                     and not any(i.get('state') == 'needs_facts' and p['source_id'] in i.get('project_source_ids', [])
-                        and any(claim == 'quantity' if kind == 'quantity' else claim in {'geometry:thickness','thickness'}
+                        and any(_parameter_claim(claim, kind)
                             for claim in i.get('claim_ids', [])) for i in result.get('items', []))
                     and s['origin'] != 'uncertain_table'
                     and (not s['origin'].startswith('ocr') or s.get('numeric_verified'))):
@@ -301,7 +312,7 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
                 return set(re.findall(r'нижн|средн|верхн', clean(text)))
             declared_roles, found_roles = roles(owner.work_name), roles(scope)
             relevant = [i for i in result.get('items', []) if p['source_id'] in i.get('project_source_ids', [])
-                and any(claim == 'quantity' if kind == 'quantity' else claim in {'geometry:thickness','thickness'} for claim in i.get('claim_ids', []))]
+                and any(_parameter_claim(claim, kind) for claim in i.get('claim_ids', []))]
             disputed = any(i.get('state') == 'needs_facts' for i in relevant)
             if (p.get('scope_state') != 'verified' or not quoted(p['value'], p['quote'], scope)
                     or clean(scope) not in clean(source['text']) or disputed

@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from normative_agent import MAX_CONTEXT, compact, model_source_aliases, run
+from normative_agent import MAX_CONTEXT, PIPELINE_VERSION, compact, model_source_aliases, run
 from normative_context_packing import pack_sources, serialize_context, source_order
 from normative_embedded_context import literal_paths
 from normative_position_check import AgentAnswer
@@ -30,7 +30,7 @@ def test_actual_context_preserves_metadata_and_complete_work_evidence(case):
     metadata = deepcopy(result)
     metadata.pop('sources')
     metadata.pop('archived_source_ids')
-    assert metadata == case['metadata']
+    assert metadata == {**case['metadata'], 'pipeline_version': PIPELINE_VERSION}
     assert case == original
     lookup = {s['id']: s for s in sources}
     preview = {s['id']: s for s in result['sources']}

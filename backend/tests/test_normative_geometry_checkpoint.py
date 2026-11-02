@@ -12,7 +12,9 @@ from normative_parameters import build_cards
 from normative_position_check import AgentAnswer,validate_items
 
 
-CLAIM='geometry:comment:thickness:1'
+# The checkpoint protects an actual project parameter, not the independent
+# normative thickness threshold found in a VOR comment.
+CLAIM='geometry:thickness'
 
 
 def fixture():
@@ -54,10 +56,7 @@ def test_separately_confirmed_live_geometry_survives_only_unrelated_child_gap():
     untouched=deepcopy(final)
     apply(data,first)
     assert tools.geometry_checkpoint
-    # The literal project thickness is independently verified even while the
-    # mixed norm-threshold/child-rate claim remains unresolved.
-    assert thickness(data,final)['state']=='confirmed'
-    assert validate_items(final.items,data[4])[0]['state']=='needs_facts'
+    assert thickness(data,final)['state']=='needs_facts'
     apply(data,final)
     assert thickness(data,final)['state']=='confirmed'
     geometry=next(item for item in final.items if CLAIM in item.claim_ids)
@@ -74,9 +73,7 @@ def test_frozen_or_legacy_mixed_claim_without_live_checkpoint_cannot_be_promoted
     original=deepcopy(data[-1])
     apply(data,data[-1])
     assert data[-1]==original and not getattr(data[5],'geometry_checkpoint',None)
-    # A confirmed numeric card does not promote the mixed claim itself.
-    assert thickness(data,data[-1])['state']=='confirmed'
-    assert validate_items(data[-1].items,data[4])[0]['state']=='needs_facts'
+    assert thickness(data,data[-1])['state']=='needs_facts'
 
 
 @pytest.mark.parametrize('change',['source_version','source_text','source_page','scope_unresolved','parameter_value',
@@ -151,11 +148,11 @@ def test_eight_item_dto_limit_is_respected_without_discarding_other_obligations(
     assert final==original and len(final.items)==8 and not data[5].events
 
 
-def test_final_prompt_allows_dto_eight_items_and_keeps_distinct_scopes():
+def test_final_prompt_allows_dto_sixteen_items_and_keeps_distinct_scopes():
     tools=SimpleNamespace(sources=[],preferred=[],events=[],coverage={},table_search_done=True)
     answer=AgentAnswer(summary='Answer',items=[])
     ask=Mock(side_effect=[answer.model_copy(deep=True) for _ in range(3)])
     run(ask,None,None,'',{},AgentAnswer,None,{},tools,verify_answer=lambda answer:['Separate evidence'])
     prompt=ask.call_args.args[2]
-    assert 'до 8 items' in prompt and 'до 5 items' not in prompt
+    assert 'до 16 items' in prompt and 'до 5 items' not in prompt
     assert 'Не объединяй подтверждённую геометрию' in prompt

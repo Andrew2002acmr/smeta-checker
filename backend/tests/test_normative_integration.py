@@ -19,6 +19,7 @@ ROOT = Path(os.environ.get(
 ))
 
 
+@pytest.mark.skipif(not (ROOT / "CURRENT.json").is_file(), reason="Requires external electrical normative release")
 def test_three_valued_rules_and_unit_scale():
     kb = Corpus(ROOT)
     facts = dict(placement="laid_pipes_blocks_boxes", voltage_kv="10", mass_kg_per_m="1.8", quantity="250", unit="м", height_m="12")
@@ -58,6 +59,7 @@ def test_context_prompt_masking(stage):
         tracing._mask.reset(token)
 
 
+@unittest.skipUnless((ROOT / "CURRENT.json").is_file(), "Requires external electrical normative release")
 class NormativeApiTests(unittest.TestCase):
     _open_app = fixtures.ApiTests._open_app
     _upload = fixtures.ApiTests._upload

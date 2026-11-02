@@ -110,6 +110,13 @@ Unit-тесты чистых функций и контрактов выполн
 
 После запуска fixture API на 8116 и built Nuxt на 3016 задайте `FRONTEND_URL=http://127.0.0.1:3016` и `E2E_FIXTURE_ROOT=<полный путь fixture>`, затем `pnpm --dir frontend run test:e2e`. В окружении приложения и раннера тестов задайте `WORKSPACE_AUTH_MODE=local` с тестовыми `WORKSPACE_LOGIN`/`WORKSPACE_PASSWORD` (синтетические значения, без секретов). GitHub Actions содержит эти шаги с отдельной тестовой БД.
 
+Для полного синтетического комплекта после готовности API выполните
+`backend/tests/table_layout_fixture.py <root>` и
+`backend/tests/progressive_fixture.py seed <root>` тем же Python и с той же
+`TEST_POSTGRES_URL`. Для progressive-теста также задайте `E2E_PYTHON` (полный путь
+к Python). PDF для выделения и OCR создаются самим `workspace_server.py`;
+OCR-тест требует установленного Tesseract с языками rus и eng.
+
 E2E выполняет вход один раз в `tests/e2e/setup.ts`, передаёт синтетическую
 сессию worker-процессам только через окружение и отзывает её после прогона.
 Перезапуск worker после ошибки не расходует новые попытки входа.

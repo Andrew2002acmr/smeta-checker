@@ -11,6 +11,18 @@ from decimal import Decimal
 from normative_parameters import measure, number, quoted, unit_quoted
 
 
+def sum_supersedes_operand(proposal, total, sources):
+    """A verified whole replaces its own literal part, never another quantity."""
+    source = sources.get(proposal.get('source_id')) or {}
+    return bool(total.get('operation') == 'sum' and total.get('scope_state') == 'verified'
+        and proposal.get('parameter') == 'quantity' and proposal.get('operation', 'direct') == 'direct'
+        and not proposal.get('conditions') and proposal.get('source_id') in total.get('operand_source_ids', [])
+        and source.get('kind') == 'project' and source.get('unit_verified')
+        and (source.get('origin') == 'native' or source.get('numeric_verified'))
+        and number(proposal.get('value')) == number(source.get('text', '').rsplit('\n', 1)[-1])
+        and measure('1', proposal.get('unit', '')) == measure('1', total.get('unit', '')))
+
+
 def _physical(source_id, sources, cells):
     source=sources.get(source_id)
     entry=cells.get(source_id)

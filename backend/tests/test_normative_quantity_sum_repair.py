@@ -226,7 +226,7 @@ def test_verified_unit_header_cannot_hide_an_additional_partition_label(left,rig
     assert not repair_quantity_sum(answer,tools,**kwargs)
 
 
-def test_real_feedback_hook_repairs_only_quantity_without_requests_or_norm_promotion(monkeypatch):
+def test_real_feedback_hook_requests_model_repair_without_replacing_its_choice(monkeypatch):
     data,tools,answer,kwargs=setup()
     answer.parameters=[p for p in answer.parameters if p.parameter=='quantity']
     answer.items=[CheckedItem(topic='Normative applicability',claim_ids=['normative:applicability'],
@@ -243,7 +243,7 @@ def test_real_feedback_hook_repairs_only_quantity_without_requests_or_norm_promo
     issues=answer_feedback(answer,tools.sources,tools,owner_unit=kwargs['owner_unit'],
         quantity_work_scope=kwargs['owner_work'],work_scope=kwargs['work_scope'],
         section_context=kwargs['section_context'])
-    assert issues==[] and calls and set(calls)=={'sum_cells'}
+    assert issues and not calls
     assert answer.requests==[] and answer.items==before
-    assert len(answer.parameters)==1 and answer.parameters[0].value=='8920.97'
-    assert tools.parameter_evidence['quantity']['operation']=='sum'
+    assert len(answer.parameters)==2 and all(p.operation=='direct' for p in answer.parameters)
+    assert not any(e.get('kind')=='repaired_physical_quantity_pair_v1' for e in tools.events)

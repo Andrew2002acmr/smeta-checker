@@ -49,8 +49,8 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests/test_*.py"]
-addopts = "-q"
 pythonpath = ["."]
+addopts = "-q"
 
 [tool.ruff]
 target-version = "py314"
