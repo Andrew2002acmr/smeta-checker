@@ -15,7 +15,7 @@
 - Проверки: `pnpm --dir frontend run fmt:check`, `lint`, `typecheck`, `test:unit`, `api:check` (`PYTHON` — абсолютный путь к `backend/.venv/bin/python`), `build`.
 - E2E: отдельная БД `smeta_test_ui` + `backend/tests/workspace_server.py` (синтетический LLM-клиент, без квоты), затем `pnpm --dir frontend run test:e2e` с `FRONTEND_URL` и `E2E_FIXTURE_ROOT`. Детали — в `frontend/README.md`.
 - `app/generated/` и `openapi.json` — генерируемые, вручную не править. `public/pdfjs` собран из `pdfjs-dist@6.4.299`.
-- BFF-токен (`NUXT_BACKEND_TOKEN`) только в серверном окружении; секреты — только `.env`.
+- При разработке фронтенда НЕ поднимайте Docker-контейнер `workspace`. Вместо этого запускайте dev-сервер: `pnpm --dir frontend dev` (порт 3000). Dev-сервер обеспечивает HMR и мгновенный просмотр изменений. Docker-контейнер `workspace` используется только для финальной проверки сборки (`docker compose up -d --build workspace`).
 
 ## Дизайн (pen.dev)
 
