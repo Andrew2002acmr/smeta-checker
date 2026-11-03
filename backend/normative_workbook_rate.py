@@ -78,7 +78,7 @@ def related_area(position, positions):
     return matches
 
 
-def quantity_contract(position):
+def quantity_contract(position) -> dict[str, Any] | None:
     """Declare an input role, not a found quantity or certified consumption."""
     proof=analyze(position)
     if proof is None:

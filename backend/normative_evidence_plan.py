@@ -5,6 +5,7 @@ This plan describes the current review, not the completeness of the project.
 """
 import hashlib
 import json
+from typing import Any
 
 VERSION = 'evidence_work_plan_v1'
 
@@ -52,7 +53,7 @@ def _family(claim):
     return 'claim_identity'
 
 
-def build_work_plan(position, review, matching, *, derived=False, relation=None):
+def build_work_plan(position, review, matching, *, derived=False, relation=None) -> dict[str, Any]:
     """One obligation per claim/card; pin identity to actual evidence and scope.
 
     Actions cannot confirm a claim. Their consumers must still run the normal
@@ -61,6 +62,9 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
     """
     from normative_verdict import required_claims, source_supported, confirmed_comment_aggregate
     relation = relation or {}
+    from audit_predicates import technical_specs
+    semantic_specs={s.claim_id:s for s in technical_specs(position.get('work_name',''),
+        position.get('comment',''),position.get('position_type',''),[],position.get('formula',''))}
     sources = {s['id']: s for s in review.get('sources', [])}
     items = [i for i in review.get('items', []) if i.get('required', True)]
     confirmed = {claim for item in items if item.get('state') == 'confirmed'
@@ -121,7 +125,9 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
 
     for claim in sorted(open_claims):
         relevant = [i for i in items if claim in i.get('claim_ids', []) and i.get('state') != 'confirmed']
-        append('claim:' + claim, _family(claim), [sid for i in relevant
+        spec=semantic_specs.get(claim)
+        family='norm_selection' if spec and spec.property_label=='normative_instruction' else _family(claim)
+        append('claim:' + claim, family, [sid for i in relevant
             for field in ('project_source_ids', 'normative_source_ids') for sid in i.get(field, [])],
             item=relevant[0] if relevant else None)
     for card in review.get('parameter_cards', []):

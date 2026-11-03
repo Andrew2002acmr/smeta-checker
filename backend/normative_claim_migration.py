@@ -59,6 +59,7 @@ def corrections(position) -> dict[str, Any]:
     elif typed_paver_comment(inputs['work_name'], inputs['comment']) is not None:
         retired['attribute:comment:condition']=TYPED_PAVER
     added.extend(s.model_dump() for s in specs if s.claim_id.startswith('method:comment:equipment:'))
+    added.extend(s.model_dump() for s in specs if s.claim_id.endswith(':separate_notes') and s.required)
     if paver_class_condition(inputs['comment']) and typed_paver_comment(inputs['work_name'], inputs['comment']) is None:
         added.extend(s.model_dump() for s in specs if s.claim_id == 'attribute:comment:condition' and s.required)
     return dict(inputs=inputs,retired=retired,added=added)

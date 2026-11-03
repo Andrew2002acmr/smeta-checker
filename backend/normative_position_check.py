@@ -660,7 +660,8 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
                 evidence_trace=proposal_events(answer.adjustments))
             tools.conditional_repair_candidates=repair_candidates(position,snapshot,positions,relation)
             return conditional_feedback(position,snapshot,positions,relation)
-        definitions = [dict(claim_id=s.claim_id,label=s.label,expected_text=s.expected_text,predicate=s.predicate)
+        from normative_claim_definitions import definition
+        definitions = [definition(s)
             for s in technical_specs(position.work_name,position.comment,position.position_type,[],position.formula)
             if s.claim_id in known_claims]
         if project_quantity_contract:

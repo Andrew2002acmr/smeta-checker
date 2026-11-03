@@ -370,7 +370,7 @@ class EvidenceTools:
                         unit=unit,scope_verified=False))
         return ranked[:4]
 
-    def execute(self, request):
+    def execute(self, request) -> dict[str, Any]:
         if request.tool == 'read_source':
             source = next((s for s in self.sources if s['id'] == request.source_id), None)
             if source is None:
