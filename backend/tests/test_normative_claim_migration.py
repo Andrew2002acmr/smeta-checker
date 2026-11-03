@@ -186,7 +186,7 @@ def test_frozen_mixed_claim_is_never_retired_or_promoted_by_machine_name_cleanup
     apply_review_migration(position,review)
     assert review['items']==[item]
     trace=review['evidence_trace'][0]
-    assert trace['retired']=={} and trace['inputs']['comment']==position.comment
+    assert 'attribute:comment:condition' not in trace['retired'] and trace['inputs']['comment']==position.comment
     assert migrated_matching(old,review,position_key(position))==normalized
     saved=deepcopy(review)
     apply_review_migration(position,review)

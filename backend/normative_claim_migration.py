@@ -1,4 +1,4 @@
-"""Narrow, replayable corrections of two provable frozen-parser mistakes."""
+"""Narrow, replayable corrections of reproducible frozen-parser mistakes."""
 from copy import deepcopy
 import hashlib
 import json
@@ -10,6 +10,7 @@ from audit_predicates import technical_specs,comment_metadata,typed_paver_commen
 
 VERSION='claim-parser-corrections-v1'
 TYPED_PAVER='parser_equipment_model_with_explicit_class'
+EQUIPMENT_NAME='parser_equipment_name_with_separate_required_function'
 CONDITION_CONFLICT='typed_machine_condition_conflict_v1'
 
 
@@ -22,10 +23,13 @@ def record_condition_conflict(original, row, position, trace):
     from audit_models import VorPosition
     from human_basis import position_key
     if (not isinstance(position, VorPosition) or trace is None
-            or original.get('state') != 'possible_mismatch'
-            or 'attribute:comment:condition' not in original.get('claim_ids', [])
-            or 'attribute:comment:condition' not in row.get('claim_ids', [])
-            or typed_paver_comment(position.work_name, position.comment) is None):
+            or original.get('state') != 'possible_mismatch'):
+        return
+    shared=set(original.get('claim_ids',[]))&set(row.get('claim_ids',[]))
+    paver='attribute:comment:condition' in shared and typed_paver_comment(position.work_name,position.comment) is not None
+    named='attribute:comment:equipment_names' in shared and corrections(position)['retired'].get(
+        'attribute:comment:equipment_names')==EQUIPMENT_NAME
+    if not paver and not named:
         return
     event=dict(kind=CONDITION_CONFLICT,position_key=position_key(position),
         item_sha256=_item_digest(row),original_state='possible_mismatch',
@@ -39,6 +43,9 @@ def corrections(position) -> dict[str, Any]:
     specs=technical_specs(inputs['work_name'],inputs['comment'],inputs['position_type'],[],inputs['formula'])
     retired={}
     added=[]
+    equipment_names=[s for s in specs if s.claim_id=='attribute:comment:equipment_names']
+    if len(equipment_names)==1 and not equipment_names[0].required and equipment_names[0].predicate=='advisory':
+        retired['attribute:comment:equipment_names']=EQUIPMENT_NAME
     for origin,text in (('name',inputs['work_name']),('comment',inputs['comment'])):
         for index,label in enumerate(_LABEL_RE.finditer(text),1):
             key=f'geometry:{origin}:area:{index}'
@@ -63,7 +70,7 @@ def _normalize(stored, correction):
     existing={c.get('claim_id') for c in checks}
     for check in checks:
         reason=correction['retired'].get(check.get('claim_id'))
-        if reason == TYPED_PAVER and check.get('state') in {'contradiction', 'source_conflict'}:
+        if reason in {TYPED_PAVER,EQUIPMENT_NAME} and check.get('state') in {'contradiction', 'source_conflict'}:
             continue
         if reason:
             check.update(required=False,state='not_applicable',reasons=[reason])
@@ -91,10 +98,11 @@ def apply_review_migration(position, result):
         affected=set(item.get('claim_ids',[])) & correction['retired'].keys()
         original_conflict=any(e.get('kind') == CONDITION_CONFLICT and e.get('position_key') == key
             and e.get('item_sha256') == _item_digest(item) and e.get('original_state') == 'possible_mismatch'
-            and 'attribute:comment:condition' in e.get('original_claim_ids', [])
+            and set(e.get('original_claim_ids',[]))&set(item.get('claim_ids',[]))&{
+                'attribute:comment:condition','attribute:comment:equipment_names'}
             for e in result.get('evidence_trace', []))
         if item.get('state') == 'possible_mismatch' or original_conflict:
-            affected={claim for claim in affected if correction['retired'][claim] != TYPED_PAVER}
+            affected={claim for claim in affected if correction['retired'][claim] not in {TYPED_PAVER,EQUIPMENT_NAME}}
         if not affected:
             items.append(item)
             continue
