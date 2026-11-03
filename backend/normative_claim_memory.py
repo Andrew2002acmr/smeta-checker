@@ -29,7 +29,10 @@ class ClaimMemory:
         ]
 
     def restore(self, answer, sources, events):
+        from normative_source_registry import same_normative_evidence
         lookup = {s["id"]: s for s in sources}
+        if len(lookup)!=len(sources):
+            return
         for item in answer.items:
             saved = self.claims.get(tuple(sorted(item.claim_ids)))
             if (
@@ -37,8 +40,8 @@ class ClaimMemory:
                 or item.state != "confirmed"
                 or item.project_source_ids
                 or not item.normative_source_ids
-                or set(item.normative_source_ids)
-                != set(saved["item"]["normative_source_ids"])
+                or not same_normative_evidence(item.normative_source_ids,
+                    saved["item"]["normative_source_ids"],sources)
             ):
                 continue
             if any(
@@ -56,6 +59,7 @@ class ClaimMemory:
                     current_original=before,
                     restored_project_source_ids=list(item.project_source_ids),
                     source_sha256=deepcopy(saved["sources"]),
+                    current_normative_source_sha256={sid:digest(lookup[sid]) for sid in item.normative_source_ids},
                 )
             )
 

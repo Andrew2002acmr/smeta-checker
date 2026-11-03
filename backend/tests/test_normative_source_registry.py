@@ -5,6 +5,7 @@ import pytest
 from normative_source_registry import merge
 from normative_source_registry import full_text_handle
 from normative_source_registry import rect_order_equivalent
+from normative_source_registry import same_normative_evidence
 from normative_evidence_followup import preserve_completed
 
 
@@ -44,6 +45,19 @@ def test_resumed_context_does_not_duplicate_same_normative_sources():
 def test_same_handle_with_other_literal_source_is_rejected():
     with pytest.raises(ValueError, match="identity conflict"):
         merge([dict(id="n", text="First")], [dict(id="n", text="Other")])
+
+
+def test_exact_aliases_do_not_merge_registry_or_allow_unbound_excerpt_equivalence():
+    source=dict(id='n',kind='normative',source_id='pdf-sha',page=3,label='Clause',origin='native',text='Full condition')
+    sources=[source,{**source,'id':'search:n'}]
+    before=deepcopy(sources)
+    assert same_normative_evidence(['n'],['search:n'],sources)
+    assert not same_normative_evidence(['missing'],['search:n'],sources)
+    assert not same_normative_evidence([],[],sources)
+    assert sources==before
+    for omitted in ('page','source_id','origin'):
+        stripped=[{k:v for k,v in s.items() if k!=omitted} for s in sources]
+        assert not same_normative_evidence(['n'],['search:n'],stripped)
 
 
 def test_failed_additional_pass_preserves_verified_facts_without_promoting_verdict():
