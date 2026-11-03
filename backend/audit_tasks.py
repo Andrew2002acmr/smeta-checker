@@ -44,7 +44,7 @@ from audit_service import (
 )
 from audit_snapshot import load_snapshot
 from audit_tracing import TracingRun
-from pdf_binding import resolve_position_pdfs
+from pdf_binding import resolve_position_pdfs, multi_pdf_context_enabled
 from storage_blobs import BlobStore, open_blob_store
 from storage_db import Repository, open_repository
 
@@ -157,7 +157,8 @@ def _prepare_one_position(
     """Bind one position and claim its job row; pure except the claim."""
     refs = list(position.explicit_refs)
     pdfs, _, _, bind_error = resolve_position_pdfs(
-        refs, pool_keys, meta.get("basis_code", ""), bindings
+        refs, pool_keys, meta.get("basis_code", ""), bindings,
+        allow_multiple=multi_pdf_context_enabled(),
     )
     pdf_name = pdfs[0] if not bind_error and pdfs else ""
     payload = _task_payload(position, pdf_name, [], 0)
@@ -172,6 +173,7 @@ def _prepare_one_position(
         "position_index": int(position.index),
         "pdf_name": pdf_name,
         "bind_error": bind_error,
+        "supporting_pdf_names": pdfs[1:] if not bind_error else [],
         "refs": refs,
         "vor_name": vor_name,
     }
@@ -379,6 +381,8 @@ def prepare_run(
                         "snapshot": dict(snapshot_ref),
                         "corpus_id": snapshot_ref.get("corpus_id", ""),
                         "document_preparation_version": 1,
+                        "supporting_documents": {name:dict(snapshot=prepared_documents[name],
+                            version_id=str(pdf_versions[name].id)) for name in prep.get('supporting_pdf_names',[])},
                     }
                 )
                 context.repository.requeue_position_job(

@@ -187,6 +187,21 @@ class Repository:
             raise ValueError('Reusable analysis artifact identity mismatch')
         return saved['payload']
 
+    def compatible_prepared_artifact(self,project_id,inputs):
+        """Only raw extraction with exactly the same explicit source contract."""
+        from analysis_replay import digest
+        with Session(self._engine) as session:
+            row=session.scalar(select(AnalysisArtifact).where(
+                AnalysisArtifact.project_id==UUID(str(project_id)),
+                AnalysisArtifact.stage=='prepared_pdf',AnalysisArtifact.identity['inputs']==inputs
+            ).order_by(AnalysisArtifact.created_at.desc(),AnalysisArtifact.key).limit(1))
+            if row is None:
+                return None
+            ident,payload=dict(row.identity),dict(row.payload)
+            if digest(ident)!=row.key or digest(payload)!=row.sha256:
+                raise ValueError('Reusable preparation artifact hash mismatch')
+            return dict(identity=ident,payload=payload)
+
     def __init__(self, database_url: str, blob_store: BlobStore) -> None:
         self._database_url = database_url
         self._engine = create_engine(database_url)

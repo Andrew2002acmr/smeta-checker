@@ -1,0 +1,79 @@
+{
+  "status": "design_candidate_not_implemented",
+  "purpose": "Проверять связанную конструкцию по независимым фактам, а не восстанавливать её заново для каждой строки ВОР",
+  "measured_baseline": {
+    "fresh_model_run": "cf299d59-3304-455e-8a9f-dc169ab10162",
+    "independent_repeat_run": "de7b457e-e910-414e-944b-037b9fed015f",
+    "sample_count": 10,
+    "confirmed": 2,
+    "possible_mismatch": 1,
+    "needs_facts": 7,
+    "runtime_snapshot": {
+      "pipeline_version": 7,
+      "includes_parallel_uncommitted_changes": true,
+      "code_manifest_sha256": "69998d011f23056802448e025c73a79bf8910581fff3ff7d8c445af292351ed2",
+      "scope": "Измерен зафиксированный рабочий снимок; это не доказательство качества только коммитов данной задачи"
+    },
+    "blocking_claim_observations": {
+      "model_confirmed_then_validation_rejected": 4,
+      "model_left_open_with_references": 15
+    },
+    "caution": "Это наблюдения переходов, не доли ошибок модели и системы. Наличие ссылки само по себе не доказывает применимость. Независимый свежий повтор подтверждён только для первой позиции."
+  },
+  "stages": [
+    {
+      "id": "prepared_document",
+      "reuse": "existing_ocr_and_tables",
+      "output": ["document_version", "original_bytes_sha256", "extraction_sha256", "pages", "tables", "physical_cells", "quality", "coverage"],
+      "invariants": ["Снимок относится к проверенным исходным байтам", "Пусто и не распознано не равны нулю", "Отсутствие факта не устанавливается по одному поисковому отрывку"]
+    },
+    {
+      "id": "document_semantics",
+      "executor": "agent_with_literal_validation",
+      "unit_of_work": "logical_table_or_construction_section",
+      "output": ["construction_candidates", "complete_header_paths", "column_properties", "units_and_scales", "site_references", "physical_layer_order", "literal_evidence"],
+      "invariants": ["Ячейка не получает смысл только по своему числу", "Полный OCR не означает проверенность назначения столбца", "Одинаковые числа разных столбцов сохраняют разные физические адреса", "Результат не содержит вердиктов по позициям ВОР"]
+    },
+    {
+      "id": "construction_dossier",
+      "executor": "group_agent",
+      "unit_of_work": "candidate_construction_with_related_vor_operations",
+      "inputs": ["document_semantics", "vor_scope_graph", "normative_conditions"],
+      "output": ["construction_identity", "site_identity", "physical_courses", "technological_lifts", "work_material_dependencies", "normative_role_bindings", "open_slots"],
+      "role_namespaces": ["physical_construction_role", "technological_operation_role", "normative_branch_role"],
+      "invariants": ["Средний слой ПД не объявляется ни нижним, ни верхним нормативным слоем без доказанного отображения", "Одно слово о роли слоя не заменяет отображение уровней конструкции", "Совпадение площади не устанавливает общую конструкцию", "Предложенные связи остаются кандидатами до проверки их буквальных оснований"]
+    },
+    {
+      "id": "typed_evidence_tasks",
+      "executor": "bounded_retrieval_agents",
+      "inputs": ["construction_dossier.open_slots"],
+      "output": ["literal_facts", "subject_property_bindings", "source_quality", "search_coverage", "unresolved_slots"],
+      "fact_fields": ["subject_id", "property_id", "value", "unit", "scope", "source_id", "source_sha256", "literal_quote", "physical_locator", "authority", "verification_state"],
+      "invariants": ["М800, М1 и К90 нельзя считать одной шкалой по совпадению буквы М", "Явно подписанный коэффициент сметчика хранится с его происхождением, а не с выдуманной нормативной цитатой", "Размерный расход не является безразмерным коэффициентом", "Завершённые числовые чтения не повторяются ради закрытия другого свойства"]
+    },
+    {
+      "id": "claim_verification",
+      "executor": "deterministic_validators_and_explicit_applicability_review",
+      "output": ["supported_claims", "rejected_candidates", "actual_contradictions", "missing_evidence"],
+      "invariants": ["Неподходящий кандидат не становится ошибкой ВОР", "Несовместимые типы доказательства отклоняются до сравнения значений", "Отсутствующий расход или плотность не подставляются автоматически", "Противоречие требует того же свойства, области применения и проверенного основания", "Подтверждение родительской работы не подтверждает автоматически материал"]
+    },
+    {
+      "id": "publication_and_dependency_refresh",
+      "executor": "existing_delivery_and_outbox",
+      "output": ["review_batches_of_10", "evidence_chain", "actionable_missing_slots", "dependent_rechecks"],
+      "invariants": ["Обновление факта пересчитывает зависимые проверки", "Соседняя позиция не наследует положительный статус", "Частичная готовность не блокирует просмотр готовых результатов"]
+    }
+  ],
+  "pilot_families": [
+    {"indices": [0, 2], "focus": "Независимые свежие подтверждения работы, полного слоя и технологических операций"},
+    {"indices": [1, 3, 5, 7], "focus": "Раздельные свойства материала и происхождение коэффициента; проверка совместимости вместо требования ложной эквивалентности"},
+    {"indices": [4, 6], "focus": "Полная конструкция и отображение физического среднего слоя на ветвь нормы; текущий отказ ещё не признан ложным"},
+    {"indices": [8, 9], "focus": "Привязка площади к родительской конструкции, назначение расхода, плотность и зависимый материал"}
+  ],
+  "acceptance": {
+    "target": {"positions": 103, "minimum_evidence_backed_confirmations": 52},
+    "required_measurements": ["independent_fresh_model_agreement", "claim_level_evidence_coverage", "false_discrepancies_on_reviewed_cases", "unresolved_evidence_by_stage", "calls_and_duration_per_construction_group"],
+    "negative_controls": ["Другой участок с теми же числами", "Другой столбец с той же площадью", "Изменённый числовой операнд", "Масса вместо площади", "Расход вместо коэффициента", "Несовместимое свойство материала", "Неприменимая нормативная ветвь", "Отсутствующая плотность"],
+    "completion_rule": "Не считать манифест входов, кэш ответа или один успешный пример доказательством качества всего конвейера"
+  }
+}

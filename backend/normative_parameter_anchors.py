@@ -44,6 +44,11 @@ def parameter_candidates(sources):
     result = []
     for source in sources:
         text = source['text']
+        if source['kind']=='project' and source.get('origin')=='ocr_verified_header':
+            for fact in source.get('verified_parameters',[]):
+                if fact.get('parameter')=='thickness' and quoted(fact['value'],fact['quote'],text):
+                    result.append(dict(parameter='thickness',value=fact['value'],unit=fact['unit'],
+                        source_id=source['id'],quote=fact['quote'],scope_quote=text,scope_state='unresolved'))
         if source['kind'] == 'project' and source.get('origin') == 'native':
             roles = list(re.finditer(r'(?:нижн\w*|средн\w*|верхн\w*)\s+сло[йя]\s+основан\w*',text,re.I))
             for match in re.finditer(r'\bh\s*=\s*(\d+(?:[.,]\d+)?)\s*(мм|см|м)\b',text,re.I):

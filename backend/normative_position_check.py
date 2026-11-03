@@ -505,7 +505,7 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
     from normative_claim_migration import normalize_matching
     matching=normalize_matching(position,matching)
     needed = required_claims(matching, 'ОК' if matching.get('status') == 'ОК' else 'Требуется ручная проверка', bool(parent))
-    known_claims = needed | {c['claim_id'] for c in matching.get('checks') or [] if c.get('claim_id')} | {'matching:verdict'}
+    known_claims = needed | {c['claim_id'] for c in matching.get('checks') or [] if c.get('claim_id')}
     from normative_workbook_rate import quantity_contract, related_area
     project_quantity_contract=quantity_contract(parent_position or position)
     if project_quantity_contract:
@@ -601,7 +601,7 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
             related.append(dict(index=other["index"], row=src.get("row"), work=other["work_name"][:600],
                 quantity=str(other.get("volume") or ""), unit=other.get("unit") or "", formula=other.get("formula") or "", comment=str(other.get("comment") or "")[:700]))
     from normative_local_checks import layer_group
-    declared_layer_group = layer_group(parent_position or position, related)
+    declared_layer_group = layer_group(parent_position or position, related,positions)
     if declared_layer_group:
         declared_layer_group = {k: str(v) if not isinstance(v, (int, str)) else v
             for k,v in declared_layer_group.items()}
@@ -726,6 +726,9 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
             "не расширяй такой аспект до доказательства эквивалентности торговой марки из остального комментария. "
             "Если марка, модель, мощность или другая характеристика явно входят в expected_text, их подтверждение остаётся обязательным. "
             "Коэффициент дочерней строки относится к optional_child_claims related:<index>:rate, а не к своему правилу о двух слоях. "
+            "Не переноси непроверенный расход дочернего материала в matching:verdict своей работы. "
+            "Этот резервный аспект используется только если он есть в required_validation_claims; "
+            "неизвестное основание сметчика в отдельной строке не отменяет доказанные объём и способ текущей работы. "
             "Каждый required_validation_claims должен получить явный вывод; presence — наличие самой работы в ПД. "
             "parameter_candidates содержат буквальные цитаты: копируй quote/scope_quote из них, не пересказывай и не ставь многоточия. "
             "Для расчётного материала work_relations.parent задаёт связанную работу. Проверь её основание как derived:parent, "
@@ -738,6 +741,12 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
             "Раздели проектные объёмы/слои и сметное нормирование. Учитывай связанные строки: одинаковая площадь "
             "двух технологических слоёв не означает двойной учёт; сопоставляй сумму толщин с полной толщиной ПД. "
             "vor_layer_group — программно установленная связь ОДНОЙ конструкции по строкам ВОР, а не факт ПД. "
+            "header_parameters/parameter_candidates содержат толщину, независимо прочитанную из физического заголовка таблицы. "
+            "Приоритет — заголовок той же таблицы, материала и участка, из которой взято количество; не бери равную толщину другого материала. "
+            "Если явно сгруппированные технологические слои ВОР составляют один целый проектный слой, "
+            "для quantity и thickness укажи scope_relation=technological_part и scope_state=verified только после проверки "
+            "того же участка, фракции материала и полной толщины. Название нижней операции ВОР может отличаться от "
+            "названия верхнего целого слоя ПД. Эта связь не доказывает разрешённость разбиения: нормативное условие проверяй отдельно. "
             "Её height — полная толщина в см: сопоставляй с ней проектную толщину. Не смешивай с другим "
             "нижним/средним/верхним слоем из соседних строк. Проектная таблица может содержать полную толщину, "
             "а не отдельную строку для каждого технологического слоя. Извлекай найденные операнды даже при "
@@ -1027,7 +1036,7 @@ def validate_agent_saved(context, record, index, row, actor, *, register=True):
         project_strengthening_quantity(context,record,index,position,result,kb)
         from normative_curb_quantity import apply as project_curb_quantity
         project_curb_quantity(context,record,index,position,result,kb,relation)
-    group = layer_group(owner, result.get('related_positions') or [])
+    group = layer_group(owner, result.get('related_positions') or [],positions)
     items = [NormativePositionCheckItem.model_validate(i) for i in result['items']]
     proposals = [NormativeParameterProposal.model_validate(p) for p in result.get('parameter_proposals', [])]
     work_scope=owner.work_name+' '+position.work_name+' '+' '.join(v['work'] for v in relation['children'])

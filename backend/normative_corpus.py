@@ -43,7 +43,7 @@ def _search_tokens(text):
 
 def _document_matches(number, designation):
     candidates = re.findall(r"\d[\d.\-]+", designation)
-    if re.search(r"-\d{4}$", number):
+    if re.search(r"-(?:\d{2}|\d{4})$", number):
         return number in candidates
     return any(value.split("-", 1)[0] == number or value.split("-", 1)[0].startswith(number + ".")
                for value in candidates)

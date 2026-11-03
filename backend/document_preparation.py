@@ -51,7 +51,7 @@ def prepare_documents(
 ):
     import pymupdf
     from pdf_text import PDFTextSource
-    from analysis_replay import enabled,get,prepared_identity,store_prepared,digest
+    from analysis_replay import enabled,replay_prepared,prepared_identity,store_prepared,digest
 
     record = context.repository.load_run(run_id, include_results=False)
     config = record.get("config") or {}
@@ -73,7 +73,7 @@ def prepare_documents(
             )
         if enabled(context) and not state.get('snapshot'):
             ident=prepared_identity(record,pdf_files[name],pdf_versions[name].id)
-            cached=get(context,ident)
+            cached=replay_prepared(context,ident)
             if cached:
                 state=dict(cached['state'],reused_artifact=digest(ident))
                 reused_documents.append(name)

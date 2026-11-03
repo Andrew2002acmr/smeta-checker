@@ -119,7 +119,7 @@ def pack_sources(value, sources, preferred=(), *, limit, planning=False, measure
         if not text:
             continue
         brief = {key: source[key] for key in ('id', 'kind', 'page', 'label', 'version_id', 'origin',
-            'numeric_verified', 'unit_verified', 'unit') if key in source}
+            'numeric_verified', 'unit_verified', 'unit', 'verified_parameters') if key in source}
         if sid in embedded:
             cap = 160
         elif sid in critical or (sid in preferred and ':cell:' not in sid):

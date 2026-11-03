@@ -120,8 +120,8 @@ def findings(position, result, positions, relation, *, cards=None):
     target = measure(targets[0][1], targets[0][2].lower())
     if not target:
         return []
-    group = layer_group(position, result.get("related_positions") or [])
-    if "двухслойн" in position.work_name.casefold():
+    group = layer_group(position, result.get("related_positions") or [],positions)
+    if group or "двухслойн" in position.work_name.casefold():
         if not group or measure(str(group["height"]), "см") != fact["value"]:
             return []
     elif target != fact["value"]:

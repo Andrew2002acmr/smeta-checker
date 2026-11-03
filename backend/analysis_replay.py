@@ -73,11 +73,42 @@ def store_prepared(context,ident,state):
     index=load_snapshot(context.blob_store,state['snapshot'])
     if not index.metadata.get('preparation_complete') or index.pending_ocr:
         raise ValueError('Incomplete document cannot enter reusable artifact storage')
-    if index.metadata.get('document_version_id')!=ident['inputs']['version_id'] or native.get('pdf_sha256')!=index.metadata.get('pdf_sha256'):
+    if (index.metadata.get('document_version_id')!=ident['inputs']['version_id']
+            or native.get('pdf_sha256')!=index.metadata.get('pdf_sha256')):
         raise ValueError('Reusable preparation belongs to another document')
+    # Native/snapshot hashes identify PyMuPDF's canonical PDF serialization.
+    # ident.inputs.pdf_sha256 identifies the original uploaded bytes. They are
+    # intentionally different domains; the immutable artifact binds both.
     if any(native.get(k)!=ident['inputs'][k] for k in ('extraction_key','ocr_settings_key','table_key')):
         raise ValueError('Prepared document processing settings changed')
     return put(context,ident,dict(state=state))['state']
+
+
+def replay_prepared(context,ident):
+    """Reuse raw OCR across validation-code changes, with unchanged extraction contracts.
+
+    PDF bytes, document version, engine/language/settings and table schema
+    must all match. New validators consume the immutable raw readings; this
+    never reuses a normative verdict or asserts that all cells are verified.
+    """
+    cached=get(context,ident)
+    if cached is not None:
+        return cached
+    lookup=getattr(context.repository,'compatible_prepared_artifact',None)
+    if not callable(lookup):
+        return None
+    old=lookup(ident['project_id'],ident['inputs'])
+    if old is None:
+        return None
+    if not isinstance(old,dict):
+        raise ValueError('Invalid preparation artifact')
+    previous=old['identity']
+    if (previous.get('stage')!='prepared_pdf' or previous.get('project_id')!=ident['project_id']
+            or previous.get('inputs')!=ident['inputs']):
+        raise ValueError('Raw preparation contracts do not match')
+    state=dict(old['payload']['state'],reused_from_artifact=digest(previous),
+        preparation_reuse_basis='same_source_and_extraction_contract')
+    return dict(state=store_prepared(context,ident,state))
 
 
 def matching_identity(context,record,payload):

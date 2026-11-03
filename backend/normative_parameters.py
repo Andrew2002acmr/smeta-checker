@@ -82,7 +82,7 @@ def measure(value, unit):
 
 
 def unit_quoted(unit, quote):
-    return bool(re.search(r'(?<![а-яa-z0-9])'+re.escape(clean(unit).rstrip('.'))+r'(?![а-яa-z0-9])', clean(quote)))
+    return bool(re.search(r'(?<![а-яa-z])'+re.escape(clean(unit).rstrip('.'))+r'(?![а-яa-z0-9])', clean(quote)))
 
 
 def quoted(value, quote, text):
@@ -92,8 +92,13 @@ def quoted(value, quote, text):
     # PDF extraction can split a decimal after its separator (``0, 20``).
     # Neither 0 nor 20 is a standalone literal in that fragment. Preserve the
     # decimal value; a repaired anchor must still supply the actual units.
+    # A complete unit is a boundary in PDF geometry such as h=25см. Arbitrary
+    # word suffixes and numbers embedded in designations remain rejected.
     values = {number(match[0]) for match in re.finditer(
-        r'(?<![\w.,])[-+]?\d+(?:[.,]\s*\d+)?(?!\w|[.,]\s*\d)', literal)
+        r'(?<![\w.,])[-+]?\d+(?:[.,]\s*\d+)?', literal)
+        if (not re.match(r'\w',literal[match.end():]) or re.match(
+            r'(?:мм|см|м[23]?|mm|cm|m[23]?|кг|kg|т|t|шт|га)(?!\w)',literal[match.end():]))
+        and not re.match(r'[.,]\s*\d',literal[match.end():])
         if not re.search(r'\d[.,]\s*$', literal[:match.start()])
         and not re.match(r'[.,]\s+\d', literal[match.end():])}
     return bool(amount is not None and len(clean(quote)) >= 5 and clean(quote) in clean(text)
@@ -174,12 +179,19 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
     cards, verified = [], {}
     owner = positions.get((relation.get('parent') or {}).get('index'), position)
     row = position.position_source.row if position.position_source else None
-    group = layer_group(owner, result.get('related_positions') or [])
+    group = layer_group(owner, result.get('related_positions') or [],positions)
     from normative_layer_assembly import layer_assembly
     thickness_group = group or layer_assembly(owner,positions)
     work_scope = owner.work_name+' '+position.work_name+' '+' '.join(
         child.get('work', '') for child in relation.get('children') or [])
     height = re.search(r'\bh\s*=\s*(\d+(?:[.,]\d+)?)\s*(мм|см|м)\b', owner.work_name, re.I)
+    from normative_layer_scope import technological_part
+
+    def role_supported(proposal,source,comparison_group):
+        declared=set(re.findall(r'нижн|средн|верхн',clean(owner.work_name)))
+        found=set(re.findall(r'нижн|средн|верхн',clean(proposal.get('scope_quote',''))))
+        return (not declared or found==declared
+            or technological_part(owner,proposal,source,comparison_group,work_scope))
 
     def card(key, label, value, unit, role='project_value', **extra):
         return dict(id=key, label=label, role=role, row=row, declared_value=str(value), unit=unit,
@@ -204,6 +216,11 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
                 c['reason']='Для суммы технологических слоёв не подтверждена конструкция того же участка ПД.'
                 return c
         if c['role'] == 'coefficient':
+            scalar_matches=[p for p in matches if (m:=measure(p['value'],p['unit'])) and m[0]=='factor']
+            if matches and not scalar_matches:
+                c['reason']='Предложен размерный расход вместо безразмерного коэффициента; сравнение не выполнено.'
+                return c
+            matches=scalar_matches
             exact = [p for p in matches if number(p['value']) == number(c['declared_value'])]
             matches = exact or matches
         # Several reads of one physical page can expose the SAME literal
@@ -211,9 +228,7 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
         if kind in {'quantity','thickness'}:
             valid = [p for p in matches if p.get('scope_state')=='verified'
                 and not construction_conflict(p.get('scope_quote',''),work_scope,comparison_group['height'] if comparison_group else None)
-                and (kind != 'thickness' or not re.findall(r'нижн|средн|верхн', clean(owner.work_name))
-                    or set(re.findall(r'нижн|средн|верхн', clean(p.get('scope_quote', ''))))
-                        == set(re.findall(r'нижн|средн|верхн', clean(owner.work_name))))
+                and (kind != 'thickness' or role_supported(p,sources[p['source_id']],comparison_group))
                 and quoted(p['value'],p['quote'],sources[p['source_id']]['text'])]
             if valid:
                 # A claimed same-scope fact with a broken numeric citation is
@@ -304,6 +319,11 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
         from normative_confirmed_units import unit_confirmed
         unit_present = (kind == 'coefficient' or unit_quoted(p['unit'], p['quote'])
             or kind == 'quantity' and unit_confirmed(source, p['unit']))
+        if source.get('origin')=='ocr_verified_header' and not any(
+                f.get('parameter')==kind and measure(f.get('value'),f.get('unit',''))==found
+                for f in source.get('verified_parameters',[])):
+            c['reason']='В этом заголовке независимо проверен другой параметр; его нельзя использовать как количество.'
+            return c
         if source['kind'] != wanted_kind or not quoted(p['value'], p['quote'], source['text']) or not expected or not found or not unit_present:
             c['reason'] = ('Для коэффициента нужен нормативный источник с условиями применения.' if kind=='coefficient'
                 else 'Число, цитата, тип источника или единица не подтверждены программно.')
@@ -323,7 +343,8 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
             disputed = any(i.get('state') == 'needs_facts' for i in relevant)
             if (p.get('scope_state') != 'verified' or not quoted(p['value'], p['quote'], scope)
                     or clean(scope) not in clean(source['text']) or disputed
-                    or (declared_roles and (found_roles != declared_roles) and (kind == 'thickness' or found_roles))):
+                    or (declared_roles and (found_roles != declared_roles) and (kind == 'thickness' or found_roles)
+                        and not technological_part(owner,p,source,comparison_group,work_scope))):
                 c['reason'] = 'Принадлежность числа той же конструкции, слою и участку не подтверждена; сравнение не выполнено.'
                 return c
         if re.search(r'\b(?:не более|не менее|до\s*\d|от\s*\d|в пределах|диапазон)', clean(p['quote'])):
@@ -369,7 +390,7 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
         and m[0]=='mass' and p.get('source_id') in sources
         and sources[p['source_id']]['kind']=='project' for p in proposals)
     area_input_mode=bool(recipe and not direct_mass)
-    if area_input_mode:
+    if recipe and area_input_mode:
         quantity_card['reason']=('Масса рассчитывается из площади и расхода; площадь ПД не является готовой массой. '
             +('Для расхода в л/м² дополнительно нужна подтверждённая плотность.' if recipe['density_required'] else
               'Нужно подтвердить применимость расхода; перевод кг в тонны проверяется отдельно.'))

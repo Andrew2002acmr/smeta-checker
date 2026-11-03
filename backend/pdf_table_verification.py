@@ -370,7 +370,9 @@ def verify_recovered_tables(page, tables, *, rotation=0, cache_dir=None, store_i
                 continue
             reclassify_recovered_headers(table)
             table_attempted=skipped=0
-            for header in _ordered_headers(table):
+            ordered_headers=_ordered_headers(table)
+            deferred=[]
+            for header_at,header in enumerate(ordered_headers):
                 existing=(table.get('column_units') or {}).get(str(header['column'])) or {}
                 if existing.get('header_id')==header['cell_id'] and any(
                         c.get('role')=='cell' and verified_column_unit(table,c,existing) for c in table['cells']
@@ -381,6 +383,7 @@ def verify_recovered_tables(page, tables, *, rotation=0, cache_dir=None, store_i
                     skipped+=1
                     continue
                 if attempted>=max_headers or time.monotonic()>=deadline:
+                    deferred=[h['cell_id'] for h in ordered_headers[header_at:]]
                     break
                 attempted+=1
                 table_attempted+=1
@@ -451,7 +454,9 @@ def verify_recovered_tables(page, tables, *, rotation=0, cache_dir=None, store_i
                 semantic_version=SEMANTIC_VERSION,
                 headers_attempted=previous.get('headers_attempted',0)+table_attempted,
                 last_headers_attempted=table_attempted,headers_skipped_verified=skipped,
-                header_seconds_budget=seconds,budget_exhausted=time.monotonic()>=deadline)
+                header_seconds_budget=seconds,budget_exhausted=bool(deferred) or time.monotonic()>=deadline,
+                deferred_header_ids=deferred,
+                header_limit_reached=bool(deferred) and attempted>=max_headers)
     finally:
         private.close()
     verify_page_numbers(tables,independent_words)

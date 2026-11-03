@@ -76,12 +76,25 @@ def _project_thickness(position,result,cards):
     for proposal in result.get('parameter_proposals',[]):
         source=sources.get(proposal.get('source_id'))
         scope=proposal.get('scope_quote','')
+        # A broad literal excerpt may include preceding layers of other
+        # materials. Identify material only in the layer containing this
+        # uniquely selected height; retain the full scope for all other guards.
+        material_scope=scope
+        quote=proposal.get('quote','')
+        if quote and scope.count(quote)==1:
+            at=scope.index(quote)
+            starts=list(re.finditer(r'\b(?:верхн|нижн|средн|дополнительн)[а-яё]*\s+сло[йя]\b',scope[:at],re.I))
+            if starts:
+                material_scope=scope[starts[-1].start():at+len(quote)]
+        verified_header=bool(source and source.get('origin')=='ocr_verified_header' and source.get('numeric_verified')
+            and any(f.get('parameter')=='thickness' and measure(f.get('value'),f.get('unit',''))==value
+                for f in source.get('verified_parameters',[])))
         if (proposal.get('parameter')!='thickness' or proposal.get('scope_state')!='verified'
                 or not source or source['kind']!='project'
-                or not _readable(source) or not source.get('version_id')
+                or not (_readable(source) or verified_header) or not source.get('version_id')
                 or not quoted(proposal['value'],proposal['quote'],scope)
                 or clean(scope) not in clean(source['text']) or not unit_quoted(proposal['unit'],proposal['quote'])
-                or _family(scope)!=family or construction_conflict(scope,position.work_name)):
+                or _family(material_scope)!=family or construction_conflict(scope,position.work_name)):
             continue
         role=_role(scope)
         if _role(position.work_name) and role!=_role(position.work_name):

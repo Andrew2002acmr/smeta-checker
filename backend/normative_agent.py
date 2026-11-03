@@ -15,7 +15,7 @@ from typing import Any, Literal
 import openai
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-PIPELINE_VERSION = 6
+PIPELINE_VERSION = 8
 MAX_ROUNDS = 3
 MAX_CONTEXT = 58000
 
@@ -54,6 +54,7 @@ def cell_source_id(version, page, table_id, cell_id):
 class EvidenceRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     tool: Literal['search_project', 'search_tables', 'read_page', 'read_source', 'read_table', 'search_norms', 'sum_cells']
+    document_version_id: str = Field(default='',max_length=80)
     query: str = Field(default='', max_length=300)
     page: int = Field(default=1, ge=1)
     table_id: str = Field(default='', max_length=200)
@@ -66,6 +67,11 @@ class EvidenceRequest(BaseModel):
 
 
 TOOLS = """
+Если coverage.supporting_documents непустой, позиция ссылается на несколько PDF.
+search_project/search_tables ищут во всех явно привязанных документах. У найденных
+страниц указан document_version_id: передавай его в read_page/read_table. Без него
+читается основной PDF. Одинаковые номера страниц разных PDF не равны. ПД задаёт
+конструкцию/объём, ПОС может подтверждать условия и организацию работ.
 Ты работаешь как агент проверки. Если источников недостаточно, верни requests
 и пустые items/parameters; не завершай проверку только потому, что первоначальная
 выдержка не содержит таблицу. До 4 requests за шаг:
@@ -305,6 +311,8 @@ class EvidenceTools:
             error_pages=[int(p)+1 for p in self.index.errors],
             available_tables=catalogue[:80], available_table_count=len(catalogue),
             table_catalog_truncated=len(catalogue)>80)
+        from normative_multidoc import attach
+        attach(self,payload)
 
     def _add(self, source):
         context = getattr(self, 'context', None)
@@ -332,6 +340,7 @@ class EvidenceTools:
         # Drawing frames can fill that preview before quantity schedules at
         # the end of a large PDF. Search every prepared table exactly once.
         for page, tables in enumerate(self.index.tables or []):
+            tables = self._verified_tables(page+1,tables)
             for table in tables:
                 captions = [c['text'] for c in table['cells'] if c.get('role')=='header'
                     and c.get('colspan',1)>=table['col_count'] and c.get('text','').strip()]
@@ -371,6 +380,11 @@ class EvidenceTools:
         return ranked[:4]
 
     def execute(self, request) -> dict[str, Any]:
+        from normative_multidoc import route
+        routed=route(self,request)
+        return routed if routed is not None else self._execute_single(request)
+
+    def _execute_single(self, request):
         if request.tool == 'read_source':
             source = next((s for s in self.sources if s['id'] == request.source_id), None)
             if source is None:
@@ -436,6 +450,32 @@ class EvidenceTools:
         selected = [c for c in cells if (c['row'] in request.row_ids if request.row_ids else request.offset <= c['row'] < request.offset+4)
             and (not request.column_ids or c['column'] in request.column_ids)]
         output = []
+        header_parameters=[]
+        from pdf_saved_evidence import header_geometry
+        for header in cells:
+            if header.get('role')!='header':
+                continue
+            facts=header_geometry(header)
+            if not facts:
+                continue
+            ancestors=[h['text'] for h in cells if h['cell_id'] in header.get('header_ids',[])]
+            text=' | '.join([*ancestors,header['text']])
+            if len(text)>900:
+                continue
+            source_id=cell_source_id(self.version,request.page,table['table_id'],header['cell_id']).replace(':cell:',':header:')
+            header_rects=[]
+            geometry=(getattr(self.index,'metadata',{}).get('page_geometry') or {}).get(str(request.page-1))
+            if geometry and header.get('bbox'):
+                from ocr_engine import _apply_matrix
+                box=_apply_matrix(header['bbox'],geometry['matrix'])
+                header_rects=[[max(0,min(1,box[0]/geometry['width'])),max(0,min(1,box[1]/geometry['height'])),
+                    max(0,min(1,box[2]/geometry['width'])),max(0,min(1,box[3]/geometry['height']))]]
+            self._add(dict(id=source_id,kind='project',version_id=self.version,page=request.page,
+                label=self.filename,text=text,origin='ocr_verified_header',numeric_verified=True,
+                verified_parameters=facts,rects=header_rects))
+            header_parameters.extend(dict(**{k:v for k,v in f.items() if k!='version'},source_id=source_id,
+                scope_quote=text,scope_state='unresolved') for f in facts)
+            self.preferred.append(source_id)
         for cell in selected:
             header_text = ' | '.join(str(h['text']) for h in cells if h['cell_id'] in cell.get('header_ids', []))
             from pdf_row_sections import row_scope_context
@@ -462,6 +502,7 @@ class EvidenceTools:
             output.append(self._add(dict(id=cell_id, kind='project',
                 version_id=self.version, page=request.page, label=self.filename,
                 text=text, rects=rects, numeric_verified=bool(cell.get('numeric_verified')),
+                verified_parameters=[f for h in cells if h['cell_id'] in cell.get('header_ids',[]) for f in header_geometry(h)],
                 unit_verified=bool(resolved_unit),unit=resolved_unit,
                 origin=(cell.get('origin', 'native') if cell.get('quality', 'usable') == 'usable' else 'uncertain_table'))))
             if request.row_ids and request.column_ids:
@@ -469,10 +510,13 @@ class EvidenceTools:
         from normative_retrieval import terms
         wanted = terms(request.query)
         matching_rows = sorted({c['row'] for c in cells if wanted & terms(c['text'])})[:20]
-        return {'cells': output, 'matching_rows': matching_rows, 'columns': table_outline(table)['columns'], 'rows': [dict(**{k: c[k] for k in ('cell_id', 'row', 'column', 'text', 'header_ids', 'bbox', 'quality', 'numeric_verified','row_scope') if k in c},
+        return {'cells': output, 'header_parameters':header_parameters, 'matching_rows': matching_rows, 'columns': table_outline(table)['columns'], 'rows': [dict(**{k: c[k] for k in ('cell_id', 'row', 'column', 'text', 'header_ids', 'bbox', 'quality', 'numeric_verified','row_scope') if k in c},
             **output[i]) for i,c in enumerate(selected)], 'next_offset': request.offset+4, 'row_count': table['row_count']}
 
     def _sum(self, request):
+        documents={s.get('version_id') for s in self.sources if s['id'] in request.operand_ids}
+        if len(documents)>1 or documents and documents!={self.version}:
+            return {'error':'cross_document_sum_requires_separate_scope_validation'}
         import hashlib
         from normative_parameters import number, measure
         ids = request.operand_ids
@@ -511,13 +555,14 @@ class EvidenceTools:
         text = self.index.texts[page-1]
         # Retrieve the hit itself, not always the first paragraph of a long page.
         piece = text[offset:offset+3500]
-        ref = self._add(dict(id=f'agent:p{page}:{offset}', kind='project', page=page,
+        namespace=':doc:'+str(self.version) if getattr(self,'additional_documents',None) or getattr(self,'is_supporting_document',False) else ''
+        ref = self._add(dict(id=f'agent:p{page}:{offset}'+namespace, kind='project', page=page,
             version_id=self.version, label=self.filename, text=piece,
             origin='ocr_unverified' if (self.index.quality.get(page-1) or {}).get('origin') == 'ocr' else 'native'))
         if exact:
             self.preferred.append(ref.get('source_id', ''))
         tables = self._tables(page)
-        return dict(**ref, page=page, next_offset=offset+3500 if offset+3500 < len(text) else None,
+        return dict(**ref, page=page, document_version_id=self.version, next_offset=offset+3500 if offset+3500 < len(text) else None,
             tables=[table_outline(t) for t in tables])
 
     def _tables(self, page):
@@ -548,10 +593,16 @@ class EvidenceTools:
         return []
 
     def _verified_tables(self,page,tables):
-        if not hasattr(self,'context'):
-            return tables
-        from normative_table_headers import apply
-        return apply(self.context,self.record,self.version,page,tables,self.events)
+        if hasattr(self,'context'):
+            from normative_table_headers import apply
+            tables = apply(self.context,self.record,self.version,page,tables,self.events)
+        from pdf_saved_evidence import replay_unit_proofs
+        tables, restored = replay_unit_proofs(tables)
+        for event in restored:
+            event.update(page=page, version_id=self.version)
+            if event not in self.events:
+                self.events.append(event)
+        return tables
 
 
 def table_outline(table):
