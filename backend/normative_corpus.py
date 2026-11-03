@@ -4,7 +4,6 @@ No extractor dependencies, network calls, implicit rates or writes to SQLite.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 import sqlite3
@@ -92,8 +91,8 @@ class Corpus:
         self.path = (self.root / self.relative).resolve()
         if not self.path.is_relative_to(self.root):
             raise ValueError('Недопустимый путь выпуска базы')
-        with self.path.open('rb') as stream:
-            self.sha = hashlib.file_digest(stream, 'sha256').hexdigest()
+        from normative_sqlite_cache import verified_database
+        self.path,self.sha = verified_database(self.path,expected_sha)
         if expected_sha and self.sha != expected_sha:
             raise ValueError('Изменился сохранённый выпуск базы знаний')
         with self.connect() as db:

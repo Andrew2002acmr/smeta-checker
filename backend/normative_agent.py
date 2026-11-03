@@ -15,7 +15,7 @@ from typing import Any, Literal
 import openai
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-PIPELINE_VERSION = 5
+PIPELINE_VERSION = 6
 MAX_ROUNDS = 3
 MAX_CONTEXT = 58000
 
@@ -198,6 +198,12 @@ def compact(inputs, sources, preferred=(), *, planning=False, measure=None):
     if 'prepared_quantity_tables' in value:
         value['prepared_quantity_tables'] = model_result(value['prepared_quantity_tables'],6000)
     value['pipeline_version'] = PIPELINE_VERSION
+    if 'work_scope_graph' in value:
+        from normative_context_window import window
+        # Reserve the registry catalogue too: pack_sources appends it after
+        # windowing, otherwise resumed evidence can overflow before any text.
+        value['archived_source_ids']=[s['id'] for s in sources]
+        value=window(value,sources,limit=MAX_CONTEXT,measure=measure)
     from normative_context_packing import pack_sources
     return pack_sources(value,sources,preferred,limit=MAX_CONTEXT,planning=planning,measure=measure)
 
@@ -380,15 +386,16 @@ class EvidenceTools:
             return self._sum(request)
         if request.tool == 'search_norms':
             from normative_service import candidate
+            from normative_source_registry import full_text_handle
             results = []
             for hit in search_evidence(self.kb, request.query, self.facts, limit=3):
                 item = candidate(self.kb, hit, self.facts)
                 if not item['citations']:
                     continue
                 ref = item['citations'][0]
-                source = dict(id='agent:n:'+str(item['id']), kind='normative',
+                source = dict(id=full_text_handle('agent:n:'+str(item['id']),item['text']), kind='normative',
                     source_id=ref['source_id'], page=ref['page'], label=item['designation']+' · '+item['code'],
-                    origin=item['extraction_status'], text=item['text'][:2800])
+                    origin=item['extraction_status'], text=item['text'])
                 results.append(self._add(source))
                 results.extend(self._add(resource) for resource in resource_sources(item,source['id'],evidence_trace=self.events))
             return {'results': results}
@@ -571,12 +578,15 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
     seen_conditions=set()
     previous_invalid_parameters=set()
     late_repair=False
+    from normative_claim_memory import ClaimMemory
+    claim_memory=ClaimMemory()
     for step in range(MAX_ROUNDS+1):
         if step==MAX_ROUNDS and not late_repair:
             break
         supplied = deepcopy(inputs)
         bounded_history = [dict(request=e['request'],result=model_result(e['result'],4000)) for e in history]
-        supplied.update(coverage={key:value for key,value in tools.coverage.items() if key!='model_context_packing'},
+        supplied.update(coverage={key:value for key,value in tools.coverage.items()
+            if key not in {'model_context_packing','model_metadata_sizes'}},
             tool_results=bounded_history, remaining_steps=max(0,MAX_ROUNDS-step-1))
         if feedback:
             supplied['answer_validation'] = feedback
@@ -589,7 +599,9 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
         supplied['quantity_parameter_candidates'] = quantity_parameter_candidates(
             tools.sources,getattr(tools,'cells',{}),getattr(tools,'quantity_sums',()))
         supplied['previous_literal_parameters'] = list(getattr(tools,'parameter_evidence',{}).values())
-        supplied['normative_thickness_adjustments'] = thickness_adjustments(inputs.get('position',{}).get('work',''),tools.sources)
+        supplied['previous_claim_citations'] = claim_memory.context()
+        owner_work=(inputs.get('normative_work_owner') or {}).get('work') or inputs.get('position',{}).get('work','')
+        supplied['normative_thickness_adjustments'] = thickness_adjustments(owner_work,tools.sources)
         stage = 'normative-evidence-plan' if step == 0 else f'normative-evidence-{step}'
         step_instructions = instructions+TOOLS
         if step == 0 and MAX_ROUNDS > 1:
@@ -598,6 +610,11 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
             step_instructions = TOOLS + '\nСейчас ТОЛЬКО выбери до четырёх точных чтений. Приоритет: проектная конструкция, итоговые строки ведомости с подходящими заголовками columns, затем норматив. Используй row_ids из total_rows и column_ids подходящего материала/единицы. Начало таблицы без чисел не заменяет чтение итогов. Не проверяй всю позицию на этом шаге. summary до 200 символов, items=[], parameters=[], requests. На следующем шаге выполни проверку по полученным данным.'
             step_instructions += '\nvor_layer_group.height — сумма технологических слоёв одной конструкции ВОР в см; выбирай проектный столбец полной толщины, а не требуй отдельный столбец каждой технологической операции.'
             step_instructions += '\nprepared_schedule_candidates — только навигация, а не подтверждённое основание. Проверь предложенные read_requests и выбери нужные чтения; запроси норматив по смыслу работы и условиям. Наличие готовой суммы доказывает только арифметику, а принадлежность конструкции и применимость норм должен установить ты по прочитанным источникам.'
+        step_instructions += '\nwork_scope_graph показывает связанные работы и материалы одного участка. same_work_other_scopes — только аналогия поиска: количество с другого участка переносить запрещено. shared_project_facts — буквальные основания соседних работ, а не их вывод; самостоятельно докажи принадлежность текущей конструкции и участка.'
+        step_instructions += '\ncontext_window.deferred_sources и full_text_archived означают, что полный текст сохранён в реестре. preview — только навигация, не полный норматив. При необходимости условий выполни read_request/read_source; не объявляй отсутствие нормы из-за переноса текста из контекста.'
+        step_instructions += '\nprevious_claim_citations сохраняет ранее проверенные ссылки. Если подтверждаешь тот же аспект по той же норме, сохраняй связь с конструкцией ПД. Ссылка на ресурс машины дополняется определением соответствующей нормы и проектной конструкцией; ресурс не заменяет её область применения. Для выбора сметного способа не требуй буквального повторения машины в ПД, если применимая норма и Методика с её исключениями позволяют такой выбор. Проверяй точный expected_text: идентификация марки/модели, функция класса и пригодность конкретного экземпляра — разные вопросы. Не расширяй проверку имени до доказательства свойств, которых нет в предикате; не подтверждай фактическую пригодность без её основания.'
+        if inputs.get('evidence_followup'):
+            step_instructions += '\nЭто целевой дополнительный поиск по evidence_followup.actions. Используй сохранённые источники и previous_literal_parameters, читай конкретные недостающие основания, не начинай весь анализ сначала. previous_review_items — предыдущие выводы, не доказательства; финальный ответ должен содержать также сохранённые подтверждённые аспекты с точными ссылками. Повторный OCR запрещён.'
         if step >= MAX_ROUNDS-1:
             step_instructions += '\nЭто ОКОНЧАТЕЛЬНЫЙ шаг: requests=[] обязательно. Не ищи снова. Сохрани найденные факты, точные ID ячеек и параметры; непроверенные аспекты — needs_facts с конкретной причиной, не ошибка ВОР. summary до 600 символов, до 16 items с пояснениями до 350 символов.'
             step_instructions += '\nСохраняй отдельные выводы по собственной геометрии, нормативной применимости и related:* расходу дочернего материала. Не объединяй подтверждённую геометрию с неизвестным коэффициентом ради сокращения числа items; объедини только однородные подтверждённые аспекты или сократи пояснения.'
@@ -608,6 +625,9 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
         # All dynamic anchors, history and coverage are now known. Budget the
         # actual aliased request instead of reserving a fixed 20k beforehand.
         from normative_context_packing import serialize_context
+        tools.coverage.setdefault('model_metadata_sizes',[]).append(dict(stage=stage,
+            fields={key:len(serialize_context(model_source_aliases({key:value},tools.sources)[0]))
+                for key,value in supplied.items() if key!='sources'}))
         supplied = compact(supplied,tools.sources,tools.preferred,planning=step==0,
             measure=lambda value: len(serialize_context(model_source_aliases(value,tools.sources)[0])))
         from normative_embedded_context import packing_record
@@ -643,13 +663,15 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
             continue
         requests = getattr(answer, 'requests', [])
         if not requests:
+            claim_memory.restore(answer,tools.sources,tools.events)
             feedback = verify_answer(answer) if verify_answer is not None else []
+            claim_memory.remember(answer,tools.sources,inputs.get('allowed_claim_ids'))
             candidates: list[dict[str,Any]]=list(getattr(tools,'conditional_repair_candidates',()))
             signatures={json.dumps([c['condition_source_id'],c['condition_quote'],
                 sorted(b['code'] for b in c['allowed_base_candidates'])],ensure_ascii=False)
                 for c in candidates if c.get('project_fact_confirmed') and c.get('allowed_base_candidates')}
             fresh=signatures-seen_conditions
-            eligible=(step==MAX_ROUNDS-1 and bool(feedback) and bool(fresh)
+            eligible=(getattr(tools,'allow_late_repair',True) and step==MAX_ROUNDS-1 and bool(feedback) and bool(fresh)
                 and 'thickness' in previous_invalid_parameters
                 and 'thickness' not in getattr(tools,'invalid_project_parameter_kinds',set()))
             seen_conditions.update(signatures)

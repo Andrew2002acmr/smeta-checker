@@ -205,7 +205,7 @@ def _configured_client(public_key, secret_key, base_url, environment):
 class TracingRun:
     def __init__(self, public_key="", secret_key="", base_url="https://cloud.langfuse.com",
                  environment="development", audit_run_id="", request_id="",
-                 redact_pdf=False, mask_prompts=False):
+                 redact_pdf=False, mask_prompts=False, flush_on_close=True):
         self.audit_run_id = str(audit_run_id or "")
         self.request_id = str(request_id or "")
         # One audit run = one Langfuse session across all workers. A random
@@ -217,6 +217,7 @@ class TracingRun:
         )
         self.redact_pdf = bool(redact_pdf)
         self.mask_prompts = bool(mask_prompts)
+        self.flush_on_close = bool(flush_on_close)
         self.client = None
         self.error = ""
         self.positions = []
@@ -240,7 +241,7 @@ class TracingRun:
             if not position.finished:
                 position.finish({"status": "Технический сбой",
                                  "discrepancy_details": "Прогон прерван до завершения позиции"})
-        if self.client is not None:
+        if self.client is not None and self.flush_on_close:
             try:
                 self.client.flush()
             except Exception:

@@ -190,6 +190,9 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
         matches = [p for p in proposals if p['parameter'] == kind and p['source_id'] in sources
             and sources[p['source_id']]['kind'] == wanted_kind
             and (p.get('operation') != 'sum' or sources[p['source_id']]['origin'] == 'calculated_from_cells')]
+        if kind == 'quantity':
+            from normative_fact_contract import dimension_candidates
+            matches = dimension_candidates(matches, expected)
         if kind=='thickness' and thickness_group and not group:
             from normative_layer_assembly import assembly_scope_matches
             matches=[p for p in matches if assembly_scope_matches(owner,p,sources[p['source_id']])]
@@ -533,6 +536,8 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
 
 def enrich(position, result, positions, relation):
     output = deepcopy(result)
+    from normative_fact_contract import restore_numeric_items, record_projection
+    restore_numeric_items(output)
     from normative_layer_assembly import recover_thickness
     geometry_owner=positions.get((relation.get('parent') or {}).get('index'),position)
     recover_thickness(geometry_owner,output,positions)
@@ -582,8 +587,10 @@ def enrich(position, result, positions, relation):
             required_state = 'possible_mismatch' if item['state'] == 'possible_mismatch' else 'confirmed'
             cards = [c for c in output['parameter_cards'] if c['id'] in keys]
             if not cards or any(c['state'] != required_state for c in cards):
+                original = deepcopy(item)
                 item['state'] = 'needs_facts'
                 item['explanation'] += ' Числовое основание не прошло проверку цитаты, OCR, единицы или конструкции; расхождение не доказано.'
+                record_projection(output, original, item)
                 changed = True
         if changed:
             output['state'] = 'possible_mismatch' if any(i['state']=='possible_mismatch' for i in output['items']) else 'needs_facts'

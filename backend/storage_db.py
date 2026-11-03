@@ -1023,15 +1023,23 @@ class Repository:
 
     def reserve_deliveries(self, *, limit: int = 100) -> list[dict[str, Any]]:
         """Recover expired execution leases even when the worker hostname is alive."""
-        now = datetime.now(timezone.utc)
         deliveries = []
         with Session(self._engine) as session:
+            # Two relays must not reserve different research/dependency tasks
+            # for the same position concurrently or exceed normative slots.
+            session.execute(select(func.pg_advisory_xact_lock(736238014)))
+            # available_at defaults to the database clock. A dispatcher host
+            # can lag Docker/PostgreSQL or spend time waiting for the lock.
+            now = session.scalar(select(func.clock_timestamp()))
             in_flight = session.scalar(select(func.count()).select_from(TaskOutbox).where(
                 TaskOutbox.task_name != "audit_tasks.normative_position",
                 TaskOutbox.status.in_(["dispatched", "running"]))) or 0
             normative_in_flight = session.scalar(select(func.count()).select_from(TaskOutbox).where(
                 TaskOutbox.task_name == "audit_tasks.normative_position",
                 TaskOutbox.status.in_(["dispatched", "running"]))) or 0
+            busy_positions = {(t.run_id,t.payload.get('position_index')) for t in session.scalars(
+                select(TaskOutbox).where(TaskOutbox.task_name == 'audit_tasks.normative_position',
+                    TaskOutbox.status.in_(['dispatched','running'])))}
             eligible = select(TaskOutbox).where(
                 TaskOutbox.status.in_(["pending", "dispatched", "running"]),
                 TaskOutbox.available_at <= now,
@@ -1043,6 +1051,8 @@ class Repository:
                 .limit(limit).with_for_update(skip_locked=True)).all())
             for row in rows:
                 normative = row.task_name == "audit_tasks.normative_position"
+                if normative and row.status == 'pending' and (row.run_id,row.payload.get('position_index')) in busy_positions:
+                    continue
                 if row.status == "pending" and (normative_in_flight >= 2 if normative else in_flight >= 32):
                     continue
                 run = session.get(Run, row.run_id)
@@ -1055,6 +1065,7 @@ class Repository:
                 if row.status == "pending":
                     if normative:
                         normative_in_flight += 1
+                        busy_positions.add((row.run_id,row.payload.get('position_index')))
                     else:
                         in_flight += 1
                 if row.status != "dispatched":
@@ -1192,12 +1203,15 @@ class Repository:
 
     def normative_stage(self, run_id, index):
         with Session(self._engine) as session:
-            row = session.scalar(select(TaskOutbox).where(TaskOutbox.run_id == run_id,
-                TaskOutbox.task_key == f"normative:{index}"))
-            if not row:
+            from normative_delivery_status import stages
+            rows = list(session.scalars(select(TaskOutbox).where(TaskOutbox.run_id == run_id,
+                TaskOutbox.task_name == 'audit_tasks.normative_position',
+                TaskOutbox.payload['position_index'].as_integer() == index)))
+            status = stages(rows).get((run_id,index))
+            if status is None:
                 return None
-            return dict(status=row.status, attempts=row.attempts,
-                message="Нормативный этап прерван; автоматический платный повтор отключён." if row.status == "failed" else "")
+            return dict(status=status, attempts=max(r.attempts for r in rows),
+                message="Нормативный этап прерван; автоматический платный повтор отключён." if status == "failed" else "")
 
     def schedule_local_normative_refresh(self, run_id, revision):
         """Versioned local-only upgrades reuse position slots; no new model calls."""
@@ -1238,10 +1252,10 @@ class Repository:
     def normative_validation_context(self, run_id):
         """Batch-read verdict fields and replayable proofs, without OCR snapshots."""
         with Session(self._engine) as session:
-            result: dict[int, dict[str, Any]] = {r.payload['position_index']: {'stage': r.status}
-                for r in session.scalars(select(TaskOutbox).where(
-                    TaskOutbox.run_id == run_id, TaskOutbox.task_name == 'audit_tasks.normative_position'))
-                if type(r.payload.get('position_index')) is int and r.payload['position_index'] >= 0}
+            from normative_delivery_status import stages
+            result: dict[int, dict[str, Any]] = {index: {'stage': status}
+                for (_,index),status in stages(session.scalars(select(TaskOutbox).where(
+                    TaskOutbox.run_id == run_id, TaskOutbox.task_name == 'audit_tasks.normative_position'))).items()}
             rows = session.execute(select(NormativeReview.id, NormativeReview.position_index,
                 NormativeReview.payload['position_key'].as_string(),
                 NormativeReview.payload['position_check']['items'],
@@ -1304,9 +1318,18 @@ class Repository:
         import json
         fingerprint = hashlib.sha256(json.dumps([str(run_id), index, kind, payload, actor], sort_keys=True, ensure_ascii=False).encode()).hexdigest()
         with Session(self._engine) as session:
+            # Serialize append+dependency scheduling for one run. No provider
+            # calls occur inside this short transaction.
+            session.execute(select(func.pg_advisory_xact_lock(int.from_bytes(run_id.bytes[:7], 'big'))))
+            previous = session.scalar(select(NormativeReview).where(NormativeReview.run_id == run_id,
+                NormativeReview.position_index == index, NormativeReview.kind == kind)
+                .order_by(NormativeReview.created_at.desc(), NormativeReview.id.desc()).limit(1))
             session.execute(insert(NormativeReview).values(id=uuid4(), run_id=run_id, position_index=index,
                 kind=kind, payload=payload, actor=actor, fingerprint=fingerprint)
                 .on_conflict_do_nothing(index_elements=[NormativeReview.fingerprint]))
+            if kind == 'check':
+                from normative_followup_outbox import after_review
+                after_review(self,session,run_id,index,payload,previous.payload if previous else None)
             session.commit()
             row = session.scalar(select(NormativeReview).where(NormativeReview.fingerprint == fingerprint))
             return dict(id=str(row.id), kind=row.kind, actor=row.actor, created_at=row.created_at, payload=dict(row.payload))
@@ -1590,11 +1613,12 @@ class Repository:
                     if row["queue"] == "pdf":
                         record["pdf_jobs"] += row["job_count"]
             if records:
-                for run_key, task_status, count in session.execute(select(
-                    TaskOutbox.run_id, TaskOutbox.status, func.count()).where(
+                from normative_delivery_status import stages
+                for (run_key,_), task_status in stages(session.scalars(select(TaskOutbox).where(
                     TaskOutbox.run_id.in_(list(records)), TaskOutbox.task_name == "audit_tasks.normative_position"
-                ).group_by(TaskOutbox.run_id, TaskOutbox.status)):
-                    records[run_key].setdefault("normative_counts", {})[task_status] = count
+                ))).items():
+                    counts = records[run_key].setdefault("normative_counts", {})
+                    counts[task_status] = counts.get(task_status,0)+1
             return list(records.values())
 
     def list_runs(self, project_id: UUID) -> list[RunRow]:

@@ -29,6 +29,20 @@ def test_named_multiplier_is_accepted_without_claiming_normative_proof_or_geomet
     assert again['items']==out['items']
 
 
+def test_estimator_provenance_is_explicit_and_not_a_normative_citation():
+    p,r=fixture()
+    out=apply(p,r)
+    basis=out['evidence_trace'][-1]['entries'][0]['value_basis']
+    assert basis['kind']=='estimator_provided'
+    assert basis['document_reference'] is None
+    assert basis['independently_verified'] is False
+    assert 'сметчиками' in out['parameter_cards'][1]['reason']
+    assert not out['evidence_trace'][-1]['normative_value_proven']
+    for comment in ('Купл-1,25','Коэффициент расхода - 1,26'):
+        other,_=fixture(comment)
+        assert 'value_basis' not in named(other)[0]
+
+
 def test_consumption_coefficient_generalizes_to_another_value():
     p,r=fixture('Коэффициент расхода - 1,03','0.345*1.03','т','т')
     assert 'derived:rate' in accepted_claims(p,r)
@@ -51,6 +65,18 @@ def test_actual_numeric_contradiction_stays_visible():
     p,r=fixture()
     r['parameter_cards'][1]['state']='possible_mismatch'
     assert apply(p,r)['parameter_cards'][1]['state']=='possible_mismatch'
+
+
+def test_summary_does_not_keep_closed_coefficient_as_the_remaining_numeric_gap():
+    p,r=fixture()
+    r['parameter_cards'][0]['state']='confirmed'
+    c=r['parameter_cards'][1]
+    c.update(label='Коэффициент',reason='Не найден источник')
+    r['summary']='Коэффициент: Не найден источник'
+    out=apply(p,r)
+    assert out['summary']=='Марка неизвестна'
+    r['summary']='Найдены другие противоречия'
+    assert apply(p,r)['summary']==r['summary']
 
 
 def test_different_unit_scales_and_complex_consumption_are_not_proved_by_decoding():

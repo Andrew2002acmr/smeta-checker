@@ -169,7 +169,7 @@ def candidate(kb, item, facts=None):
            for r, raw in zip(rules, item.get("rules") or [], strict=True)):
         status = "possible_duplicate"
     return dict(id=item["id"], code=item.get("code") or item.get("label") or "", title=item.get("title") or item.get("label") or "Пункт документа",
-        designation=item["designation"], entity_kind=item["entity_kind"], text=str(item.get("text") or "")[:6000],
+        designation=item["designation"], entity_kind=item["entity_kind"], text=str(item.get("text") or ""),
         unit_raw=(item.get("unit") or {}).get("raw") or "", unit_base=(item.get("unit") or {}).get("unit") or "",
         unit_scale=(item.get("unit") or {}).get("scale"), status=status, extraction_status=item["status"],
         edition_status=(item.get("edition") or {}).get("edition_state", "edition_not_confirmed"),

@@ -28,7 +28,12 @@ def named(position):
         label=match['label'].casefold()
         purpose=('коэффициент запаса материала на уплотнение' if 'упл' in label else
             'коэффициент разрыхления' if 'разр' in label else 'коэффициент расхода материала')
-        output.append(dict(literal=line.strip(),value=str(value),purpose=purpose))
+        entry=dict(literal=line.strip(),value=str(value),purpose=purpose)
+        if value == number('1.26') and 'упл' in label:
+            entry['value_basis'] = dict(kind='estimator_provided',
+                statement='Коэффициент 1,26 предоставляют сметчики по своей нормативной базе.',
+                document_reference=None, independently_verified=False)
+        output.append(entry)
     return output
 
 
@@ -87,6 +92,10 @@ def apply(position,result):
     if not entries:
         return result
     output=deepcopy(result)
+    previous_gaps=[c for c in output.get('parameter_cards',[])
+        if c.get('required',True) and c.get('state')!='confirmed']
+    previous_summary=' '.join(c['label']+': '+c['reason'] for c in previous_gaps
+        if 'label' in c and 'reason' in c)[:2500]
     originals=[]
     for card in output.get('parameter_cards',[]):
         if (card.get('role')!='coefficient' or card.get('state')!='needs_facts'
@@ -95,8 +104,11 @@ def apply(position,result):
         entry=next((e for e in entries if number(e['value'])==number(card.get('declared_value'))),None)
         if entry:
             originals.append(deepcopy(card))
-            card.update(state='confirmed',reason=entry['purpose'].capitalize()+
-                '. Значение временно принято по правилу пользователя; источник значения требует уточнения.')
+            basis=entry.get('value_basis')
+            explanation=('Значение предоставлено сметчиками по их нормативной базе; '
+                'документ-основание не приложен, независимая нормативная проверка не выполнена.'
+                if basis else 'Значение временно принято по правилу пользователя; источник значения требует уточнения.')
+            card.update(state='confirmed',reason=entry['purpose'].capitalize()+'. '+explanation)
     accepted=accepted_claims(position,output)
     items=[]
     for item in output.get('items',[]):
@@ -112,11 +124,22 @@ def apply(position,result):
         originals.append(deepcopy(item))
         if remaining:
             items.append({**item,'claim_ids':remaining})
+        estimator_note=(' Коэффициент 1,26 на уплотнение предоставлен сметчиками; '
+            'название их нормативного источника пока не установлено.'
+            if any(e.get('value_basis') for e in entries) else '')
         items.append(dict(topic=TOPIC,state='confirmed',required=True,claim_ids=sorted(affected),
             project_source_ids=[],normative_source_ids=[],
             explanation='Назначение явно указанного коэффициента распознано. Его значение временно принято '
-                'по правилу пользователя. Это допущение не подтверждает геометрию, свойства материала или выбор нормы.'))
+                'по правилу пользователя.'+estimator_note+
+                ' Это допущение не подтверждает геометрию, свойства материала или выбор нормы.'))
     output['items']=items
+    if previous_summary and output.get('summary')==previous_summary:
+        gaps=[c for c in output.get('parameter_cards',[])
+            if c.get('required',True) and c.get('state')!='confirmed']
+        output['summary']=(' '.join(c['label']+': '+c['reason'] for c in gaps) or
+            ' '.join(i.get('explanation','') for i in items
+                if i.get('required',True) and i.get('state')!='confirmed') or
+            'Числовые основания проверены; коэффициент принят по основанию пользователя.')[:2500]
     output['evidence_trace']=[e for e in output.get('evidence_trace',[]) if e.get('kind')!=TRACE]
     output['evidence_trace'].append(dict(kind=TRACE,policy='temporary_user_acceptance',
         entries=entries,accepted_claims=sorted(accepted),original_checks=originals,

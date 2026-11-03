@@ -98,7 +98,9 @@ def revalidate_answer(context, record, index, row, actor):
         sources=content['sources'], pipeline_version=previous['pipeline_version'],
         execution_state='complete', state='needs_facts',
         related_positions=deepcopy(previous.get('related_positions', [])),
-        coverage=dict(agent_evidence_snapshot=deepcopy(reference)),
+        coverage=dict(agent_evidence_snapshot=deepcopy(reference),
+            **{key:deepcopy(previous['coverage'][key]) for key in
+                ('evidence_followup','evidence_followup_failure') if previous.get('coverage',{}).get(key)}),
         evidence_trace=upstream + proposal_events(parsed.adjustments) + [dict(
             kind='original_agent_evidence_replay', key=reference['key'],
             evidence_sha256=reference['sha256'], original_review_id=str(row['id']),

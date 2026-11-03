@@ -155,6 +155,36 @@ def toolkit():
     return tools
 
 
+def test_normative_search_preserves_late_clause_for_explicit_read():
+    from normative_service import candidate
+    text='Начало пункта. '*600+'Условие в конце: коэффициент только после пробной укатки.'
+    kb=SimpleNamespace(source_index={'pdf':dict(designation='СП test',pages=40)})
+    hit=dict(id='clause',entity_kind='clause',designation='СП test',label='10.2',
+        text=text,status='extracted',missing_facts=[],checks=[],
+        citations=[dict(source_id='pdf',physical_page=30)])
+    assert candidate(kb,hit)['text']==text
+    tools=toolkit()
+    tools.kb,tools.facts=kb,{}
+    with patch('normative_agent.search_evidence',return_value=[hit]):
+        tools.execute(EvidenceRequest(tool='search_norms',query='уплотнение'))
+    saved=next(s for s in tools.sources if s['id'].startswith('agent:n:clause:full:'))
+    assert saved['text']==text
+    result=tools.execute(EvidenceRequest(tool='read_source',source_id=saved['id'],offset=7800))
+    part=next(s for s in tools.sources if s['id']==result['source_id'])
+    assert 'пробной укатки' in part['text']
+    assert saved['text']==text
+
+
+def test_material_adjustment_uses_work_owner_not_material_title():
+    tools=toolkit()
+    ask=Mock(return_value=AgentAnswer(summary='Partial',items=[]))
+    inputs=dict(position=dict(work='Щебеночно-песчаная смесь'),
+        normative_work_owner=dict(work='Устройство основания h = 12 см'))
+    with patch('normative_parameter_anchors.thickness_adjustments',return_value=[]) as adjustments:
+        run(ask,None,None,'',inputs,AgentAnswer,None,{'queries':[]},tools)
+    assert adjustments.call_args.args[0]=='Устройство основания h = 12 см'
+
+
 def sid(cell):
     return cell_source_id('pinned-version', 1, 't1', cell)
 
