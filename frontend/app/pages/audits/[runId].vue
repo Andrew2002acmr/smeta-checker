@@ -611,16 +611,17 @@ onBeforeUnmount(() => {
 }
 .pagination {
   margin: 20px 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
 }
 .docs {
   margin-top: 8px;
   font-size: 14px;
 }
-.docs summary {
-  font-weight: 600;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
+.docs h2 {
+  font-size: 14px;
+  margin: 0;
 }
 .docs p {
   margin: 8px 0;

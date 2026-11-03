@@ -49,12 +49,14 @@ test('long audit rows and the single VOR row fit without horizontal scrolling', 
   await page.getByRole('button', { name: 'Открыть позицию', exact: true }).first().click()
   const vor = page.getByRole('region', { name: 'Таблица ВОР', exact: true })
   await expect(vor.locator('tbody tr')).toHaveCount(1, { timeout: 25000 })
-  await expect(vor.getByRole('columnheader', { name: 'J', exact: true })).toHaveCount(0)
-  await expect(vor.getByRole('columnheader', { name: 'K', exact: true })).toHaveCount(0)
-  await expect(vor.getByText('INTERNAL_ID')).toHaveCount(0)
-  await expect(vor.getByText('Примечание к выбранной позиции:', { exact: false })).toBeHidden()
-  await vor.locator('summary').filter({ hasText: 'Примечание' }).click()
-  await expect(vor.getByText('Примечание к выбранной позиции:', { exact: false })).toBeVisible()
+  await expect(vor.getByRole('columnheader', { name: 'Наименование', exact: true })).toBeVisible()
+  await expect(vor.getByRole('columnheader', { name: 'Ед. изм.', exact: true })).toBeVisible()
+  await expect(vor.getByRole('columnheader', { name: 'Количество', exact: true })).toBeVisible()
+  await expect(
+    page
+      .getByRole('region', { name: 'Примечание', exact: true })
+      .getByText('Примечание к выбранной позиции:', { exact: false }),
+  ).toBeVisible()
   const sizes = await vor
     .locator('.sheet-scroll')
     .evaluate((el) => ({ client: el.clientWidth, scroll: el.scrollWidth }))
