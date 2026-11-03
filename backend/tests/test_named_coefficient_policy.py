@@ -1,12 +1,13 @@
 from copy import deepcopy
 from types import SimpleNamespace
+from typing import Any
 
 from normative_coefficient_policy import apply,accepted_claims,named
 
 
 def fixture(comment='Купл-1,26',formula='431.61*0.12*1.26',unit='м3',parent_unit='м2'):
     p=SimpleNamespace(index=1,comment=comment,formula=formula,calculation={},unit=unit)
-    r=dict(items=[dict(topic='Расход',state='needs_facts',required=True,claim_ids=['derived:rate'],
+    r: dict[str, Any]=dict(items=[dict(topic='Расход',state='needs_facts',required=True,claim_ids=['derived:rate'],
         project_source_ids=[],normative_source_ids=[],explanation='Коэффициент не подтверждён'),
         dict(topic='Марка',state='needs_facts',required=True,claim_ids=['attribute:name:designation:25'],
         project_source_ids=[],normative_source_ids=[],explanation='Марка неизвестна')],
@@ -47,6 +48,28 @@ def test_consumption_coefficient_generalizes_to_another_value():
     p,r=fixture('Коэффициент расхода - 1,03','0.345*1.03','т','т')
     assert 'derived:rate' in accepted_claims(p,r)
     assert 'basis:comment:consumption:1' in accepted_claims(p,r)
+
+
+def test_other_explicit_coefficient_names_retain_their_purpose_and_provenance():
+    for label in ('Коэффициент потерь', 'Коэффициент запаса', 'Коэффициент перехода'):
+        p,r=fixture(label+' = 1,07','345*1.07','т','т')
+        r['parameter_cards'][1].update(id='factor:1:1.07',declared_value='1.07')
+        entry,=named(p)
+        assert entry['purpose']==label.casefold()
+        assert entry['value_basis']['kind']=='estimator_provided'
+        out=apply(p,r)
+        assert out['parameter_cards'][1]['state']=='confirmed'
+        assert out['parameter_cards'][0]['state']=='needs_facts'
+        assert not out['evidence_trace'][-1]['normative_value_proven']
+
+
+def test_generic_name_does_not_waive_conditional_applicability_or_arithmetic():
+    for label in ('Коэффициент потерь при увлажнении', 'Коэффициент только для песка'):
+        p,r=fixture(label+' = 1,07','345*1.07','т','т')
+        assert named(p)==[] and apply(p,r)==r
+    p,r=fixture('Коэффициент потерь = 1,07','345*1.07','т','т')
+    r['parameter_cards'][1].update(id='factor:1:1.07',declared_value='1.07',state='possible_mismatch')
+    assert apply(p,r)['parameter_cards'][1]['state']=='possible_mismatch'
 
 
 def test_compound_comment_does_not_confirm_its_material_conditions():

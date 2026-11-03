@@ -11,8 +11,10 @@ import re
 TRACE = 'named_coefficient_policy_v1'
 TOPIC = 'Назначение коэффициента принято'
 PATTERN = re.compile(r'(?P<label>к[\s_.-]*упл\.?|к[\s_.-]*разр\.?|'
-    r'коэффициент\s+(?:запаса\s+на\s+)?(?:уплотнения|разрыхления|расхода))'
+    r'коэффициент\s+(?:запаса\s+на\s+)?(?:уплотнения|разрыхления|расхода)|'
+    r'коэффициент\s+(?P<purpose>[а-яё]+(?:[ -][а-яё]+){0,5}))'
     r'\s*[:=–—-]?\s*(?P<value>\d+(?:[.,]\d+)?)\s*', re.I)
+CONDITIONAL_PURPOSE = re.compile(r'\b(?:при|если|только|для|кроме|без|свыше|менее|более|не|до|после)\b', re.I)
 
 
 def named(position):
@@ -20,13 +22,14 @@ def named(position):
     output=[]
     for line in re.split(r'[\n;]+',getattr(position,'comment','')):
         match=PATTERN.fullmatch(line.strip())
-        if not match:
+        if not match or (match['purpose'] and CONDITIONAL_PURPOSE.search(match['purpose'])):
             continue
         value=number(match['value'])
         if value is None or value<=0:
             continue
         label=match['label'].casefold()
-        purpose=('коэффициент запаса материала на уплотнение' if 'упл' in label else
+        purpose=(label if match['purpose'] else
+            'коэффициент запаса материала на уплотнение' if 'упл' in label else
             'коэффициент разрыхления' if 'разр' in label else 'коэффициент расхода материала')
         entry=dict(literal=line.strip(),value=str(value),purpose=purpose)
         entry['value_basis'] = dict(kind='estimator_provided',
@@ -65,7 +68,7 @@ def accepted_claims(position,result):
         return set()
     claims=set()
     comment=getattr(position,'comment','').strip()
-    if PATTERN.fullmatch(comment):
+    if len(entries)==1 and entries[0]['literal']==comment:
         claims.update({'basis:comment:consumption:1','attribute:comment:condition','comment'})
     leaves=_product(position)
     quantity=next((c for c in result.get('parameter_cards',[]) if c['id']=='quantity'),{})
