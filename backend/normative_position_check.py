@@ -506,6 +506,10 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
     matching=normalize_matching(position,matching)
     needed = required_claims(matching, 'ОК' if matching.get('status') == 'ОК' else 'Требуется ручная проверка', bool(parent))
     known_claims = needed | {c['claim_id'] for c in matching.get('checks') or [] if c.get('claim_id')} | {'matching:verdict'}
+    from normative_workbook_rate import quantity_contract, related_area
+    project_quantity_contract=quantity_contract(parent_position or position)
+    if project_quantity_contract:
+        known_claims.add('input:area')
     relation: dict[str, Any] = dict(parent=parent, children_truncated=sum(v['index'] == index for v in links.values()) > 12, children=[dict(**link, material_index=child,
         work=positions[child].work_name[:600], quantity=positions[child].volume, unit=positions[child].unit)
         for child, link in links.items() if link['index'] == index][:12])
@@ -603,8 +607,12 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
             for k,v in declared_layer_group.items()}
     parameter_work_scope=(parent_position or position).work_name+' '+position.work_name+' '+\
         ' '.join(child['work'] for child in relation.get('children', []))
+    quantity_search_unit=(parent_position or position).unit
+    if project_quantity_contract:
+        quantity_search_unit=project_quantity_contract['project_input']['unit']
+        parameter_work_scope+=' '+' '.join(c['work'] for c in related_area(parent_position or position,positions))
     quantity_candidates = tools.quantity_candidates(parameter_work_scope,
-        unit=(parent_position or position).unit,
+        unit=quantity_search_unit,
         height_cm=declared_layer_group['height'] if declared_layer_group else None,section_context=section_context)
     if quantity_candidates:
         # Search the design description using the discovered construction's
@@ -620,7 +628,7 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
                 break
     from normative_quantity_sum_repair import prepare_quantity_pair
     prepare_quantity_pair(tools,owner_work=(parent_position or position).work_name,
-        work_scope=parameter_work_scope,owner_unit=(parent_position or position).unit,
+        work_scope=parameter_work_scope,owner_unit=quantity_search_unit,
         section_context=section_context,height_cm=declared_layer_group['height'] if declared_layer_group else None)
     from normative_schedule_quantity import prepare as prepare_schedule_quantity
     prepared_schedule_candidates = prepare_schedule_quantity(parent_position or position, positions, tools, related)
@@ -655,6 +663,10 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
         definitions = [dict(claim_id=s.claim_id,label=s.label,expected_text=s.expected_text,predicate=s.predicate)
             for s in technical_specs(position.work_name,position.comment,position.position_type,[],position.formula)
             if s.claim_id in known_claims]
+        if project_quantity_contract:
+            definitions.append(dict(claim_id='input:area',label='Площадь-основание расчёта',
+                expected_text='Площадь той же конструкции и участка в ПД, используемая как вход расчёта расхода.',
+                predicate=dict(kind='project_calculation_input',dimension='area')))
         from normative_methodology_context import methodology_context
         from normative_source_registry import merge
         methodology=methodology_context(kb,definitions,expected_pin=kb.identity)
@@ -670,6 +682,7 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
         tools.preferred.extend(collection['preferred_source_ids'])
         from normative_coefficient_policy import named as named_coefficients
         inputs: dict[str, Any] = dict(question=payload.question, prepared_quantity_tables=table_discovery,
+            project_quantity_contract=project_quantity_contract,
             material_property_search=material_search,
             estimator_coefficient_basis=[entry for entry in named_coefficients(position)
                 if entry.get('value_basis')],
@@ -767,6 +780,12 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
             "Не выдумывай числовое условие, если применимость описана словами: тогда conditions пустой и требуется инженерная проверка. "
             "Для unit_scale, например измерителя 100 м2, value=100, unit=м2. "
             "Для расчётного материала quantity — количество родительской работы из ПД, а не готовый объём смеси. "
+            "Если project_quantity_contract задан, готовая масса получается расчётом: ищи в ПД площадь-основание, "
+            "передавай её как quantity в м2 и проверяй отдельным claim input:area. Она не является массой позиции. "
+            "Для claim quantity требуется готовая масса либо полностью доказанный расчёт; площадь и массу не сравнивай напрямую. "
+            "Если расход указан в л/м2, деление на 1000 даёт м3: для тонн нужна плотность. "
+            "Явно найденную готовую массу ПД передавай как quantity в т отдельно от площади в м2; "
+            "готовая масса не отменяет проверку исходных величин формулы. "
             "Норму и unit_scale подбирай для normative_work_owner: измеритель работы может быть м2, "
             "а единица материала м3 или т. Само это различие не опровергает применимость нормы родительской работы. "
             "Расход, коэффициент, свойства материала и перевод единиц проверяй отдельно. "

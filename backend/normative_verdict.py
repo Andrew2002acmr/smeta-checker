@@ -11,7 +11,7 @@ def source_supported(item):
     claims = item.get('claim_ids') or []
     if 'workbook:formula' in claims:
         return False  # Arithmetic requires independent server calculation, not a normative citation.
-    project_only = bool(claims) and all(c in {'quantity','unit','presence'} or c.startswith('geometry:') for c in claims)
+    project_only = bool(claims) and all(c in {'quantity','unit','presence','input:area'} or c.startswith('geometry:') for c in claims)
     return bool(claims and item.get('project_source_ids') and (project_only or item.get('normative_source_ids')))
 
 

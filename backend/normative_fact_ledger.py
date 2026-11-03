@@ -37,11 +37,15 @@ def build(position, result, positions, relation):
             if proposal.source_id in c.get("source_ids", [])
         ]
         from normative_parent_basis import _anchored_card
+        from normative_workbook_rate import quantity_contract
+        input_role=quantity_contract(owner) is not None and proposal.parameter=='quantity' and measured and measured[0]=='area' and any(
+            c['id']=='input:area' for c in cards)
+        card_id='input:area' if input_role else proposal.parameter
 
         bound = literal and any(
             c.get("state") == "confirmed"
             and _anchored_card(c, sources)
-            and c.get("id") == proposal.parameter
+            and c.get("id") == card_id
             and measure(c.get("found_value"), c.get("found_unit", "")) == measured
             for c in cards
         )
@@ -52,6 +56,7 @@ def build(position, result, positions, relation):
             subject_state="verified" if bound else "unresolved",
             proposed_owner_position=owner.index,
             parameter=proposal.parameter,
+            quantity_role=('calculation_input' if input_role else 'output') if proposal.parameter=='quantity' else None,
             dimension=measured[0] if measured else None,
             value=proposal.value,
             unit=proposal.unit,

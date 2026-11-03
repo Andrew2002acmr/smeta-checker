@@ -78,6 +78,17 @@ def related_area(position, positions):
     return matches
 
 
+def quantity_contract(position):
+    """Declare an input role, not a found quantity or certified consumption."""
+    proof=analyze(position)
+    if proof is None:
+        return None
+    return dict(role='calculated_output',output_unit=position.unit,
+        project_input=dict(claim_id='input:area',parameter='quantity',role='calculation_input',unit='м2'),
+        rate_unit=proof['rate_unit'],density_required=proof['density_required'],
+        direct_output_evidence_allowed=True,verified=False)
+
+
 def annotate(position, result, positions):
     """Identify operands in UI/model evidence; no operand becomes a PD citation."""
     result['evidence_trace'] = [e for e in result.get('evidence_trace', []) if e.get('kind') != PROOF]

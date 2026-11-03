@@ -10,7 +10,7 @@ from normative_local_checks import layer_group
 from normative_source_roles import classification_source, MESSAGE as CLASSIFICATION_MESSAGE
 from vor_formula import calculate_cell
 
-PARAMETER_SCHEMA_VERSION = 9
+PARAMETER_SCHEMA_VERSION = 10
 
 
 def _parameter_claim(claim, kind):
@@ -18,6 +18,8 @@ def _parameter_claim(claim, kind):
     # obligation from the literal physical thickness extracted from the PD.
     if kind == 'quantity':
         return claim == 'quantity'
+    if kind == 'input:area':
+        return claim == kind
     return claim in {'geometry:thickness', 'thickness'}
 
 
@@ -183,7 +185,7 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
         return dict(id=key, label=label, role=role, row=row, declared_value=str(value), unit=unit,
             state='needs_facts', reason='Нет структурированного подтверждения из источника.', **extra)
 
-    def compare(c, kind, expected_value=None):
+    def compare(c, kind, expected_value=None, *, claim_kind=None, verification_key=None, dimension_required=None):
         comparison_group=thickness_group if kind=='thickness' else group
         expected = measure(expected_value or c['declared_value'], c['unit'])
         wanted_kind = 'project' if kind in {'quantity', 'thickness'} else 'normative'
@@ -192,6 +194,8 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
             and (p.get('operation') != 'sum' or sources[p['source_id']]['origin'] == 'calculated_from_cells')]
         if kind == 'quantity':
             from normative_fact_contract import dimension_candidates
+            if dimension_required:
+                matches=[p for p in matches if (m:=measure(p['value'],p['unit'])) and m[0]==dimension_required]
             matches = dimension_candidates(matches, expected)
         if kind=='thickness' and thickness_group and not group:
             from normative_layer_assembly import assembly_scope_matches
@@ -315,7 +319,7 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
                 return set(re.findall(r'нижн|средн|верхн', clean(text)))
             declared_roles, found_roles = roles(owner.work_name), roles(scope)
             relevant = [i for i in result.get('items', []) if p['source_id'] in i.get('project_source_ids', [])
-                and any(_parameter_claim(claim, kind) for claim in i.get('claim_ids', []))]
+                and any(_parameter_claim(claim, claim_kind or kind) for claim in i.get('claim_ids', []))]
             disputed = any(i.get('state') == 'needs_facts' for i in relevant)
             if (p.get('scope_state') != 'verified' or not quoted(p['value'], p['quote'], scope)
                     or clean(scope) not in clean(source['text']) or disputed
@@ -354,12 +358,31 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
             c['source_anchors'] = [dict(source_id=item['source_id'], quote=item['quote'],
                 rects=sources[item['source_id']].get('rects', [])) for item in matches]
         if kind in {'quantity', 'thickness'}:
-            verified[kind] = found
+            verified[verification_key or claim_kind or kind] = found
         return c
 
     quantity_card = card('quantity', 'Количество родительской работы по ПД' if owner.index != position.index else 'Количество по ПД', owner.volume, owner.unit)
     quantity_card['row'] = owner.position_source.row if owner.position_source else None
-    cards.append(compare(quantity_card, 'quantity'))
+    from normative_workbook_rate import analyze as area_rate
+    recipe=area_rate(owner)
+    direct_mass=any(p.get('parameter')=='quantity' and (m:=measure(p.get('value'),p.get('unit','')))
+        and m[0]=='mass' and p.get('source_id') in sources
+        and sources[p['source_id']]['kind']=='project' for p in proposals)
+    area_input_mode=bool(recipe and not direct_mass)
+    if area_input_mode:
+        quantity_card['reason']=('Масса рассчитывается из площади и расхода; площадь ПД не является готовой массой. '
+            +('Для расхода в л/м² дополнительно нужна подтверждённая плотность.' if recipe['density_required'] else
+              'Нужно подтвердить применимость расхода; перевод кг в тонны проверяется отдельно.'))
+        cards.append(quantity_card)
+    else:
+        cards.append(compare(quantity_card, 'quantity'))
+    if recipe:
+        area=card('input:area','Площадь-основание расчёта',recipe['area'],'м2')
+        area['row']=quantity_card['row']
+        area['expression']=recipe['expression']
+        explicit_role=any('input:area' in item.get('claim_ids',[]) for item in result.get('items',[]))
+        cards.append(compare(area,'quantity',claim_kind='input:area' if explicit_role else 'quantity',
+            verification_key='input:area',dimension_required='area'))
     if height:
         h_value, h_unit = height[1], height[2].lower()
         total = str(thickness_group['height']) if thickness_group else h_value
@@ -507,7 +530,7 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
         c.update(state=composition['state'], found_value=composition['total'], found_unit=composition['unit'],
             source_ids=[composition['source_id']], source_anchors=[anchor], quote=anchor['quote'],
             reason='Количество извлечено по заголовкам и итоговой строке таблицы; слагаемые сохранены с координатами.')
-    if basis:
+    if basis and (not area_input_mode or measure('1',basis['unit'])==measure('1',owner.unit)):
         for c in cards:
             if c['id'] in {'quantity', 'thickness'}:
                 value = basis['quantity'] if c['id'] == 'quantity' else basis['thickness_cm']
@@ -525,7 +548,7 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
     if composition:
         # Prefer the actual operands to distant header rectangles when opening a sum.
         c = next(c for c in cards if c['id'] == 'quantity')
-        if number(composition['declared_value']) == number(owner.volume):
+        if number(composition['declared_value']) == number(owner.volume) and measure('1',composition['unit'])==measure('1',owner.unit):
             c['source_anchors'] = [dict(source_id=composition['source_id'], quote=' + '.join(v['value'] for v in composition['terms']),
                 rects=[v['rect'] for v in composition['terms']])]
     if relation.get('material_owner') and not relation.get('parent'):
@@ -615,8 +638,8 @@ def enrich(position, result, positions, relation):
 
 
 def numeric_card_keys(claims):
-    return {'quantity' if claim in {'quantity', 'unit'} else 'thickness'
-        for claim in claims if claim in {'quantity','unit'} or 'thickness' in claim}
+    return {'input:area' if claim=='input:area' else 'quantity' if claim in {'quantity', 'unit'} else 'thickness'
+        for claim in claims if claim in {'quantity','unit','input:area'} or 'thickness' in claim}
 
 
 def inherit_work_evidence(result, parent, index):
