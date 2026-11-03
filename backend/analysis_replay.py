@@ -155,6 +155,8 @@ def normative_identity(context,record,index,payload):
 
 
 def replay_normative(context,record,index,payload,actor):
+    if record.get('config',{}).get('normative_fresh_model') is True:
+        return None  # Independent model sampling; prepared PDF reuse is unaffected.
     if not enabled(context):
         return None
     ident=normative_identity(context,record,index,payload)
@@ -172,6 +174,8 @@ def replay_normative(context,record,index,payload,actor):
 
 
 def store_normative(context,record,index,payload,saved):
+    if record.get('config',{}).get('normative_fresh_model') is True:
+        return saved  # Never replace a new sampled answer with the first cached one.
     if not enabled(context) or saved['payload']['position_check'].get('execution_state')!='complete':
         return saved
     ident=normative_identity(context,record,index,payload)
