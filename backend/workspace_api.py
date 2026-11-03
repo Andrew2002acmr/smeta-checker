@@ -408,14 +408,8 @@ def workspace_router(get_context) -> APIRouter:
     )
     def workspace(run_id: str, position_index: int, context=Depends(guarded)):
         record = available(context, run_id)
-        row = next(
-            (
-                r
-                for r in present_results(context, record)
-                if r.position_index == position_index
-            ),
-            None,
-        )
+        rows = {r.position_index: r for r in present_results(context, record, only=[position_index])}
+        row = rows.get(position_index)
         if row is None:
             if not any(p.index == position_index for p in inputs_for_run(context, record)):
                 raise ApiError(404, "position_not_found", "Позиция не найдена")
@@ -441,7 +435,7 @@ def workspace_router(get_context) -> APIRouter:
             position = locate_position(context, record, position_index)
         except KeyError as exc:
             raise ApiError(404, "position_not_found", "Позиция не найдена") from exc
-        if not any(r.position_index == position_index for r in present_results(context, record)):
+        if not present_results(context, record, only=[position_index]):
             raise ApiError(409, "position_not_ready", "Позиция ещё обрабатывается")
         return record, position
 

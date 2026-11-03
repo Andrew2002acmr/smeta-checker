@@ -1235,13 +1235,16 @@ class Repository:
             session.commit()
             return scheduled
 
-    def normative_validation_context(self, run_id):
+    def normative_validation_context(self, run_id, indices=None):
         """Batch-read verdict fields and replayable proofs, without OCR snapshots."""
+        wanted = set(indices) if indices is not None else None
         with Session(self._engine) as session:
+            outbox = select(TaskOutbox).where(
+                TaskOutbox.run_id == run_id, TaskOutbox.task_name == 'audit_tasks.normative_position')
             result: dict[int, dict[str, Any]] = {r.payload['position_index']: {'stage': r.status}
-                for r in session.scalars(select(TaskOutbox).where(
-                    TaskOutbox.run_id == run_id, TaskOutbox.task_name == 'audit_tasks.normative_position'))
-                if type(r.payload.get('position_index')) is int and r.payload['position_index'] >= 0}
+                for r in session.scalars(outbox)
+                if type(r.payload.get('position_index')) is int and r.payload['position_index'] >= 0
+                and (wanted is None or r.payload['position_index'] in wanted)}
             rows = session.execute(select(NormativeReview.id, NormativeReview.position_index,
                 NormativeReview.payload['position_key'].as_string(),
                 NormativeReview.payload['position_check']['items'],
@@ -1261,7 +1264,8 @@ class Repository:
                     '@.kind == "workbook_arithmetic_proof_v1" || '
                     '@.kind == "explicit_curb_column_quantity_v1" || '
                     '@.kind == "parent_geometry_dependency_v1"))', JSONPATH))).where(
-                    NormativeReview.run_id == run_id, NormativeReview.kind == 'check')
+                    NormativeReview.run_id == run_id, NormativeReview.kind == 'check',
+                    *((NormativeReview.position_index.in_(sorted(wanted)),) if wanted is not None else ()))
                 .distinct(NormativeReview.position_index)
                 .order_by(NormativeReview.position_index, NormativeReview.created_at.desc(), NormativeReview.id.desc()))
             scoped_reviews={}
@@ -1501,19 +1505,21 @@ class Repository:
                 })
             session.commit()
 
-    def list_position_jobs(self, run_id: UUID, *, include_results: bool = True) -> list[PositionJobRow]:
+    def list_position_jobs(self, run_id: UUID, *, include_results: bool = True, indices=None) -> list[PositionJobRow]:
         """List all job rows of a run ordered by position index."""
+        wanted = set(indices) if indices is not None else None
+        extra = ((PositionJob.position_index.in_(sorted(wanted)),) if wanted is not None else ())
         with Session(self._engine) as session:
             if not include_results:
                 rows = session.execute(select(
                     PositionJob.id, PositionJob.run_id, PositionJob.position_index,
                     PositionJob.queue, PositionJob.status, PositionJob.attempts,
                     PositionJob.worker, PositionJob.payload,
-                ).where(PositionJob.run_id == run_id).order_by(PositionJob.position_index)).mappings()
+                ).where(PositionJob.run_id == run_id, *extra).order_by(PositionJob.position_index)).mappings()
                 return [PositionJobRow(**dict(row)) for row in rows]
             rows = session.scalars(
                 select(PositionJob)
-                .where(PositionJob.run_id == run_id)
+                .where(PositionJob.run_id == run_id, *extra)
                 .order_by(PositionJob.position_index)
             ).all()
             return [self._job_row(job) for job in rows]

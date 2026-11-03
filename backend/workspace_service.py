@@ -81,19 +81,30 @@ def _provenance(position: VorPosition) -> tuple[str, int | None, dict[str, str]]
     return source.sheet, source.row, dict(source.cells)
 
 
-def present_results(context, record) -> list[ResultDTO]:
+def present_results(context, record, only=None) -> list[ResultDTO]:
     from normative_local_checks import LOCAL_RULES_VERSION
     context.repository.schedule_local_normative_refresh(record['id'], LOCAL_RULES_VERSION)
     positions = {p.index: p for p in inputs_for_run(context, record)}
     from vor_material_links import material_links
     links = material_links([p.legacy_task() for p in positions.values()])
-    validation = context.repository.normative_validation_context(record['id'])
+    wanted = set(only) if only is not None else None
+    if wanted is not None:
+        # Parent verdicts need the parent row; it is cheap once validation is scoped.
+        for index in list(wanted):
+            parent = (links.get(index) or {}).get('index')
+            if isinstance(parent, int):
+                wanted.add(parent)
+    validation = context.repository.normative_validation_context(
+        record['id'], wanted if wanted is not None else None)
     jobs = {
-        j.position_index: j for j in context.repository.list_position_jobs(record["id"])
+        j.position_index: j for j in context.repository.list_position_jobs(
+            record["id"], indices=wanted if wanted is not None else None)
     }
     result = []
     for item in record["indexed_results"]:
         index, stored = item["position_index"], item["result"]
+        if wanted is not None and index not in wanted:
+            continue
         position = positions.get(index)
         if position is None:
             raise ValueError("Исходная позиция результата не найдена")
