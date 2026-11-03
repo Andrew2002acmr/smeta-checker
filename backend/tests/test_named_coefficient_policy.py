@@ -40,7 +40,7 @@ def test_estimator_provenance_is_explicit_and_not_a_normative_citation():
     assert not out['evidence_trace'][-1]['normative_value_proven']
     for comment in ('Купл-1,25','Коэффициент расхода - 1,26'):
         other,_=fixture(comment)
-        assert 'value_basis' not in named(other)[0]
+        assert named(other)[0]['value_basis']['kind']=='estimator_provided'
 
 
 def test_consumption_coefficient_generalizes_to_another_value():

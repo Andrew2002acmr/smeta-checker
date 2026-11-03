@@ -104,8 +104,16 @@ def resume_evidence(tools, continuation, record, position, kb):
     # Source IDs can already occur in initial deterministic preflight. They
     # must still refer to the exact same immutable content.
     current = {s["id"]: s for s in tools.sources}
-    if any(s["id"] in current and current[s["id"]] != s for s in sources):
+    from normative_source_registry import rect_order_equivalent
+    if any(s["id"] in current and not rect_order_equivalent(current[s["id"]],s) for s in sources):
         raise ValueError("Follow-up source ID collision")
+    for source in sources:
+        existing=current.get(source['id'])
+        if existing is not None and existing!=source:
+            # Retain the frozen bytes and citation hashes. Rectangle ordering
+            # only affects painting; it is not a different numerical source.
+            tools.sources[tools.sources.index(existing)]=deepcopy(source)
+            tools.events.append(dict(kind='source_geometry_order_normalized',source_id=source['id']))
     candidates = [
         dict(proposal=deepcopy(p))
         for p in result.get("parameter_proposals", [])

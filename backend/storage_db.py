@@ -895,6 +895,20 @@ class Repository:
                 created_at=run.created_at,
             )
 
+    def pin_normative_corpus(self, run_id: UUID, identity: dict[str, Any]) -> dict[str, Any]:
+        """Concurrent first positions agree on one immutable normative release."""
+        from copy import deepcopy
+        with Session(self._engine) as session:
+            run=session.scalar(select(Run).where(Run.id==run_id).with_for_update())
+            if run is None:
+                raise KeyError(str(run_id))
+            pin=(run.config or {}).get('normative_kb_pin')
+            if pin is None:
+                pin=deepcopy(identity)
+                run.config={**dict(run.config or {}),'normative_kb_pin':pin}
+                session.commit()
+            return deepcopy(pin)
+
     def run_pinned_versions(self, run_id: UUID) -> dict[str, UUID]:
         with Session(self._engine) as session:
             return {str(row.source_key): row.version_id for row in session.scalars(

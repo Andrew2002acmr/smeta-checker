@@ -50,6 +50,8 @@ def window(value, sources, *, limit, measure=None):
     for chunk in sorted(chunks, key=lambda c: len(c["quote"]), reverse=True):
         if size(output) <= target:
             break
+        if len(chunk['quote'])<=512:
+            continue
         text = chunk.pop("quote")
         chunk.update(
             preview=text[:180],
@@ -87,5 +89,29 @@ def window(value, sources, *, limit, measure=None):
             deferred.append(
                 dict(source_id=sid(removed), kind="literal_template", field=field)
             )
+    coverage=output.get('coverage') or {}
+    catalogue=coverage.get('available_tables')
+    if isinstance(catalogue,list) and len(catalogue)>8 and size(output)>target:
+        # This duplicates the table-search preview. Exact selected cells and
+        # discovered sums remain in their own fields and immutable registry.
+        coverage['available_tables']=catalogue[:8]
+        coverage['table_catalog_truncated']=True
+        coverage['table_catalog_deferred']=dict(shown=8,previously_shown=len(catalogue),
+            request=dict(tool='search_tables',query='уточнить материал и конструкцию'))
+    if size(output)>target:
+        # Earlier prose is not evidence. Preserve the claim, state and source
+        # edges; the current answer must be based on the actual source text.
+        for item in output.get('previous_review_items',[]):
+            item.pop('explanation',None)
+        for event in list(deferred):
+            while deferred.count(event)>1:
+                deferred.remove(event)
+    discovery=output.get('prepared_quantity_tables')
+    if size(output)>target and output.get('quantity_candidates') and isinstance(discovery,dict):
+        from normative_agent import model_result
+        output['prepared_quantity_tables']=model_result(discovery,2500)
+        output['prepared_quantity_tables']['read_again']=True
+        output['prepared_quantity_tables']['read_request']=dict(tool='search_tables',
+            query=output.get('position',{}).get('work','')[:300])
     output["context_window"]["metadata_characters"] = size(output)
     return output

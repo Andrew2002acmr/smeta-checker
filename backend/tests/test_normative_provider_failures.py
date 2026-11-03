@@ -254,6 +254,21 @@ def test_retry_keeps_prior_tool_results_without_repeating_acquisition():
     assert final_input['tool_results'][0]['result'] == {'found':True}
 
 
+def test_failed_planning_calls_do_not_turn_first_success_into_a_final_review():
+    navigation={'summary':'Read source','items':[], 'parameters':[],
+        'requests':[{'tool':'read_page','page':7}]}
+    run,create,stats,tools=agent_fixture([
+        agent_response(code=503),agent_response(code=503),agent_response(navigation)])
+    with pytest.raises(TimeoutError,match='acquisition budget'):
+        run()
+    assert stats['requests']==3
+    tools.execute.assert_not_called()
+    # Navigation remains explicit even though transport attempts exhausted
+    # the paid budget; the source read was not claimed as completed.
+    for call in create.call_args_list:
+        assert 'ТОЛЬКО выбери' in call.kwargs['messages'][0]['content']
+
+
 def test_too_many_sources_feedback_exposes_only_limit_and_repairs_within_budget():
     navigation = {'summary':'Read source', 'items':[], 'parameters':[],
         'requests':[{'tool':'read_page','page':7}]}

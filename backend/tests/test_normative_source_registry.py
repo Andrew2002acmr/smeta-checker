@@ -4,6 +4,7 @@ import pytest
 
 from normative_source_registry import merge
 from normative_source_registry import full_text_handle
+from normative_source_registry import rect_order_equivalent
 from normative_evidence_followup import preserve_completed
 
 
@@ -16,6 +17,19 @@ def test_extended_normative_text_gets_new_identity_without_rewriting_old_proof()
     assert sources[0]['text']==old and len(sources)==2
     assert handle==full_text_handle('agent:n:x',full)
     assert handle!=full_text_handle('agent:n:x',old)
+
+
+def test_only_exact_rectangle_permutation_is_equivalent():
+    source=dict(id='sum',text='4 + 5 = 9',version_id='pdf',page=1,
+        rects=[[.2,.3,.4,.5],[.6,.3,.8,.5]])
+    other={**source,'rects':list(reversed(source['rects']))}
+    assert rect_order_equivalent(source,other)
+    sources=[deepcopy(source)]
+    merge(sources,[other])
+    assert sources==[source]
+    assert not rect_order_equivalent(source,{**other,'text':'4 + 6 = 10'})
+    assert not rect_order_equivalent(source,{**other,'version_id':'other'})
+    assert not rect_order_equivalent(source,{**other,'rects':[[.21,.3,.4,.5],source['rects'][1]]})
 
 
 def test_resumed_context_does_not_duplicate_same_normative_sources():

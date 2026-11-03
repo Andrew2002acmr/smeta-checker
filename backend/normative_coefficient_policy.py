@@ -29,10 +29,9 @@ def named(position):
         purpose=('коэффициент запаса материала на уплотнение' if 'упл' in label else
             'коэффициент разрыхления' if 'разр' in label else 'коэффициент расхода материала')
         entry=dict(literal=line.strip(),value=str(value),purpose=purpose)
-        if value == number('1.26') and 'упл' in label:
-            entry['value_basis'] = dict(kind='estimator_provided',
-                statement='Коэффициент 1,26 предоставляют сметчики по своей нормативной базе.',
-                document_reference=None, independently_verified=False)
+        entry['value_basis'] = dict(kind='estimator_provided',
+            statement='Явно указанный коэффициент предоставлен сметчиками; отсутствие их нормативного источника не является ошибкой ВОР.',
+            document_reference=None, independently_verified=False)
         output.append(entry)
     return output
 
@@ -124,7 +123,7 @@ def apply(position,result):
         originals.append(deepcopy(item))
         if remaining:
             items.append({**item,'claim_ids':remaining})
-        estimator_note=(' Коэффициент 1,26 на уплотнение предоставлен сметчиками; '
+        estimator_note=(' Коэффициент предоставлен сметчиками; '
             'название их нормативного источника пока не установлено.'
             if any(e.get('value_basis') for e in entries) else '')
         items.append(dict(topic=TOPIC,state='confirmed',required=True,claim_ids=sorted(affected),

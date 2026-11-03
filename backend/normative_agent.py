@@ -578,6 +578,7 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
     seen_conditions=set()
     previous_invalid_parameters=set()
     late_repair=False
+    successful_rounds=0
     from normative_claim_memory import ClaimMemory
     claim_memory=ClaimMemory()
     for step in range(MAX_ROUNDS+1):
@@ -602,9 +603,10 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
         supplied['previous_claim_citations'] = claim_memory.context()
         owner_work=(inputs.get('normative_work_owner') or {}).get('work') or inputs.get('position',{}).get('work','')
         supplied['normative_thickness_adjustments'] = thickness_adjustments(owner_work,tools.sources)
-        stage = 'normative-evidence-plan' if step == 0 else f'normative-evidence-{step}'
+        planning=successful_rounds==0
+        stage = 'normative-evidence-plan' if planning else f'normative-evidence-{step}'
         step_instructions = instructions+TOOLS
-        if step == 0 and MAX_ROUNDS > 1:
+        if planning and MAX_ROUNDS > 1:
             # Navigation is a separate bounded task, not a full audit of every
             # preliminary claim before the underlying table has been read.
             step_instructions = TOOLS + '\nСейчас ТОЛЬКО выбери до четырёх точных чтений. Приоритет: проектная конструкция, итоговые строки ведомости с подходящими заголовками columns, затем норматив. Используй row_ids из total_rows и column_ids подходящего материала/единицы. Начало таблицы без чисел не заменяет чтение итогов. Не проверяй всю позицию на этом шаге. summary до 200 символов, items=[], parameters=[], requests. На следующем шаге выполни проверку по полученным данным.'
@@ -628,7 +630,7 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
         tools.coverage.setdefault('model_metadata_sizes',[]).append(dict(stage=stage,
             fields={key:len(serialize_context(model_source_aliases({key:value},tools.sources)[0]))
                 for key,value in supplied.items() if key!='sources'}))
-        supplied = compact(supplied,tools.sources,tools.preferred,planning=step==0,
+        supplied = compact(supplied,tools.sources,tools.preferred,planning=planning,
             measure=lambda value: len(serialize_context(model_source_aliases(value,tools.sources)[0])))
         from normative_embedded_context import packing_record
         packing = packing_record(supplied,tools.sources,stage)
@@ -661,6 +663,7 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
             stats.setdefault('warnings',[]).append('Временный сбой провайдера; повтор в оставшемся бюджете шагов, без повторного OCR.')
             feedback=['Предыдущий запрос не завершился из-за временного сбоя соединения. Прочитанные источники сохранены; выполни проверку по ним.']
             continue
+        successful_rounds+=1
         requests = getattr(answer, 'requests', [])
         if not requests:
             claim_memory.restore(answer,tools.sources,tools.events)

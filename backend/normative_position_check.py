@@ -475,6 +475,8 @@ def position_search_queries(position, question):
 
 def check(context, record, index, payload, actor, *, automatic=False, continuation=None):
     from analysis_replay import replay_normative,store_normative
+    record={**record,'config':dict(record['config'])}
+    kb=service.run_corpus(context,record,continuation)
     replayed=replay_normative(context,record,index,payload,actor)
     if replayed is not None and replayed['payload']['position_check'].get('pipeline_version', 0) >= PIPELINE_VERSION:
         return replayed
@@ -511,7 +513,6 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
     relation['material_owner']=navigation_owner(index,positions,relation)
     optional_child_claims = {f"related:{v['material_index']}:rate" for v in relation['children']}
     known_claims |= optional_child_claims
-    kb = service.corpus(profile=service.profile_for(record))
     credentials = context.settings.llm_credentials()
     stats: dict[str, Any] = dict(interpretation="Проверка одной позиции с нормативами", queries=[], missing_facts=[], warnings=[],
         model=credentials.model_name, provider=credentials.provider, requests=0, usage={}, elapsed_seconds=0, trace_id=None, trace_url=None)
@@ -544,6 +545,11 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
         ordered.insert(min(leading,7),definition_queries[0])
         ordered=ordered[:8]
     raw_candidates = preflight_candidates(kb,ordered,facts.model_dump(),definition_queries=definition_queries)
+    from normative_material_search import search as search_material_properties
+    material_search,property_candidates=search_material_properties(kb,position)
+    seen_candidates={(item['entity_kind'],item['id']) for item in raw_candidates}
+    raw_candidates.extend(item for item in property_candidates
+        if (item['entity_kind'],item['id']) not in seen_candidates)
     candidates = [service.candidate(kb,item,facts.model_dump()) for item in raw_candidates]
     resource_evidence = []
     for item in candidates:
@@ -664,6 +670,7 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
         tools.preferred.extend(collection['preferred_source_ids'])
         from normative_coefficient_policy import named as named_coefficients
         inputs: dict[str, Any] = dict(question=payload.question, prepared_quantity_tables=table_discovery,
+            material_property_search=material_search,
             estimator_coefficient_basis=[entry for entry in named_coefficients(position)
                 if entry.get('value_basis')],
             prepared_schedule_candidates=prepared_schedule_candidates,
@@ -740,7 +747,9 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
             "numeric_verified/unit_verified=false означает необходимость проверки OCR/единицы, а не отсутствие ячеек. "
             "Разная детализация названия сама по себе не расхождение. Расчётный материал может не иметь отдельной строки "
             "в ПД. Проверяй формулу, единицы и основание коэффициента ОТДЕЛЬНО; не выдавай 1.26 или иной "
-            "коэффициент за подтверждённый без источника и его условий. estimator_coefficient_basis — "
+            "коэффициент за независимо нормативно подтверждённый без источника и его условий. "
+            "Не помечай явно названный коэффициент ошибкой только из-за отсутствия нормативки сметчиков: "
+            "его значение принято пользователем как предоставленное сметчиками, арифметика проверяется отдельно. estimator_coefficient_basis — "
             "отдельное основание сметчиков, сообщённое пользователем: учитывай его для указанного коэффициента, "
             "но не называй независимо проверенной цитатой норматива. Оно не подтверждает площадь, толщину, "
             "марку материала и не отменяет расхождений. Модель машины в ВОР может относиться "

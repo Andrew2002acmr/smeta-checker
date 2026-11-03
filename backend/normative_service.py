@@ -44,6 +44,32 @@ def profile_for(record):
     return "electrical"
 
 
+def run_corpus(context, record, continuation=None):
+    """Freeze a run's release; a continuation retains its original evidence."""
+    pin=(continuation or {}).get('review',{}).get('payload',{}).get('kb')
+    existing=record['config'].get('normative_kb_pin')
+    if pin and existing and pin!=existing:
+        raise ValueError('Follow-up normative release differs from run pin')
+    selected=pin or existing
+    if selected and selected.get('profile')!=profile_for(record):
+        raise ValueError('Normative release profile differs from project')
+    kb=corpus(selected,profile=profile_for(record))
+    if selected and kb.identity!=selected:
+        raise ValueError('Normative release identity changed')
+    # Only a real repository implementation may acquire the transactional pin;
+    # arbitrary mocks/connected clients must not invent a successful binding.
+    if getattr(type(context.repository),'pin_normative_corpus',None) is not None:
+        bound=context.repository.pin_normative_corpus(record['id'],kb.identity)
+        if pin and bound!=pin:
+            raise ValueError('Follow-up normative release differs from run pin')
+        if bound!=kb.identity:
+            kb=corpus(bound,profile=profile_for(record))
+            if kb.identity!=bound:
+                raise ValueError('Normative release identity changed')
+    record['config']={**record['config'],'normative_kb_pin':kb.identity}
+    return kb
+
+
 @lru_cache(maxsize=32)
 def _source_hash(path, stamp, size):
     with Path(path).open("rb") as stream:

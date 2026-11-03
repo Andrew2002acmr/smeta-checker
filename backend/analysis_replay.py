@@ -143,7 +143,7 @@ def normative_identity(context,record,index,payload):
     revision=getattr(context.repository,'analysis_human_revision',None)
     human_revision=revision(record['project_id'],record['vor_version_id'],list((record['config'].get('pdf_versions') or {}).values())) if revision else ''
     inputs=dict(matching=digest(matching),matching_facts=digest(matching_facts(raw)),
-        kb=service.corpus(profile=service.profile_for(record)).identity,
+        kb=service.corpus(pin=record['config'].get('normative_kb_pin'),profile=service.profile_for(record)).identity,
         # The matching job stays frozen when table preparation is corrected.
         # Normative retrieval, however, reads this newer document snapshot.
         # Reusing an answer from the old grid would silently undo that repair.

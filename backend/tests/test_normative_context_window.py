@@ -61,3 +61,29 @@ def test_unknown_large_required_metadata_is_not_silently_dropped():
     output = window(value, [], limit=1000)
     assert output["unknown_required"] == value["unknown_required"]
     assert len(serialize_context(output)) > 1000
+
+
+def test_duplicate_table_navigation_is_bounded_without_dropping_selected_cells():
+    value=dict(work_scope_graph=dict(positions=[]),required_validation_claims=['quantity'],
+        quantity_candidates=[dict(operand_source_ids=['left','right'],table_id='selected')],
+        coverage=dict(available_tables=[dict(table_id=f't{i}',columns=['Navigation '*40]) for i in range(80)]))
+    output=window(value,[],limit=20000)
+    assert len(output['coverage']['available_tables'])==8
+    assert output['coverage']['table_catalog_deferred']['previously_shown']==80
+    assert output['quantity_candidates']==value['quantity_candidates']
+    assert output['required_validation_claims']==['quantity']
+    assert len(value['coverage']['available_tables'])==80
+
+
+def test_old_prose_is_not_allowed_to_crowd_out_current_source_evidence():
+    items=[dict(claim_ids=['method'],state='confirmed',project_source_ids=['p'],
+        normative_source_ids=['n'],explanation='Prior interpretation. '*150) for _ in range(8)]
+    value=dict(work_scope_graph=dict(positions=[]),previous_review_items=items,
+        required_validation_claims=['method'],quantity_candidates=[dict(source_id='p')])
+    output=window(value,[],limit=10000)
+    assert len(serialize_context(output))<10000
+    assert len(output['previous_review_items'])==len(items)
+    for row in output['previous_review_items']:
+        assert row['claim_ids']==['method'] and row['state']=='confirmed'
+        assert row['project_source_ids']==['p'] and row['normative_source_ids']==['n']
+    assert 'explanation' in items[0]
