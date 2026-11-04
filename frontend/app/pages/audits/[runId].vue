@@ -454,8 +454,8 @@ onBeforeUnmount(() => {
             @update:page="setPage"
           />
         </div>
-        <details class="docs">
-          <summary>Исходные версии документов</summary>
+        <section class="docs" aria-label="Исходные версии документов">
+          <h2>Исходные версии документов</h2>
           <p v-for="doc in summary.documents" :key="doc.id">
             {{ doc.filename }} · версия {{ doc.number }} · {{ doc.sha256.slice(0, 12) }}
             <UButton
@@ -468,7 +468,7 @@ onBeforeUnmount(() => {
               >Скачать</UButton
             >
           </p>
-        </details>
+        </section>
       </template>
       <AuditWorkspace
         v-if="position !== null && summary"

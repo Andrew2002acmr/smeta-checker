@@ -1097,6 +1097,13 @@ export const zRowsDto = z.object({
 });
 
 /**
+ * RunCountDTO
+ */
+export const zRunCountDto = z.object({
+    count: z.int()
+});
+
+/**
  * RunDTO
  */
 export const zRunDto = z.object({
@@ -1298,8 +1305,14 @@ export const zDocumentDto = z.object({
     last_run: zRunDto.nullish(),
     pd_updated: z.boolean().optional().default(false),
     project_id: z.string(),
+    run_freshness: z.enum([
+        'current',
+        'stale',
+        'unavailable'
+    ]).nullish(),
     title: z.string(),
-    versions: z.array(zVersionDto)
+    versions: z.array(zVersionDto),
+    vor_updated: z.boolean().optional().default(false)
 });
 
 /**
@@ -1916,6 +1929,15 @@ export const zHistoryApiV1ProjectsProjectIdAuditsGetQuery = z.object({
  * Successful Response
  */
 export const zHistoryApiV1ProjectsProjectIdAuditsGetResponse = z.array(zRunDto);
+
+export const zHistoryCountApiV1ProjectsProjectIdAuditsCountGetPath = z.object({
+    project_id: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zHistoryCountApiV1ProjectsProjectIdAuditsCountGetResponse = zRunCountDto;
 
 export const zCatalogApiV1ProjectsProjectIdCatalogGetPath = z.object({
     project_id: z.string()

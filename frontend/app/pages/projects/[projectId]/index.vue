@@ -3,6 +3,18 @@ import type { ProjectDto, RunDto, DocumentDto } from '~/generated/types.gen'
 import { runLabel } from '~/utils/presentation'
 import type { TableColumn } from '@nuxt/ui'
 type Tab = 'vor' | 'pdf' | 'runs'
+type Queue = 'fix' | 'review' | 'missing' | 'ok'
+type SummaryState =
+  | { status: 'loading' }
+  | { status: 'error' }
+  | { status: 'ready'; queues: Record<Queue, number> }
+
+const queueLabels: Record<Queue, string> = {
+  fix: 'Исправить',
+  review: 'Проверить вручную',
+  missing: 'Не выполнено',
+  ok: 'Подтверждено',
+}
 
 const backend = useBackend()
 const route = useRoute()
@@ -16,6 +28,8 @@ const tab = computed<Tab>(() =>
 const project = ref<ProjectDto | null>(null)
 const documents = ref<DocumentDto[]>([])
 const runs = ref<RunDto[]>([])
+const summaries = ref<Record<string, SummaryState>>({})
+let catalogEpoch = 0
 const busy = ref(true)
 const runsOffset = ref(0)
 const runsBusy = ref(false)
@@ -97,6 +111,47 @@ function statusColor(status: RunDto['status']): 'success' | 'error' | 'warning' 
 
 function currentVersion(doc: DocumentDto) {
   return doc.versions.find((v) => v.id === doc.current_version_id) || doc.versions[0] || null
+}
+
+function summaryText(runId: string) {
+  const state = summaries.value[runId]
+  if (!state || state.status !== 'ready') return ''
+  return (
+    (Object.keys(queueLabels) as Queue[])
+      .filter((queue) => state.queues[queue] > 0)
+      .map((queue) => `${queueLabels[queue]} · ${state.queues[queue]}`)
+      .join(' / ') || 'Проверка без позиций'
+  )
+}
+async function loadSummary(runId: string, current: number) {
+  summaries.value[runId] = { status: 'loading' }
+  try {
+    const summary = await backend.summary(runId)
+    if (!active || current !== catalogEpoch) return
+    summaries.value[runId] = {
+      status: 'ready',
+      queues: {
+        fix: summary.queues.fix ?? 0,
+        review: summary.queues.review ?? 0,
+        missing: summary.queues.missing ?? 0,
+        ok: summary.queues.ok ?? 0,
+      },
+    }
+  } catch {
+    if (active && current === catalogEpoch) summaries.value[runId] = { status: 'error' }
+  }
+}
+
+function setCatalog(catalog: DocumentDto[]) {
+  documents.value = catalog
+  const current = ++catalogEpoch
+  summaries.value = {}
+  const ids = new Set(
+    catalog
+      .filter((doc) => doc.kind === 'vor' && doc.last_run?.status === 'done')
+      .map((doc) => doc.last_run!.run_id),
+  )
+  for (const id of ids) void loadSummary(id, current)
 }
 
 function openDocument(doc: DocumentDto) {
@@ -222,6 +277,8 @@ async function setDocArchived(doc: DocumentDto, archived: boolean) {
 function reset() {
   project.value = null
   documents.value = []
+  summaries.value = {}
+  catalogEpoch++
   runs.value = []
   error.value = ''
   renamingProject.value = false
@@ -241,8 +298,7 @@ async function loadCatalog() {
   const archived = showArchived.value
   try {
     const catalog = await backend.catalog(id, archived)
-    if (active && projectId.value === id && showArchived.value === archived)
-      documents.value = catalog
+    if (active && projectId.value === id && showArchived.value === archived) setCatalog(catalog)
   } catch (e) {
     if (active && projectId.value === id) error.value = readableError(e)
   }
@@ -282,7 +338,7 @@ async function load() {
     ])
     if (!active || current !== epoch || projectId.value !== id) return
     project.value = loaded
-    documents.value = catalog
+    setCatalog(catalog)
     runs.value = history
   } catch (e) {
     if (active && current === epoch) error.value = readableError(e)
@@ -301,6 +357,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   active = false
   epoch++
+  catalogEpoch++
 })
 </script>
 
@@ -596,21 +653,68 @@ onBeforeUnmount(() => {
                 </span>
               </template>
               <template #status-cell="{ row }">
-                <div class="project-badges">
-                  <UBadge v-if="row.original.archived" color="neutral" variant="soft" size="sm"
-                    >В архиве</UBadge
-                  >
-                  <UBadge v-if="row.original.pd_updated" color="warning" variant="soft" size="sm"
-                    >ПД обновлена</UBadge
-                  >
-                  <template v-if="row.original.last_run">
-                    <UBadge
-                      :color="statusColor(row.original.last_run.status)"
-                      variant="subtle"
-                      size="sm"
-                    >
-                      {{ runLabel(row.original.last_run.status) }}
+                <div class="project-status">
+                  <div class="project-badges">
+                    <UBadge v-if="row.original.archived" color="neutral" variant="soft" size="sm">
+                      В архиве
                     </UBadge>
+                    <template v-if="row.original.kind === 'vor' && row.original.last_run">
+                      <UBadge
+                        :color="statusColor(row.original.last_run.status)"
+                        variant="subtle"
+                        size="sm"
+                      >
+                        {{ runLabel(row.original.last_run.status) }}
+                      </UBadge>
+                      <UBadge
+                        v-if="row.original.run_freshness === 'stale'"
+                        color="warning"
+                        variant="soft"
+                        size="sm"
+                      >
+                        Проверка неактуальна
+                      </UBadge>
+                      <UBadge
+                        v-if="row.original.vor_updated"
+                        color="warning"
+                        variant="soft"
+                        size="sm"
+                      >
+                        ВОР обновлена
+                      </UBadge>
+                      <UBadge
+                        v-if="row.original.pd_updated"
+                        color="warning"
+                        variant="soft"
+                        size="sm"
+                      >
+                        ПД обновлена
+                      </UBadge>
+                      <UBadge
+                        v-if="row.original.run_freshness === 'unavailable'"
+                        color="neutral"
+                        variant="soft"
+                        size="sm"
+                      >
+                        Актуальность недоступна
+                      </UBadge>
+                    </template>
+                    <span
+                      v-else-if="
+                        row.original.kind === 'vor' && row.original.run_freshness === 'unavailable'
+                      "
+                      class="muted"
+                      >Результат недоступен</span
+                    >
+                    <span v-else-if="row.original.kind === 'vor'" class="muted"
+                      >Не проверялась</span
+                    >
+                    <span v-else-if="!row.original.archived" class="muted">—</span>
+                  </div>
+                  <template v-if="row.original.kind === 'vor' && row.original.last_run">
+                    <span class="muted"
+                      >Последняя проверка: {{ formatDate(row.original.last_run.created_at) }}</span
+                    >
                     <UProgress
                       v-if="
                         row.original.last_run.status === 'running' && row.original.last_run.total
@@ -626,14 +730,33 @@ onBeforeUnmount(() => {
                       size="xs"
                       class="project-progress"
                     />
+                    <template v-if="row.original.last_run.status === 'done'">
+                      <span
+                        v-if="
+                          !summaries[row.original.last_run.run_id] ||
+                          summaries[row.original.last_run.run_id]?.status === 'loading'
+                        "
+                        class="muted"
+                        role="status"
+                      >
+                        Загрузка результата…
+                      </span>
+                      <span
+                        v-else-if="summaries[row.original.last_run.run_id]?.status === 'error'"
+                        role="status"
+                      >
+                        Результат недоступен
+                        <UButton
+                          variant="link"
+                          size="xs"
+                          :aria-label="`Повторить загрузку результата ${row.original.title}`"
+                          @click="loadSummary(row.original.last_run.run_id, catalogEpoch)"
+                          >Повторить</UButton
+                        >
+                      </span>
+                      <span v-else>{{ summaryText(row.original.last_run.run_id) }}</span>
+                    </template>
                   </template>
-                  <span
-                    v-if="
-                      !row.original.archived && !row.original.pd_updated && !row.original.last_run
-                    "
-                    class="muted"
-                    >—</span
-                  >
                 </div>
               </template>
               <template #action-cell="{ row }">
@@ -874,6 +997,12 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.project-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
 }
 .project-badges {
   display: flex;

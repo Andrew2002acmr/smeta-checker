@@ -466,6 +466,10 @@ class ProjectDTO(DTO):
     created_at: datetime | None = None
 
 
+class RunCountDTO(DTO):
+    count: int
+
+
 class ProjectCreate(DTO):
     name: str = Field(min_length=1, max_length=256)
 
@@ -537,6 +541,8 @@ class DocumentDTO(DTO):
     versions: list[VersionDTO]
     last_run: RunDTO | None = None
     pd_updated: bool = False
+    vor_updated: bool = False
+    run_freshness: Literal["current", "stale", "unavailable"] | None = None
 
 
 class DocumentPatch(DTO):

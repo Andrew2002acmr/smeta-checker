@@ -531,6 +531,22 @@
             "title": "Project Id",
             "type": "string"
           },
+          "run_freshness": {
+            "anyOf": [
+              {
+                "enum": [
+                  "current",
+                  "stale",
+                  "unavailable"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Freshness"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -541,6 +557,11 @@
             },
             "title": "Versions",
             "type": "array"
+          },
+          "vor_updated": {
+            "default": false,
+            "title": "Vor Updated",
+            "type": "boolean"
           }
         },
         "required": [
@@ -4245,6 +4266,20 @@
         "title": "RowsDTO",
         "type": "object"
       },
+      "RunCountDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count"
+        ],
+        "title": "RunCountDTO",
+        "type": "object"
+      },
       "RunDTO": {
         "additionalProperties": false,
         "properties": {
@@ -7908,6 +7943,45 @@
           }
         },
         "summary": "History"
+      }
+    },
+    "/api/v1/projects/{project_id}/audits/count": {
+      "get": {
+        "operationId": "history_count_api_v1_projects__project_id__audits_count_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunCountDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "History Count"
       }
     },
     "/api/v1/projects/{project_id}/catalog": {

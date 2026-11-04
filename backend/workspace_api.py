@@ -18,6 +18,7 @@ from workspace_models import (
     ProjectUpdate,
     RowsDTO,
     RunDTO,
+    RunCountDTO,
     StructureDTO,
     SummaryDTO,
     VersionDeletedDTO,
@@ -196,16 +197,18 @@ def workspace_router(get_context) -> APIRouter:
         last = dict(document.get("last_run") or {})
         if not last.get("run_id"):
             return document
+        enriched = dict(document)
         try:
             records = context.repository.run_progress_records(
                 run_id=_parse_uuid(str(last["run_id"]), field="run_id")
             )
+            if records:
+                enriched["last_run"] = run_progress(context, records[0])
+                return enriched
         except Exception:
-            return document
-        if not records:
-            return document
-        enriched = dict(document)
-        enriched["last_run"] = run_progress(context, records[0])
+            pass
+        enriched["last_run"] = None
+        enriched["run_freshness"] = "unavailable"
         return enriched
 
     @router.get(
@@ -312,6 +315,10 @@ def workspace_router(get_context) -> APIRouter:
             limit=limit,
         )
         return [run_progress(context, record) for record in runs]
+
+    @router.get("/api/v1/projects/{project_id}/audits/count", response_model=RunCountDTO)
+    def history_count(project_id: str, context=Depends(guarded)):
+        return {"count": context.repository.count_runs(project(context, project_id).id)}
 
     @router.get("/api/v1/audits/{run_id}/progress", response_model=RunDTO)
     def progress(run_id: str, context=Depends(guarded)):

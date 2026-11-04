@@ -383,64 +383,61 @@ class Repository:
             "current_version_id": (str(document.current_version_id)
                                    if document.current_version_id else None),
             "versions": presented,
-            "last_run": None, "pd_updated": False,
+            "last_run": None, "pd_updated": False, "vor_updated": False,
+            "run_freshness": None,
         }
-        if include_runs:
-            payload["last_run"] = self._document_last_run(session, document)
-            payload["pd_updated"] = self._document_pd_updated(
-                session, document, presented, payload["last_run"])
+        if include_runs and document.kind == "vor":
+            run = self._document_last_run(session, document)
+            if run is not None:
+                payload["last_run"] = {"run_id": str(run.id), "created_at": run.created_at}
+                payload["vor_updated"] = (
+                    document.current_version_id is not None
+                    and document.current_version_id != run.vor_version_id
+                )
+                pd_updated, pd_available = self._document_pd_updated(session, run)
+                payload["pd_updated"] = pd_updated
+                if document.current_version_id is None or not pd_available:
+                    payload["run_freshness"] = "unavailable"
+                elif payload["vor_updated"] or pd_updated:
+                    payload["run_freshness"] = "stale"
+                else:
+                    payload["run_freshness"] = "current"
         return payload
 
-    def _document_last_run(self, session, document: Document) -> dict[str, Any] | None:
-        version_ids = set(session.scalars(select(DocumentVersion.id).where(
-            DocumentVersion.document_id == document.id)).all())
-        if not version_ids:
-            return None
-        run = session.scalar(
-            select(Run).where(Run.vor_version_id.in_(version_ids)).order_by(
-                Run.created_at.desc(), Run.id.desc()))
-        if run is None:
-            return None
-        return {"run_id": str(run.id), "created_at": run.created_at}
+    def _document_last_run(self, session, document: Document) -> Run | None:
+        return session.scalar(
+            select(Run).join(
+                DocumentVersion, Run.vor_version_id == DocumentVersion.id
+            ).where(
+                DocumentVersion.document_id == document.id,
+                Run.project_id == document.project_id,
+            ).order_by(Run.created_at.desc(), Run.id.desc())
+        )
 
-    def _document_pd_updated(self, session, document: Document,
-                             presented: list[dict[str, Any]],
-                             last_run: dict[str, Any] | None) -> bool:
-        # Badge only; verdicts stay immutable. Compares pinned PDF versions of
-        # the last run against current PDF revisions of mapped documents.
-        if document.kind != "vor" or not last_run:
-            return False
-        try:
-            from uuid import UUID as _UUID
-            run = session.get(Run, _UUID(str(last_run["run_id"])))
-        except Exception:
-            return False
-        if run is None:
-            return False
-        pinned = {row.version_id for row in session.scalars(
-            select(RunPdfVersion).where(RunPdfVersion.run_id == run.id)).all()}
+    def _document_pd_updated(self, session, run: Run) -> tuple[bool, bool]:
+        """Compare immutable PDF pins with available current document versions."""
+        pinned = set(session.scalars(
+            select(RunPdfVersion.version_id).where(RunPdfVersion.run_id == run.id)
+        ).all())
         if not pinned:
-            mapping = dict((run.config or {}).get("pdf_versions") or {})
+            mapping = (run.config or {}).get("pdf_versions")
+            if not isinstance(mapping, dict):
+                return False, False
             try:
-                from uuid import UUID as _UUID
-                pinned = {_UUID(str(value)) for value in mapping.values()}
-            except Exception:
-                pinned = set()
-        if not pinned:
-            return False
-        selected = pinned
-        current_ids: set[UUID] = set()
-        for pdf_version_id in selected:
-            version = session.get(DocumentVersion, pdf_version_id)
-            if version is None:
-                return True
-            pdf_doc = session.get(Document, version.document_id)
-            if pdf_doc is None:
-                return True
-            if pdf_doc.current_version_id is None:
-                continue
-            current_ids.add(pdf_doc.current_version_id)
-        return set(selected) != set(current_ids)
+                pinned = {UUID(str(value)) for value in mapping.values()}
+            except (ValueError, TypeError, AttributeError):
+                return False, False
+        updated = False
+        available = True
+        for version_id in pinned:
+            version = session.get(DocumentVersion, version_id)
+            pdf = session.get(Document, version.document_id) if version else None
+            if (pdf is None or pdf.kind != "pdf" or pdf.project_id != run.project_id
+                    or pdf.archived or pdf.current_version_id is None):
+                available = False
+            elif pdf.current_version_id != version_id:
+                updated = True
+        return updated, available
 
 
     def catalog(self, project_id: UUID,
@@ -1602,6 +1599,12 @@ class Repository:
                 ).group_by(TaskOutbox.run_id, TaskOutbox.status)):
                     records[run_key].setdefault("normative_counts", {})[task_status] = count
             return list(records.values())
+
+    def count_runs(self, project_id: UUID) -> int:
+        with Session(self._engine) as session:
+            return int(session.scalar(
+                select(func.count()).select_from(Run).where(Run.project_id == project_id)
+            ) or 0)
 
     def list_runs(self, project_id: UUID) -> list[RunRow]:
         with Session(self._engine) as session:

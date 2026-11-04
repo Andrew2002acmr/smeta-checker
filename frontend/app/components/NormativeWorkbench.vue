@@ -507,14 +507,18 @@ function openCandidateCitation(sourceId: string, page: number) {
               <p v-if="item.missing_facts.length" class="muted norm-missing">
                 Для проверки применения: {{ item.missing_facts.join(' · ') }}.
               </p>
-              <details v-if="item.composition.length" class="norm-details">
-                <summary>Состав работ</summary>
+              <section
+                v-if="item.composition.length"
+                class="norm-details"
+                aria-label="Состав работ"
+              >
+                <h4>Состав работ</h4>
                 <ul>
                   <li v-for="(operation, index) in item.composition" :key="index">
                     {{ operation }}
                   </li>
                 </ul>
-              </details>
+              </section>
               <div class="norm-citations">
                 <button
                   v-for="citation in item.citations"
@@ -1007,10 +1011,10 @@ function openCandidateCitation(sourceId: string, page: number) {
   margin-top: 12px;
   font-size: 13px;
 }
-.norm-details summary {
-  color: var(--ui-primary);
+.norm-details h4 {
+  margin: 0;
+  font-size: 13px;
   font-weight: 650;
-  cursor: pointer;
 }
 .norm-details ul {
   margin: 8px 0 0;

@@ -222,6 +222,8 @@ export function useBackend() {
       `${root}/normative/${profile}/sources/${encodeURIComponent(sourceId)}`,
     normativeCatalogPdfUrl: (fileId: string) =>
       `${root}/normative/catalog/pdf?${new URLSearchParams({ path: fileId })}`,
+    runCount: (id: string) =>
+      json(`${root}/projects/${encodeURIComponent(id)}/audits/count`, zRunCountDto),
     runs: (id: string, offset = 0) =>
       json(
         `${root}/projects/${encodeURIComponent(id)}/audits?offset=${offset}&limit=50`,
