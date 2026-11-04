@@ -1,0 +1,14 @@
+{
+  "mode": "offline_source_pipeline_regression",
+  "model_calls": 0,
+  "tests": 206,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "ruff": "passed",
+  "pyright": "passed configured project check",
+  "code_sha256": {
+    "normative_source_preparation.py": "8de2ac087280eef0ab2fcc75135a58936b305158d1f1993de4cb39391f01eafd",
+    "tests/test_normative_source_preparation.py": "d863fdd1be1a6a999d8858cf1b162a5ae47edbfb5fa9bb614e617d85dbfea483"
+  }
+}

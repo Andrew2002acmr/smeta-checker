@@ -23,7 +23,7 @@ _PROPERTIES = {
 }
 _LABEL_RE = re.compile("|".join(f"(?P<{key}>{value})" for key, value in _PROPERTIES.items()), re.I)
 _STANDARD_RE = re.compile(r"\b(?:ГОСТ|СП|ТУ)\s*[\d][\d.\-–]*(?:\s*[-–]\s*\d+)?", re.I)
-_CODE_RE = re.compile(r"(?<!\w)(?:М\s*\d{2,4}|В\s*\d{1,3}|ПБЗГУ[®\-\s]*\d+|ГБП[-–\d\wА-Яа-яЁё]+|Т[-–]\d+[-–][А-ЯA-Z]+|DIN\s*\d+|Акер)(?!\w)", re.I)
+_CODE_RE = re.compile(r"(?<!\w)(?:[МM]\s*\d{2,4}|В\s*\d{1,3}|ПБЗГУ[®\-\s]*\d+|ГБП[-–\d\wА-Яа-яЁё]+|Т[-–]\d+[-–][А-ЯA-Z]+|DIN\s*\d+|Акер)(?!\w)", re.I)
 _INDEPENDENT_NOTE = re.compile(r'(?:\n|;)[ \t]*(?=(?:Устройство|Уплотнение|Укладка|Монтаж|Демонтаж|'
     r'Расход|Коэффициент|Плотность|Мощность|Температура|Требуется|Необходимо)\b)',re.I)
 

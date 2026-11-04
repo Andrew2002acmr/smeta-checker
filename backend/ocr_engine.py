@@ -123,7 +123,7 @@ def bounded_render_dpi(width_pt, height_pt, dpi=200, max_pixels=12000000,
 
 
 def run_tsv(png_bytes, language="rus+eng", psm=OVERVIEW_PSM,
-            timeout=PASS_TIMEOUT_S):
+            timeout:float=PASS_TIMEOUT_S):
     """Run one Tesseract TSV pass; timeouts and nonzero exits raise."""
     if shutil.which("tesseract") is None:
         raise RuntimeError("Tesseract недоступен: бинарь tesseract не найден в PATH")

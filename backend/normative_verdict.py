@@ -8,11 +8,51 @@ REVIEW = 'Требуется ручная проверка'
 
 
 def source_supported(item):
+    """Source routing for already validated items, not semantic proof."""
     claims = item.get('claim_ids') or []
     if 'workbook:formula' in claims:
         return False  # Arithmetic requires independent server calculation, not a normative citation.
-    project_only = bool(claims) and all(c in {'quantity','unit','presence','input:area'} or c.startswith('geometry:') for c in claims)
+    from normative_workbook_rate import project_rate_claim
+    project_only = bool(claims) and all(c in {'quantity','unit','presence','input:area','derived:parent'} or project_rate_claim(c)
+        or c.startswith('geometry:') or project_designation_claim(c) for c in claims)
     return bool(claims and item.get('project_source_ids') and (project_only or item.get('normative_source_ids')))
+
+
+def project_designation_claim(claim):
+    return bool(re.fullmatch(r'attribute:(?:name|comment):designation:\d+',claim))
+
+
+def literal_project_designations(item, sources, *, position=None, definitions=()):
+    """An exact PD designation needs no second normative definition.
+
+    This only certifies a positive literal comparison, never compatibility of
+    different marks, a normative condition, or a designation absent from PD.
+    The caller retains source-kind and construction-scope checks.
+    """
+    claims=item.get('claim_ids') or []
+    direct=[c for c in claims if project_designation_claim(c)]
+    if not direct or item.get('normative_source_ids'):
+        return True
+    if item.get('state')!='confirmed':
+        return False
+    expected={d['claim_id']:d for d in definitions}
+    if position is not None:
+        from audit_core import build_claim_specs
+        expected.update({s.claim_id:dict(predicate=s.predicate,expected_text=s.expected_text)
+            for s in build_claim_specs(position)})
+    from audit_predicates import _designation_text
+    lookup={s['id']:s for s in sources}
+    for claim in direct:
+        spec=expected.get(claim,{})
+        value=_designation_text(spec.get('expected_text',''))
+        if spec.get('predicate')!='designation' or not value:
+            return False
+        pattern=r'(?<!\w)'+re.escape(value)+r'(?!\w)'
+        if not any(s.get('kind')=='project' and s.get('origin')=='native'
+                and re.search(pattern,_designation_text(s.get('text','')))
+                for sid in item.get('project_source_ids',[]) if (s:=lookup.get(sid))):
+            return False
+    return True
 
 
 def absence_claim(item):
@@ -26,7 +66,7 @@ def absence_claim(item):
 def readable_review(review):
     """Ephemeral model handles belong in traces, not the engineer's prose."""
     result=deepcopy(review)
-    labels={f's{i}':('ПД' if s['kind']=='project' else s.get('label','Норматив'))+
+    labels={f's{i}':('ПД' if s['kind']=='project' and s.get('origin')!='explicit_expert_method_basis' else s.get('label','Норматив'))+
         (f", стр. {s['page']}" if s.get('page') else '') for i,s in enumerate(result.get('sources',[]))}
     def readable(text):
         return re.sub(r'(?<!\w)s\d+(?!\w)',lambda m: labels.get(m[0],m[0]),text)
@@ -68,7 +108,8 @@ def readable_review(review):
     if (rejected or precision_corrected) and result.get('state')=='possible_mismatch' and not any(i.get('state')=='possible_mismatch' for i in result.get('items',[])):
         result['state']='needs_facts'
     from normative_parent_basis import verified_geometry_dependency
-    if verified_geometry_dependency(result):
+    allocation_dependency=verified_allocation_dependency(result)
+    if verified_geometry_dependency(result) or allocation_dependency:
         # Render a certified dependency separately from the material's still
         # unresolved rate, unit or identity. Raw model items remain immutable.
         ids=list(dict.fromkeys(sid for card in result.get('parameter_cards',[])
@@ -78,6 +119,12 @@ def readable_review(review):
             required=True,claim_ids=['derived:parent'],project_source_ids=ids,normative_source_ids=[],
             explanation='Исходные количество, единица и толщина родительской работы подтверждены по ПД. '
                 'Применимость нормы, расход и свойства материала проверяются отдельно.')
+        if allocation_dependency:
+            dependency.update(topic='Плановое распределение проектного объёма материала',
+                explanation='Полная проектная потребность и заявленное распределение материала '
+                    'между операциями пересобраны по буквальным источникам и ВОР. '
+                    'Объёмы отдельных физических слоёв, площади и частичные толщины работ '
+                    'не подтверждаются. Расход, коэффициент и нормативная применимость проверяются отдельно.')
         resolved=[]
         for item in result.get('items',[]):
             claims=item.get('claim_ids') or []
@@ -137,6 +184,49 @@ def confirmed_comment_aggregate(stored, confirmed):
         for c in constituents)
 
 
+
+def _allocation_cards_supported(review,position=None):
+    """A recomputed allocation still needs its actual output/base/rate cards."""
+    from normative_layer_assembly import ALLOCATION_PROOF
+    from normative_parameters import measure,number,same_numeric_result
+    events=[e for e in review.get('evidence_trace',[]) if e.get('kind')==ALLOCATION_PROOF]
+    if len(events)!=1:
+        return False
+    event=events[0]
+    index=position.index if position is not None else event.get('position_index')
+    operands=[o for o in event['operands'] if o['material_index']==index]
+    if len(operands)!=1:
+        return False
+    operand=operands[0]
+    cards=review.get('parameter_cards',[])
+    def one(predicate):
+        matches=[c for c in cards if predicate(c)]
+        return matches[0] if len(matches)==1 else {}
+    quantity=one(lambda c:c.get('id')=='quantity')
+    base=one(lambda c:c.get('id','').startswith(f'factor:{index}:')
+        and number(c.get('declared_value'))==number(operand['declared_volume']))
+    arithmetic=one(lambda c:c.get('id')==f'calculation:{index}')
+    coefficient=one(lambda c:c.get('id','').startswith(f'factor:{index}:')
+        and number(c.get('declared_value'))==number(operand['coefficient']))
+    for card,value,role in ((quantity,operand['calculated_material_volume'],'calculation'),
+            (base,operand['declared_volume'],'calculation_declared_allocation')):
+        if (card.get('state')!='confirmed' or card.get('role')!=role
+                or measure(card.get('found_value'),card.get('found_unit',''))!=measure(value,operand['unit'])
+                or set(card.get('source_ids',[]))!=set(event['root_source_ids'])
+                or card.get('source_anchors')!=event['source_anchors']
+                or card.get('quote')!=event['project_basis']['volume']['scope_quote']):
+            return False
+    return bool(arithmetic.get('state')=='confirmed'
+        and same_numeric_result(arithmetic.get('found_value'),operand['calculated_material_volume'])
+        and coefficient.get('state')=='confirmed' and coefficient.get('role')=='coefficient')
+
+
+def verified_allocation_dependency(review, position=None):
+    """One dependency predicate for publication, planning and presentation."""
+    from normative_layer_assembly import verified_material_allocation
+    return verified_material_allocation(review, position) and _allocation_cards_supported(review, position)
+
+
 def publish(report, stored, position_key, validation, *, enabled=False, derived=False, position=None):
     """A failed/unsupported second layer is uncertainty, never a proved mismatch."""
     if not enabled and not validation:
@@ -181,16 +271,43 @@ def publish(report, stored, position_key, validation, *, enabled=False, derived=
         output['Статус аудита'] = FIX
         output['Что не так'] = ' '.join(arithmetic_errors)
         return output
-    supported = [v for v in items if source_supported(v)]
+    from normative_workbook_rate import project_consumption_supported,geometric_rate_replay_supported
+    if not geometric_rate_replay_supported(position,review):
+        output['Статус аудита']=REVIEW
+        output['Что не так']='Сохранённое основание геометрического расхода не воспроизводится по текущим буквальным источникам, параметрам и карточкам.'
+        return output
+    from normative_layer_assembly import single_base_price_replay_supported
+    if not single_base_price_replay_supported(position,review):
+        output['Статус аудита']=REVIEW
+        output['Что не так']='Применение двух сметных расценок к одному основанию не воспроизводится по текущей конструкции ПД, нормативному условию и исходным поправкам толщины.'
+        return output
+    supported = [v for v in items if source_supported(v) and project_consumption_supported(v,
+        review.get('sources',[]),position=position,parameters=review.get('parameter_proposals',[]),items=items)]
     contradictions = [v for v in supported if v.get('state') == 'possible_mismatch' and not absence_claim(v)]
-    confirmed = {claim for v in supported if v.get('state') == 'confirmed' for claim in v['claim_ids']}
+    from normative_parent_basis import verified_geometry_dependency
+    geometry_dependency = derived and verified_geometry_dependency(review,position)
+    from normative_layer_assembly import verified_material_allocation
+    allocation_dependency = derived and verified_material_allocation(review,position)
+    if allocation_dependency and not _allocation_cards_supported(review,position):
+        output['Статус аудита']=REVIEW
+        output['Что не так']='Плановое распределение не заменяет проверку расчётного результата, исходной части, арифметики и коэффициента.'
+        return output
+    # Routing a PD-only derived:parent is not certification. Only the binder's
+    # source/proposal-bound proof, rebuilt from literal cards, may close this
+    # new route. Preserve the existing normative full-parent route separately.
+    confirmed = {claim for v in supported if v.get('state') == 'confirmed' for claim in v['claim_ids']
+        if claim != 'derived:parent' or v.get('normative_source_ids') or geometry_dependency or allocation_dependency}
     from normative_workbook_arithmetic import arithmetic_claims
     confirmed.update(arithmetic_claims(review))
     if position is not None:
         from normative_coefficient_policy import accepted_claims
-        confirmed.update(accepted_claims(position,review))
-    from normative_parent_basis import verified_geometry_dependency
-    if derived and verified_geometry_dependency(review,position):
+        accepted=accepted_claims(position,review)
+        if allocation_dependency and 'derived:rate' not in accepted:
+            confirmed.discard('derived:rate')
+        confirmed.update(accepted)
+    elif allocation_dependency:
+        confirmed.discard('derived:rate')
+    if geometry_dependency or allocation_dependency:
         confirmed.add('derived:parent')
     if confirmed_comment_aggregate(stored, confirmed):
         confirmed.add('comment')

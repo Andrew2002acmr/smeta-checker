@@ -17,8 +17,8 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import create_engine, func, select, or_, delete, cast
-from sqlalchemy.dialects.postgresql import insert, JSONPATH
+from sqlalchemy import create_engine, func, select, or_, delete, cast, case, literal
+from sqlalchemy.dialects.postgresql import insert, JSONPATH, JSONB
 from sqlalchemy.orm import Session
 
 from storage_blobs import BlobStore
@@ -1278,6 +1278,31 @@ class Repository:
             session.commit()
             return scheduled
 
+
+    @staticmethod
+    def _material_replay_source_ids(items, cards, proofs, proposals):
+        """Referenced proof operands/anchors only; never the full source registry."""
+        ids=set()
+        list_keys={'project_source_ids','normative_source_ids','source_ids',
+            'root_source_ids','operand_source_ids'}
+        scalar_keys={'source_id','base_source_id','adjustment_source_id'}
+        def visit(value):
+            if isinstance(value,dict):
+                for key,child in value.items():
+                    if key in list_keys and isinstance(child,list):
+                        ids.update(v for v in child if isinstance(v,str))
+                    elif key in scalar_keys and isinstance(child,str):
+                        ids.add(child)
+                    elif key=='source_sha256' and isinstance(child,dict):
+                        ids.update(k for k in child if isinstance(k,str))
+                    visit(child)
+            elif isinstance(value,list):
+                for child in value:
+                    visit(child)
+        visit([items,cards,proofs,proposals])
+        return sorted(ids)
+
+
     def normative_validation_context(self, run_id):
         """Batch-read verdict fields and replayable proofs, without OCR snapshots."""
         with Session(self._engine) as session:
@@ -1285,6 +1310,28 @@ class Repository:
             result: dict[int, dict[str, Any]] = {index: {'stage': status}
                 for (_,index),status in stages(session.scalars(select(TaskOutbox).where(
                     TaskOutbox.run_id == run_id, TaskOutbox.task_name == 'audit_tasks.normative_position'))).items()}
+            material_trace=func.jsonb_path_exists(
+                NormativeReview.payload['position_check']['evidence_trace'],
+                cast('$[*] ? (@.kind.type() == "string" && '
+                    '(@.kind == "planned_material_allocation_v1" || @.kind == "workbook_area_rate_v1" || '
+                    '@.kind == "parent_geometry_dependency_v1" || '
+                    '@.kind == "single_base_price_application_v1"))',JSONPATH))
+            material_parameters=func.jsonb_path_query_array(
+                NormativeReview.payload['position_check']['parameter_proposals'],
+                cast('$[*] ? (@.parameter.type() == "string" && (@.parameter == "quantity" || '
+                    '@.parameter == "thickness" || @.parameter == "coefficient" || @.parameter == "unit_scale"))',JSONPATH))
+            # Preserve every original typed pricing choice for this proof class:
+            # a conflicting third proposal must remain a replay failure. Other
+            # review classes and tool/OCR events keep their smaller projection.
+            price_trace=func.jsonb_path_exists(
+                NormativeReview.payload['position_check']['evidence_trace'],
+                cast('$[*] ? (@.kind.type() == "string" && '
+                    '@.kind == "single_base_price_application_v1")',JSONPATH))
+            price_choices=case((price_trace,func.jsonb_path_query_array(
+                    NormativeReview.payload['position_check']['evidence_trace'],
+                    cast('$[*] ? (@.kind.type() == "string" && '
+                        '@.kind == "norm_thickness_adjustment_proposal_v1")',JSONPATH))),
+                else_=literal([],type_=JSONB))
             rows = session.execute(select(NormativeReview.id, NormativeReview.position_index,
                 NormativeReview.payload['position_key'].as_string(),
                 NormativeReview.payload['position_check']['items'],
@@ -1303,27 +1350,51 @@ class Repository:
                     '(@.kind == "claim-parser-corrections-v1" || '
                     '@.kind == "workbook_arithmetic_proof_v1" || '
                     '@.kind == "explicit_curb_column_quantity_v1" || '
-                    '@.kind == "parent_geometry_dependency_v1"))', JSONPATH))).where(
+                    '@.kind == "parent_geometry_dependency_v1" || '
+                    '@.kind == "planned_material_allocation_v1" || '
+                    '@.kind == "workbook_area_rate_v1" || '
+                    '@.kind == "single_base_price_application_v1"))', JSONPATH)).op('||')(price_choices),
+                case((material_trace,material_parameters),else_=None),
+                case((material_trace,NormativeReview.payload['position_check']['coverage']['coefficient_policy'].as_string()),
+                    else_=None)).where(
                     NormativeReview.run_id == run_id, NormativeReview.kind == 'check')
                 .distinct(NormativeReview.position_index)
                 .order_by(NormativeReview.position_index, NormativeReview.created_at.desc(), NormativeReview.id.desc()))
             scoped_reviews={}
-            for review_id, index, key, items, summary, cards, schema, execution, revision, pipeline, proofs in rows:
+            material_reviews={}
+            for review_id, index, key, items, summary, cards, schema, execution, revision, pipeline, proofs, parameters, policy in rows:
                 result.setdefault(index, {})['review'] = dict(position_key=key, items=items or [], summary=summary or '',
                     execution_state=execution or 'complete',
                     parameter_cards=cards or [], parameter_schema_version=schema or 0, local_rules_version=revision or 0,
                     pipeline_version=pipeline or 0, evidence_trace=proofs or [])
                 if any(p.get('kind') in {'explicit_curb_column_quantity_v1','parent_geometry_dependency_v1'} for p in proofs or []):
                     scoped_reviews[review_id]=index
+                if any(p.get('kind') in {'planned_material_allocation_v1','workbook_area_rate_v1','parent_geometry_dependency_v1','single_base_price_application_v1'} for p in proofs or []):
+                    scoped_reviews[review_id]=index
+                    material_reviews[review_id]=self._material_replay_source_ids(items,cards,proofs,parameters)
+                    result[index]['review'].update(parameter_proposals=parameters or [],
+                        coverage={'coefficient_policy':policy} if policy is not None else {})
             if scoped_reviews:
-                # Only certified column conflicts need literal project sources
-                # and quantity proposals. Do not load full OCR/tool snapshots
-                # or every review's source registry into the result list.
-                details=session.execute(select(NormativeReview.id,
-                    func.jsonb_path_query_array(NormativeReview.payload['position_check']['sources'],
-                        cast('$[*] ? (@.kind == "project")',JSONPATH)),
-                    func.jsonb_path_query_array(NormativeReview.payload['position_check']['parameter_proposals'],
-                        cast('$[*] ? (@.parameter == "quantity" || @.parameter == "thickness")',JSONPATH)))
+                # Material replay needs raw operands and its SP/norm anchors.
+                # Other rows retain the earlier project-only bounded projection.
+                project_sources=func.jsonb_path_query_array(NormativeReview.payload['position_check']['sources'],
+                    cast('$[*] ? (@.kind == "project")',JSONPATH))
+                source_projection=project_sources
+                proposal_projection=func.jsonb_path_query_array(
+                    NormativeReview.payload['position_check']['parameter_proposals'],
+                    cast('$[*] ? (@.parameter == "quantity" || @.parameter == "thickness")',JSONPATH))
+                if material_reviews:
+                    variables=case(*[(NormativeReview.id==rid,literal({'ids':ids},type_=JSONB))
+                        for rid,ids in material_reviews.items()],else_=literal({'ids':[]},type_=JSONB))
+                    referenced_sources=func.jsonb_path_query_array(
+                        NormativeReview.payload['position_check']['sources'],
+                        cast('$[*] ? (@.id.type() == "string" && @.kind.type() == "string" && @.id == $ids[*] && '
+                            '(@.kind == "project" || @.kind == "normative"))',JSONPATH),variables)
+                    source_projection=case((NormativeReview.id.in_(material_reviews),referenced_sources),
+                        else_=project_sources)
+                    proposal_projection=case((NormativeReview.id.in_(material_reviews),material_parameters),
+                        else_=proposal_projection)
+                details=session.execute(select(NormativeReview.id,source_projection,proposal_projection)
                     .where(NormativeReview.id.in_(scoped_reviews)))
                 for review_id,sources,proposals in details:
                     result[scoped_reviews[review_id]]['review'].update(sources=sources or [],

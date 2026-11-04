@@ -1,0 +1,71 @@
+{
+  "source_sha256": "5151486c1540769b94985d066fdef6442d0892fcbd1ad52a0704ea591852c223",
+  "passed": true,
+  "method": {
+    "independent": true,
+    "source": "order-102-2024-candidate.pdf",
+    "render": "Poppler pdftoppm, physical pages 1, 222, 243, 140 dpi PNG; complete pages visually inspected",
+    "text_assistance": "pypdf native extraction for physical pages 222 and 243, cross-checked against rendered page images; order identity and application date read visually on scanned physical page 1",
+    "visual_numeric_check": "All 48 numeric table values, all 8 row labels, all 8 physical column headers including density groups and thickness subheaders, and the note coefficient checked directly in page 243 rendering.",
+    "other_inputs": "No reports, repository scripts, previous answers, external websites or RouterAI used for this independent PDF check."
+  },
+  "pages": [
+    {"physical": 1, "printed": null, "verified": ["order number", "order date", "application date", "title"], "render": "order102-independent-p1.png"},
+    {"physical": 222, "printed": "221", "verified": ["full amended paragraph 1.27.35"], "render": "order102-independent-p222.png"},
+    {"physical": 243, "printed": "242", "verified": ["appendix 27.1 title", "all column headers", "all eight rows", "note"], "render": "order102-independent-p243.png"}
+  ],
+  "order": {
+    "issuer": "Министерство строительства и жилищно-коммунального хозяйства Российской Федерации (Минстрой России)",
+    "number": "102/пр",
+    "date": "2024-02-16",
+    "date_literal": "16 февраля 2024 г.",
+    "title": "О внесении изменений в приказ Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 30 декабря 2021 г. № 1046/пр «Об утверждении сметных нормативов»",
+    "application_date": "2024-02-25",
+    "application_clause": "3. Изменения, утвержденные настоящим приказом, применяются с 25 февраля 2024 года."
+  },
+  "paragraph": {
+    "number": "1.27.35",
+    "amendment_location": "1.21.1.1. Пункт 1.27.35 изложить в следующей редакции",
+    "physical_page": 222,
+    "text": "1.27.35. При определении затрат на устройство покрытий толщиной 4 см из горячих асфальтобетонных смесей с применением норм табл. с 27-06-029 по 27-06-032 норма расхода асфальтобетонной смеси принимается на основании проектных данных. В случае отсутствия проектных данных норма расхода асфальтобетонной смеси принимается по приложению 27.1.\nПри применении щебёночно-мастичных асфальтобетонных смесей укладка определяется по нормам 27-06-029-01, 27-06-030-01, 27-06-031-01, 27-06-031-02, 27-06-032-01, 27-06-032-02, состав смеси подбирается индивидуально. Норма расхода асфальтобетонной смеси принимается на основании проектных данных. В случае отсутствия проектных данных норма расхода асфальтобетонной смеси принимается по приложению 27.1.\nПри определении затрат на устройство асфальтобетонного лотка вдоль кромки проезжей части с применением норм 27-06-030-02, 27-06-069-01 норма расхода асфальтобетонной смеси принимается на основании проектных данных.",
+    "transcription": "Line wraps normalized to spaces; paragraph boundaries retained; content visually checked."
+  },
+  "columns": {
+    "appendix": "27.1",
+    "title": "Нормы расхода асфальтобетонной смеси",
+    "group_header": "Максимальная плотность каменных материалов, т/м³/толщина слоя, см",
+    "physical_columns": [
+      {"index": 0, "header": "Типы асфальтобетонных смесей"},
+      {"index": 1, "header": "Ед.изм."},
+      {"index": 2, "density_header": "до 2,7 т/м³", "thickness_header": "4"},
+      {"index": 3, "density_header": "до 2,7 т/м³", "thickness_header": "±0,5"},
+      {"index": 4, "density_header": "более 2,7 до 2,9 т/м³", "thickness_header": "4"},
+      {"index": 5, "density_header": "более 2,7 до 2,9 т/м³", "thickness_header": "±0,5"},
+      {"index": 6, "density_header": "более 2,9 т/м³", "thickness_header": "4"},
+      {"index": 7, "density_header": "более 2,9 т/м³", "thickness_header": "±0,5"}
+    ]
+  },
+  "rows": [
+    {"type": "А-5, А-8", "unit": "т", "values_columns_2_to_7": ["94,69", "11,84", "97,54", "12,19", "104,22", "13,03"]},
+    {"type": "А-11, А-16", "unit": "т", "values_columns_2_to_7": ["96,03", "12", "99,13", "12,39", "106,3", "13,29"]},
+    {"type": "А-22, А-32", "unit": "т", "values_columns_2_to_7": ["95,83", "11,98", "98,56", "12,32", "106,06", "13,26"]},
+    {"type": "ЩМА-8, ЩМА-11, ЩМА-16, ЩМА-22", "unit": "т", "values_columns_2_to_7": ["95,91", "11,99", "98,64", "12,33", "105,36", "13,17"]},
+    {"type": "SP-4, SP-8", "unit": "т", "values_columns_2_to_7": ["96,85", "12,11", "97,42", "12,18", "108,42", "13,55"]},
+    {"type": "SP-11, SP-16", "unit": "т", "values_columns_2_to_7": ["97,13", "12,14", "100,27", "12,53", "108,58", "13,57"]},
+    {"type": "SP-22, SP-32", "unit": "т", "values_columns_2_to_7": ["97,62", "12,2", "100,76", "12,59", "109,24", "13,65"]},
+    {"type": "SMA-8, SMA-11, SMA-16, SMA-22", "unit": "т", "values_columns_2_to_7": ["95,58", "11,95", "98,84", "12,36", "107,08", "13,38"]}
+  ],
+  "note": {
+    "text": "Примечание: При наличии в проекте требований по уплотнению внешних кромок прижимным вальцом к нормам расхода асфальтобетонной смеси применяется коэффициент 1,004.",
+    "coefficient": "1,004",
+    "condition": "Наличие в проекте требований по уплотнению внешних кромок прижимным вальцом"
+  },
+  "limitations": [
+    "This verifies literal content of the local PDF only, not authenticity against an official distribution, current legal force or completeness of later amendments.",
+    "No applicability determination to any current VOR position was made.",
+    "The table explicitly labels the unit as т. The visible title and headers on physical page 243 do not explicitly state an area denominator such as 1000 м2; no such denominator was added to the transcription.",
+    "The density heading concerns maximum density of stone materials; it was not relabelled as bulk density of finished asphalt mixture.",
+    "Poppler emitted nameToUnicode path warnings and missing display-font warnings for Symbol/ArialUnicode; the requested text, digits, table lines and headers were legible in the actual inspected renderings. Native extraction had occasional inserted spaces, normalized only after visual comparison.",
+    "The order number and date on physical page 1 are handwritten and were read visually."
+  ]
+}

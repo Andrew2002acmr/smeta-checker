@@ -66,7 +66,7 @@ def _project_thickness(position,result,cards):
     from vor_material_links import _family
     card=next((c for c in cards if c['id']=='thickness' and c['state']=='confirmed'),None)
     family=_family(position.work_name)
-    if not card or not family:
+    if not card:
         return None
     value=measure(card['found_value'],card['found_unit'])
     if not value:
@@ -89,12 +89,14 @@ def _project_thickness(position,result,cards):
         verified_header=bool(source and source.get('origin')=='ocr_verified_header' and source.get('numeric_verified')
             and any(f.get('parameter')=='thickness' and measure(f.get('value'),f.get('unit',''))==value
                 for f in source.get('verified_parameters',[])))
+        project_family=_family(material_scope)
         if (proposal.get('parameter')!='thickness' or proposal.get('scope_state')!='verified'
                 or not source or source['kind']!='project'
                 or not (_readable(source) or verified_header) or not source.get('version_id')
                 or not quoted(proposal['value'],proposal['quote'],scope)
                 or clean(scope) not in clean(source['text']) or not unit_quoted(proposal['unit'],proposal['quote'])
-                or _family(material_scope)!=family or construction_conflict(scope,position.work_name)):
+                or not project_family or (family and project_family!=family)
+                or construction_conflict(scope,position.work_name)):
             continue
         role=_role(scope)
         if _role(position.work_name) and role!=_role(position.work_name):
@@ -103,9 +105,9 @@ def _project_thickness(position,result,cards):
         if not candidate_value or candidate_value[0]!=value[0]:
             continue
         candidates.append(dict(source_id=source['id'],value=candidate_value,role=role,
-            single_layer=bool(re.search(r'\bоднослойн[а-яё]*\b',scope,re.I)),family=family,
+            single_layer=bool(re.search(r'\bоднослойн[а-яё]*\b',scope,re.I)),family=project_family,
             quote=proposal['quote'],scope_quote=scope))
-    if not candidates or len({(c['value'],c['role'],c['single_layer']) for c in candidates})!=1:
+    if not candidates or len({(c['value'],c['role'],c['single_layer'],c['family']) for c in candidates})!=1:
         return None
     return next((c for c in candidates if c['value']==value and c['source_id'] in card.get('source_ids',[])),None)
 
@@ -148,6 +150,16 @@ def selection_findings(position,result,positions,relation,*,cards=None):
     from vor_material_links import _family
     if result.get('pipeline_version',0)<3 or result.get('execution_state')=='technical_failure':
         return []
+    if str(getattr(position,'position_type','')).strip().casefold()=='материал':
+        lookup={s['id']:s for s in result.get('sources',[])}
+        selected={sid for item in result.get('items',[]) if 'normative:applicability' in item.get('claim_ids',[])
+            for sid in item.get('normative_source_ids',[])}
+        if not any(_code(lookup[sid]) for sid in selected if sid in lookup):
+            # This material has not selected a work-cost definition. A named
+            # parent clause cannot impose that work's machine/layer choice on
+            # an independent project quantity. Resource-rate proofs still
+            # require their explicitly selected norm and all its conditions.
+            return []
     owner=positions.get((relation.get('parent') or {}).get('index'),position)
     if cards is None:
         literal={**result,'local_work_basis':None,'quantity_composition':None}
@@ -169,6 +181,8 @@ def selection_findings(position,result,positions,relation,*,cards=None):
         independent_premise=bool(fact)
     if not fact:
         return findings
+    from normative_layer_assembly import single_base_price_application
+    price_proof=single_base_price_application(owner,result,positions,relation,cards=cards)
     sources={s['id']:s for s in result['sources']}
     applicability=[i for i in result.get('items',[]) if 'normative:applicability' in i.get('claim_ids',[])
         and i.get('topic')!=TOPIC]
@@ -176,7 +190,13 @@ def selection_findings(position,result,positions,relation,*,cards=None):
     selected=[]
     for proposal in result.get('parameter_proposals',[]):
         source=sources.get(proposal.get('source_id'))
-        if (proposal.get('parameter')=='unit_scale' and proposal.get('scope_state')=='verified'
+        # The model's scope assertion is not a prerequisite for a negative
+        # condition check. A literal measure can name a cited selection even
+        # when its applicability is unresolved. Otherwise omitting this field
+        # suppresses the guard while the same measure card is already green.
+        # The independently validated PD premise and literal source checks
+        # below remain mandatory; this path never confirms applicability.
+        if (proposal.get('parameter')=='unit_scale'
                 and source and source['kind']=='normative' and _readable(source) and source.get('source_id')
                 and _code(source) and unit_scale_quoted(proposal['value'],proposal['unit'],proposal['quote'],source['text'])):
             selected.append(dict(code=_code(source),source_id=source['id'],pdf=source['source_id']))
@@ -191,8 +211,10 @@ def selection_findings(position,result,positions,relation,*,cards=None):
         first_condition=re.search(r'При\s+толщин',source['text'],re.I)
         if not first_condition or _family(source['text'][:first_condition.start()])!=fact['family']:
             continue
+        scope_fact=(dict(fact,single_layer=True) if price_proof
+            and price_proof['condition_source_id']==source['id'] else fact)
         for match in CONDITION.finditer(source['text']):
-            if not condition_scope_matches(match['prefix'],fact):
+            if not condition_scope_matches(match['prefix'],scope_fact):
                 continue
             limit=measure(match['value'],match['unit'])
             if not limit or limit[0]!=fact['value'][0]:
@@ -212,6 +234,10 @@ def selection_findings(position,result,positions,relation,*,cards=None):
             # This narrow guard cannot establish each layer's allocation.
             if len(bases)==1 and len(codes)==1 and bound and codes[0] in bases:
                 continue
+            if (price_proof and price_proof['condition_source_id']==source['id']
+                    and price_proof['condition_quote']==match[0]
+                    and set(price_proof['required_base_codes'])==set(bases)):
+                continue
             reason=('layered_base_selection_unresolved' if len(bases)>1 else
                 'base_outside_condition' if len(codes)==1 and bound else 'base_selection_ambiguous')
             findings.append(dict(kind=TRACE,reason=reason,condition_source_id=source['id'],
@@ -227,7 +253,7 @@ def selection_findings(position,result,positions,relation,*,cards=None):
         branches=[match for match in CONDITION.finditer(source['text'])
             if (_role(match['prefix']) or re.search(r'\bоднослойн',match['prefix'],re.I))
             and _threshold_applies(match,fact)]
-        if not branches or any(condition_scope_matches(match['prefix'],fact) for match in branches):
+        if not branches or any(condition_scope_matches(match['prefix'],scope_fact) for match in branches):
             continue
         tables={re.sub(r'\s+','',code[0]).rsplit('-',1)[0]
             for match in branches for code in re.finditer(CODE,match['bases'])}
@@ -296,6 +322,9 @@ def feedback(position,result,positions,relation):
         'ПД: «'+f['project_scope_quote']+'». Источник '+f['condition_source_id']+
         ' содержит отдельные условия для других конструктивных слоёв. Принадлежность текущего слоя ПД '
         'к применимой ветви не установлена. Одного порога толщины и двух технологических операций ВОР недостаточно. '
+        'Проектные размеры уже переданы: не запрашивай их повторно. Установи нормативное отношение '
+        'между физическим слоем конструкции и операциями сметной нормы; при отсутствии основания '
+        'это вопрос инженеру-сметчику, а не автоматически запрос проектировщику или ошибка ВОР. '
         'Сохрани доказанную геометрию; нормативная применимость остаётся needs_facts, это не ошибка ВОР.'
         if f['reason']=='construction_role_unresolved' else
         'Нормативное основание не согласовано с применимым условием источника '+f['condition_source_id']+
@@ -316,6 +345,12 @@ def apply_guard(position,result,positions,relation,*,cards=None):
     from normative_parameters import build_cards,numeric_card_keys
     if cards is None:
         cards=build_cards(position,{**result,'local_work_basis':None,'quantity_composition':None},positions,relation)
+    from normative_layer_assembly import single_base_price_application
+    price_proof=single_base_price_application(position,result,positions,relation,cards=cards)
+    result['evidence_trace']=[e for e in result.get('evidence_trace',[])
+        if e.get('kind')!='single_base_price_application_v1']
+    if price_proof:
+        result['evidence_trace'].append(dict(kind='single_base_price_application_v1',**price_proof))
     from normative_thickness_adjustment import apply_guard as apply_adjustment_guard
     adjustment_changed=apply_adjustment_guard(position,result,positions,relation,cards=cards)
     from normative_operation_layers import apply_guard as apply_operation_guard

@@ -1,0 +1,299 @@
+{
+  "fresh_model": false,
+  "model_calls": 0,
+  "postgres_used": false,
+  "saved_answers_unchanged": true,
+  "proofs": [
+    {
+      "packet": "q-23-03.answer",
+      "index": 23,
+      "request_sha256": "58ae45b6904d7f44397c5306f280eb93fb75cb32dec7d62d79bda1cb96dc8786",
+      "answer_sha256": "ae44718603ccce57b4eff92369bbec8d014a80253b40cd393af89a4fdfdcd472",
+      "model_states": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:82"
+          ],
+          "topic": "Проектная спецификация",
+          "state": "confirmed",
+          "explanation": "ПД прямо задаёт для нижнего слоя А22Нт битум БНД 70/100 по ГОСТ 33133-2014. Эта часть наименования соответствует проекту.",
+          "project_source_ids": [
+            "s14"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "validated": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:82"
+          ],
+          "topic": "Проектная спецификация",
+          "state": "confirmed",
+          "explanation": "ПД прямо задаёт для нижнего слоя А22Нт битум БНД 70/100 по ГОСТ 33133-2014. Эта часть наименования соответствует проекту.",
+          "project_source_ids": [
+            "s14"
+          ],
+          "normative_source_ids": []
+        }
+      ]
+    },
+    {
+      "packet": "q-23-06.answer",
+      "index": 23,
+      "request_sha256": "40fcfe9b73ed121b2689b353bc0f41c4f8622530a0dc316b620f8f5ece8d9e43",
+      "answer_sha256": "bb148a1eb1a80324d361beaa333e6a47744bacdff11d129c758dfd7084f7172f",
+      "model_states": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:82"
+          ],
+          "topic": "Битумный стандарт",
+          "state": "confirmed",
+          "explanation": "В полном проектном описании нижнего слоя усиления прямо указано «на БНД 70/100 по ГОСТ 33133-2014, h=7 см». Обозначение в материале ВОР соответствует этому требованию.",
+          "project_source_ids": [
+            "s61"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "validated": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:82"
+          ],
+          "topic": "Битумный стандарт",
+          "state": "confirmed",
+          "explanation": "В полном проектном описании нижнего слоя усиления прямо указано «на БНД 70/100 по ГОСТ 33133-2014, h=7 см». Обозначение в материале ВОР соответствует этому требованию.",
+          "project_source_ids": [
+            "s61"
+          ],
+          "normative_source_ids": []
+        }
+      ]
+    },
+    {
+      "packet": "q-38-03.answer",
+      "index": 38,
+      "request_sha256": "e3e8ff9c383b020431b766b19f2c0cfb1eee55eb7c255ccd076f6103d8bb7313",
+      "answer_sha256": "f6dcb3d8e9b1c19e822f4139e6220d922100ec1e87877fbd148307bdb9fdc277",
+      "model_states": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:81"
+          ],
+          "topic": "Проектная спецификация материала",
+          "state": "confirmed",
+          "explanation": "Тип V ПД задаёт покрытие А5Вл по ГОСТ 58406.2-2020 на БНД 70/100 по ГОСТ 33133-2014 с максимальным зерном 5 мм и толщиной 5 см. Обозначение битумного стандарта соответствует проекту.",
+          "project_source_ids": [
+            "s10"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "validated": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:81"
+          ],
+          "topic": "Проектная спецификация материала",
+          "state": "confirmed",
+          "explanation": "Тип V ПД задаёт покрытие А5Вл по ГОСТ 58406.2-2020 на БНД 70/100 по ГОСТ 33133-2014 с максимальным зерном 5 мм и толщиной 5 см. Обозначение битумного стандарта соответствует проекту.",
+          "project_source_ids": [
+            "s10"
+          ],
+          "normative_source_ids": []
+        }
+      ]
+    },
+    {
+      "packet": "q-38-06.answer",
+      "index": 38,
+      "request_sha256": "b7baff1f710547a3e93398b6ac77ec04927be36abfad025f6d68497d3c87ab18",
+      "answer_sha256": "1a22b6b274909cbdfea489b54945c3d78fb47d883ee991a16ba1f3b1f2997914",
+      "model_states": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:81"
+          ],
+          "topic": "Проектная спецификация материала",
+          "state": "confirmed",
+          "explanation": "Тип V ПД прямо задаёт А5Вл на БНД 70/100 по ГОСТ 33133-2014, зерно до 5 мм и толщину 5 см. Полный проектный источник подтверждает это обозначение.",
+          "project_source_ids": [
+            "s54"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "validated": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:81"
+          ],
+          "topic": "Проектная спецификация материала",
+          "state": "confirmed",
+          "explanation": "Тип V ПД прямо задаёт А5Вл на БНД 70/100 по ГОСТ 33133-2014, зерно до 5 мм и толщину 5 см. Полный проектный источник подтверждает это обозначение.",
+          "project_source_ids": [
+            "s54"
+          ],
+          "normative_source_ids": []
+        }
+      ]
+    },
+    {
+      "packet": "q-60-02.answer",
+      "index": 60,
+      "request_sha256": "2a7d7acb904955ca01704627c0b4c67a59b6b9a8a12d248d8189af0c6419b9fc",
+      "answer_sha256": "9792a883d131a8a0bf8ec8bba89d0e1b256aff631c796e870da9df2332a1d5fd",
+      "model_states": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:46"
+          ],
+          "topic": "Обозначение стандарта",
+          "state": "confirmed",
+          "explanation": "В ПД для нижнего слоя А22Нл указан ГОСТ 58406.2-2020, тот же документ указан в ВОР. Это подтверждает обозначение; формулировка о полимерно-битумном вяжущем сама по себе этим совпадением не подтверждается.",
+          "project_source_ids": [
+            "s13"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "validated": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:46"
+          ],
+          "topic": "Обозначение стандарта",
+          "state": "confirmed",
+          "explanation": "В ПД для нижнего слоя А22Нл указан ГОСТ 58406.2-2020, тот же документ указан в ВОР. Это подтверждает обозначение; формулировка о полимерно-битумном вяжущем сама по себе этим совпадением не подтверждается.",
+          "project_source_ids": [
+            "s13"
+          ],
+          "normative_source_ids": []
+        }
+      ]
+    },
+    {
+      "packet": "q-71-03.answer",
+      "index": 71,
+      "request_sha256": "536a04217c2c92d135376d09107b731df3e2985c8456ce2ff66d289620eb3285",
+      "answer_sha256": "8608a8f3301e02ee877facf98c2f1fa7072509319d587ffb52065e889ab178c2",
+      "model_states": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:82"
+          ],
+          "topic": "Проектная спецификация вяжущего",
+          "state": "confirmed",
+          "explanation": "Для того же нижнего слоя усиления ПД прямо указывает А22Нт по ГОСТ 58406.2 на БНД 70/100 по ГОСТ 33133-2014. Указание ГОСТ 33133-2014 в строке материала соответствует проектному вяжущему.",
+          "project_source_ids": [
+            "s14",
+            "s30"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "validated": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:82"
+          ],
+          "topic": "Проектная спецификация вяжущего",
+          "state": "needs_facts",
+          "explanation": "Для того же нижнего слоя усиления ПД прямо указывает А22Нт по ГОСТ 58406.2 на БНД 70/100 по ГОСТ 33133-2014. Указание ГОСТ 33133-2014 в строке материала соответствует проектному вяжущему. Не хватает достоверных ссылок для этого аспекта проверки: нужна сверка.",
+          "project_source_ids": [
+            "s14"
+          ],
+          "normative_source_ids": []
+        }
+      ]
+    },
+    {
+      "packet": "q-71-05.answer",
+      "index": 71,
+      "request_sha256": "e719fa92874ca8abffee771e74eec10c6c8cd2db6511c0b94c4936ce93ea7d81",
+      "answer_sha256": "b62aa3215cfa066535ad2059ffaa75a4dbe0fddfbca50d95d6edc225b74f3761",
+      "model_states": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:82"
+          ],
+          "topic": "ГОСТ вяжущего",
+          "state": "confirmed",
+          "explanation": "Дочитанный первичный источник s65 прямо задаёт для нижнего усиления А22Нт «на БНД 70/100 по ГОСТ 33133-2014, h=7 см». ГОСТ 33133-2014 строки материала соответствует проектному вяжущему.",
+          "project_source_ids": [
+            "s65",
+            "s33"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "validated": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:82"
+          ],
+          "topic": "ГОСТ вяжущего",
+          "state": "confirmed",
+          "explanation": "Дочитанный первичный источник s65 прямо задаёт для нижнего усиления А22Нт «на БНД 70/100 по ГОСТ 33133-2014, h=7 см». ГОСТ 33133-2014 строки материала соответствует проектному вяжущему.",
+          "project_source_ids": [
+            "s65",
+            "s33"
+          ],
+          "normative_source_ids": []
+        }
+      ]
+    },
+    {
+      "packet": "q-71-06.answer",
+      "index": 71,
+      "request_sha256": "dc1f1eebb721039064b33afaec8affb76562760fba6067184f1885a497c1ce4a",
+      "answer_sha256": "28d487288752b95c852ecf3c514d7ea62496bba6d9a06e11dbb3f797359d35ec",
+      "model_states": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:82"
+          ],
+          "topic": "Соответствие обозначения вяжущего ПД",
+          "state": "confirmed",
+          "explanation": "Источник s65 прямо содержит для нижнего усиления А22Нт: «2020 на БНД 70/100 по ГОСТ 33133-2014, h=7 см;». Требование обозначения ГОСТ 33133-2014 совпадает с ПД. Это сверка заданной спецификации, а не оценка свойств или испытаний будущей партии.",
+          "project_source_ids": [
+            "s65"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "validated": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:82"
+          ],
+          "topic": "Соответствие обозначения вяжущего ПД",
+          "state": "confirmed",
+          "explanation": "Источник s65 прямо содержит для нижнего усиления А22Нт: «2020 на БНД 70/100 по ГОСТ 33133-2014, h=7 см;». Требование обозначения ГОСТ 33133-2014 совпадает с ПД. Это сверка заданной спецификации, а не оценка свойств или испытаний будущей партии.",
+          "project_source_ids": [
+            "s65"
+          ],
+          "normative_source_ids": []
+        }
+      ]
+    }
+  ]
+}

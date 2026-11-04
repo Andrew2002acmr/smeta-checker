@@ -61,7 +61,9 @@ def put(context,ident,value):
 
 def prepared_identity(record,data,version):
     from pdf_text import PDFTextSource,TABLE_OUTPUT,MAX_TABLE_CELL_CHARS
+    from document_preparation import VERSION
     return identity('prepared_pdf',record,dict(pdf_sha256=hashlib.sha256(bytes(data)).hexdigest(),
+        preparation_version=VERSION,
         version_id=str(version),extraction_key=PDFTextSource._extraction_key_for(TABLE_OUTPUT),
         ocr_settings_key=PDFTextSource._settings_key_for('rus+eng',200,12000000,4096),
         table_key=hashlib.sha256((PDFTextSource._table_key_for(MAX_TABLE_CELL_CHARS)+':full-document-v1').encode()).hexdigest()))
@@ -174,6 +176,7 @@ def normative_identity(context,record,index,payload):
     revision=getattr(context.repository,'analysis_human_revision',None)
     human_revision=revision(record['project_id'],record['vor_version_id'],list((record['config'].get('pdf_versions') or {}).values())) if revision else ''
     inputs=dict(matching=digest(matching),matching_facts=digest(matching_facts(raw)),
+        coefficient_policy=record.get('config', {}).get('normative_coefficient_policy', 'estimator_value_normative_conditions'),
         kb=service.corpus(pin=record['config'].get('normative_kb_pin'),profile=service.profile_for(record)).identity,
         # The matching job stays frozen when table preparation is corrected.
         # Normative retrieval, however, reads this newer document snapshot.

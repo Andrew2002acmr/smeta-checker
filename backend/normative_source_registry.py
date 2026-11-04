@@ -4,6 +4,12 @@ import hashlib
 import json
 
 
+def source_fingerprint(source):
+    """Pin context exposure to the exact registered envelope, not its handle."""
+    return hashlib.sha256(json.dumps(source, sort_keys=True, ensure_ascii=False,
+        default=str).encode()).hexdigest()
+
+
 def normative_evidence_identity(source):
     """Exact document excerpt identity, independent only of its local handle.
 

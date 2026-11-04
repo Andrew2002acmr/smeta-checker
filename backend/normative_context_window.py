@@ -6,7 +6,7 @@ from normative_context_packing import serialize_context
 from normative_embedded_context import CONTEXTS, literal_paths
 
 
-def window(value, sources, *, limit, measure=None):
+def window(value, sources, *, limit, measure=None, read_source_ids=()):
     output = deepcopy(value)
     size = measure or (lambda v: len(serialize_context(v)))
     reserve = min(18000, limit // 3)
@@ -17,6 +17,17 @@ def window(value, sources, *, limit, measure=None):
     output["context_window"] = dict(
         reserved_source_characters=reserve, deferred_sources=deferred
     )
+    # Follow-up actions are navigation. Delivery receipts and retry hashes are
+    # server telemetry, not source evidence; copying them into every model
+    # round can displace the very text the plan requests. Keep the actual
+    # obligations, source handles, quality flags, reasons and read offsets.
+    followup=output.get('evidence_followup')
+    if isinstance(followup,dict) and isinstance(followup.get('actions'),list):
+        for action in followup['actions']:
+            if isinstance(action,dict):
+                for key in ('model_delivery','retry_fingerprint','proposal_count'):
+                    action.pop(key,None)
+        followup['context_projection']='navigation_without_server_delivery_telemetry'
     # Work/formula/comment already supplied in the adjacent row is a reference,
     # not another copy of the same workbook text. Cross-site patterns carry no
     # quantities or duplicate names: their signature is the current work name.
@@ -68,12 +79,15 @@ def window(value, sources, *, limit, measure=None):
     # Literal templates are navigation, not the source itself. Keep whole
     # templates, prioritising explicitly discovered physical groups rather
     # than expected VOR numbers. Omitted handles stay available to read_source.
-    preferred = {
+    preferred = set(read_source_ids) | {
         sid
         for c in output.get("quantity_candidates", [])
         for sid in [c.get("source_id"), *c.get("operand_source_ids", [])]
         if sid
     }
+    explicit_read=any((event.get('request') or {}).get('tool') in {'read_source','read_page'}
+        for event in output.get('tool_results',[]))
+    minimum_templates=1 if explicit_read else 4
     for field in ("parameter_candidates", "quantity_parameter_candidates", "normative_thickness_adjustments"):
         entries = output.get(field)
         if not isinstance(entries, list):
@@ -84,7 +98,7 @@ def window(value, sources, *, limit, measure=None):
             return item.get("source_id") or item.get("base_source_id")
 
         entries.sort(key=lambda e: sid(e) not in preferred)
-        while len(entries) > 4 and size(output) > target:
+        while len(entries) > minimum_templates and size(output) > target:
             removed = entries.pop()
             deferred.append(
                 dict(source_id=sid(removed), kind="literal_template", field=field)

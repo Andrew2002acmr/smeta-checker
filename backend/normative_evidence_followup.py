@@ -17,7 +17,7 @@ def plan_for(payload):
     plans = [
         e
         for e in result.get("evidence_trace", [])
-        if e.get("kind") == "evidence_work_plan_v1"
+        if e.get("kind") in {"evidence_work_plan_v1", "evidence_work_plan_v2"}
     ]
     if not plans:
         return None
@@ -49,6 +49,8 @@ def plan_for(payload):
         additional_calls_limit=3,
         instructions="Проверь открытые аспекты целевыми чтениями. Сохрани независимые "
         "подтверждённые факты. Не повторяй прежний поиск без нового запроса или чтения. "
+        "Для read_registered_source используй сохранённые read_requests: источник уже найден, "
+        "но его полный текст не был передан в последнем успешно завершённом контексте. "
         "Граф ВОР задаёт кандидатов, а не доказательство. Повторный OCR запрещён.",
     )
 

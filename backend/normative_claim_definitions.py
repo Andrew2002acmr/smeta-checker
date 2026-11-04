@@ -3,7 +3,9 @@ from typing import Any
 
 
 def definition(spec) -> dict[str,Any]:
-    value=dict(claim_id=spec.claim_id,label=spec.label,expected_text=spec.expected_text,predicate=spec.predicate)
+    from normative_verification_contract import contract
+    value=dict(claim_id=spec.claim_id,label=spec.label,expected_text=spec.expected_text,predicate=spec.predicate,
+        verification=contract(spec.claim_id, spec))
     if spec.property_label=='equipment_function' and spec.required:
         value['evidence_task']=dict(kind='equipment_function_and_method_compatibility',
             subject=spec.expected_text,

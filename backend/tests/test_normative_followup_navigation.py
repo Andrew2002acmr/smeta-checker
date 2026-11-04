@@ -15,6 +15,22 @@ def test_initial_navigation_still_requires_project_construction_and_table_totals
     assert 'row_ids' in prompt and 'column_ids' in prompt
 
 
+def test_prepared_project_literals_can_finish_without_a_mandatory_extra_model_round():
+    tools = toolkit()
+    inputs = dict(shared_project_facts=[dict(proposal=dict(parameter='quantity', source_id='saved',
+        value='12', unit='м2'), engineer_scope_for_current_position='unresolved')])
+    ask = Mock(return_value=AgentAnswer(summary='Недостаточно основания применимости', items=[]))
+    verify = Mock(return_value=[])
+    tools.execute = Mock(side_effect=AssertionError('No redundant acquisition'))
+    result = run(ask, None, None, 'ALL-PROOF-GUARDS', inputs, AgentAnswer, None,
+        {'queries': []}, tools, verify_answer=verify)
+    assert ask.call_count == verify.call_count == 1
+    assert result.items == []  # Saved literals did not manufacture a verdict.
+    assert 'ALL-PROOF-GUARDS' in ask.call_args.args[2]
+    assert 'не перенесены' in ask.call_args.args[2]
+    assert ask.call_args.args[3]['shared_project_facts'][0]['engineer_scope_for_current_position'] == 'unresolved'
+
+
 def test_followup_keeps_proof_contract_without_unconditional_table_priority():
     inputs = dict(evidence_followup=dict(actions=[dict(key='claim:method', family='work_method')]))
     old = deepcopy(inputs)

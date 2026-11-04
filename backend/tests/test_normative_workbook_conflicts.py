@@ -174,7 +174,7 @@ def test_finalize_is_idempotent_preserves_originals_and_leaves_engineering_gaps_
     assert saved['state']=='possible_mismatch' and saved['requires_engineer_review']
     assert saved['items']==result['items']
     assert len([e for e in saved['evidence_trace'] if e['kind']=='workbook_display_conflict_v1'])==1
-    assert len([e for e in saved['evidence_trace'] if e['kind']=='evidence_work_plan_v1'])==1
+    assert len([e for e in saved['evidence_trace'] if e['kind']=='evidence_work_plan_v2'])==1
     assert (result,stored)==before
     assert finalize_state(saved,stored,position_key(position),position=position)==saved
     assert position.position_source is not None

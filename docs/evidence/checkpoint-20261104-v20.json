@@ -1,0 +1,14 @@
+{
+  "path": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\checkpoint-20261104-v20\\smeta-pilot.dump",
+  "bytes": 155649543,
+  "sha256": "f0eef86f3345731ada7bf5a64d66eedf27655b182038606a28d96ef46b82a9b8",
+  "database": "isolated smeta_pilot",
+  "last_fresh_run_id": "d02ac244-fc2b-441e-84e7-1c8798aece65",
+  "model_pipeline": 20,
+  "local_code_pipeline": 21,
+  "confirmed_unique": 12,
+  "working_database_untouched": true,
+  "active_normative_pointer_untouched": true,
+  "restore_test_performed": false,
+  "limits": "Archive checksum and TOC checked; no full restore test yet."
+}

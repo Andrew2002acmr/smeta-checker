@@ -12,8 +12,10 @@ UNITS = {'м', 'м2', 'м3', 'шт', 'т', 'кг', 'га'}
 
 
 def binding(source):
-    return {key:deepcopy(source.get(key)) for key in
+    result={key:deepcopy(source.get(key)) for key in
         ('id', 'version_id', 'page', 'text', 'rects', 'origin', 'numeric_verified', 'unit', 'unit_verified')}
+    result['id']=source.get('physical_source_id',source['id'])
+    return result
 
 
 def identity(project, source):
@@ -41,7 +43,7 @@ def attach(context, record, result):
     output=deepcopy(result)
     pins=set((record['config'].get('pdf_versions') or {}).values())
     for source in output.get('sources',[]):
-        if (source.get('kind')!='project' or ':cell:' not in source['id']
+        if (source.get('kind')!='project' or ':cell:' not in source.get('physical_source_id',source['id'])
                 or source.get('version_id') not in pins or source.get('numeric_verified') is not True
                 or source.get('unit_verified')):
             continue

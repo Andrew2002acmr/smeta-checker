@@ -27,7 +27,17 @@ def _ids(value):
     return found
 
 
-def source_order(value, sources, preferred, embedded):
+READ_TOOLS = {'read_source', 'read_page', 'read_request', 'read_table', 'sum_cells'}
+
+
+def completed_read_ids(events):
+    """Recent actual tool receipts, without retaining duplicate reply payloads."""
+    return list(dict.fromkeys(sid for event in reversed(events)
+        if (event.get('request') or {}).get('tool') in READ_TOOLS
+        for sid in _ids(event.get('result', {}))))
+
+
+def source_order(value, sources, preferred, embedded, *, read_source_ids=()):
     """Navigation priority, never selection or engineering applicability."""
     lookup = {source['id']: source for source in sources}
     definitions = {source['id']: definition for source in sources
@@ -66,6 +76,7 @@ def source_order(value, sources, preferred, embedded):
                     if isinstance(pair, dict) and pair.get('base_source_id') in definitions][:1]
     if not selected and definitions:
         selected = [next(iter(definitions))]
+    core_size=0
     for sid in dict.fromkeys(selected):
         group(sid)
         for pair in pairs:
@@ -76,6 +87,8 @@ def source_order(value, sources, preferred, embedded):
                 # The definition establishes the literal step; its resources
                 # remain available after current project facts.
                 add(primary, adjustment)
+        if not core_size:
+            core_size=len(primary)
     # Read construction paragraphs before competing cell candidates; numeric
     # operands alone cannot establish which physical layer the work belongs to.
     paragraphs = [sid for sid in preferred if sid in lookup and lookup[sid].get('kind') == 'project'
@@ -96,10 +109,43 @@ def source_order(value, sources, preferred, embedded):
         add(remaining, sid)
     for source in sources:
         add(remaining, source['id'])
-    return list(dict.fromkeys(primary + anchors + remaining)), set(primary + anchors)
+    # A completed explicit read must precede stale previews and earlier search
+    # candidates. Its handle alone is not delivery of the requested words.
+    reads, searches = [], []
+    for sid in completed_read_ids(value.get('tool_results', [])) + list(read_source_ids):
+        if sid not in embedded:
+            add(reads, sid)
+    table_reads = [sid for sid in reads if ':cell:' in sid]
+    reads = [sid for sid in reads if sid not in table_reads]
+    # A selected computed sum and its exact read operands form one small
+    # navigation bundle. Other cells from the same table read must not push
+    # out that bundle or the literal work-norm definition.
+    calculations = []
+    for candidate in value.get('quantity_candidates', []):
+        operands = candidate.get('operand_source_ids') or []
+        sid = candidate.get('source_id')
+        if (candidate.get('operation') == 'sum' and operands and set(operands) <= set(table_reads)
+                and lookup.get(sid, {}).get('origin') == 'calculated_from_cells'):
+            for part in [sid, *operands]:
+                add(calculations, part)
+    # A requested new search is navigation evidence too. Otherwise many old
+    # preferred norm/resource cards can consume the budget before even one
+    # excerpt of the latest found clause is delivered at the final step.
+    for event in reversed(value.get('tool_results', [])):
+        if (event.get('request') or {}).get('tool') == 'search_norms':
+            for sid in _ids(event.get('result', {})):
+                if sid not in embedded:
+                    add(searches, sid)
+    conditions = [sid for sid in _ids([value.get('coefficient_condition_sources', []),
+            value.get('material_definition_sources', [])])
+        if sid in lookup and lookup[sid].get('kind') == 'normative' and sid not in embedded]
+    # Keep the first coherent base/resource/adjustment bundle intact before
+    # exploring newly found alternatives. Later old candidates may yield room.
+    return list(dict.fromkeys(reads + primary[:core_size] + calculations + table_reads + conditions + anchors + searches
+        + primary[core_size:] + remaining)), set(reads + table_reads + calculations + searches + primary + conditions + anchors)
 
 
-def pack_sources(value, sources, preferred=(), *, limit, planning=False, measure=None):
+def pack_sources(value, sources, preferred=(), *, limit, planning=False, measure=None, read_source_ids=()):
     """Keep metadata intact; measure exactly what will be sent, including aliases."""
     output = deepcopy(value)
     output['sources'] = []
@@ -108,7 +154,7 @@ def pack_sources(value, sources, preferred=(), *, limit, planning=False, measure
     size = measure or (lambda payload: len(serialize_context(payload)))
     if size(output) > limit:
         raise ValueError('Agent context metadata exceeds budget')
-    ordered, critical = source_order(output, sources, preferred, embedded)
+    ordered, critical = source_order(output, sources, preferred, embedded, read_source_ids=read_source_ids)
     lookup = {source['id']: source for source in sources}
     if len(lookup) != len(sources):
         raise ValueError('Agent source registry has duplicate identities')
@@ -119,7 +165,8 @@ def pack_sources(value, sources, preferred=(), *, limit, planning=False, measure
         if not text:
             continue
         brief = {key: source[key] for key in ('id', 'kind', 'page', 'label', 'version_id', 'origin',
-            'numeric_verified', 'unit_verified', 'unit', 'verified_parameters') if key in source}
+            'numeric_verified', 'unit_verified', 'unit', 'verified_parameters',
+            'confirmed_unit_context','expert_laying_width','physical_source_id','table_scope_context') if key in source}
         if sid in embedded:
             cap = 160
         elif sid in critical or (sid in preferred and ':cell:' not in sid):

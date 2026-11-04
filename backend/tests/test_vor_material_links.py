@@ -28,6 +28,30 @@ def test_links_area_and_thickness_without_claiming_normative_rate():
     assert material_links(pair)[1]["number"] == "1"
 
 
+@pytest.mark.parametrize('change',['valid','unknown_document','wrong_section','no_thickness','known_other_material'])
+def test_generic_base_uses_explicit_structural_owner_without_inventing_material_compatibility(change):
+    pair=tasks()
+    for task in pair:
+        task['position_source'].update(document_sha256='a'*64,header_row=15)
+    pair[0]['w_name']='Устройство слоя основания, h = 12 см бульдозером'
+    if change=='unknown_document':
+        pair[0]['position_source'].pop('document_sha256')
+    elif change=='wrong_section':
+        pair[1]['position_source']['sections']=[dict(address='A20',text='Другой участок')]
+    elif change=='no_thickness':
+        pair[0]['w_name']='Устройство слоя основания бульдозером'
+    elif change=='known_other_material':
+        pair[0]['w_name']='Устройство основания из бетона, h = 12 см'
+    links=material_links(pair)
+    if change=='valid':
+        assert links[1]['index']==0
+        assert links[1]['relation_basis']=='explicit_workbook_owner_generic_base'
+        assert links[1]['material_compatibility_verified'] is False
+        assert 'quantity' not in links[1] and 'rate' not in links[1]
+    else:
+        assert links=={}
+
+
 def asphalt_tasks():
     pair = tasks()
     pair[0].update(w_name='Устройство основания из асфальтобетонной смеси, h=10 см')

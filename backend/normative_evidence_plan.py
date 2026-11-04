@@ -7,7 +7,40 @@ import hashlib
 import json
 from typing import Any
 
-VERSION = 'evidence_work_plan_v1'
+VERSION = 'evidence_work_plan_v2'
+
+
+def source_delivery(references, sources, coverage) -> dict[str, Any]:
+    """Exposure of this exact evidence in the latest successful context.
+
+    Packing is not dispatch success; exposure is not comprehension or proof.
+    Legacy snapshots cannot establish either and remain explicitly unmeasured.
+    """
+    from normative_source_registry import source_fingerprint
+    completed = [p for p in coverage.get('model_context_packing', [])
+        if p.get('response_state') == 'completed' and p.get('delivery_contract_version') == 1]
+    latest = completed[-1] if completed else None
+    states, offsets = {}, {}
+    for sid in references:
+        source = sources.get(sid)
+        if source is None:
+            states[sid] = 'invalid_reference'
+        elif latest is None:
+            states[sid] = 'not_measured'
+        elif (latest.get('source_fingerprints') or {}).get(sid) != source_fingerprint(source):
+            states[sid] = 'current_evidence_not_measured'
+        elif sid in latest.get('full_text_source_ids', []):
+            states[sid] = 'full_text'
+        elif sid in latest.get('supplied_source_ids', []):
+            states[sid] = 'partial_text'
+            offset = (latest.get('next_offset_by_source') or {}).get(sid)
+            if type(offset) is int and 0 <= offset < len(source.get('text', '')):
+                offsets[sid] = offset
+        else:
+            states[sid] = 'not_sent'
+    return dict(version=1, context_stage=latest.get('stage') if latest else None,
+        source_states=states, next_offset_by_source=offsets,
+        comprehension_established=False, absence_established=False)
 
 
 def _identity(value):
@@ -38,7 +71,7 @@ def project_query(position, materials=()):
 
 
 def _family(claim):
-    if claim in {'quantity', 'unit', 'presence'} or claim.startswith('geometry:'):
+    if claim in {'quantity', 'unit', 'presence', 'thickness', 'input:area'} or claim.startswith('geometry:'):
         return 'project_scope'
     if claim == 'derived:parent':
         return 'parent_basis'
@@ -67,19 +100,24 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
         position.get('comment',''),position.get('position_type',''),[],position.get('formula',''))}
     sources = {s['id']: s for s in review.get('sources', [])}
     items = [i for i in review.get('items', []) if i.get('required', True)]
+    from normative_parent_basis import verified_geometry_dependency
+    from normative_verdict import verified_allocation_dependency
+    from audit_models import VorPosition
+    current_position = VorPosition.model_validate(position) if derived else None
+    geometry_dependency = derived and verified_geometry_dependency(review, current_position)
+    allocation_dependency = derived and verified_allocation_dependency(review, current_position)
     confirmed = {claim for item in items if item.get('state') == 'confirmed'
-        and source_supported(item) for claim in item.get('claim_ids', [])}
+        and source_supported(item) for claim in item.get('claim_ids', [])
+        if claim != 'derived:parent' or item.get('normative_source_ids')
+            or geometry_dependency or allocation_dependency}
     from normative_workbook_arithmetic import arithmetic_claims
     confirmed.update(arithmetic_claims(review))
     if any(e.get('kind')=='named_coefficient_policy_v1' for e in review.get('evidence_trace',[])):
         from audit_models import VorPosition
         from normative_coefficient_policy import accepted_claims
         confirmed.update(accepted_claims(VorPosition.model_validate(position),review))
-    if derived and any(e.get('kind')=='parent_geometry_dependency_v1' for e in review.get('evidence_trace',[])):
-        from normative_parent_basis import verified_geometry_dependency
-        from audit_models import VorPosition
-        if verified_geometry_dependency(review,VorPosition.model_validate(position)):
-            confirmed.add('derived:parent')
+    if geometry_dependency or allocation_dependency:
+        confirmed.add('derived:parent')
     if confirmed_comment_aggregate(matching, confirmed):
         confirmed.add('comment')
     open_claims = required_claims(matching,
@@ -99,12 +137,18 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
     actions = []
 
     def append(key, family, references, *, card=None, item=None):
-        refs = sorted(set(references))
+        parameter = (('quantity' if card['id'] == 'input:area' else card['id'])
+            if card and card['id'] in {'quantity','thickness','input:area'} else
+            'coefficient' if card and card.get('role') == 'coefficient' else
+            'unit_scale' if card and card.get('role') == 'unit_scale' else None)
+        # Card handles name obligations; proposal.parameter names fact kinds.
+        # Keep candidates of that kind without choosing by the expected value.
+        proposals = [p for p in review.get('parameter_proposals', [])
+            if parameter is not None and p.get('parameter') == parameter]
+        refs = sorted(set(references) | {p['source_id'] for p in proposals if p.get('source_id')})
         available = [sources[sid] for sid in refs if sid in sources]
         unreadable = [s['id'] for s in available if s.get('origin') == 'uncertain_table'
             or (s.get('origin', '').startswith('ocr') and not s.get('numeric_verified'))]
-        proposals = [p for p in review.get('parameter_proposals', [])
-            if card and p.get('parameter') == card.get('id')]
         # These are measurable review states, not guesses based on its prose.
         state = ('source_reference_invalid' if set(refs) - sources.keys() else
             'source_quality_unverified' if unreadable else
@@ -116,12 +160,29 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
             'validate_candidate' if available or proposals else
             'retrieve_project' if family == 'project_scope' else
             'retrieve_normative_or_project_basis')
+        delivery = source_delivery(refs, sources, coverage)
+        unread = [sid for sid, status in delivery['source_states'].items()
+            if status in {'partial_text', 'not_sent'}]
+        if unread and not unreadable and not (set(refs) - sources.keys()) and dependency is None:
+            action = 'read_registered_source'
         numeric = {k: card.get(k) for k in ('id', 'state', 'declared_value', 'found_value', 'unit', 'found_unit')} if card else None
         actions.append(dict(key=key, family=family, state=state, action=action,
             dependency_position=dependency, source_ids=refs, unreadable_source_ids=unreadable,
+            model_delivery=delivery,
+            read_requests=[dict(tool='read_source',source_id=sid,
+                offset=delivery['next_offset_by_source'].get(sid, 0)) for sid in unread]
+                if action == 'read_registered_source' else [],
             proposal_count=len(proposals), reason=(card or item or {}).get('reason') or
                 (item or {}).get('explanation', ''),
-            retry_fingerprint=_identity([scope, key, numeric, available, proposals])))
+            retry_fingerprint=_identity([scope, key, numeric, available, proposals,
+                delivery['source_states'],delivery['next_offset_by_source']])))
+        if key.startswith('claim:'):
+            from normative_verification_contract import contract
+            claim = key.removeprefix('claim:')
+            actions[-1]['verification'] = contract(claim, semantic_specs.get(claim))
+            # A changed proof obligation is new work even with the same sources.
+            actions[-1]['retry_fingerprint'] = _identity([
+                actions[-1]['retry_fingerprint'], actions[-1]['verification']])
 
     for claim in sorted(open_claims):
         relevant = [i for i in items if claim in i.get('claim_ids', []) and i.get('state') != 'confirmed']
@@ -132,14 +193,14 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
             item=relevant[0] if relevant else None)
     for card in review.get('parameter_cards', []):
         if card.get('required', True) and card.get('state') != 'confirmed':
-            family = ('project_scope' if card['id'] in {'quantity', 'thickness'} else
+            family = ('project_scope' if card['id'] in {'quantity', 'thickness', 'input:area'} else
                 'formula_operand' if card['id'].startswith('factor:') else 'numeric_basis')
             append('card:' + card['id'], family, card.get('source_ids', []), card=card)
     for index, item in enumerate(items):
         if item.get('state') != 'confirmed' and not item.get('claim_ids'):
             append(f'unbound_item:{index}', 'claim_identity',
                 item.get('project_source_ids', []) + item.get('normative_source_ids', []), item=item)
-    return dict(kind=VERSION, scope=scope, actions=actions,
+    return dict(kind=VERSION, schema_revision=3, scope=scope, actions=actions,
         input_fingerprint=_identity([scope, actions]),
         project_search=dict(recorded_queries=len(queries),
             remaining_candidate_queries=sum(e.get('next_offset') is not None for e in queries),

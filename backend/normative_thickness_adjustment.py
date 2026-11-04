@@ -22,8 +22,8 @@ TOPIC = "Проверка поправки толщины выбранной н�
 
 class AdjustmentProposal(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    base_source_id: str = Field(min_length=1, max_length=100)
-    adjustment_source_id: str = Field(min_length=1, max_length=100)
+    base_source_id: str = Field(min_length=1, max_length=200)
+    adjustment_source_id: str = Field(min_length=1, max_length=200)
     signed_steps: int = Field(strict=True, ge=-1000, le=1000)
     base_quote: str = Field(min_length=1, max_length=900)
     adjustment_quote: str = Field(min_length=1, max_length=2000)
@@ -110,6 +110,8 @@ def findings(position, result, positions, relation, *, cards=None):
         c["id"] == "quantity" and c["state"] == "confirmed" for c in cards
     ):
         return []
+    from normative_layer_assembly import single_base_price_application
+    price_proof=single_base_price_application(position,result,positions,relation,cards=cards)
     targets = list(
         re.finditer(
             r"\bh\s*=\s*(\d+(?:[.,]\d+)?)\s*(мм|см|м)\b", position.work_name, re.I
@@ -186,6 +188,10 @@ def findings(position, result, positions, relation, *, cards=None):
         scope_verified,
         family_resolved,
     ) in selected.items():
+        # The complete literal proof validates both model-selected adjustments
+        # against their own priced courses, preserving one physical PD base.
+        if price_proof and any(c['base_source_id']==sid for c in price_proof['courses']):
+            continue
         if thickness["value"] == target[1]:
             continue
         reason = (

@@ -1,0 +1,49 @@
+{
+  "pin": {
+    "database": "releases/road-methodology-20261104-v6/knowledge.sqlite",
+    "release_id": "road-methodology-20261104-v6",
+    "profile": "roads",
+    "sha256": "56448deaa3e85fa421a68599de2d7ac2f1d9226f0fd9b694f1f935e7bb43198c"
+  },
+  "previous": {
+    "database": "releases/road-order102-20261104-v5/knowledge.sqlite",
+    "release_id": "road-order102-20261104-v5",
+    "profile": "roads",
+    "sha256": "a01a0f5a806379b5c0efa1b28267a7d204e91f4fbbcb1f060ef5b4c6cdca33c8"
+  },
+  "source_sha256": "ae59b619236cb4e878a1b9efde11e8d082c8a82902695ebb52928b48833e02ec",
+  "added": [
+    {
+      "label": "12",
+      "id": "clause-3651e9d5ed4782554872a0caaf9b3135",
+      "pages": [
+        5
+      ],
+      "text_sha256": "7b27a0faa8b5207d240a489cc9912c76cb031815865a1946201075e403a3f320"
+    },
+    {
+      "label": "13",
+      "id": "clause-4372896c597d215b5652e949dc1f5a26",
+      "pages": [
+        5
+      ],
+      "text_sha256": "10a5b88d2315bcb3cc98be42491bafd6cefa413080a8b3b2b59792b4c410479d"
+    },
+    {
+      "label": "14",
+      "id": "clause-65ad79b836559159828798a687275ee7",
+      "pages": [
+        5
+      ],
+      "text_sha256": "2dc4893339598767c970bee3bc37b74d2fc12d8f2db4b9fa8ec3f4fd11c4204a"
+    }
+  ],
+  "active_pointer_unchanged": true,
+  "active_database_unchanged": true,
+  "previous_release_unchanged": true,
+  "original_ocr_retained": true,
+  "existing_norms_resources_rules_pages_retained": true,
+  "model_requests": 0,
+  "automatic_verdicts": 0,
+  "limits": "Additional reviewed excerpts only; no claim of consolidated current edition or automatic applicability."
+}

@@ -1,0 +1,25 @@
+{
+  "pin": {
+    "database": "releases/road-curb-excerpt-20261104-v7/knowledge.sqlite",
+    "release_id": "road-curb-excerpt-20261104-v7",
+    "profile": "roads",
+    "sha256": "006b51b0333d45f200f862546dddb36ea48723b5fc3fcb393d208e7b14490650"
+  },
+  "previous": {
+    "database": "releases/road-methodology-20261104-v6/knowledge.sqlite",
+    "release_id": "road-methodology-20261104-v6",
+    "profile": "roads",
+    "sha256": "56448deaa3e85fa421a68599de2d7ac2f1d9226f0fd9b694f1f935e7bb43198c"
+  },
+  "clause_id": "clause-c50dffc1152c78dec1d3d43cfd784791",
+  "source_sha256": "954aae66bfea185f14a7b996b06b5d2964d509c14b09b5d3f5ad13edba8d5432",
+  "physical_page": 16,
+  "independent_review_sha256": "2e30ada2f0465568681e430de7b2b63e67fa5e47aa86ae1b04efafe186351e0b",
+  "excerpt": "Таблица 8. Показатели материалоемкости\nМарка камня | Бетон, м³ | Сталь, кг — на камень | Сталь, кг — на 1 м³ бетона\nБР100.20.8 | 0,016 | - | -\nБР100.30.18 | 0,052 | - | -\nБР100.30.15 | 0,043 | - | -",
+  "active_pointer_unchanged": true,
+  "active_database_unchanged": true,
+  "previous_release_unchanged": true,
+  "original_ocr_and_pages_retained": true,
+  "model_requests": 0,
+  "automatic_verdicts": 0
+}

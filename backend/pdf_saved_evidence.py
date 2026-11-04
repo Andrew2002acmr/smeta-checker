@@ -29,6 +29,17 @@ def header_geometry(header):
     """Literal depth, corroborated in the same physical header by both engines."""
     from normative_parameters import measure, number
 
+    from pdf_table_verification import visual_header_text,VISUAL_VERSION
+    visual=visual_header_text(header)
+    if visual:
+        matches=list(DEPTH.finditer(visual))
+        if len(matches)!=1:
+            return []
+        match=matches[0]
+        end=match.end()+(1 if visual[match.end():match.end()+1] in {')',']'} else 0)
+        return [dict(parameter='thickness',value=str(number(match[1])),unit=match[2].casefold(),
+            quote=visual[match.start():end],version=VISUAL_VERSION)]
+
     proof = header.get("header_refinement") or {}
     if (
         proof.get("version") != VERSION

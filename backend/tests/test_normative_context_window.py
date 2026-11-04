@@ -16,6 +16,31 @@ def test_small_window_is_lossless():
     assert window(value, [], limit=58000) == value
 
 
+def test_followup_delivery_receipts_cannot_starve_completed_source_read():
+    text='Literal condition with exceptions. '*65
+    source=dict(id='read',kind='normative',origin='native',text=text,label='Source')
+    actions=[dict(key=f'claim:{i}',action='read_registered_source',source_ids=['read'],
+        read_requests=[dict(tool='read_source',source_id='read',offset=0)],
+        reason='Verify the literal condition.',retry_fingerprint='h'*64,
+        model_delivery=dict(source_states={f'source-{j}-'+'s'*60:'partial_text' for j in range(28)})) for i in range(8)]
+    value=dict(work_scope_graph=dict(positions=[]),position=dict(work='Work'),
+        required_validation_claims=['quantity','normative:applicability'],
+        evidence_followup=dict(actions=actions),
+        tool_results=[dict(request=dict(tool='read_source',source_id='read'),result=dict(source_id='read'))])
+    original=deepcopy(value)
+    # compact uses the production cap; window/pack_sources expose the same
+    # boundary at a smaller limit so the regression stays small and readable.
+    from normative_context_packing import pack_sources
+    bounded=window(value,[source],limit=20000)
+    packed=pack_sources(bounded,[source],preferred=['read'],limit=20000)
+    assert packed['sources'][0]['text']==text and not packed['sources'][0]['excerpt_truncated']
+    assert packed['required_validation_claims']==value['required_validation_claims']
+    assert all(a['read_requests']==actions[i]['read_requests'] and a['source_ids']==['read']
+        and a['reason']==actions[i]['reason'] for i,a in enumerate(packed['evidence_followup']['actions']))
+    assert all('model_delivery' not in a for a in packed['evidence_followup']['actions'])
+    assert value==original
+
+
 def test_dense_real_capture_reserves_room_for_project_operands_without_losing_norms():
     case = deepcopy(CAPTURES[0])
     original = deepcopy(case)

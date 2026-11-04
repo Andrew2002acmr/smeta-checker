@@ -232,7 +232,7 @@ def _recover_numeric(image, cell, proof, read, deadline):
         cell['quality']='usable'
 
 
-def refine_tables(page, tables, *, rotation=0, cache_dir=None, store_image=None, seconds=25, max_numbers=12, max_columns=32):
+def refine_tables(page, tables, *, rotation=0, cache_dir=None, store_image=None, seconds:float=25, max_numbers=12, max_columns=32):
     """Refine uncertain totals and unit headers; preserve the source's raw OCR."""
     import pymupdf
     import ocr_engine

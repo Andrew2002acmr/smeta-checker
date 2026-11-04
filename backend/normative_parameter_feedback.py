@@ -2,6 +2,16 @@
 from normative_parameters import clean, measure, quoted, unit_quoted
 
 
+def header_parameter_verified(proposal,source):
+    """A verified body-cell amount does not verify an OCR header's thickness."""
+    if (proposal.get('parameter')!='thickness' or ':cell:' not in source.get('id','')
+            or not source.get('origin','').startswith('ocr')):
+        return True
+    value=measure(proposal.get('value'),proposal.get('unit',''))
+    return bool(value and any(f.get('parameter')=='thickness'
+        and measure(f.get('value'),f.get('unit',''))==value for f in source.get('verified_parameters',[])))
+
+
 def literal_parameter_issues(proposal, source):
     """Inspect the selected source only; never find a replacement or change scope.
 
@@ -19,6 +29,9 @@ def literal_parameter_issues(proposal, source):
     wanted_kind = 'project' if proposal.parameter in {'quantity', 'thickness'} else 'normative'
     if source.get('kind') != wanted_kind:
         return [prefix+'тип выбранного источника не соответствует параметру.'+hint]
+    if not header_parameter_verified(proposal.model_dump(),source):
+        return [prefix+'проверка числа физической ячейки не подтверждает толщину в её OCR-заголовке; '
+            'нужен независимо проверенный заголовок или нативное описание того же слоя.'+hint]
     if not quoted(proposal.value, proposal.quote, source['text']):
         return [prefix+'число/цитата не принадлежат указанному источнику.'+hint]
     from normative_confirmed_units import unit_confirmed

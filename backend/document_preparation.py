@@ -7,7 +7,7 @@ from audit_core import PageTextIndex
 from audit_snapshot import load_json, load_snapshot, store_json, store_snapshot
 from audit_tracing import span
 
-VERSION = 1
+VERSION = 2
 
 
 def assemble_document(native, packed):

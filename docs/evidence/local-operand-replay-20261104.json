@@ -1,0 +1,112 @@
+{
+  "fresh_model": false,
+  "model_requests": 0,
+  "postgres_used": false,
+  "parent_rebound": false,
+  "rows": [
+    {
+      "index": 22,
+      "before": "confirmed",
+      "after": "confirmed",
+      "changed_cards": []
+    },
+    {
+      "index": 26,
+      "before": "confirmed",
+      "after": "confirmed",
+      "changed_cards": []
+    },
+    {
+      "index": 70,
+      "before": "needs_facts",
+      "after": "needs_facts",
+      "changed_cards": []
+    },
+    {
+      "index": 74,
+      "before": "confirmed",
+      "after": "confirmed",
+      "changed_cards": []
+    },
+    {
+      "index": 34,
+      "before": "needs_facts",
+      "after": "needs_facts",
+      "changed_cards": []
+    },
+    {
+      "index": 46,
+      "before": "needs_facts",
+      "after": "needs_facts",
+      "changed_cards": [
+        {
+          "id": "factor:46:1931",
+          "before": "needs_facts",
+          "after": "confirmed",
+          "reason": "Площадь этого операнда повторно подтверждена буквальными источниками карточки input:area для текущей позиции. Применимость расхода и зависимый результат проверяются отдельно."
+        }
+      ]
+    },
+    {
+      "index": 47,
+      "before": "needs_facts",
+      "after": "needs_facts",
+      "changed_cards": [
+        {
+          "id": "factor:47:1931",
+          "before": "needs_facts",
+          "after": "confirmed",
+          "reason": "Площадь этого операнда повторно подтверждена буквальными источниками карточки input:area для текущей позиции. Применимость расхода и зависимый результат проверяются отдельно."
+        }
+      ]
+    },
+    {
+      "index": 48,
+      "before": "needs_facts",
+      "after": "needs_facts",
+      "changed_cards": [
+        {
+          "id": "factor:48:1931",
+          "before": "needs_facts",
+          "after": "confirmed",
+          "reason": "Площадь этого операнда повторно подтверждена буквальными источниками карточки input:area для текущей позиции. Применимость расхода и зависимый результат проверяются отдельно."
+        }
+      ]
+    },
+    {
+      "index": 39,
+      "before": "confirmed",
+      "after": "confirmed",
+      "changed_cards": []
+    },
+    {
+      "index": 42,
+      "before": "confirmed",
+      "after": "confirmed",
+      "changed_cards": []
+    }
+  ],
+  "new_workbook_navigation_links": {
+    "34": {
+      "index": 33,
+      "number": "34",
+      "name": "Устройство слоя основания, h =20см бульдозером мощностью двигателя 79 кВт с уплотнением.",
+      "row": 52,
+      "sheet": "Дорожная одежда",
+      "expression": "=2843*0.2*1.26",
+      "relation_basis": "explicit_workbook_owner_generic_base",
+      "material_compatibility_verified": false
+    },
+    "97": {
+      "index": 96,
+      "number": "97",
+      "name": "Устройство слоя основания, h =20см бульдозером мощностью двигателя 79 кВт с уплотнением.",
+      "row": 119,
+      "sheet": "Дорожная одежда",
+      "expression": "=148*0.2*1.26",
+      "relation_basis": "explicit_workbook_owner_generic_base",
+      "material_compatibility_verified": false
+    }
+  },
+  "limits": "Saved engineering scopes and model conclusions were retained; no new positive verdict is sampled."
+}

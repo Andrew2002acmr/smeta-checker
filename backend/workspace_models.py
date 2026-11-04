@@ -212,7 +212,7 @@ class NormativeParameterProposal(DTO):
     parameter: Literal['quantity', 'thickness', 'coefficient', 'unit_scale']
     value: str = Field(max_length=40)
     unit: str = Field(max_length=30)
-    source_id: str = Field(default='', max_length=80)
+    source_id: str = Field(default='', max_length=200)
     quote: str = Field(default='', max_length=900)
     conditions: list[NormativeNumericCondition] = Field(default_factory=list, max_length=6)
 

@@ -1,0 +1,107 @@
+[
+  {
+    "source_id": "inline:ad1890da9d27164074244b65a32456f5",
+    "pdf_sha256": "eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748",
+    "page": 7,
+    "bbox": [
+      115.82920837402344,
+      214.54617309570312,
+      133.2335968017578,
+      228.3496551513672
+    ],
+    "image_sha256": "e7dacf81fe5ff5c608a63c0a3147f64afaa6de5b066ba19df1a5af4a12cf4fc1",
+    "text": "Пл₁",
+    "reviewer": "Codex visual inspection 2026-11-03",
+    "method": "visual reading of original PDF page 7 rendered to norm-page7.png"
+  },
+  {
+    "source_id": "inline:c9928b089938ad5b5e87dfe23cda64b3",
+    "pdf_sha256": "eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748",
+    "page": 7,
+    "bbox": [
+      114.62890625,
+      246.95433044433594,
+      133.83375549316406,
+      260.7578125
+    ],
+    "image_sha256": "6ced60e0401a3cd62b0c68f82f7c97880ec37eaf8c48e6c2c92d6ac5f172e992",
+    "text": "Пл₂",
+    "reviewer": "Codex visual inspection 2026-11-03",
+    "method": "visual reading of original PDF page 7 rendered to norm-page7.png"
+  },
+  {
+    "source_id": "inline:2bc9e660745817ba718213c3b591a406",
+    "pdf_sha256": "eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748",
+    "page": 7,
+    "bbox": [
+      115.22906494140625,
+      279.3625183105469,
+      133.83375549316406,
+      293.7661437988281
+    ],
+    "image_sha256": "af0f28b58fe50f83dc968630691a8e33f43e6df213bd24e2153d5955ab558433",
+    "text": "Пл₃",
+    "reviewer": "Codex visual inspection 2026-11-03",
+    "method": "visual reading of original PDF page 7 rendered to norm-page7.png"
+  },
+  {
+    "source_id": "inline:e886702cf12c64a4859670dccf05ba86",
+    "pdf_sha256": "eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748",
+    "page": 7,
+    "bbox": [
+      454.3146057128906,
+      326.77447509765625,
+      471.718994140625,
+      340.57794189453125
+    ],
+    "image_sha256": "e7dacf81fe5ff5c608a63c0a3147f64afaa6de5b066ba19df1a5af4a12cf4fc1",
+    "text": "Пл₁",
+    "reviewer": "Codex visual inspection 2026-11-03",
+    "method": "visual reading of original PDF page 7 rendered to norm-page7.png"
+  },
+  {
+    "source_id": "inline:f6fe577e43e003e0c15972010684beed",
+    "pdf_sha256": "eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748",
+    "page": 7,
+    "bbox": [
+      118.22981262207031,
+      565.0346069335938,
+      130.2328338623047,
+      578.8380737304688
+    ],
+    "image_sha256": "4fbf6c6f248ed498b0eeca8f6069fdd0c87b37d376d47804fc3dd46c931dac7f",
+    "text": "В₁",
+    "reviewer": "Codex visual inspection 2026-11-03",
+    "method": "visual reading of original PDF page 7 rendered to norm-page7.png"
+  },
+  {
+    "source_id": "inline:36085489c211d62da36ac27cdc2bf270",
+    "pdf_sha256": "eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748",
+    "page": 7,
+    "bbox": [
+      117.62966918945312,
+      597.4427490234375,
+      131.4331512451172,
+      611.2462158203125
+    ],
+    "image_sha256": "0df04c4df1c9d462f287b8b9dbee5194ababa38a9aeb140b3eddf0a5cdd0d72c",
+    "text": "В₂",
+    "reviewer": "Codex visual inspection 2026-11-03",
+    "method": "visual reading of original PDF page 7 rendered to norm-page7.png"
+  },
+  {
+    "source_id": "inline:f5a19c41ce780e070108cc62cdf8e6dc",
+    "pdf_sha256": "eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748",
+    "page": 7,
+    "bbox": [
+      454.3146057128906,
+      644.2545166015625,
+      466.317626953125,
+      658.0579833984375
+    ],
+    "image_sha256": "4fbf6c6f248ed498b0eeca8f6069fdd0c87b37d376d47804fc3dd46c931dac7f",
+    "text": "В₁",
+    "reviewer": "Codex visual inspection 2026-11-03",
+    "method": "visual reading of original PDF page 7 rendered to norm-page7.png"
+  }
+]

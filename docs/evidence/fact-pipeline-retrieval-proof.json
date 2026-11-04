@@ -1,0 +1,53 @@
+{
+  "old": {
+    "database": "releases/iskitim-10-vor-20261103-v1/knowledge.sqlite",
+    "sha256": "69d3ae699d6ceb10448b016cb4584a1ec1c97dd8c4b412bc5513a4cc0a4c3e8f",
+    "release_id": "iskitim-10-vor-20261103-v1",
+    "profile": "roads"
+  },
+  "new": {
+    "database": "releases/fact-inline-20261103-v3/knowledge.sqlite",
+    "sha256": "04feeb6f42f1259a11f0a01fdb13f44e34a5ccdba18733506fb370f448c97b54",
+    "release_id": "fact-inline-20261103-v3",
+    "profile": "roads"
+  },
+  "queries": [
+    {
+      "query": "ГОСТ Р 70458-2022 Пл1",
+      "before_hits": 0,
+      "after_hits": 1,
+      "hits": [
+        {
+          "id": "clause-4601e9b2c8d8b004db5e11b1aea67ccd",
+          "status": "native_with_visual_transcriptions",
+          "citations": [
+            {
+              "physical_page": 7,
+              "source_id": "pdf-eb17404f2f825a1761019f28"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "query": "ГОСТ Р 70458-2022 В1",
+      "before_hits": 0,
+      "after_hits": 1,
+      "hits": [
+        {
+          "id": "clause-4601e9b2c8d8b004db5e11b1aea67ccd",
+          "status": "native_with_visual_transcriptions",
+          "citations": [
+            {
+              "physical_page": 7,
+              "source_id": "pdf-eb17404f2f825a1761019f28"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "model_calls": 0,
+  "ocr_calls": 0,
+  "visual_transcriptions": 7
+}

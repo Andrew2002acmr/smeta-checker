@@ -107,6 +107,7 @@ class Corpus:
         # only immutable retrieval IDs, never facts, mutable entities or a
         # SQLite connection. A new release/instance starts with an empty LRU.
         self._cached_search_pool = lru_cache(maxsize=256)(self._search_pool)
+        self._cached_resource_names = lru_cache(maxsize=1)(self._resource_names)
 
     @contextmanager
     def connect(self):
@@ -147,9 +148,41 @@ class Corpus:
                 item['composition'] = json.loads(t[0]) if t else []
             return item
 
+    def _resource_names(self):
+        """Immutable lexical navigation over the existing resource registry.
+
+        Neither quantities nor applicability decisions enter this index.
+        Repeated names are tokenized once, while all owning norms remain.
+        """
+        scope=' OR '.join('(n.family=? AND n.code LIKE ?)' for _ in self.gesn_scope) or '0'
+        args=[v for family,number in self.gesn_scope for v in (family,number+'-%')]
+        with self.connect() as db:
+            rows=db.execute('SELECT DISTINCT r.name,n.id,n.code FROM resources r '
+                'JOIN norms n ON n.id=r.norm_id WHERE ('+scope+') ORDER BY r.name,n.code',args).fetchall()
+        names={}
+        for row in rows:
+            names.setdefault(row['name'],[]).append(row['id'])
+        return tuple((frozenset(_search_tokens(name)),tuple(ids)) for name,ids in names.items())
+
+    def _resource_matches(self, words):
+        # Single generic words such as "смесь" cannot replace work retrieval.
+        ignored=set(_search_tokens('смесь материал ресурс расход норма сборник'))
+        wanted={w for w in words if re.fullmatch(r'[а-я]{3,}',w) and w not in ignored}
+        if len(wanted)<2 or not self.gesn_scope:
+            return []
+        ranked=[]
+        for ordinal,(tokens,ids) in enumerate(self._cached_resource_names()):
+            common=wanted & tokens
+            if len(common)>=max(2,min(3,len(wanted))):
+                ranked.append((-len(common),len(tokens-wanted),ordinal,ids))
+        ranked.sort()
+        return list(dict.fromkeys(identity for *_,ids in ranked for identity in ids))[:8]
+
     def _search_pool(self, query, kind, gesn_scope):
         """Exact and FTS candidates in original order, before fact-dependent ranking."""
         entity_kind = 'norm' if kind == 'GESN' else 'clause'
+        if entity_kind=='norm' and not gesn_scope:
+            return (), ()
         document = re.search(r'(?:ГОСТ\s*(?:Р\s*)?|СП\s*|ПНСТ\s*|ОДМ\s*)(\d[\d.\-]*)', query, re.I)
         source_ids = []
         remaining = query
@@ -171,17 +204,38 @@ class Corpus:
         scope_args = [value for family, number in gesn_scope for value in (family, number + '-%')]
         with self.connect() as db:
             exact = []
-            code = re.search(r'\d{2}-\d{2}-\d{3}-\d{2,3}', query)
-            if code and entity_kind == 'norm' and not any(code[0].startswith(number + '-') for _, number in gesn_scope):
-                return (), ()
-            if code and entity_kind == 'norm':
-                exact = [r[0] for r in db.execute("SELECT id FROM norms WHERE code=?", (code[0],))]
+            references=list(dict.fromkeys(re.findall(
+                r'(?<![\w-])\d{2}-\d{2}-\d{3}(?:-\d{2,3})?(?![\w-])',query)))[:16]
+            if references and entity_kind == 'norm':
+                pools=[]
+                for reference in references:
+                    full=reference.count('-')==3
+                    column='code' if full else 'table_code'
+                    pools.append([r[0] for r in db.execute(
+                        f'SELECT n.id FROM norms n WHERE n.{column}=? AND ({scope_sql}) ORDER BY n.code,n.id LIMIT 80',
+                        (reference,*scope_args))])
+                # A base and its adjustment table must both reach a bounded
+                # result. Do not fill it with all alternatives of the first
+                # mentioned table before considering the next reference.
+                exact=list(dict.fromkeys(pool[i] for i in range(max(map(len,pools),default=0))
+                    for pool in pools if i<len(pool)))
+                if not exact:
+                    return (), ()
             if entity_kind == 'clause':
                 clause = re.search(r'\b\d+(?:\.\d+){1,4}\b', remaining)
                 if clause:
                     exact = [r[0] for r in db.execute(
                         "SELECT c.id FROM clauses c JOIN sources s ON s.id=c.source_id WHERE c.label=? AND (?='ALL' OR s.kind=?)"
                         + source_sql, (clause[0], kind, kind, *source_ids))]
+                    # Some imports retain a section only inside a physical-page
+                    # chunk. A scoped numbered request must find its literal
+                    # heading before FTS ranks scattered table numbers 5 OR 2.
+                    if not exact and source_ids:
+                        heading = re.compile(r'(?:^|\n)\s*'+re.escape(clause[0])+r'(?![\d.])\s+\S')
+                        exact = [r['id'] for r in db.execute(
+                            "SELECT c.id,c.text FROM clauses c JOIN sources s ON s.id=c.source_id "
+                            "WHERE (?='ALL' OR s.kind=?)"+source_sql, (kind, kind, *source_ids))
+                            if heading.search(r['text'])]
             rows = db.execute(
                 'SELECT c.entity_id,bm25(search_fts,0,5,1) AS rank FROM search_fts '
                 'JOIN chunks c ON c.id=search_fts.chunk_id JOIN sources s ON s.id=c.source_id '
@@ -190,7 +244,8 @@ class Corpus:
                 f"AND (c.entity_type!='norm' OR EXISTS (SELECT 1 FROM norms n WHERE n.id=c.entity_id AND ({scope_sql}))) "
                 "ORDER BY rank,c.id LIMIT 80",
                 (expr, entity_kind, kind, kind, *source_ids, *scope_args)).fetchall()
-        ids = list(dict.fromkeys(exact + [r['entity_id'] for r in rows]))
+        resources=self._resource_matches(words) if entity_kind=='norm' and not references else []
+        ids = list(dict.fromkeys(exact + resources + [r['entity_id'] for r in rows]))
         return tuple(exact), tuple(ids)
 
     def search(self, query, kind='GESN', facts=None, limit=12):
@@ -216,7 +271,7 @@ class Corpus:
             actual_mass, maximum_mass = decimal(facts.get('mass_kg_per_m')), decimal(item.get('attributes', {}).get('mass_kg_per_m_max'))
             mass_gap = maximum_mass - actual_mass if actual_mass is not None and maximum_mass is not None and maximum_mass >= actual_mass else Decimal('Infinity')
             matches = sum(c['state'] == 'match' for c in item['checks'])
-            item['_sort'] = (0 if entity_id in exact else 1, bool(conflicts), -matches,
+            item['_sort'] = (0 if entity_id in exact else 1, ordinal if entity_id in exact else 0, bool(conflicts), -matches,
                              item['status'] != 'definition_reviewed', missing_checks, mass_gap, ordinal)
             output.append(item)
         output.sort(key=lambda i: i['_sort'])

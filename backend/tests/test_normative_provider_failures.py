@@ -12,7 +12,7 @@ from openai.types.chat import ChatCompletion
 
 from audit_models import VorPosition
 from normative_context import (
-    ModelEmptyResponseError, ModelProviderResponseError, ModelOutputLimitError,
+    ModelEmptyResponseError, ModelProviderResponseError, ModelProviderQuotaError, ModelOutputLimitError,
     Plan, _ask,
 )
 from normative_agent import MAX_ROUNDS, run as run_agent
@@ -93,9 +93,12 @@ def test_empty_truncated_response_keeps_token_limit_diagnostic():
     assert stats['responses'][0]['finish_reason']=='length'
 
 
-def position_review(*, direct_pair=False):
-    response=SimpleNamespace(choices=None, error={'code':503, 'message':'secret upstream 502'})
+def position_review(*, direct_pair=False, response=None):
+    if response is None:
+        response=SimpleNamespace(choices=None, error={'code':503, 'message':'secret upstream 502'})
     client, credentials, _, trace=fixture(response)
+    if isinstance(response, Exception):
+        client.chat.completions.create.side_effect = response
     settings=SimpleNamespace(llm_credentials=lambda:credentials, allowed_llm_hosts=('routerai.ru',),
         langfuse_public_key='', langfuse_secret_key='', langfuse_base_url='', langfuse_environment='test',
         telemetry_redact_pdf=True, telemetry_mask_prompts=True)
@@ -197,6 +200,53 @@ def agent_fixture(responses):
     def run():
         return run_agent(_ask, client, credentials, '', {}, AgentAnswer, trace, stats, tools)
     return run, client.chat.completions.create, stats, tools
+
+
+def monthly_limit_error():
+    # The reproduced RouterAI response, plus sensitive fields that must never
+    # reach telemetry or the published engineering result.
+    body = {'error': {'message': 'API key monthly spending limit exceeded: 1 000,36 руб. / 1 000,00 руб.',
+                      'code': 429, 'debug': 'private-document api-key-secret'}}
+    return openai.RateLimitError('private-http-secret', response=httpx.Response(429,
+        request=httpx.Request('POST', 'https://example.invalid')), body=body)
+
+
+@pytest.mark.parametrize('transport', ['http', 'envelope'])
+def test_monthly_key_limit_stops_after_one_attempt_without_exposing_response(transport):
+    failure = monthly_limit_error()
+    response = failure if transport == 'http' else SimpleNamespace(choices=None, error=failure.body['error'])
+    run, create, stats, _ = agent_fixture([response, agent_response()])
+    with pytest.raises(ModelProviderQuotaError) as caught:
+        run()
+    assert create.call_count == stats['requests'] == 1
+    diagnostic = stats['responses'][0]['error']
+    assert diagnostic == dict(kind='ModelProviderQuotaError', code=429,
+        reason='api_key_monthly_spending_limit_exceeded', retryable=False)
+    public = json.dumps([stats, str(caught.value)], ensure_ascii=False)
+    assert not any(secret in public for secret in ['private-', 'api-key-secret', '1 000,36'])
+
+
+def test_monthly_key_limit_stays_a_technical_failure_with_actionable_summary():
+    saved, record, original, client = position_review(response=monthly_limit_error())
+    review = saved['payload']['position_check']
+    assert review['execution_state'] == 'technical_failure'
+    assert review['decision_origin'] is None and review['items'] == []
+    assert 'месячный лимит расходов API-ключа' in review['summary']
+    assert not review.get('parameter_cards')
+    assert review['telemetry']['responses'][0]['error']['retryable'] is False
+    assert review['telemetry']['requests'] == client.chat.completions.create.call_count == 1
+    assert record == original
+    assert 'private-' not in json.dumps(saved)
+
+
+def test_unknown_http_429_keeps_bounded_transient_retry_and_safe_diagnostic():
+    error = openai.RateLimitError('private-http-secret', response=httpx.Response(429,
+        request=httpx.Request('POST', 'https://example.invalid')), body={'error': {'message': 'private-unknown'}})
+    run, create, stats, _ = agent_fixture([error, agent_response()])
+    assert run().summary == 'Done'
+    assert create.call_count == stats['requests'] == 2
+    assert stats['responses'][0]['error'] == dict(kind='RateLimitError', code=429)
+    assert 'private-' not in json.dumps(stats)
 
 
 @pytest.mark.parametrize('code', [408,429,500,502,503,504])

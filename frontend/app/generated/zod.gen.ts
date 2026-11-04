@@ -464,7 +464,7 @@ export const zNormativeParameterProposal = z.object({
     scope_quote: z.string().max(900).optional().default(''),
     scope_relation: z.enum(['same_layer', 'technological_part']).optional().default('same_layer'),
     scope_state: z.enum(['verified', 'unresolved']).optional().default('unresolved'),
-    source_id: z.string().max(80).optional().default(''),
+    source_id: z.string().max(200).optional().default(''),
     unit: z.string().max(30),
     value: z.string().max(40)
 });

@@ -1,0 +1,48 @@
+{
+  "receipt": {
+    "key": "739f08e6e104fb9e5f0453f4aa7d3a0a0dd019725da9e46d153b54eb26b4b183",
+    "identity": {
+      "schema": 1,
+      "stage": "expert_laying_pass_width_v1",
+      "project_id": "1cc60175-36c8-44df-83aa-f49a7cd1bf54",
+      "vor_version_id": "26f1775f-3fac-4873-80ec-64276cb47d26",
+      "pdf_versions": {
+        "006_26_раздел пд №3.1.pdf": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+      },
+      "work_keys": [
+        "125e4afbdf4a6828865776db8f6a8c129cf13ed2d2f755f4517ee47e024481b3",
+        "12b232ed2f5965b0b5ea15761b4ed994ffe5d42a4960c986d409cfc7e3320a8a",
+        "374d4e0730189d3e19c50dff3aa75ddde850a583ff900f09c154b28d4fd0490d",
+        "39f962cdc3b661d046eb0be496e44defac1543ba8329dbd31f36efb6bf269521",
+        "5fe500f2ebe53ed3308d5c78e4abd769573820b64415cd65fe6d7b82ef250df0",
+        "887b0bcf83fa1d742f201887fb03632a78ae09eb4627e19ccd9582a2a0ba0500",
+        "bfe8263cc525b11acca491b228453f76aed69c42190084d156fd6ea87b24a075",
+        "e9db58fd122d0ff5e4d786933e087d44d7daa53963d18432158c38cab26bdbcb"
+      ]
+    },
+    "fact": {
+      "actor": "user",
+      "reason": "В ответ на вопрос о способе укладки работ текущей ВОР асфальтоукладчиком 3-го типоразмера пользователь подтвердил отдельные проходы шириной до 6 м. Подтверждение относится только к принятому способу работ; площадь, толщина, расход и прочие условия проверяются отдельно.",
+      "schema": 1,
+      "assertion": "planned_paving_pass_upper_bound_not_as_built_measurement",
+      "maximum_m": "6",
+      "provenance": "explicit_user_confirmation",
+      "user_quote": "Да, проходами до 6 м"
+    }
+  },
+  "applies_to_indices": [
+    16,
+    22,
+    26,
+    63,
+    70,
+    74,
+    88,
+    92
+  ],
+  "source_run_id": "e175ad8e-5cf6-4a68-b592-430d89bd2c7e",
+  "database": "isolated smeta_pilot only",
+  "prior_reviews_preserved": true,
+  "routerai_requests": 0,
+  "model_calls": 0
+}

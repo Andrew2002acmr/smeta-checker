@@ -18,7 +18,13 @@ FIXTURE = Path(__file__).parent / 'fixtures/publication59-frozen.json'
 
 
 def fixture():
-    return json.loads(FIXTURE.read_text(encoding='utf-8'))
+    data=json.loads(FIXTURE.read_text(encoding='utf-8'))
+    # The immutable legacy fixture predates the equipment_function property.
+    # Reproduce its server migration before testing current SQL projection;
+    # never accept the old parser proof merely because its retired IDs agree.
+    from normative_claim_migration import apply_review_migration
+    apply_review_migration(VorPosition.model_validate(data['position']),data['position_check'])
+    return data
 
 
 def save(pipeline, data, *, actor='projection-regression'):
@@ -163,3 +169,12 @@ def test_pipeline_version_keeps_numeric_conflict_gate_in_batch_view(pipeline):
     legacy = deepcopy(batch['review'])
     legacy.pop('pipeline_version')
     assert result(legacy) == FIX  # Proves why the version is semantic, not decorative.
+
+
+def test_raw_legacy59_proof_is_rejected_until_server_migration_is_rebuilt():
+    raw=json.loads(FIXTURE.read_text(encoding='utf-8'))
+    before=deepcopy(raw)
+    assert verdict(raw,dict(raw['position_check'],position_key=raw['position_key']))['Статус аудита']==REVIEW
+    current=fixture()
+    assert verdict(current,dict(current['position_check'],position_key=current['position_key']))['Статус аудита']=='ОК'
+    assert raw==before

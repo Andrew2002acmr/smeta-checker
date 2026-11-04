@@ -2261,7 +2261,7 @@
           },
           "source_id": {
             "default": "",
-            "maxLength": 80,
+            "maxLength": 200,
             "title": "Source Id",
             "type": "string"
           },

@@ -7,9 +7,11 @@ import hashlib
 import re
 import time
 import unicodedata
+from typing import Any
 
 VERSION = 'physical-header-ocr-v2'
 SEMANTIC_VERSION = 'physical-semantic-header-ocr-v1'
+VISUAL_VERSION = 'independent-visual-header-v1'
 
 
 def _clean(text):
@@ -41,8 +43,33 @@ def header_consensus(variants):
     return texts[0]
 
 
+def visual_header_text(header):
+    """An explicit visual reading bound to the unchanged physical crop.
+
+    Preparation checks source bytes and page geometry before saving this
+    envelope. It is not OCR consensus or an inferred engineering requirement.
+    """
+    proof=header.get('visual_transcription') or {}
+    original=header.get('header_refinement') or {}
+    if (proof.get('version')!=VISUAL_VERSION or header.get('role')!='header'
+            or any(proof.get(k)!=header.get(k,1 if k=='colspan' else None)
+                for k in ('cell_id','bbox','row','column','colspan'))
+            or proof.get('text')!=header.get('text') or not proof.get('text','').strip()
+            or proof.get('original_text')!=header.get('raw_recovered_text')
+            or not original.get('image_sha256') or proof.get('crop_image_sha256')!=original['image_sha256']
+            or type(proof.get('page')) is not int or proof['page']<1
+            or not proof.get('document_version_id') or not proof.get('reviewer') or not proof.get('method')
+            or any(not re.fullmatch('[0-9a-f]{64}',str(proof.get(k,'')))
+                for k in ('pdf_sha256','review_sha256','rendered_page_sha256'))):
+        return ''
+    return proof['text']
+
+
 def verified_header_text(header):
     """Reuse text only with the same physical header and two complete reads."""
+    visual=visual_header_text(header)
+    if visual:
+        return visual
     proof=header.get('header_refinement') or {}
     if (proof.get('semantic_version')!=SEMANTIC_VERSION
             or proof.get('header_id')!=header['cell_id']
@@ -225,7 +252,7 @@ def _refine_unit(clean,proof,deadline,cache_dir,store_image):
     crop=clean.crop(region)
     raw=ocr_engine._to_png(crop)
     digest=hashlib.sha256(raw).hexdigest()
-    result=dict(region=region,image_size=[clean.width,clean.height],image_sha256=digest,variants=[])
+    result:dict[str,Any]=dict(region=region,image_size=[clean.width,clean.height],image_sha256=digest,variants=[])
     if store_image is not None:
         result['image_key']=store_image(raw).key
     if cache_dir is not None:
@@ -395,7 +422,7 @@ def verify_recovered_tables(page, tables, *, rotation=0, cache_dir=None, store_i
                     image=ocr_engine._rotate(ocr_engine._pil_from_pixmap(pix),(rotation-original_rotation)%360)
                     raw=ocr_engine._to_png(image)
                     digest=hashlib.sha256(raw).hexdigest()
-                    proof=dict(version=VERSION, semantic_version=SEMANTIC_VERSION,
+                    proof:dict[str,Any]=dict(version=VERSION, semantic_version=SEMANTIC_VERSION,
                         column=header['column'], row=header['row'], colspan=header.get('colspan',1), header_id=header['cell_id'],
                         bbox=list(box), image_sha256=digest, dpi=600,
                         rotation=(rotation-original_rotation)%360, engine=ocr_engine.tesseract_version(), variants=[])

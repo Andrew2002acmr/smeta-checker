@@ -1,0 +1,101 @@
+{
+  "run_id": "ed70d1f2-0f2e-4adc-bcca-7c186fb72a44",
+  "request_answer_pairs": 35,
+  "code_unchanged_since_start": true,
+  "inactive_normative_pin": {
+    "database": "releases/fact-inline-20261103-v4/knowledge.sqlite",
+    "release_id": "fact-inline-20261103-v4",
+    "profile": "roads",
+    "sha256": "5792fb3906ef159b188b6058e564429d402337234ad856d39b0bf0ee29084c8d"
+  },
+  "active_normative_pin": {
+    "database": "releases/iskitim-10-vor-20261103-v1/knowledge.sqlite",
+    "release_id": "iskitim-10-vor-20261103-v1",
+    "profile": "roads",
+    "sha256": "69d3ae699d6ceb10448b016cb4584a1ec1c97dd8c4b412bc5513a4cc0a4c3e8f"
+  },
+  "original_normative_files": {
+    "pdf-6aa5203d913dd5eb1538a4c2": {
+      "sha256": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5",
+      "file": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5.pdf"
+    },
+    "pdf-00d837c15bec55db10409961": {
+      "sha256": "00d837c15bec55db1040996117b875e57ee03e22b6ffb82ec0191ad45f167fc3",
+      "file": "00d837c15bec55db1040996117b875e57ee03e22b6ffb82ec0191ad45f167fc3.pdf"
+    },
+    "pdf-ae59b619236cb4e878a1b9ef": {
+      "sha256": "ae59b619236cb4e878a1b9efde11e8d082c8a82902695ebb52928b48833e02ec",
+      "file": "ae59b619236cb4e878a1b9efde11e8d082c8a82902695ebb52928b48833e02ec.pdf"
+    },
+    "pdf-2734fa10221e63a37a32de97": {
+      "sha256": "2734fa10221e63a37a32de97a80368b797dd16262d53fd9f045f160d1a14ee3a",
+      "file": "2734fa10221e63a37a32de97a80368b797dd16262d53fd9f045f160d1a14ee3a.pdf"
+    },
+    "pdf-119e7005b140e150895efab0": {
+      "sha256": "119e7005b140e150895efab09d5e7b0ea3f2fe14b6e53a5bb5527661d39ed628",
+      "file": "119e7005b140e150895efab09d5e7b0ea3f2fe14b6e53a5bb5527661d39ed628.pdf"
+    },
+    "pdf-d4b9b1e902d2b9d5fc471dd5": {
+      "sha256": "d4b9b1e902d2b9d5fc471dd5b7773def5a8bdb4f8f112548cfe0b2666a6a6bb8",
+      "file": "d4b9b1e902d2b9d5fc471dd5b7773def5a8bdb4f8f112548cfe0b2666a6a6bb8.pdf"
+    },
+    "pdf-d3674fe93ec03603a16e8e50": {
+      "sha256": "d3674fe93ec03603a16e8e50c74b41ab7637a1d3cb43bf6f7bc97f5e234ac7ee",
+      "file": "d3674fe93ec03603a16e8e50c74b41ab7637a1d3cb43bf6f7bc97f5e234ac7ee.pdf"
+    },
+    "pdf-b4e22754d4062c019a9c863f": {
+      "sha256": "b4e22754d4062c019a9c863f0a2918264511f0e04254b5e937568648dbb652c3",
+      "file": "b4e22754d4062c019a9c863f0a2918264511f0e04254b5e937568648dbb652c3.pdf"
+    },
+    "pdf-eb17404f2f825a1761019f28": {
+      "sha256": "eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748",
+      "file": "eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748.pdf"
+    },
+    "pdf-e5d2d930f56e990f784e45cf": {
+      "sha256": "e5d2d930f56e990f784e45cf0f29481485f6191b800838f7e8f2faaa940603da",
+      "file": "e5d2d930f56e990f784e45cf0f29481485f6191b800838f7e8f2faaa940603da.pdf"
+    },
+    "pdf-ce4dd8baf4a25526c00830ba": {
+      "sha256": "ce4dd8baf4a25526c00830ba591c0080a4af9762f3d97227b2fe90ccc885287d",
+      "file": "ce4dd8baf4a25526c00830ba591c0080a4af9762f3d97227b2fe90ccc885287d.pdf"
+    },
+    "pdf-894dc6aea294544d20351f9b": {
+      "sha256": "894dc6aea294544d20351f9bcc443ac7629d3840ac9d9b6c4c489d449c417c95",
+      "file": "894dc6aea294544d20351f9bcc443ac7629d3840ac9d9b6c4c489d449c417c95.pdf"
+    },
+    "pdf-6e8109d8b65b592bdc852787": {
+      "sha256": "6e8109d8b65b592bdc8527870d8d6bdcf08a8bf6f1b291a639821b2f0beedfb8",
+      "file": "6e8109d8b65b592bdc8527870d8d6bdcf08a8bf6f1b291a639821b2f0beedfb8.pdf"
+    },
+    "pdf-365c7e1013b605c396514ee0": {
+      "sha256": "365c7e1013b605c396514ee0f4cb1ce8899fba828183ecd961c95b3a8282dc67",
+      "file": "365c7e1013b605c396514ee0f4cb1ce8899fba828183ecd961c95b3a8282dc67.pdf"
+    },
+    "pdf-2c454bb111f8f98f1c826530": {
+      "sha256": "2c454bb111f8f98f1c826530f6b4a122ea2bc7e168dbdc5cc2180944c6afffaf",
+      "file": "2c454bb111f8f98f1c826530f6b4a122ea2bc7e168dbdc5cc2180944c6afffaf.pdf"
+    },
+    "pdf-a8be60300b392e9a5ca274c6": {
+      "sha256": "a8be60300b392e9a5ca274c61766814fd636fdc35c3ca924e1b310d6c50df41c",
+      "file": "a8be60300b392e9a5ca274c61766814fd636fdc35c3ca924e1b310d6c50df41c.pdf"
+    }
+  },
+  "source_files_integrity": true,
+  "prior_reviews_preserved": true,
+  "completed_packing_records": 23,
+  "routerai_requests": 0,
+  "selected_indices": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "technical_execution_failures": 0,
+  "limits": "Artifact integrity and protocol checks do not replace independent engineering assessment."
+}

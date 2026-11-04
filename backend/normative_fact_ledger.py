@@ -1,12 +1,13 @@
 """Shared immutable fact envelopes with explicit scope and literal provenance."""
 
 from copy import deepcopy
+from typing import Any
 
 from analysis_replay import digest
 from normative_scope_graph import scope
 
 
-def build(position, result, positions, relation):
+def build(position, result, positions, relation) -> dict[str, Any]:
     from normative_parameters import measure
     from normative_parameter_feedback import literal_parameter_issues
     from normative_parent_basis import _proposal_dependencies
@@ -116,15 +117,41 @@ def shared(context, record, positions, index, group):
 
     sources, candidates = [], []
     pins = set(record["config"].get("pdf_versions", {}).values())
-    for node in group["positions"]:
+    # Explicit prior runs may supply only rechecked project literals. Their
+    # normative edition and verdicts never become evidence for this run.
+    records = [record]
+    prior = record['config'].get('normative_fact_source_run_ids', [])
+    if not isinstance(prior, list) or len(prior) > 3:
+        raise ValueError('Prior fact runs must be an explicit bounded list')
+    from uuid import UUID
+    if prior and (not isinstance(record['config'].get('position_inputs'),list)
+            or not record['config']['position_inputs']):
+        raise ValueError('Prior fact runs require the complete position input bank')
+    for run_id in dict.fromkeys(prior):
+        if str(run_id) == str(record['id']):
+            continue
+        previous = context.repository.load_run(UUID(str(run_id)))
+        if (str(previous['project_id']) != str(record['project_id'])
+                or str(previous['vor_version_id']) != str(record['vor_version_id'])
+                or previous['config'].get('pdf_versions') != record['config'].get('pdf_versions')
+                or not isinstance(previous['config'].get('position_inputs'),list)
+                or not previous['config']['position_inputs']
+                or digest(previous['config']['position_inputs']) != digest(record['config']['position_inputs'])):
+            raise ValueError('Prior fact run project/VOR/PDF inputs differ')
+        records.append(previous)
+    requests = ([(node,record) for node in group['positions'] if node['index']!=index]
+        + [(node,source_record) for source_record in records[1:]
+            for node in group['positions'] if node['index']==index]
+        + [(node,source_record) for source_record in records[1:]
+            for node in group['positions'] if node['index']!=index])
+    for node, source_record in requests:
         donor = node["index"]
         if (
-            donor == index
-            or node["scope_id"] != group["scope_id"]
+            node["scope_id"] != group["scope_id"]
             or not group["scope_id"]
         ):
             continue
-        rows = context.repository.normative_reviews(record["id"], donor)
+        rows = context.repository.normative_reviews(source_record["id"], donor)
         row = next((r for r in rows if r["kind"] == "check"), None)
         if row is None:
             continue
@@ -198,6 +225,7 @@ def shared(context, record, positions, index, group):
                         scope_id=node["scope_id"],
                         work=node["work"],
                         source_review_id=str(row["id"]),
+                        source_run_id=str(source_record['id']),
                         proposal=rewritten,
                         engineer_scope_for_current_position="unresolved",
                     )

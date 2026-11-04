@@ -36,6 +36,35 @@ def test_litres_do_not_become_tonnes_without_density():
     assert not proof['project_quantity_verified']
 
 
+@pytest.mark.parametrize('unit,comment,expression,rate_unit,divisor,dimension',[
+    ('м3','Расход воды-0,15м3/м2','=1743*0.15','м3/м2','1','volume'),
+    ('кг','Расход 3кг/100м2','=1743*3/100','кг/100м2','100','mass'),
+    ('т','Расход 3кг/100м2','=1743*3/100/1000','кг/100м2','100000','mass'),
+    ('м3','Расход 0,7 л/м2','=1743*0.7/1000','л/м2','1000','volume'),
+])
+def test_area_input_is_typed_for_dimensioned_volume_and_mass_rates(unit,comment,expression,rate_unit,divisor,dimension):
+    p=position(unit=unit,comment=comment,calculation={'expression':expression})
+    proof=analyze(p)
+    assert proof['area']=='1743' and proof['rate_unit']==rate_unit
+    assert proof['divisor']==divisor and proof['output_dimension']==dimension
+    assert not proof['density_required'] and not proof['project_quantity_verified']
+    assert not proof['rate_applicability_verified']
+    from normative_workbook_rate import quantity_contract
+    contract=quantity_contract(p)
+    assert contract['project_input']['claim_id']=='input:area' and not contract['verified']
+
+
+@pytest.mark.parametrize('unit,comment,expression',[
+    ('кг','Расход воды-0,15м3/м2','=1743*0.15'),
+    ('м3','Расход 3кг/100м2','=1743*3/100'),
+    ('кг','Расход 3кг/100м2','=1743*3/1000'),
+    ('м3','Расход 0,7 л/м2','=1743*0.7'),
+    ('м3','Расход 0,15м3/м2','=1743*0.15*2'),
+])
+def test_dimension_mismatch_or_unexplained_multiplier_is_not_an_area_recipe(unit,comment,expression):
+    assert analyze(position(unit=unit,comment=comment,calculation={'expression':expression})) is None
+
+
 @pytest.mark.parametrize('expression', ['=5231.08*0.4/1000', '=0.4*(5231.08/1000)', '=(5231.08*0.4)/1000'])
 def test_mass_conversion_is_recognized_only_from_typed_rate(expression):
     proof = analyze(position(comment='Расход: 0,4 кг/м²', calculation={'expression': expression}))
