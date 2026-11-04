@@ -772,11 +772,12 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
                 evidence_trace=proposal_events(answer.adjustments))
             tools.conditional_repair_candidates=repair_candidates(position,snapshot,positions,relation)
             return conditional_feedback(position,snapshot,positions,relation)
-        from normative_claim_definitions import definition
-        from normative_verification_contract import plan as verification_plan, INSTRUCTIONS as relation_instructions, review_scope
-        definitions = [definition(s)
+        from normative_verification_contract import (definitions_for_plan, plan as verification_plan,
+            INSTRUCTIONS as relation_instructions, review_scope)
+        verification_tasks = verification_plan(position, known_claims)
+        definitions = definitions_for_plan([s
             for s in technical_specs(position.work_name,position.comment,position.position_type,[],position.formula)
-            if s.claim_id in known_claims]
+            if s.claim_id in known_claims], verification_tasks)
         if project_quantity_contract.get('project_input'):
             definitions.append(dict(claim_id='input:area',label='Площадь-основание расчёта',
                 expected_text='Площадь той же конструкции и участка в ПД, используемая как вход расчёта расхода.',
@@ -837,7 +838,7 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
             edition_warning="Техническая проверка выполняется по закреплённому выпуску базы. Полнота изменений и применимость редакции на дату проекта не подтверждены; это отдельное предупреждение, а не доказательство ошибки строки.")
         from normative_workbook_rate import analyze as analyze_workbook_rate, related_area
         inputs['workbook_rate_analysis'] = analyze_workbook_rate(position)
-        inputs['verification_plan'] = verification_plan(position, known_claims)
+        inputs['verification_plan'] = verification_tasks
         inputs['related_area_work_candidates'] = related_area(position, positions)
         inputs['work_scope_graph'] = group
         inputs['shared_project_facts'] = shared_facts['candidates']

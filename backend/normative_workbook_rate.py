@@ -187,6 +187,32 @@ def geometric_rate_replay_supported(position,result):
     A stored physical proof cannot survive changed sources/proposals merely
     because its old input/output cards are still green.
     """
+    resource_events=[e for e in result.get('evidence_trace',[]) if e.get('kind')==PROOF
+        and 'resource_rate_basis' in e]
+    if resource_events:
+        if len(resource_events)!=1 or position is None:
+            return False
+        from normative_resource_consumption import areal_consumption_proof
+        cards={c['id']:c for c in result.get('parameter_cards',[])}
+        rebuilt_rate=areal_consumption_proof(position,result,area_card=cards.get('input:area',{}),
+            arithmetic_card=cards.get(f'calculation:{position.index}',{}))
+        if not rebuilt_rate or rebuilt_rate['proof']!=resource_events[0]['resource_rate_basis']:
+            return False
+        from normative_parameters import clean,measure,same_numeric_result
+        quantity=cards.get('quantity',{})
+        rate=cards.get(f"factor:{position.index}:{rebuilt_rate['proof']['recipe']['rate']}",{})
+        area=cards.get('input:area',{})
+        expected_area=rebuilt_rate['proof']['area_card']
+        if (quantity.get('state')!='confirmed'
+                or not same_numeric_result(quantity.get('found_value'),position.volume)
+                or measure('1',quantity.get('found_unit',''))!=measure('1',position.unit)
+                or rate.get('state')!='confirmed'
+                or not same_numeric_result(rate.get('found_value'),rebuilt_rate['card']['found_value'])
+                or clean(rate.get('found_unit',''))!=clean(rebuilt_rate['card']['found_unit'])
+                or measure(area.get('found_value'),area.get('found_unit',''))
+                    !=measure(expected_area['found_value'],expected_area['found_unit'])
+                or area.get('source_anchors')!=expected_area['source_anchors']):
+            return False
     events=[e for e in result.get('evidence_trace',[]) if e.get('kind')==PROOF
         and 'geometric_rate_basis' in e]
     if not events:
@@ -230,6 +256,17 @@ def project_consumption_supported(item,sources,*,position=None,parameters=(),ite
 
 def annotate(position, result, positions):
     """Identify operands in UI/model evidence; no operand becomes a PD citation."""
+    # Only an exact item recorded by this server can be reevaluated. A
+    # model-owned unknown, even with the same topic/claim, is never erased.
+    own_findings=[e['resource_scope_finding'] for e in result.get('evidence_trace',[])
+        if e.get('kind')==PROOF and isinstance(e.get('resource_scope_finding'),dict)]
+    kept=list(result.get('items',[]))
+    for finding in own_findings:
+        for index in range(len(kept)-1,-1,-1):
+            if kept[index]==finding:
+                kept.pop(index)
+                break
+    result['items']=kept
     result['evidence_trace'] = [e for e in result.get('evidence_trace', []) if e.get('kind') != PROOF]
     proof = analyze(position)
     if not proof:
@@ -253,8 +290,46 @@ def annotate(position, result, positions):
                 and _anchored_card(rebuilt[0],sources)):
             area_basis=rebuilt[0]
             proof['area_operand_basis']=deepcopy(area_basis)
+    from normative_resource_consumption import areal_consumption_proof
+    current_cards={c['id']:c for c in result.get('parameter_cards',[])}
+    scope_gaps=[]
+    scope_gap_source_ids=[]
+    resource_rate=areal_consumption_proof(position,result,area_card=area_basis or {},
+        arithmetic_card=current_cards.get(f'calculation:{position.index}',{}),scope_gaps=scope_gaps,
+        scope_gap_source_ids=scope_gap_source_ids)
+    if scope_gaps:
+        proof['resource_scope_gaps']=scope_gaps
+        rate_claims=sorted({claim for item in result.get('items',[]) for claim in item.get('claim_ids',[])
+            if project_rate_claim(claim)})
+        finding=dict(topic='Область применения размерного расхода ресурса',
+            state='needs_facts',required=True,claim_ids=['normative:applicability',*rate_claims],
+            explanation=' '.join(scope_gaps),project_source_ids=list((area_basis or {}).get('source_ids',[])),
+            normative_source_ids=scope_gap_source_ids)
+        result.setdefault('items',[]).append(finding)
+        proof['resource_scope_finding']=deepcopy(finding)
+        if result.get('state')=='confirmed':
+            result['state']='needs_facts'
+    if resource_rate and area_basis:
+        proof['resource_rate_basis']=resource_rate['proof']
+        rate_card=current_cards.get(f"factor:{position.index}:{proof['rate']}")
+        if rate_card is not None:
+            rate_card.update(resource_rate['card'])
+        quantity=current_cards.get('quantity')
+        if quantity is not None and quantity.get('state')=='needs_facts':
+            arithmetic=current_cards[f'calculation:{position.index}']
+            anchors=[*deepcopy(area_basis['source_anchors']),*deepcopy(resource_rate['card']['source_anchors'])]
+            quantity.update(state='confirmed',role='calculation',quantity_role='calculated_output',
+                label='Расчётное количество материала',found_value=arithmetic['found_value'],found_unit=position.unit,
+                source_ids=list(dict.fromkeys(a['source_id'] for a in anchors)),source_anchors=anchors,
+                quote='\n'.join(a['quote'] for a in anchors),
+                reason='Количество рассчитано из повторно проверенной проектной площади и буквального '
+                    'расхода ресурса выбранной нормы с приведением площадных и материальных единиц. '
+                    'Это расчётный результат, не буквальная масса ПД; семантические условия проверяются отдельно.')
     result['evidence_trace'].append(proof)
     for card in result.get('parameter_cards', []):
+        if scope_gaps and card.get('id') in {'quantity',f"factor:{position.index}:{proof['rate']}"}:
+            card['reason']=' '.join(scope_gaps)
+            continue
         parts = card['id'].split(':')
         if len(parts) != 3 or parts[:2] != ['factor', str(position.index)]:
             continue

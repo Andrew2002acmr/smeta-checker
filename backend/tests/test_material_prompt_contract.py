@@ -11,7 +11,7 @@ from audit_models import VorPosition
 from normative_agent import EvidenceRequest, run
 from normative_position_check import AgentAnswer, answer_feedback
 from workspace_models import NormativeParameterProposal
-from normative_verification_contract import INSTRUCTIONS, plan, review_scope
+from normative_verification_contract import INSTRUCTIONS, definitions_for_plan, plan, review_scope
 from test_normative_agent import toolkit
 
 
@@ -74,6 +74,35 @@ def test_work_scope_and_material_norm_dependency_are_not_disabled():
     assert scope["required"]
     assert scope["work_norm_conditions_required_when"] == "quantity_depends_on_work_norm_resource_rate"
     assert "Непроверенную зависимость от нормы нельзя заменить подтверждённой геометрией" in check_instructions()
+
+
+def test_work_threshold_and_ordinary_thickness_have_consistent_definitions_and_plan_on_wire():
+    from audit_core import build_claim_specs
+
+    work = VorPosition(index=0, work_name='Устройство основания h=8 см', unit='м2', volume='10',
+        comment='Толщина слоя 8 см. При толщине однослойного основания более 18 см его нормировать в два слоя')
+    specs = build_claim_specs(work)
+    tasks = plan(work, {s.claim_id for s in specs} | {'normative:applicability'})
+    inputs = dict(position=dict(work=work.work_name, unit=work.unit, comment=work.comment),
+        claim_definitions=definitions_for_plan(specs, tasks), verification_plan=tasks,
+        normative_review_scope=review_scope(work), required_validation_claims=['normative:applicability'])
+    ask = Mock(return_value=AgentAnswer(summary='Metadata only', items=[]))
+    run(ask, None, None, check_instructions(), inputs, AgentAnswer, None, {'queries': []}, toolkit())
+    assert ask.call_count == 1
+    wire = ask.call_args.args[3]
+    definitions = {d['claim_id']: d for d in wire['claim_definitions']}
+    received_tasks = {t['claim_id']: t for t in wire['verification_plan']}
+    for key in ('geometry:comment:thickness:1', 'geometry:comment:thickness:2'):
+        assert definitions[key]['verification'] == received_tasks[key]['verification']
+    ordinary = definitions['geometry:comment:thickness:1']['verification']
+    threshold = definitions['geometry:comment:thickness:2']
+    assert ordinary['family'] == 'project_requirement' and ordinary['project_literal_required']
+    assert threshold['verification']['family'] == 'normative_condition'
+    assert not threshold['verification']['project_literal_required']
+    assert threshold['evidence_task'] == received_tasks[threshold['claim_id']]['evidence_task']
+    assert threshold['evidence_task']['threshold'] == dict(
+        operator='gt', operator_text='более', value='18', unit='см')
+    assert wire['normative_review_scope']['required']
 
 
 def scale_candidate(kind="normative", unit="м2", quote="Измеритель: 1000 м2"):

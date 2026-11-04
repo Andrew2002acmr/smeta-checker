@@ -1,0 +1,339 @@
+{
+  "kind": "areal-resource-independent-final-review-v29",
+  "production_changes": false,
+  "database_writes": false,
+  "model_requests": 0,
+  "code_sha256": {
+    "normative_resource_consumption.py": "b9657e50f74671b1b075decb38a3e3b7ccc997b18a33e5daa3018c5ea42b0ce5",
+    "normative_lawn_soil_scope.py": "e73f0233436b42fb40a3268d416fe97803d5cb21903b09cc27f1255a4b2bf364",
+    "normative_workbook_rate.py": "1f62d7c243a744735574f062250f21f898a27257e2badbfb691603279ee6c1af",
+    "tests/test_areal_resource_consumption.py": "a0cc6c848237d43a2cffae11593e7e9bc18df8c84c4e6969c099a746f4d27fe7",
+    "tests/test_normative_resource_consumption.py": "8a403849007c15d4b7da51ee05ed9db6f49b0847805be933e18a944670b8d214"
+  },
+  "code_unchanged_during_review": true,
+  "cases": [
+    {
+      "name": "positive_meadow_tractor",
+      "quantity_state": "confirmed",
+      "resource_proof": true,
+      "expected_proof": true,
+      "pass": true,
+      "scope_gaps": [
+        null
+      ]
+    },
+    {
+      "name": "positive_manual_ordinary",
+      "quantity_state": "confirmed",
+      "resource_proof": true,
+      "expected_proof": true,
+      "pass": true,
+      "scope_gaps": [
+        null
+      ]
+    },
+    {
+      "name": "measure_only",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        null
+      ]
+    },
+    {
+      "name": "code_measure_only",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        null
+      ]
+    },
+    {
+      "name": "wrong_code",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        null
+      ]
+    },
+    {
+      "name": "missing_composition",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        null
+      ]
+    },
+    {
+      "name": "resource_only_label",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        null
+      ]
+    },
+    {
+      "name": "wrong_pdf",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        null
+      ]
+    },
+    {
+      "name": "ocr_norm",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        null
+      ]
+    },
+    {
+      "name": "ocr_resource",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        null
+      ]
+    },
+    {
+      "name": "unselected_samecode",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        null
+      ]
+    },
+    {
+      "name": "ambiguous_samecode",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        null
+      ]
+    },
+    {
+      "name": "heading_union",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        [
+          "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы."
+        ]
+      ]
+    },
+    {
+      "name": "unresolved_area_alias",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        [
+          "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы."
+        ]
+      ]
+    },
+    {
+      "name": "manual_project_tractor_norm",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        [
+          "Проектная привязка площади явно задаёт ручной способ, несовместимый с посевом сеялкой выбранной нормы."
+        ]
+      ]
+    },
+    {
+      "name": "generic_meadow_no_method",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        [
+          "Норма задаёт посев тракторной сеялкой; связанное положительное основание способа/функции машины для этой рецептуры не установлено. Этот ограниченный числовой маршрут не подтверждает связь дополнения ВОР с классом машины; буквальное перечисление машины в ПД не является обязательным требованием."
+        ]
+      ]
+    },
+    {
+      "name": "meadow_grass_not_kind",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        [
+          "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы."
+        ]
+      ]
+    },
+    {
+      "name": "meadow_soil_not_kind",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        [
+          "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы."
+        ]
+      ]
+    },
+    {
+      "name": "other_site_same_quote",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        [
+          "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы."
+        ]
+      ]
+    },
+    {
+      "name": "neighbor_site_same_quote",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        [
+          "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы."
+        ]
+      ]
+    },
+    {
+      "name": "negated_kind",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        [
+          "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы."
+        ]
+      ]
+    },
+    {
+      "name": "alternative_kind",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        [
+          "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы."
+        ]
+      ]
+    },
+    {
+      "name": "unsupported_generic_kind",
+      "quantity_state": "needs_facts",
+      "resource_proof": false,
+      "expected_proof": false,
+      "pass": true,
+      "scope_gaps": [
+        [
+          "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы."
+        ]
+      ]
+    }
+  ],
+  "replay_cases": [
+    {
+      "name": "norm_definition_deleted",
+      "replay_supported": false,
+      "pass": true
+    },
+    {
+      "name": "selected_header_replaced",
+      "replay_supported": false,
+      "pass": true
+    },
+    {
+      "name": "kind_changed",
+      "replay_supported": false,
+      "pass": true
+    },
+    {
+      "name": "method_changed",
+      "replay_supported": false,
+      "pass": true
+    },
+    {
+      "name": "green_card_value_changed",
+      "replay_supported": false,
+      "pass": true
+    }
+  ],
+  "legacy_t_per_t": {
+    "incomplete_legacy_definition_still_proves_t_per_t": true
+  },
+  "all_pass": true,
+  "limits": [
+    "Pure replay/source-bound checks only; no new model/RouterAI calls or production verdict mutations.",
+    "Positive synthetic scope cases validate numerical binding. They do not prove applicability of actual VOR47, whose project lawn kind is absent.",
+    "The current bounded route lacks a bound VOR-owner/manufacturer method-function binder. Missing method is a link/proof gap, not an obligation for PD to list every VOR method or machine.",
+    "Fresh source integrity/declaration tamper tests are bounded to the literal routes shown; this is not a universal semantic classifier."
+  ],
+  "focused_tests": {
+    "command": ".venv/Scripts/python.exe -B -X utf8 -m pytest -q -o addopts='' tests/test_areal_resource_consumption.py tests/test_normative_resource_consumption.py tests/test_normative_lawn_soil_scope.py --basetemp .audit_cache/goal80-20261104/pytest-areal-independent-v29-final",
+    "exit_code": 0,
+    "result": "167 passed in3.25s"
+  },
+  "findings_resolution": [
+    {
+      "finding": "Incomplete definition/measure-only bypass",
+      "latest_result": "closed; exact selected full definition with code/table/composition required in areal-only path"
+    },
+    {
+      "finding": "Same-code/PDF rogue or ambiguous selected definition",
+      "latest_result": "closed; exact selected event source and unique selected definition text required"
+    },
+    {
+      "finding": "Category union from table heading and selected line",
+      "latest_result": "closed; conjunctive independent conditions"
+    },
+    {
+      "finding": "Unresolved same-source area alias supplies category",
+      "latest_result": "closed; only verified literal proposals corresponding to rebuilt selected area used"
+    },
+    {
+      "finding": "Meadow grass/soil words treated as lawn category; other-site scope leakage",
+      "latest_result": "closed for tested bounded literals; category-lawn adjacency and explicit other/neighbor-site exclusion"
+    },
+    {
+      "finding": "PD manual vs tractor mismatch and missing method link",
+      "latest_result": "explicit conflict blocked; absent method is described as missing bound method/function proof, not missing mandatory PD machine words"
+    }
+  ],
+  "method_evidence_boundary_ru": "Положительный проектный якорь вида газона нужен для qualified нормы. Способ может обосновываться уточнениемВОР + проверенной функциейоборудования + условиемнормы при доказанной связи с тем же owner/объектом; буквальное перечисление машины вПД не обязательно. Текущий bounded areal путь такого externalfunctionbinder не реализует. Structuralowner45/relatedpositions/manufacturerliteral и generic model-C сами эту связь не образуют. Поэтому отсутствие такого binder остаётся ограничением, а не новым документальным требованием кПД.",
+  "actual47_semantic_state_ru": "Аудитv28 сохраняет силу: PD39/91 не устанавливает вид газона. Равенство2кг/100м² и200кг/га не закрывает межкомбинационный мост. Никакого C или новой модели на основании этого review не присваивалось.",
+  "production_code_still_matches_review_hashes": true
+}

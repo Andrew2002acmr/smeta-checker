@@ -9,7 +9,7 @@ import ast
 import re
 from typing import Any
 
-VERSION = "verification-relations-v3"
+VERSION = "verification-relations-v4"
 
 
 def contract(claim_id, spec=None):
@@ -168,12 +168,64 @@ def review_scope(position):
             if material else 'work_norm_selected'))
 
 
+def _comment_layer_thresholds(position, specs):
+    """Route only a full, explicit two-layer condition; never prove its premise.
+
+    This is the bounded conditional shape used by layer_condition_proof. A
+    standalone ClaimSpec/definition has no full comment and keeps its existing
+    routing; only the position-aware verification plan can bind this context.
+    """
+    comment = str(getattr(position, 'comment', '') or '')
+    conditions = list(re.finditer(
+        r'при\s+толщин\w*[^.!?]{0,220}?(?P<operator>более|свыше|не\s+менее|не\s+более)\s*'
+        r'(?P<value>\d+(?:[.,]\d+)?)\s*(?P<unit>мм|см|м)\b\s+'
+        r'(?:(?:его|е[её]|их)\s+)?(?:(?:следует|необходимо)\s+)?'
+        r'(?P<action>нормир\w*\s+в\s+два\s+слоя)', comment, re.I))
+    def clean(text):
+        return re.sub(r'\s+', ' ', text).strip().casefold()
+    instructions = [s for s in specs.values() if s.property_label == 'normative_instruction'
+        and s.claim_id.startswith('basis:comment:')]
+    found = {}
+    for spec in specs.values():
+        if (not spec.claim_id.startswith('geometry:comment:thickness:')
+                or spec.property_label != 'thickness' or spec.predicate != 'measurement'):
+            continue
+        matches = [m for m in conditions if clean(spec.label) in clean(m[0])]
+        if len(matches) != 1:
+            continue
+        match = matches[0]
+        related = [s.claim_id for s in instructions if clean(s.label).startswith(clean(match['action']))
+            and clean(s.label) in clean(comment)]
+        if len(related) != 1:
+            continue
+        operator = clean(match['operator'])
+        found[spec.claim_id] = dict(kind='normative_condition', subject=match[0],
+            threshold=dict(operator={'более': 'gt', 'свыше': 'gt', 'не менее': 'ge',
+                'не более': 'le'}[operator], operator_text=match['operator'],
+                value=match['value'], unit=match['unit']), related_claim_ids=related,
+            comment_context=dict(field='position.comment', quote=comment),
+            required_proofs=['Буквальное условие норматива с тем же оператором и порогом.',
+                'Фактическая толщина той же конструкции ПД и применимость полной предпосылки условия.'],
+            scope_boundary='Порог комментария не является требованием буквальной толщины ПД. '
+                'Сохрани роль слоя и контекст нормирования в два слоя; числовое сравнение '
+                'не подтверждает применимость ветви, выбранную норму или остальные условия.',
+            automatic_confirmation=False)
+    return found
+
+
 def plan(position, claim_ids):
     from audit_core import build_claim_specs
 
     specs = {spec.claim_id: spec for spec in build_claim_specs(position)}
     result:list[dict[str,Any]]=[dict(claim_id=claim, expected_text=getattr(specs.get(claim), "expected_text", ""),
         verification=contract(claim, specs.get(claim))) for claim in sorted(claim_ids)]
+    thresholds = _comment_layer_thresholds(position, specs)
+    for task in result:
+        if task['claim_id'] in thresholds:
+            task['verification'].update(family='normative_condition',
+                relation='condition_applies_to_project_facts', source_routes=['project', 'normative'],
+                project_literal_required=False)
+            task['evidence_task'] = thresholds[task['claim_id']]
     if getattr(position,'position_type','').strip().casefold()=='материал':
         for task in result:
             if task['claim_id']=='normative:applicability':
@@ -184,6 +236,22 @@ def plan(position, claim_ids):
                         'физический объём не подтверждает полноту расхода П или нулевые потери. Условия нормы способа '
                         'родительской работы обязательны для расхода из этой нормы, а не для независимой геометрии.')
     return result
+
+
+def definitions_for_plan(specs, tasks):
+    """Reuse one position-aware plan for the definitions in the same packet."""
+    from copy import deepcopy
+    from normative_claim_definitions import definition
+
+    thresholds = {task['claim_id']: task for task in tasks
+        if 'threshold' in task.get('evidence_task', {})}
+    definitions = [definition(spec) for spec in specs]
+    for value in definitions:
+        task = thresholds.get(value['claim_id'])
+        if task:
+            value['verification'] = deepcopy(task['verification'])
+            value['evidence_task'] = deepcopy(task['evidence_task'])
+    return definitions
 
 
 INSTRUCTIONS = """

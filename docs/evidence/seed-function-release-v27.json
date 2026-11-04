@@ -1,0 +1,302 @@
+{
+  "pin": {
+    "database": "releases/road-seed-function-20261105-v9/knowledge.sqlite",
+    "release_id": "road-seed-function-20261105-v9",
+    "profile": "roads",
+    "sha256": "269e95860694342d2c509921c213b1b8b507dbdf812f7079b8cc01bfb88e6c0c"
+  },
+  "inactive": true,
+  "previous_pin": {
+    "database": "releases/road-loss-scope-20261104-v8/knowledge.sqlite",
+    "release_id": "road-loss-scope-20261104-v8",
+    "profile": "roads",
+    "sha256": "0bb0acff3ce7c458a29c3df51ed6bd91d7f74ddb88985e544596a801316a990d"
+  },
+  "added": [
+    {
+      "source_id": "pdf-8575691c954cab18d6835329",
+      "source_sha256": "8575691c954cab18d6835329c87854b2ad699447c879036eb51409791775402c",
+      "added": {
+        "sources": 1,
+        "pages": 1,
+        "clauses": 1,
+        "chunks": 1,
+        "search_fts": 1,
+        "gaps": 1
+      },
+      "reviewed_clause_ids": [
+        "clause-35b32210504cbe8b80c307e22c0ee3e0"
+      ],
+      "rules_added": 0,
+      "sidecars": [
+        {
+          "path": "provenance/d0c3315c7c5312b9ea3ff350ec826e5d1f4e1c33455a41179fe63419b607dad8.html",
+          "sha256": "d0c3315c7c5312b9ea3ff350ec826e5d1f4e1c33455a41179fe63419b607dad8"
+        }
+      ]
+    },
+    {
+      "source_id": "pdf-0738beddf486537ff56b8ccd",
+      "source_sha256": "0738beddf486537ff56b8ccd3654969bf23ae6dc958cca83a29c72c952305058",
+      "added": {
+        "sources": 1,
+        "pages": 1,
+        "clauses": 1,
+        "chunks": 1,
+        "search_fts": 1,
+        "gaps": 1
+      },
+      "reviewed_clause_ids": [
+        "clause-47b822c1e54f8d5deaf7468687535c19"
+      ],
+      "rules_added": 0,
+      "sidecars": [
+        {
+          "path": "provenance/837a5edfa1e7a1dcf774487ed2a5f4b73dce87fd53acc86e8a15e757d9c2fa12.html",
+          "sha256": "837a5edfa1e7a1dcf774487ed2a5f4b73dce87fd53acc86e8a15e757d9c2fa12"
+        }
+      ]
+    }
+  ],
+  "sql_tables_diff": {
+    "sources": {
+      "before": 118,
+      "after": 120,
+      "delta": 2
+    },
+    "pages": {
+      "before": 5230,
+      "after": 5232,
+      "delta": 2
+    },
+    "clauses": {
+      "before": 22132,
+      "after": 22134,
+      "delta": 2
+    },
+    "chunks": {
+      "before": 27926,
+      "after": 27928,
+      "delta": 2
+    },
+    "search_fts": {
+      "before": 27926,
+      "after": 27928,
+      "delta": 2
+    },
+    "gaps": {
+      "before": 645,
+      "after": 647,
+      "delta": 2
+    },
+    "norms": {
+      "before": 5794,
+      "after": 5794,
+      "delta": 0
+    },
+    "norm_tables": {
+      "before": 1058,
+      "after": 1058,
+      "delta": 0
+    },
+    "resources": {
+      "before": 37768,
+      "after": 37768,
+      "delta": 0
+    },
+    "rules": {
+      "before": 0,
+      "after": 0,
+      "delta": 0
+    },
+    "metadata": {
+      "before": 23,
+      "after": 23,
+      "delta": 0
+    }
+  },
+  "old_rows_retained": {
+    "sources": true,
+    "pages": true,
+    "clauses": true,
+    "chunks": true,
+    "search_fts": true,
+    "gaps": true,
+    "norms": true,
+    "norm_tables": true,
+    "resources": true,
+    "rules": true,
+    "metadata": true
+  },
+  "schema_unchanged": true,
+  "integrity_check": "ok",
+  "unchanged": {
+    "current_pointer": true,
+    "active_database": true,
+    "v8_database": true,
+    "v8_pin": true
+  },
+  "pointer_before": {
+    "database": "releases/iskitim-10-vor-20261103-v1/knowledge.sqlite",
+    "release_id": "iskitim-10-vor-20261103-v1",
+    "profile": "roads",
+    "sha256": "69d3ae699d6ceb10448b016cb4584a1ec1c97dd8c4b412bc5513a4cc0a4c3e8f"
+  },
+  "pointer_after": {
+    "database": "releases/iskitim-10-vor-20261103-v1/knowledge.sqlite",
+    "release_id": "iskitim-10-vor-20261103-v1",
+    "profile": "roads",
+    "sha256": "69d3ae699d6ceb10448b016cb4584a1ec1c97dd8c4b412bc5513a4cc0a4c3e8f"
+  },
+  "downloads": [
+    {
+      "url": "https://www.velesagro.com/ru/products/mechanical_grain_seeders/47/",
+      "response_url": "https://www.velesagro.com/ru/products/mechanical_grain_seeders/47/",
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "accessed_at_utc": "2026-11-04T19:56:08Z",
+      "bytes": 71134,
+      "sha256": "d0c3315c7c5312b9ea3ff350ec826e5d1f4e1c33455a41179fe63419b607dad8",
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\manufacturer-seed-v27\\velesagro-seed-1-official.html"
+    },
+    {
+      "url": "https://www.velesagro.com/ru/company/media/2014/03/28/3/",
+      "response_url": "https://www.velesagro.com/ru/company/media/2014/03/28/3/",
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "accessed_at_utc": "2026-11-04T19:56:09Z",
+      "bytes": 46088,
+      "sha256": "837a5edfa1e7a1dcf774487ed2a5f4b73dce87fd53acc86e8a15e757d9c2fa12",
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\manufacturer-seed-v27\\velesagro-seed-2-official.html"
+    }
+  ],
+  "registry_sha256": "968c37dbe72039c98c5a773dfbb3ce3ad1d2aceab5f0513a8bc8dfad457930e4",
+  "importer_sha256": "9c7e2242cd4f747b85fb85f3a0339f7f49a10c53064c69347f629c03ffc35da6",
+  "artifacts": [
+    {
+      "pdf": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\manufacturer-seed-v27\\velesagro-seed-1-generated-web-capture.pdf",
+      "pdf_sha256": "8575691c954cab18d6835329c87854b2ad699447c879036eb51409791775402c",
+      "png": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\manufacturer-seed-v27\\velesagro-seed-1-generated-web-capture.pdf.png",
+      "png_sha256": "c78242f1c4a1de6d7c0d92b32aadcd646f09997633beda7ac4f6adac236a5764"
+    },
+    {
+      "pdf": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\manufacturer-seed-v27\\velesagro-seed-2-generated-web-capture.pdf",
+      "pdf_sha256": "0738beddf486537ff56b8ccd3654969bf23ae6dc958cca83a29c72c952305058",
+      "png": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\manufacturer-seed-v27\\velesagro-seed-2-generated-web-capture.pdf.png",
+      "png_sha256": "4182a8cb6efcde41d800d4316514dd36ac7eb8ca07594d1f234a44e9e16c4309"
+    }
+  ],
+  "model_requests": 0,
+  "application_db_writes": 0,
+  "scope": "Exact model/family naming and mechanical row-seeding function including grass only; no dosage, configuration, suitability, actual use or normative applicability established.",
+  "retrieval_qa": {
+    "corpus_identity": {
+      "database": "releases/road-seed-function-20261105-v9/knowledge.sqlite",
+      "sha256": "269e95860694342d2c509921c213b1b8b507dbdf812f7079b8cc01bfb88e6c0c",
+      "release_id": "road-seed-function-20261105-v9",
+      "profile": "roads"
+    },
+    "queries": [
+      {
+        "query": "СЗМ Ника-4",
+        "corpus_hit_ids": [
+          "clause-47b822c1e54f8d5deaf7468687535c19",
+          "clause-49a6c72fefdd4a9c035bbf005596eaea",
+          "clause-d75aa3bbcf463e7a78b0110dd100482b",
+          "clause-90074d9fd1610e2e6328695333d6ff43",
+          "clause-1a855ea70bf77039c4f26bb3b0a194d8",
+          "clause-a7589f275e2d4992d5085130609bb264",
+          "clause-3746427f4eea5cc5a740ed7b5108af9d",
+          "clause-de68a35a67262b8ec6043c4433907496",
+          "clause-040e1af228b0ee0b273afe8fd87b4195",
+          "clause-470a4acb45000f5cb758b4334bacf4b3",
+          "clause-0510e57655336de2890293945818e303",
+          "clause-aa55ecdbaad63c731480b88911888ce0"
+        ],
+        "search_norms_response": {
+          "results": [
+            {
+              "source_id": "agent:n:norm-e9e9de05f5fe612efc53813c73b3c54b:full:70fceffd4442092325d5"
+            },
+            {
+              "source_id": "agent:n:norm-e9e9de05f5fe612efc53813c73b3c54b:full:70fceffd4442092325d5:resources:59"
+            },
+            {
+              "source_id": "agent:n:clause-47b822c1e54f8d5deaf7468687535c19:full:e39185374e3eaba0ae10"
+            },
+            {
+              "source_id": "agent:n:norm-47e40712f9ae88028516095c1adc7aad:full:6142ad769e190ded3d16"
+            },
+            {
+              "source_id": "agent:n:norm-47e40712f9ae88028516095c1adc7aad:full:6142ad769e190ded3d16:resources:12"
+            }
+          ]
+        },
+        "read_source": [
+          {
+            "source_handle": "agent:n:clause-47b822c1e54f8d5deaf7468687535c19:full:e39185374e3eaba0ae10",
+            "source_id": "pdf-0738beddf486537ff56b8ccd",
+            "text": "Сеялка зерновая механическая СЗМ Ника-4",
+            "read_response": {
+              "source_id": "agent:n:clause-47b822c1e54f8d5deaf7468687535c19:full:e39185374e3eaba0ae10",
+              "full_length": 39
+            }
+          }
+        ]
+      },
+      {
+        "query": "SZM NIKA 4 трав",
+        "corpus_hit_ids": [
+          "clause-35b32210504cbe8b80c307e22c0ee3e0",
+          "clause-47b822c1e54f8d5deaf7468687535c19",
+          "clause-cd104f68801a0a75e13b240ba316752a",
+          "clause-c0a6716dfbce9452fce6e023c6fb5f56",
+          "clause-79fd2705869a88a08e8b42a38c232c70",
+          "clause-1c10ba7cd4467bad3cb288c7295a84fc",
+          "clause-689e77bc68b600cfdcb89ed5eb07b64e",
+          "clause-b29e0816db8d208ca3bb53bb878d6447",
+          "clause-f697f41ec9b6802524e0b3370fc0a143",
+          "clause-0430a2dd1c5102241bcdc2891848f39d",
+          "clause-a1cb0b18841068e440d2ae3a3070bca5",
+          "clause-feef5a1654cb8a83f15fa8c24b2f33e7"
+        ],
+        "search_norms_response": {
+          "results": [
+            {
+              "source_id": "agent:n:norm-1b78249bbd382cf9f286cecb91f26977:full:debbc1a44cff12f71b30"
+            },
+            {
+              "source_id": "agent:n:norm-1b78249bbd382cf9f286cecb91f26977:full:debbc1a44cff12f71b30:resources:60"
+            },
+            {
+              "source_id": "agent:n:clause-35b32210504cbe8b80c307e22c0ee3e0:full:8ad16eb49e36f848c934"
+            },
+            {
+              "source_id": "agent:n:norm-b2390ad1c5f2c892e1b312a9c7498788:full:0513f012ef633a530ad3"
+            },
+            {
+              "source_id": "agent:n:norm-b2390ad1c5f2c892e1b312a9c7498788:full:0513f012ef633a530ad3:resources:60"
+            }
+          ]
+        },
+        "read_source": [
+          {
+            "source_handle": "agent:n:clause-35b32210504cbe8b80c307e22c0ee3e0:full:8ad16eb49e36f848c934",
+            "source_id": "pdf-8575691c954cab18d6835329",
+            "text": "Сеялка зерновая механическая SZM NIKA 4\nпредназначены для рядного посева зерновых, бобовых, технических культур, а также трав",
+            "read_response": {
+              "source_id": "agent:n:clause-35b32210504cbe8b80c307e22c0ee3e0:full:8ad16eb49e36f848c934",
+              "full_length": 125
+            }
+          }
+        ]
+      }
+    ],
+    "both_new_sources_accessible": true,
+    "existing_search_norms_and_read_source": true,
+    "automatic_application_allowed": false,
+    "edition_confirmed": false,
+    "provider_calls": 0,
+    "network_calls": 0
+  }
+}

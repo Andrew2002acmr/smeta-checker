@@ -47,13 +47,18 @@ def hydrate(kb,result,facts=None):
         prefix='recovered:'+hashlib.sha256((str(kb.identity)+':'+str(key)).encode()).hexdigest()[:24]
         trace=[]
         sources=resource_sources(formatted,prefix,evidence_trace=trace)
+        # The prefix owns resource cards, not a full norm-definition card.
+        # Keep the recovered rows bound to the already selected definition.
+        for event in trace:
+            if event.get('kind')=='normative_resource_consumption_candidates':
+                event.update(norm_source_id=source['id'],recovery_prefix=prefix)
         existing={s['id']:s for s in result['sources']}
         if any(s['id'] in existing and s!=existing[s['id']] for s in sources):
             continue
         result['sources'].extend(s for s in sources if s['id'] not in existing)
         events=result.setdefault('evidence_trace',[])
         events[:]=[e for e in events if not (e.get('kind')=='normative_resource_consumption_candidates'
-            and e.get('norm_source_id')==prefix)]
+            and (e.get('recovery_prefix')==prefix or e.get('norm_source_id')==prefix))]
         events.extend(trace)
         recovered.append(dict(norm_id=item['id'],code=item['code'],base_source_id=source['id'],
             source_ids=[s['id'] for s in sources],resource_count=len(item['resources']),

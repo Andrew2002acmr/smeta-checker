@@ -1,0 +1,1032 @@
+{
+  "schema": 1,
+  "audit": "introduced_norm_selection_and_claim_scope_v27",
+  "date": "2026-11-05",
+  "indices": [
+    4,
+    6,
+    34
+  ],
+  "method": "Read-only анализ первичных клеток XLSX, оригинальных PD/ГЭСН/Методики и сохранённых запросов/ответов, сопоставленных с текущим кодом контракта. Единственный CPU classifier probe34 только определил quantity_subject и не подтверждал факты. Без модели/RouterAI/БД, нового прогона, изменений production, pin, saved answers или статусов.",
+  "headline_ru": "Для работ4/6 полная применимость выбранной моделью поднормы является явным обязательством текущего технического контракта, хотя код06/07 не является утверждением ВОР. Поэтому убрать этот блокер только по происхождению кода нельзя. Для материала34 обнаружен доказанный общий избыток старой постановки: безусловная полнота потерь у независимого количества с поправкой, не заявленного полным расходом. Текущий контракт уже содержит более узкую границу. Гранулометрическое условиеПД0/16 остаётся реальным, но не требует буквального переписывания всейПД вВОР или испытаний будущей партии.",
+  "scope_findings": [
+    {
+      "id": "work_selected_code",
+      "finding": "required_by_current_contract_not_proved_excess",
+      "reason": "Запрос явно заказывает нормативное основание, состав работ и измеритель. UNIT_SCALE_INSTRUCTIONS требует выбрать норму самостоятельной работы; review_scope помечает work_norm_applicability обязательным. Код является выбранным доказательственным основанием, которое требуется проверить. Неустановленная применимость означает неполную нормативную проверку, не доказанную ошибку ВОР.",
+      "not_allowed": "Не считать однослойную классификацию доказанной только потому, что ВОР цитирует однослойную ветвь. Самостоятельное объявление ВОР проверяется по ПД и условию нормы."
+    },
+    {
+      "id": "two_lifts_vs_unique_code",
+      "finding": "distinct_obligations_with_remaining_real_condition",
+      "reason": "ВОР действительно заявляет20см через10+10 и цитирует однослойную предпосылку1.27.18. Совпадение толщины и общий текст в два слоя не устанавливают однослойность самостоятельного основания. Выбор06/07 и геометрия не тождественны. Если общая достаточность двух операций когда-либо будет доказана без уникального кода, этот факт можно оценить отдельно от конкретного нормирования. Здесь такое общее доказательство для среднего слоя смешанного основания не установлено.",
+      "limits": "Отдельного общего класса лишних требований, позволяющего устранить нормативный блокер4/6, этим аудитом не доказано. Переносить всю неопределённость цены на уже подтверждённую геометрию не следует; сохранённые ответы геометрию уже выделяют."
+    },
+    {
+      "id": "table_direction_vs_material_equivalence",
+      "finding": "existing_scope_boundary_must_be_preserved",
+      "reason": "Пункт1.27.18 прямо направляет ЩПС на табл003. Для этого направления не требуется физическая эквивалентность0/63 иС-4/С-6. Saved6 добавляет этот вопрос в normative:applicability, но также сохраняет самостоятельную реальную неопределённость роли слоя. Прямое направление к таблице и конкретные условия поднормы должны оставаться отдельными предметами; нынешний текст контракта43–50 уже это требует.",
+      "limits": "Это не доказательство применимости07 и не основание удалить весь needs_facts смешанного item."
+    },
+    {
+      "id": "material34_losses",
+      "finding": "proved_general_over_requirement_in_old_saved_plan",
+      "reason": "B54/I54 содержит размерностьм3, независимую формулу2843×0,2×1,26 иКупл. Нет утверждения полного/суммарного сметного расхода или учёта потерь. Старыйq34 required_relation требовал единиц,потерь икоэффициентов безусловно. Текущиеquantity_subject/NORMATIVE_SCOPE/LOSS_SCOPE явно отличают project_volume_with_declared_adjustment от normative_total_consumption и запрещают такое расширение.",
+      "limits": "Купл не доказал потери, потери не приняты нулевыми, полнота ресурсаП не подтверждена. Новыйquantity_subject является классификацией, не доказательством числа или совместимости."
+    },
+    {
+      "id": "material34_grading",
+      "finding": "real_project_constraint_no_future_batch_demand_identified",
+      "reason": "ПД действительно требует при максимальном размере0/31,5 гранулометрический состав типа0/16. K90/M1 иМ800 сами по себе не доказывают это условие. ВОР не утверждает отмену/замену0/16 и не обязан дословно повторять все проектные свойства, поэтому отсутствие строки0/16 не есть противоречие. Сохранённыйitem просит спецификацию, сохраняющую проектное условие, и прямо исключает испытания будущей партии. Текущийmaterial_specification_and_quantity_basis допускает проверку сохранения этого действительного условия.",
+      "boundary": "Нельзя превращать открытый вопрос в требование полного паспорта будущей партии или считать обязательным именно новое упоминание0/16 в текстеВОР. Для закрытия отношения может использоваться существующая проектная привязка/определение обозначений/спецификация, если они действительно доказывают сохранение условия. Такой достаточный комплект этим аудитом не установлен.",
+      "limits": "Общий лишний класс, позволяющий снять именно гранулометрическую частьN34, не доказан. Утверждение о полной фактической гранулометрии поставки тоже не подтверждено.",
+      "additional_primary_finding": "Таблица1 ГОСТ70458 доказывает несовместимость именно формальных профилей0/31,5K90M1 и0/16K90M1. На сите16мм их проходы63–77% и90–100% масс.; на сите8мм43–57% и63–77% масс. НоB54 не объявляет0/31,5 именно формальным гранулометрическимтипом, поэтому ни противоречиеВОР, ни совместимость её спецификации автоматически не установлены. Остаточный вопрос узкий: смысл обозначения0/31,5 и сохранение требуемогоПДпрофиля0/16, а не паспорт будущейпартии."
+    },
+    {
+      "id": "conditional_threshold_typing",
+      "finding": "general_scope_typing_mismatch_noncausal_in_saved_results",
+      "reason": "Savedverification_plan размечает18см из условной нормативной фразы какproject_requirement/project_literal_required=True сrelation same_subject_and_project_value. Источник же задаёт порог>18см, проект имеет20см. Это общий риск превращения числовой предпосылки нормы в требование буквального равенстваПД. В сохранённых4/6 модель правильно сравнила20>18 и аспектconfirmed, поэтому это не текущий блокер.",
+      "existing_CPU_boundary": "В normative_layer_conditions.py155–185 уже существует корректное операторное сравнение нормативного порога и проектногооперанда, включая condition_scope_matches и проверку того жеоператора/порога вspec.label. Поэтому доказан дефектметаданныхverification_plan, а не отсутствиеоператорногоCPUсравнения вообще."
+    }
+  ],
+  "proven_general_correction_options": [
+    {
+      "class": "unconditional_losses_for_independent_adjusted_project_quantity",
+      "option": "Применять уже существующийquantity_subject и егоproof_limits к материальномуscope и последующей проверке. В полноту потерь входить только приexplicit_total_claim или реальной зависимости количества от полного нормативного ресурса. Для старыхsavedrequests это новая постановка для отдельного разрешённого прогона, а не молчаливое редактирование старого ответа.",
+      "preserve": [
+        "проверкуКупл",
+        "проектные свойства",
+        "принадлежность слоя",
+        "нормативные потери для действительно заявленного полного расхода"
+      ]
+    },
+    {
+      "class": "normative_numeric_threshold_misclassified_as_direct_project_measure",
+      "option": "Типизировать условныепороги как предпосылкиnormative_condition с оператором, а неproject_requirement с обязательнойliteral-строкойПД. Проверять проектный операнд и нормативныйпорог раздельно; не привязывать решение киндексам4/6.",
+      "preserve": [
+        "операторболее",
+        "предпосылкуоднослойного/верхнего/нижнегооснования",
+        "проверку применимости нормы"
+      ]
+    }
+  ],
+  "not_supported_corrections": [
+    "Сделатьnormative:applicability необязательным для работ только потому, что код выбран моделью.",
+    "Признать средний слой самостоятельным однослойным основанием только по комментариюВОР.",
+    "Признать0/31,5 эквивалентным грансоставу0/16 без установленного смысла обозначений.",
+    "Удалить все требованияПД, отсутствующие в наименованииВОР.",
+    "Изменить статусы4/6/34 из этого аудита."
+  ],
+  "current_contract_code_evidence": [
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_verification_contract.py",
+      "sha256": "202099960480664ae525d19c4c4a0b8601ea09300d8f86888aa25dc04a88b91a",
+      "line_start": 43,
+      "line_end": 50,
+      "quote": "Для работы это техническая применимость нормы способа выполнения работы. ... Конкретная поднорма, её условия, расход и коэффициенты проверяются отдельно.",
+      "meaning": "Поднорма не подтверждается одним направлением на таблицу; физическая эквивалентность обозначений не нужна ради самого прямого направления."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_verification_contract.py",
+      "sha256": "202099960480664ae525d19c4c4a0b8601ea09300d8f86888aa25dc04a88b91a",
+      "line_start": 94,
+      "line_end": 105,
+      "quote": "Для самостоятельной работы выбери применимую норму и её буквальный измеритель.",
+      "meaning": "Выбор модели явно включён в задание технической проверки самостоятельной работы, даже если код не напечатан в ВОР."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_verification_contract.py",
+      "sha256": "202099960480664ae525d19c4c4a0b8601ea09300d8f86888aa25dc04a88b91a",
+      "line_start": 159,
+      "line_end": 168,
+      "quote": "subject=work_norm_applicability; required=True; work_norm_conditions_required_when=work_norm_selected",
+      "meaning": "В работе выбор нормы и её условий является обязательным предметом normative:applicability."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_verification_contract.py",
+      "sha256": "202099960480664ae525d19c4c4a0b8601ea09300d8f86888aa25dc04a88b91a",
+      "line_start": 171,
+      "line_end": 185,
+      "quote": "Соответствие материала проектной конструкции; основание собственного количества в переданном quantity_subject ... Потери и отходы обязательны для явно заявленного суммарного расхода.",
+      "meaning": "Текущий материальный план отличает физическое количество с поправкой от полноты сметного расхода."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_verification_contract.py",
+      "sha256": "202099960480664ae525d19c4c4a0b8601ea09300d8f86888aa25dc04a88b91a",
+      "line_start": 51,
+      "line_end": 78,
+      "quote": "Для физического объёма не требуй доказать полноту чужого суммарного расхода. ... Ссылка нормы на ресурс П сама по себе не превращает физический объём ВОР в полный расход.",
+      "meaning": "Общий избыточный класс: безусловная проверка полноты потерь у независимого физического количества."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_verification_contract.py",
+      "sha256": "202099960480664ae525d19c4c4a0b8601ea09300d8f86888aa25dc04a88b91a",
+      "line_start": 204,
+      "line_end": 218,
+      "quote": "Сначала извлеки действительные требования ПД ... Если это разные независимые свойства компонента и готовой смеси, докажи их смысл и сохранение проектных характеристик ... Не требуй испытаний будущей партии, если их проведение или фактические результаты не входят в проверяемое утверждение.",
+      "meaning": "Сохраняются условия ПД; literal повтор всех слов ПД в ВОР и испытания будущей поставки этим контрактом не предписаны."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_verdict.py",
+      "sha256": "d2da395aac47c24cb0625f2c7d19561a94efb1c4875b5fb25eb7277651649250",
+      "line_start": 160,
+      "line_end": 168,
+      "quote": "unresolved.add('normative:applicability')",
+      "meaning": "Обязательность нормативного аспекта задана кодом, не только самостоятельным расширением модели."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_verdict.py",
+      "sha256": "d2da395aac47c24cb0625f2c7d19561a94efb1c4875b5fb25eb7277651649250",
+      "line_start": 343,
+      "line_end": 355,
+      "quote": "needed <= confirmed ... otherwise REVIEW",
+      "meaning": "Обязательный незакрытый нормативный аспект реально препятствует общему ОК; отдельная геометрия сохраняется."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_position_check.py",
+      "sha256": "bc8fb3e4cfd693201dbeb3b9446cf11405d6480f144d16af31df14c4cd287253",
+      "line_start": 808,
+      "line_end": 840,
+      "quote": "normative_review_scope=review_scope(position); required_validation_claims=sorted(needed); verification_plan=verification_plan(position, known_claims)",
+      "meaning": "План и scope передаются в фактический запрос модели."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_position_check.py",
+      "sha256": "bc8fb3e4cfd693201dbeb3b9446cf11405d6480f144d16af31df14c4cd287253",
+      "line_start": 963,
+      "line_end": 977,
+      "quote": "Проверь область применения базовой нормы, норму изменения толщины и пункт техчасти. ... Для подтверждения геометрии достаточно ПД; для нормирования укажи нормативный пункт и его применимость.",
+      "meaning": "Текущая постановка отдельно требует техническую применимость выбранной нормы."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_claim_definitions.py",
+      "sha256": "4243b97279b6a41546ab98286f164018aa6b7aff9875e15d16fa26bb0ac05032",
+      "line_start": 22,
+      "line_end": 26,
+      "quote": "Точная формулировка и область применения условия в нормативе. Факты той же конструкции и участка ПД для проверки этого условия.",
+      "meaning": "Утверждение в два слоя проверяется как реальное условное основание ВОР, не как свободный информационный текст."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_conditional_selection.py",
+      "sha256": "0535d3dc386036f5f734725e8a2cbe4bad070eb3fdea9ad3d700bfe6356be209",
+      "line_start": 38,
+      "line_end": 50,
+      "quote": "A physical PD layer must positively establish the clause's own branch.",
+      "meaning": "Guard не принимает заявленные операции ВОР за независимое доказательство однослойного проектного основания."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_conditional_selection.py",
+      "sha256": "0535d3dc386036f5f734725e8a2cbe4bad070eb3fdea9ad3d700bfe6356be209",
+      "line_start": 187,
+      "line_end": 207,
+      "quote": "The model's scope assertion is not a prerequisite for a negative condition check.",
+      "meaning": "Проверка выбора срабатывает на цитируемую моделью норму и её буквальный измеритель, а не только на код в ВОР."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_conditional_selection.py",
+      "sha256": "0535d3dc386036f5f734725e8a2cbe4bad070eb3fdea9ad3d700bfe6356be209",
+      "line_start": 343,
+      "line_end": 409,
+      "quote": "Demote unsupported applicability; preserve independently proved geometry. ... Это не замечание к ВОР.",
+      "meaning": "Guard препятствует подтверждению введённой нормы, но сам не заявляет ошибку ВОР."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\audit_core.py",
+      "sha256": "20c57ec367e42e895bbbc71e26c45fc812d2546fa42c577b1f1a375a2db7a5aa",
+      "line_start": 1076,
+      "line_end": 1107,
+      "quote": "Derive checkable VOR requirements from cells, never from PDF text.",
+      "meaning": "Базовые и технические предикаты должны извлекаться из действительных клеток ВОР."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\audit_predicates.py",
+      "sha256": "cca18ac9bebcd4d119237ef2e241be0d37e51ebfc78357a6131ee9c70986a8e0",
+      "line_start": 239,
+      "line_end": 247,
+      "quote": "normative_instruction ... property_label='normative_instruction'",
+      "meaning": "Фраза нормировать в два слоя размечается как нормативное условие."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_methodology_context.py",
+      "sha256": "87f4d311085cf7382d032c887fb5e7794f10aaabd8abe184e4783895e92556ce",
+      "line_start": 74,
+      "line_end": 85,
+      "quote": "Не расширяй проверку проектного физического количества до полного снабженческого расхода, если это не входит в проверяемое утверждение.",
+      "meaning": "Это уже существующая общая граница для материального количества с коэффициентом запаса."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_material_search.py",
+      "sha256": "6b08aabd32706ac91e83b92a46eb61b491696505e9abdf754659c41600bc4243",
+      "line_start": 137,
+      "line_end": 165,
+      "quote": "Prove non-conflicting specification axes, never a delivered batch's tests.",
+      "meaning": "Узкое доказательство М800/K90/M1 не удостоверяет все дополнительные условия ПД или будущую партию."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\docs\\FACT_PIPELINE_2026-11-03.md",
+      "sha256": "76e0eeafea32df0e732f5196c39d83289964626645d88b7e9e83e7c93c14ede2",
+      "line_start": 31,
+      "line_end": 52,
+      "quote": "ВОР задаёт проверяемое предложение. ... normative_condition: Условие выбора нормы и технологии. ... Неустановленная совместимость возвращается как needs_facts.",
+      "meaning": "Документальная рамка этого конвейера — проверка предложения ВОР с проектными и нормативными ограничениями, а не общая экспертиза поставки."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_layer_conditions.py",
+      "sha256": "e759a8c7c671b887948b59dedcd49909e6340b400235a10d085338a852dea1a3",
+      "line_start": 155,
+      "line_end": 185,
+      "quote": "This predicate is the normative threshold written in the comment, not the constructed layer's actual thickness.",
+      "meaning": "СуществующаяCPUпроверка уже сохраняетoperator/threshold, проектныйоперанд иroleусловия."
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\audit_models.py",
+      "sha256": "e64a552d087bd038f9a6d66a4920d0223a3480bbc9e0e6ff8fc807949c8bfb85",
+      "line_start": 81,
+      "line_end": 95,
+      "quote": "One checkable VOR requirement with its source cells.",
+      "meaning": "ТочныйтипClaimSpec иключевые поля воспроизведённого объекта."
+    }
+  ],
+  "saved_work_contracts": [
+    {
+      "index": 4,
+      "request": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\selected-measure-two-v25\\q-04-03.request.json",
+        "sha256": "af2893271fed65a07c7d594bddf22b7919750cabb8af4ccc3855b97525a2782a"
+      },
+      "request_input_selector": "JSON.parse(/user)",
+      "saved_pipeline_version": 24,
+      "position": {
+        "work": "Устройство среднего слоя основания из ЩПС , h = 10см \n(двухслойного основания - слой1) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+        "quantity": "431.61",
+        "unit": "м2",
+        "comment": "Тех.часть ГЭСН 27 п. 1.27.18. При толщине однослойного основания или покрытия более 18 см его нормировать в два слоя\nУстройство основания производится бульдозером мощностью 79 кВт\nУплотнение основания производится тандемным виброкатком Hamm HD130",
+        "formula": "",
+        "row": 22,
+        "sections": [
+          {
+            "address": "A17",
+            "text": "Раздел 1. Устройство дорожной одежды. Улица"
+          }
+        ]
+      },
+      "normative_review_scope": {
+        "subject": "work_norm_applicability",
+        "required": true,
+        "work_cost_method_is_separate": false,
+        "work_norm_conditions_required_when": "work_norm_selected",
+        "unit_scale_required_when": "work_norm_selected"
+      },
+      "required_validation_claims": [
+        "attribute:comment:separate_notes",
+        "basis:comment:consumption:2",
+        "geometry:comment:thickness:1",
+        "method",
+        "method:comment:equipment:1",
+        "normative:applicability",
+        "presence",
+        "quantity",
+        "unit"
+      ],
+      "relevant_verification_plan": [
+        {
+          "claim_id": "basis:comment:consumption:2",
+          "expected_text": "в два слоя",
+          "verification": {
+            "version": "verification-relations-v3",
+            "family": "normative_condition",
+            "relation": "condition_applies_to_project_facts",
+            "property": "normative_instruction",
+            "source_routes": [
+              "project",
+              "normative"
+            ],
+            "project_literal_required": false,
+            "required": true,
+            "automatic_confirmation": false,
+            "missing_project_literal_is_mismatch": false
+          }
+        },
+        {
+          "claim_id": "geometry:comment:thickness:1",
+          "expected_text": "18 см",
+          "verification": {
+            "version": "verification-relations-v3",
+            "family": "project_requirement",
+            "relation": "same_subject_and_project_value",
+            "property": "thickness",
+            "source_routes": [
+              "project"
+            ],
+            "project_literal_required": true,
+            "required": true,
+            "automatic_confirmation": false,
+            "missing_project_literal_is_mismatch": false
+          }
+        },
+        {
+          "claim_id": "method",
+          "expected_text": "Устройство среднего слоя основания из ЩПС , h = 10см \n(двухслойного основания - слой1) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+          "verification": {
+            "version": "verification-relations-v3",
+            "family": "normative_condition",
+            "relation": "condition_applies_to_project_facts",
+            "property": "",
+            "source_routes": [
+              "project",
+              "normative"
+            ],
+            "project_literal_required": false,
+            "required": true,
+            "automatic_confirmation": false,
+            "missing_project_literal_is_mismatch": false
+          }
+        },
+        {
+          "claim_id": "normative:applicability",
+          "expected_text": "",
+          "verification": {
+            "version": "verification-relations-v3",
+            "family": "normative_condition",
+            "relation": "condition_applies_to_project_facts",
+            "property": "",
+            "source_routes": [
+              "project",
+              "normative"
+            ],
+            "project_literal_required": false,
+            "required": true,
+            "automatic_confirmation": false,
+            "missing_project_literal_is_mismatch": false
+          }
+        }
+      ],
+      "final": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\selected-measure-two-v25\\new-4-final.json",
+        "sha256": "24005b9b2815cb93fc345ed74f02a2588c357676b9dc75e4166b2ee846e2ca3d"
+      },
+      "saved_state": "needs_facts",
+      "relevant_items": [
+        {
+          "selector": "/payload/position_check/items/2",
+          "state": "confirmed",
+          "required": true,
+          "claim_ids": [
+            "geometry:comment:thickness:1"
+          ],
+          "topic": "Полная толщина и порог18см",
+          "explanation": "Полные20см среднего слоя ПД превышают18см. Явно связанные операции ВОР10+10см на той же площади составляют проектные20см. Это геометрия, не автоматическое доказательство нормативной ветви."
+        },
+        {
+          "selector": "/payload/position_check/items/3",
+          "state": "needs_facts",
+          "required": true,
+          "claim_ids": [
+            "basis:comment:consumption:2"
+          ],
+          "topic": "Условие нормирования в два слоя",
+          "explanation": "П.1.27.18 различает однослойное основание06+07, нижний слой06+06 и верхний07+07. Средний слой20см находится между нижнимЩПС24см и верхнимасфальтобетонным10см. Нужна нормативная трактовка роли этого среднего слоя; одного10+10см недостаточно."
+        },
+        {
+          "selector": "/payload/position_check/items/4",
+          "state": "needs_facts",
+          "required": true,
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "topic": "Применимость27-04-003-06 к первой операции",
+          "explanation": "Измеритель06=1000м2 и база15см установлены;08 допускает исключение по1см, -5 даёт10см. Но не доказано, почему средний физический слой относится к ветви, выбирающей06 для первой операции. Необходима связь проектной роли слоя с конкретным условиемп.1.27.18. Принадлежность конструктивного слоя ПД к ветви условия техчасти не установлена; нормативное основание требует уточнения."
+        },
+        {
+          "selector": "/payload/position_check/items/5",
+          "state": "needs_facts",
+          "required": true,
+          "claim_ids": [
+            "method"
+          ],
+          "topic": "Механизированное устройство основания",
+          "explanation": "Норма06 описывает распределениеЩПС, планировку, увлажнение и уплотнение; ресурс содержит бульдозер79кВт. Такой состав найден, но применимость выбранной сметной схемы к среднему слою остаётся зависима от его неустановленной нормативной роли. Машины не обязаны буквально повторяться вПД."
+        },
+        {
+          "selector": "/payload/position_check/items/6",
+          "state": "needs_facts",
+          "required": true,
+          "claim_ids": [
+            "attribute:comment:separate_notes"
+          ],
+          "topic": "Бульдозер мощностью79кВт",
+          "explanation": "В ресурсах06 буквально указан бульдозер79кВт. Для полного подтверждения сметного способа текущей операции остаётся нужна применимость06 к среднему слоюПД. Отсутствие мощности вПД само по себе не является запретом."
+        },
+        {
+          "selector": "/payload/position_check/items/7",
+          "state": "confirmed",
+          "required": true,
+          "claim_ids": [
+            "method:comment:equipment:1"
+          ],
+          "topic": "Функция тандемного виброкатка",
+          "explanation": "Первичныеs48/HAMM HD 130 — Wirtgen Xibao official HTML (GENERATED WEB CAPTURE, NOT factory PDF), стр. 1 совместно подтверждают vibration и tandem roller дляHD130. Функция соответствует уплотнениюЩПС гладкими вибрационными катками в06. Подтверждён класс и функция, не пригодность экземпляра и не нормативная ветвь среднего слоя; ресурсы нормы произвольно не заменяются."
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "request": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\selected-measure-two-v25\\q-06-03.request.json",
+        "sha256": "c0d1b35fb56e434105765e7ea59f654ca08965b928b1468c06e168e7c1f4f189"
+      },
+      "request_input_selector": "JSON.parse(/user)",
+      "saved_pipeline_version": 24,
+      "position": {
+        "work": "Устройство среднего слоя основания из ЩПС , h = 10см \n(двухслойного основания - слой2) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+        "quantity": "431.61",
+        "unit": "м2",
+        "comment": "Тех.часть ГЭСН 27 п. 1.27.18. При толщине однослойного основания или покрытия более 18 см его нормировать в два слоя\nУстройство основания производится бульдозером мощностью 79 кВт\nУплотнение основания производится тандемным виброкатком Hamm HD130",
+        "formula": "",
+        "row": 24,
+        "sections": [
+          {
+            "address": "A17",
+            "text": "Раздел 1. Устройство дорожной одежды. Улица"
+          }
+        ]
+      },
+      "normative_review_scope": {
+        "subject": "work_norm_applicability",
+        "required": true,
+        "work_cost_method_is_separate": false,
+        "work_norm_conditions_required_when": "work_norm_selected",
+        "unit_scale_required_when": "work_norm_selected"
+      },
+      "required_validation_claims": [
+        "attribute:comment:separate_notes",
+        "basis:comment:consumption:2",
+        "geometry:comment:thickness:1",
+        "method",
+        "method:comment:equipment:1",
+        "normative:applicability",
+        "presence",
+        "quantity",
+        "unit"
+      ],
+      "relevant_verification_plan": [
+        {
+          "claim_id": "basis:comment:consumption:2",
+          "expected_text": "в два слоя",
+          "verification": {
+            "version": "verification-relations-v3",
+            "family": "normative_condition",
+            "relation": "condition_applies_to_project_facts",
+            "property": "normative_instruction",
+            "source_routes": [
+              "project",
+              "normative"
+            ],
+            "project_literal_required": false,
+            "required": true,
+            "automatic_confirmation": false,
+            "missing_project_literal_is_mismatch": false
+          }
+        },
+        {
+          "claim_id": "geometry:comment:thickness:1",
+          "expected_text": "18 см",
+          "verification": {
+            "version": "verification-relations-v3",
+            "family": "project_requirement",
+            "relation": "same_subject_and_project_value",
+            "property": "thickness",
+            "source_routes": [
+              "project"
+            ],
+            "project_literal_required": true,
+            "required": true,
+            "automatic_confirmation": false,
+            "missing_project_literal_is_mismatch": false
+          }
+        },
+        {
+          "claim_id": "method",
+          "expected_text": "Устройство среднего слоя основания из ЩПС , h = 10см \n(двухслойного основания - слой2) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+          "verification": {
+            "version": "verification-relations-v3",
+            "family": "normative_condition",
+            "relation": "condition_applies_to_project_facts",
+            "property": "",
+            "source_routes": [
+              "project",
+              "normative"
+            ],
+            "project_literal_required": false,
+            "required": true,
+            "automatic_confirmation": false,
+            "missing_project_literal_is_mismatch": false
+          }
+        },
+        {
+          "claim_id": "normative:applicability",
+          "expected_text": "",
+          "verification": {
+            "version": "verification-relations-v3",
+            "family": "normative_condition",
+            "relation": "condition_applies_to_project_facts",
+            "property": "",
+            "source_routes": [
+              "project",
+              "normative"
+            ],
+            "project_literal_required": false,
+            "required": true,
+            "automatic_confirmation": false,
+            "missing_project_literal_is_mismatch": false
+          }
+        }
+      ],
+      "final": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\selected-measure-two-v25\\new-6-final.json",
+        "sha256": "5e4e02d11c5b4e79aaea5f23c682a3de55a6eb3fea3a71be65b2fad81b6c1f65"
+      },
+      "saved_state": "needs_facts",
+      "relevant_items": [
+        {
+          "selector": "/payload/position_check/items/2",
+          "state": "confirmed",
+          "required": true,
+          "claim_ids": [
+            "geometry:comment:thickness:1"
+          ],
+          "topic": "Полная проектная толщина и порог18см",
+          "explanation": "ПД для среднего ЩПС0/63 слоя типаIV указывает20см. Сумма заявленных операций10+10см сохраняет эту полную толщину, которая больше18см. Число18 в комментарии — нормативный порог, а не толщина проекта; разрешение конкретной ветви проверяется отдельно."
+        },
+        {
+          "selector": "/payload/position_check/items/3",
+          "state": "needs_facts",
+          "required": true,
+          "claim_ids": [
+            "basis:comment:consumption:2"
+          ],
+          "topic": "Условие нормирования в два слоя",
+          "explanation": "Пункт1.27.18 различает однослойное основание(06+07), нижний слой(06+06), верхний(07+07). В ПД текущий слой назван средним, над ним асфальтобетонное основание, под ним другое ЩПС. Не установлено, к какой нормативной роли отнесён этот слой; одно20>18 и номер«слой2» не выбирают ветвь."
+        },
+        {
+          "selector": "/payload/position_check/items/4",
+          "state": "needs_facts",
+          "required": true,
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "topic": "Применимость27-04-003-07/08",
+          "explanation": "07 описывает верхнюю операцию непрерывной гранулометрииС-4/С-6. Для ЩПС0/63 К90 М1 не передана доказанная связь с этими обозначениями; ГОСТ70458 разделяет тип, категорию и марку. Также открыта роль среднего проектного слоя по1.27.18. Поправка−5 математически даёт10см, но этих условий не доказывает. Принадлежность конструктивного слоя ПД к ветви условия техчасти не установлена; нормативное основание требует уточнения."
+        },
+        {
+          "selector": "/payload/position_check/items/5",
+          "state": "needs_facts",
+          "required": true,
+          "claim_ids": [
+            "method"
+          ],
+          "topic": "Способ устройства среднего слоя",
+          "explanation": "ПД задаёт ЩПС основание, а07 содержит распределение, предварительное и окончательное уплотнение. Однако область её материала и ветвь1.27.18 для среднего слоя не установлены. Поэтому окончательная применимость выбранного способа ещё открыта, а не опровергнута отсутствием машины в ПД."
+        },
+        {
+          "selector": "/payload/position_check/items/6",
+          "state": "needs_facts",
+          "required": true,
+          "claim_ids": [
+            "attribute:comment:separate_notes"
+          ],
+          "topic": "Бульдозер79кВт",
+          "explanation": "Ресурс07 буквально содержит бульдозер79кВт с положительным расходом. Это найденное основание заявленного сметного способа; полного вывода пока нет из-за открытой применимости07 к материалу и роли текущего слоя. Повтор мощности в ПД сам по себе не требуется."
+        },
+        {
+          "selector": "/payload/position_check/items/7",
+          "state": "needs_facts",
+          "required": true,
+          "claim_ids": [
+            "method:comment:equipment:1"
+          ],
+          "topic": "Тандемный виброкаток как класс",
+          "explanation": "Первичные источники подтверждают HD130 как тандемный каток с вибрацией;07 учитывает гладкие вибрационные катки. Факт класса найден, паспорт будущего экземпляра не требуется этим предикатом. Но полная связь выбранного нормированного способа с ролью/материалом слоя остаётся открытой."
+        }
+      ]
+    }
+  ],
+  "saved_material34": {
+    "request": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v23\\q-34-03.request.json",
+      "sha256": "df454e27576e95c692a6feffb653d32d21b20b6bc3db9b33e5d82a7da0ed37c3"
+    },
+    "request_input_selector": "JSON.parse(/user)",
+    "final": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v23\\new-34-stopped-final.json",
+      "sha256": "5dcbc4881fc2264dc9dfb86b26fb291d1e03474b556e3bd0576224c4e941409a"
+    },
+    "saved_pipeline_version": 23,
+    "position": {
+      "work": "Щебеночно-песчаная смесь типа М800 0/31,5 мм",
+      "quantity": "716.436",
+      "unit": "м3",
+      "comment": "ГОСТ Р 70458-2022 категория К90, марка М1\nКупл-1,26",
+      "formula": "2843*0,2*1,26",
+      "row": 54,
+      "sections": [
+        {
+          "address": "A51",
+          "text": "Раздел 2. Устройство дорожной одежды пешеходных и технических  тротуаров, лестничных маршей"
+        }
+      ]
+    },
+    "normative_review_scope": {
+      "subject": "material_specification_and_quantity_basis",
+      "required": true,
+      "work_cost_method_is_separate": true,
+      "work_norm_conditions_required_when": "quantity_depends_on_work_norm_resource_rate",
+      "unit_scale_required_when": "calculation_uses_selected_work_norm_measure"
+    },
+    "old_normative_verification_plan_task": {
+      "claim_id": "normative:applicability",
+      "expected_text": "",
+      "verification": {
+        "version": "verification-relations-v3",
+        "family": "normative_condition",
+        "relation": "condition_applies_to_project_facts",
+        "property": "",
+        "source_routes": [
+          "project",
+          "normative"
+        ],
+        "project_literal_required": false,
+        "required": true,
+        "automatic_confirmation": false,
+        "missing_project_literal_is_mismatch": false,
+        "subject": "material_specification_and_quantity_basis",
+        "work_cost_method_is_separate": true,
+        "work_norm_conditions_required_when": "quantity_depends_on_work_norm_resource_rate",
+        "unit_scale_required_when": "calculation_uses_selected_work_norm_measure",
+        "required_relation": "Соответствие материала проектной конструкции; основание собственного количества/расхода, единиц, потерь и заявленных коэффициентов. Условия нормы способа родительской работы обязательны для расхода из этой нормы, а не для независимой геометрии."
+      }
+    },
+    "only_required_unresolved_item": {
+      "state": "needs_facts",
+      "topic": "Полнота спецификации и расхода",
+      "required": true,
+      "claim_ids": [
+        "normative:applicability"
+      ],
+      "explanation": "Геометрия, роль материала и назначение сметного запаса подтверждены. ПД типаV дополнительно требует при максимальном размере зёрен0/31,5 соответствия гранулометрическому составу типа0/16. ВОР называет0/31,5,K90,M1,М800; переданные определения не устанавливают автоматически требуемую гранулометрическую связь с типом0/16. Нужна спецификация, сохраняющая это проектное условие, без требования испытаний будущей партии. Также не установлено применимое основание учёта трудноустранимых потерь/отходов по п.12 Методики; диапазон запаса на уплотнение не доказывает их учёт. Норму машины/способа родительской работы для независимой геометрии не требую.",
+      "project_source_ids": [
+        "agent:p50:0",
+        "agent:p90:cell:4ff4904a7a13528693fb4a89",
+        "agent:p90:header:fcc4a9879b3700e83c2e7a1d"
+      ],
+      "normative_source_ids": [
+        "material:clause-a730950c434eab35fdcc763f04b739ae:full:fd33233813b6f1c7182d",
+        "material:clause-4601e9b2c8d8b004db5e11b1aea67ccd:full:34935ae59e06370c1c70",
+        "material:clause-a5baabc63abbecf0a62fcc7672f16796:full:c06b6087967fa79efdba",
+        "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000"
+      ]
+    },
+    "current_CPU_quantity_subject_probe": {
+      "subject": "project_volume_with_declared_adjustment",
+      "bounded_numeric_recipe": true,
+      "explicit_adjustment": true,
+      "explicit_total_claim": false,
+      "losses_required_when": "declared_quantity_is_total_normative_resource_consumption",
+      "proof_limits": "scope_classification_only; all factual verification flags false"
+    }
+  },
+  "primary_evidence": [
+    {
+      "kind": "vor",
+      "source": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\blobs\\4b\\5d\\4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+        "sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+      },
+      "sheet": "Дорожная одежда",
+      "cells": {
+        "22": {
+          "B22": "Устройство среднего слоя основания из ЩПС , h = 10см \n(двухслойного основания - слой1) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+          "C22": "м2",
+          "D22": "431.61",
+          "I22": "Тех.часть ГЭСН 27 п. 1.27.18. При толщине однослойного основания или покрытия более 18 см его нормировать в два слоя\nУстройство основания производится бульдозером мощностью 79 кВт\nУплотнение основания производится тандемным виброкатком Hamm HD130",
+          "J22": "Ф5",
+          "K22": "Работа"
+        },
+        "24": {
+          "B24": "Устройство среднего слоя основания из ЩПС , h = 10см \n(двухслойного основания - слой2) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+          "C24": "м2",
+          "D24": "431.61",
+          "I24": "Тех.часть ГЭСН 27 п. 1.27.18. При толщине однослойного основания или покрытия более 18 см его нормировать в два слоя\nУстройство основания производится бульдозером мощностью 79 кВт\nУплотнение основания производится тандемным виброкатком Hamm HD130",
+          "J24": "Ф7",
+          "K24": "Работа"
+        },
+        "54": {
+          "B54": "Щебеночно-песчаная смесь типа М800 0/31,5 мм",
+          "C54": "м3",
+          "D54": "716.43600000000004",
+          "D54_formula": "2843*0.2*1.26",
+          "E54": "2843*0,2*1,26",
+          "I54": "ГОСТ Р 70458-2022 категория К90, марка М1\nКупл-1,26",
+          "J54": "Ф45",
+          "K54": "Материал"
+        }
+      },
+      "observations": [
+        "ВB22/I22 иB24/I24 нет кодов06/07.",
+        "ВB54/I54 нет заявления полного сметного расхода или учёта потерь."
+      ]
+    },
+    {
+      "kind": "project",
+      "source": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\blobs\\e4\\81\\e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+        "sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f"
+      },
+      "physical_page": 50,
+      "typeIV": "Верхний слой основанияА32От10см; среднийЩПС0/63K90M1 20см; нижнийЩПС0/31,5K90M1 24см.",
+      "typeV_base_quote": "Основание — Щебёночно-песчаная смесь для оснований по ГОСТ Р 70458-2022 при максимальном размере зёрен 0/31,5 мм, по гранулометрическому составу соответствующие типу 0/16, категории K90, марке M1, h=20 см;"
+    },
+    {
+      "kind": "norm",
+      "source": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\knowledge\\road-norms\\blobs\\6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5.pdf",
+        "sha256": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5"
+      },
+      "physical_page": 2,
+      "clause": "1.27.18",
+      "quote": "Затраты на устройство оснований и покрытий из гравийной смеси с добавлением щебня, а также щебеночно-песчаных определяются по табл. 27-04-003, расход материалов принимать по проекту. При толщине однослойного основания или покрытия более 18 см его нормировать в два слоя по нормам 27-04-003-06 и 27-04-003-07 с изменением толщины ±1 см для каждого слоя отдельно по норме 27-04-003-08. При толщине нижнего слоя основания или покрытия более 18 см его нормировать в два слоя по норме 27-04-003-06 с изменением толщины ±1 см для каждого слоя отдельно по норме 27-04-003-08. При толщине верхнего слоя основания или покрытия более 18 см его нормировать в два слоя по норме 27-04-003-07 с изменением толщины ±1 см для каждого слоя отдельно по норме 27-04-003-08."
+    },
+    {
+      "kind": "methodology",
+      "source": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\knowledge\\road-norms\\blobs\\ae59b619236cb4e878a1b9efde11e8d082c8a82902695ebb52928b48833e02ec.pdf",
+        "sha256": "ae59b619236cb4e878a1b9efde11e8d082c8a82902695ebb52928b48833e02ec"
+      },
+      "physical_page": 5,
+      "printed_page": 4,
+      "clause": "12",
+      "quote": "12. Количество материальных ресурсов, по которым в таблицах сметных норм расход указан с литерой «П», определяется на основании данных проектной документации с учетом трудноустранимых потерь и отходов, определяемых на основании Методики по разработке и применению нормативов трудноустранимых потерь и отходов материалов в строительстве, утвержденной приказом Министерства строительства и жилищно-коммунального хозяйства Российской Федерации от 16 января 2020 г. № 15/пр (зарегистрирован Министерством юстиции Российской Федерации 13 марта 2020 г., регистрационный № 57743), включенной в ФРСН, а также положений разделов соответствующих сборников сметных норм.",
+      "visual_review_image": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\methodology-page5-independent.png",
+      "scope_limit": "Пункт регулирует количество ресурсаП в рамках применения сметных норм. Он не объявляет автоматически каждую физическую строкуВОР полным расходом и не доказывает, чтоКупл учитывает потери."
+    }
+  ],
+  "uncertainty": [
+    "Под документальным назначениемВОР здесь проверен существующий программный/промптовый контракт. Универсальный внешний норматив о полноте содержания всехВОР не заявлен.",
+    "Work4/6называютсяsavedv25по папке, но ихфактическийpipeline_version=24; material34savedpipeline_version=23. Текущий контракт позже уточнил материальныйscope; это различие сохранено.",
+    "Классификация среднего проектного слоя и достаточность гранулометрической связи не разрешены этимscopeаудитом.",
+    "Требование подтвердить применимость выбранной нормы не тождественно доказанной ошибкеВОР."
+  ],
+  "mutations": {
+    "created_only_this_audit": true,
+    "production_changed": false,
+    "saved_model_answers_changed": false,
+    "statuses_changed": false,
+    "model_calls": 0,
+    "DB_writes": 0
+  },
+  "typed_threshold_detail": {
+    "actual_CPU_ClaimSpec": {
+      "claim_id": "geometry:comment:thickness:1",
+      "kind": "geometry",
+      "label": "толщине однослойного основания или покрытия более 18 см его",
+      "cells": [
+        "B22",
+        "I22"
+      ],
+      "expected_text": "18 см",
+      "expected_value": "",
+      "expected_unit": "",
+      "required": true,
+      "predicate": "measurement",
+      "property_label": "thickness"
+    },
+    "actual_contract": {
+      "version": "verification-relations-v3",
+      "family": "project_requirement",
+      "relation": "same_subject_and_project_value",
+      "property": "thickness",
+      "source_routes": [
+        "project"
+      ],
+      "project_literal_required": true,
+      "required": true,
+      "automatic_confirmation": false,
+      "missing_project_literal_is_mismatch": false
+    },
+    "companion_spec": {
+      "claim_id": "basis:comment:consumption:2",
+      "kind": "basis",
+      "label": "нормировать в два слоя",
+      "cells": [
+        "B22",
+        "I22"
+      ],
+      "expected_text": "в два слоя",
+      "required": true,
+      "predicate": "text",
+      "property_label": "normative_instruction"
+    },
+    "existing_bounded_comparison": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_layer_conditions.py",
+      "lines": [
+        155,
+        185
+      ],
+      "checks": [
+        "буквальный нормативный условный фрагмент",
+        "независимый проектный operand и его единица",
+        "оператор более/свыше/не менее/не более",
+        "тот же оператор и порог вspec.label",
+        "condition_scope_matches для роли иоднослойности",
+        "состав хвоста и все остальные сохраняемые условия"
+      ]
+    },
+    "CPU_probe_using_existing_CONDITION_and_helpers": {
+      "project_fact": {
+        "source": "PD SHAe481 physical50",
+        "value": "20",
+        "unit": "см",
+        "role": "средн",
+        "single_layer": false,
+        "family": "щпс"
+      },
+      "branches": [
+        {
+          "prefix": "При толщине однослойного основания или покрытия",
+          "operator": "более",
+          "threshold": "18",
+          "unit": "см",
+          "numeric_comparison": true,
+          "positive_scope_match": false,
+          "base_codes": [
+            "27-04-003-06",
+            "27-04-003-07"
+          ]
+        },
+        {
+          "prefix": "При толщине нижнего слоя основания или покрытия",
+          "operator": "более",
+          "threshold": "18",
+          "unit": "см",
+          "numeric_comparison": true,
+          "positive_scope_match": false,
+          "base_codes": [
+            "27-04-003-06"
+          ]
+        },
+        {
+          "prefix": "При толщине верхнего слоя основания или покрытия",
+          "operator": "более",
+          "threshold": "18",
+          "unit": "см",
+          "numeric_comparison": true,
+          "positive_scope_match": false,
+          "base_codes": [
+            "27-04-003-07"
+          ]
+        }
+      ],
+      "common_action": "нормировать в два слоя",
+      "common_tail": "с изменением толщины ±1 см для каждого слоя отдельно по норме 27-04-003-08",
+      "no_verdict_or_new_fact_confirmation": true
+    },
+    "bounded_routing_candidate_not_applied": {
+      "legacy_claim_handle": "geometry:comment:thickness:1",
+      "required": true,
+      "preserve": [
+        "полныйspec.label",
+        "sourcecells иcommentorigin",
+        "проектныйphysicaloperand20см",
+        "оператор>",
+        "нормативныйthreshold18см",
+        "рольод/верх/низ",
+        "материальнуюобластьусловия",
+        "действиенормироватьвдваслоя",
+        "basecodes и08tail",
+        "отдельныепредикатымашин/материалов/коэффициентов"
+      ],
+      "route": "normative_condition/condition_applies_to_project_facts сsource_routes project+normative иproject_literal_required=False, только при установленной условнойнормативнойроли числовогофрагмента.",
+      "reuse": "Существующее boundedраспознаваниеоператора/порога изnormative_layer_conditions155–179 иCONDITION/condition_scope_matches; новая широкая системаNLP/парсер не требуется.",
+      "gates": "Нужна связь условногоnumericalspan скомпаньономnormative_instruction изтойжекомментарнойфразы/буквальногоусловия. Не классифицировать любойпорогвнетакойсвязи. Не подменять прямые проектныеh/толщины; при неоднозначностиоставлять исходныйpredicaterequired/unresolved.",
+      "outcome_boundary": "20>18 может быть доказано отдельно. Полная применимостьветви не подтверждена, пока не доказаны её роль/однослойность ипрочие условия. Изменениеrouting не должно превращаться вC4/6 или выбор06/07."
+    }
+  },
+  "gost70458_addressed_primary_addendum": {
+    "source": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\knowledge\\road-norms\\blobs\\eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748.pdf",
+      "sha256": "eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748"
+    },
+    "pages": [
+      4,
+      5,
+      6
+    ],
+    "reading": "Полныестраницы4–6 визуально проверены, затем увеличенныеcropr4header/r5profile0315/r5profile016. Nativeиспользован длянавигации, табличные значения сверены по изображению.",
+    "literal_classification_page4": [
+      "В зависимости от наибольшей крупности зерен готовые смеси подразделяют на следующие типы:",
+      "0/16 - смеси с наибольшей крупностью зерен 16 мм;",
+      "0/31,5 - смеси с наибольшей крупностью зерен 31,5 мм;"
+    ],
+    "literal_5_2_page4": "Категорию готовой смеси определяют при ее рассеве в зависимости от проходов через контрольные сита с размерами ячеек D и 1,4D (где D - это размер ячеек сита, соответствующий наибольшему размеру зерен в смеси). Марку готовой смеси определяют при ее рассеве в зависимости от проходов через контрольные сита с размерами ячеек менее D.",
+    "table1_header": "Полный проход, % масс., на ситах с размерами ячеек, мм",
+    "table1_sieve_order_mm": [
+      "125",
+      "90",
+      "63",
+      "45",
+      "31,5",
+      "22,4",
+      "16",
+      "11,2",
+      "8",
+      "5,6",
+      "4",
+      "2",
+      "1",
+      "0,5"
+    ],
+    "formal_profiles_page5": [
+      {
+        "type": "0/31,5",
+        "category": "K90",
+        "mark": "M1",
+        "pass_percent_by_sieve_mm": {
+          "125": "-",
+          "90": "-",
+          "63": "-",
+          "45": "100",
+          "31,5": "90-100",
+          "22,4": "-",
+          "16": "63-77",
+          "11,2": "-",
+          "8": "43-57",
+          "5,6": "-",
+          "4": "30-42",
+          "2": "22-33",
+          "1": "15-30",
+          "0,5": "5-15"
+        }
+      },
+      {
+        "type": "0/16",
+        "category": "K90",
+        "mark": "M1",
+        "pass_percent_by_sieve_mm": {
+          "125": "-",
+          "90": "-",
+          "63": "-",
+          "45": "-",
+          "31,5": "-",
+          "22,4": "100",
+          "16": "90-100",
+          "11,2": "-",
+          "8": "63-77",
+          "5,6": "-",
+          "4": "43-57",
+          "2": "30-42",
+          "1": "22-33",
+          "0,5": "15-30"
+        }
+      }
+    ],
+    "proved_profile_relation": "Формальные профили нельзя выполнить одновременно: на16мм[63,77]∩[90,100]=пусто; на8мм[43,57]∩[63,77]=пусто. Это сравнение нормативных множествпроходов, неиспытаниепартии.",
+    "application_to_VOR34": "ПД явно именует гранулометрическоесоответствие0/16. ВОРB54:Щебеночно-песчаная смесь типаМ8000/31,5мм. Здесь0/31,5 неявно типизировано как формальныйпрофиль; maxsize/фракция/формальныйтип невзаимозаменяемы. Если будет доказан формальныйтип0/31,5K90M1, возникнет конкретнаянесовместимость. Пока такое основаниенепередано.",
+    "conditional_upper_bound_case": "Если31,5мм означает только верхнийдопустимыйразмер, профиль0/16 с100%проходомчерез22,4мм численно не нарушает этотверхнийпредел. Это условнаявозможность, не доказательство, чтотакимбылсмыслВОР иличтоматериалвыполняетпрофиль0/16.",
+    "remaining_question": "Смысл обозначения0/31,5вэтойВОР и сохранениеPDпрофиля0/16. Не нужныфактическиеиспытаниябудущейпартии длявыяснениясмыслаописания; совместимость непринимается изодногоотсутствияявногоопровержения.",
+    "verified_crops": [
+      {
+        "physical_page": 4,
+        "bbox_pdf_points": [
+          27,
+          633,
+          568,
+          667
+        ],
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scope-v27-gost70458-header.png",
+        "sha256": "be739258da46e6d2c5988545e22d27d5a053b8b6e652af2bb86a232e652bcada"
+      },
+      {
+        "physical_page": 5,
+        "bbox_pdf_points": [
+          27,
+          390,
+          568,
+          421
+        ],
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scope-v27-gost70458-type0315K90M1.png",
+        "sha256": "d374d9fa9f643a0cd1b9062d4ebc1c8f96a975f521a2f26c7aaf500f479e6764"
+      },
+      {
+        "physical_page": 5,
+        "bbox_pdf_points": [
+          27,
+          715,
+          568,
+          745
+        ],
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scope-v27-gost70458-type016K90M1.png",
+        "sha256": "1a118e1946cbb97c81fa6040f2cb1273c7d3ba8210c64ba7f5b3f658aff64d42"
+      }
+    ]
+  }
+}

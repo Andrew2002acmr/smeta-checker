@@ -1,0 +1,44 @@
+{
+  "kind": "checkpoint_v29",
+  "recorded_utc": "2026-11-04T21:07:31.133501+00:00",
+  "dump_file": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\checkpoint-20261105-v29\\smeta-pilot-final.dump",
+  "dump_bytes": 211379105,
+  "dump_sha256": "19b9c0f22f742d6f8d43186128a1b884ec3dd42faca8875fff7dff597620ae83",
+  "archive_index_valid": true,
+  "full_restore_tested": true,
+  "restore_exit_code": 0,
+  "restore_target_database": "smeta_restore_v29_verify",
+  "runs": 54,
+  "reviews": 1824,
+  "restored_latest_states": [
+    {
+      "run_id": "d2d89891-22f0-4b28-a0b2-776de49d0a5f",
+      "position_index": 47,
+      "state": "needs_facts"
+    },
+    {
+      "run_id": "daa34ef5-faf2-4120-bb78-aa8a6a39a7c5",
+      "position_index": 47,
+      "state": "needs_facts"
+    }
+  ],
+  "confirmed_unique": 20,
+  "final_goal": 80,
+  "goal_complete": false,
+  "source_and_artifact_archive_required": true,
+  "unchanged_original_blob_store_required": true,
+  "normative_release": {
+    "database": "releases/road-seed-function-20261105-v9/knowledge.sqlite",
+    "release_id": "road-seed-function-20261105-v9",
+    "profile": "roads",
+    "sha256": "269e95860694342d2c509921c213b1b8b507dbdf812f7079b8cc01bfb88e6c0c"
+  },
+  "active_current_unchanged": true,
+  "working_postgresql_untouched": true,
+  "full_103_dispatched": false,
+  "routerai_requests": 0,
+  "fresh_codex_requests_this_pilot": 3,
+  "old_checkpoints_preserved": true,
+  "quota_current_remaining_unknown": true,
+  "early_checkpoint_push_user_authorized": true
+}

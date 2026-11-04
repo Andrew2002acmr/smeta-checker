@@ -1285,7 +1285,7 @@ class Repository:
         ids=set()
         list_keys={'project_source_ids','normative_source_ids','source_ids',
             'root_source_ids','operand_source_ids'}
-        scalar_keys={'source_id','base_source_id','adjustment_source_id'}
+        scalar_keys={'source_id','base_source_id','adjustment_source_id','norm_source_id'}
         def visit(value):
             if isinstance(value,dict):
                 for key,child in value.items():
@@ -1332,6 +1332,26 @@ class Repository:
                     cast('$[*] ? (@.kind.type() == "string" && '
                         '@.kind == "norm_thickness_adjustment_proposal_v1")',JSONPATH))),
                 else_=literal([],type_=JSONB))
+            # Rebuild a dimensioned resource rate from its original typed rows.
+            # Keep every row/event for the proved norm and all other selected
+            # norms, so a conflicting candidate cannot disappear in a batch.
+            rate_trace=func.jsonb_path_exists(
+                NormativeReview.payload['position_check']['evidence_trace'],
+                cast('$[*] ? (@.kind == "workbook_area_rate_v1" && '
+                    'exists(@.resource_rate_basis))',JSONPATH))
+            rate_norms=func.jsonb_path_query_array(
+                NormativeReview.payload['position_check']['evidence_trace'],
+                cast('$[*] ? (@.kind == "workbook_area_rate_v1").resource_rate_basis.norm_id',JSONPATH))
+            rate_sources=func.jsonb_path_query_array(
+                NormativeReview.payload['position_check']['items'],
+                cast('$[*] ? (@.state == "confirmed" && '
+                    '@.claim_ids[*] == "normative:applicability").normative_source_ids[*]',JSONPATH))
+            rate_candidates=case((rate_trace,func.jsonb_path_query_array(
+                NormativeReview.payload['position_check']['evidence_trace'],
+                cast('$[*] ? (@.kind == "normative_resource_consumption_candidates" && '
+                    '(@.norm_id == $norms[*] || @.norm_source_id == $sources[*]))',JSONPATH),
+                func.jsonb_build_object('norms',rate_norms,'sources',rate_sources))),
+                else_=literal([],type_=JSONB))
             rows = session.execute(select(NormativeReview.id, NormativeReview.position_index,
                 NormativeReview.payload['position_key'].as_string(),
                 NormativeReview.payload['position_check']['items'],
@@ -1353,7 +1373,7 @@ class Repository:
                     '@.kind == "parent_geometry_dependency_v1" || '
                     '@.kind == "planned_material_allocation_v1" || '
                     '@.kind == "workbook_area_rate_v1" || '
-                    '@.kind == "single_base_price_application_v1"))', JSONPATH)).op('||')(price_choices),
+                    '@.kind == "single_base_price_application_v1"))', JSONPATH)).op('||')(price_choices).op('||')(rate_candidates),
                 case((material_trace,material_parameters),else_=None),
                 case((material_trace,NormativeReview.payload['position_check']['coverage']['coefficient_policy'].as_string()),
                     else_=None)).where(
