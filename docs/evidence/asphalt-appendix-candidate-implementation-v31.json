@@ -1,0 +1,244 @@
+{
+  "kind": "asphalt_appendix_candidate_implementation_v31",
+  "created_at_utc": "2026-11-04T22:55:38.795949+00:00",
+  "model_calls": 0,
+  "database_writes": 0,
+  "source_rebuilds": false,
+  "status_assignment": false,
+  "new_confirmation": false,
+  "scope": "Reduced scope explicitly agreed with root: source-bound numeric composition and mandatoryN condition ledger. No automatic semantic/rate/output confirmation; no new DTO, parser subsystem, per-position rules or synthetic numeric resource replacingП.",
+  "changed_files": [
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_resource_consumption.py",
+      "sha256": "0351a8870d58df8425ef8e115b56b36ec9657cd34013b7a10bf3c62cd779afb6",
+      "bytes": 32366
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_workbook_rate.py",
+      "sha256": "c7f41f16d4bddd18c44117ef103fd6c9b25941cfe6ac465993a6ea6c056cb12d",
+      "bytes": 30965
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\tests\\test_asphalt_appendix_candidate.py",
+      "sha256": "912fe102587cea4180d548d20b0e0628dc4e425fbd92e737835828b3855f7f55",
+      "bytes": 19214
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\tests\\test_appendix_candidate_projection.py",
+      "sha256": "4633ac28b28ff4bc444312c54d51797a02e7bf4e2b1ab59208f2ad4c56308c99",
+      "bytes": 8016
+    }
+  ],
+  "changed_regions": {
+    "normative_resource_consumption.py": {
+      "def appendix_recipe": [
+        234
+      ],
+      "def _appendix_type": [
+        240
+      ],
+      "def _appendix_band": [
+        247
+      ],
+      "def _appendix_source": [
+        267
+      ],
+      "def appendix_rate_candidate": [
+        281
+      ],
+      "appendix_rate_candidate(position,result": [
+        281
+      ],
+      "pending_condition_ids": [
+        430
+      ]
+    },
+    "normative_workbook_rate.py": {
+      "appendix_rate_candidate(position,result": [
+        285,
+        430
+      ],
+      "appendix_scope_finding": [
+        359,
+        443
+      ],
+      "appendix_rate_candidate'": [
+        281,
+        282,
+        432
+      ],
+      "operators=annotation": [
+        81
+      ]
+    },
+    "tests/test_asphalt_appendix_candidate.py": {
+      "pending_condition_ids": [
+        194,
+        400,
+        417,
+        439
+      ]
+    }
+  },
+  "ownership_note": "workbook_rate also contains parent-owned earlier rate/Fraction parser changes; this task added only bounded Γ-annotation admission, appendix candidate integration, ownedN finding and candidate replay check. Whole-file SHA pins the shared current file, not authorship of earlier edits.",
+  "source_admission": {
+    "reuse": "normative_collection_context.ROAD_ORDER_ID/ROAD_ORDER_SHA/ROAD_PAIR",
+    "required": [
+      "exact registered PDFidentity+SHA",
+      "clause ID and physical page",
+      "exact complete literal text SHA",
+      "native_visually_verified origin",
+      "complete selected work definition with measure1000m²",
+      "replayed same-layer formal parent geometry dependency"
+    ],
+    "limit": "Known app/new35 source admission is only literal identity. Edition/fallback/edge are always unresolved, even if arbitrary metadata or modelsemanticC asserts otherwise."
+  },
+  "behavior": [
+    "Reads one material type, exact normative density column and complete primary row; computes Decimalbase+step×integer((PDh−4cm)/0.5cm). Requires declared AST operands/operator to match the selected row and project thickness, not only the final number.",
+    "Γ is a proposed maximum stone-material density restriction. Mixture/average density substitutions are rejected. Raw shorthand2.7–2.9 is a candidate with explicit operator-reviewN; actualbatchdensity is never established.",
+    "Uses existing parent_geometry_dependency_v1 as area/thickness premise, preserves area quantity in m² and calculation:<index> arithmetic in tonnes. Area precision mismatch becomes an independent open condition; no rounding invented.",
+    "Stores appendix_rate_candidate under workbook_area_rate_v1, all source envelope digests/root handles, proposal digest, parent dependency digest and selected-applicability item digest. Scalar numeric guidance is revalidated on replay.",
+    "Existing direct-resource or PDgeometric-rate routes cannot bypass explicit appendix declaration. MandatoryownedN finding remains even with rawsemanticC; geometryC staysindependent. Repeated enrich removes only its own exact prior finding.",
+    "Planner integration is parent-owned normative_evidence_plan.py; PGprojection/testing is parent-owned. This helper does not alter source activation, KB releases, classifier decisions or guards."
+  ],
+  "stable_shape": {
+    "trace_kind": "workbook_area_rate_v1",
+    "candidate_key": "appendix_rate_candidate",
+    "candidate_kind": "appendix_derived_rate_candidate_v1",
+    "gaps_key": "appendix_scope_gaps",
+    "owned_finding_key": "appendix_scope_finding",
+    "pending_condition_ids": [
+      "edition_chain",
+      "project_consumption_priority",
+      "edge_prescription",
+      "density_interval_operators",
+      "area_precision",
+      "fallback_clause_source",
+      "work_norm_scope"
+    ]
+  },
+  "validation": {
+    "focused": {
+      "passed": 211,
+      "elapsed_seconds": 7.86,
+      "tests": [
+        "test_asphalt_appendix_candidate",
+        "test_areal_resource_consumption",
+        "test_normative_resource_consumption",
+        "test_normative_workbook_rate",
+        "test_normative_resource_recovery",
+        "test_parent_geometry_dependency",
+        "test_evidence_snapshot"
+      ]
+    },
+    "own_cases": 39,
+    "final_test_refinement": {
+      "passed": 1,
+      "elapsed_seconds": 1.24,
+      "reason": "Removed semicolon from operator-tamper test so it exercises narrow Γ-admission rather than preexisting semicolon rejection"
+    },
+    "ruff": "PASS4files",
+    "pyright": "0errors0warnings4files",
+    "git_diff_check": "PASS; only line-ending warnings",
+    "readable_review_replay": "Actual75assembly before=True/after=True"
+  },
+  "numeric_reproducer": {
+    "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\asphalt-appendix-candidate-reproducer-v31.json",
+    "sha256": "5b1215ddd37c4a7d1eebd8053bd3b2054dadbfb08c29df4e54b8eebd54c876ca",
+    "bytes": 13446
+  },
+  "PG_ready_assembly": {
+    "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\asphalt75-candidate-assembly-v31.json",
+    "sha256": "55bf9e98beec1a4b09640d7c709ba2a60299e51bb915aece12335c4de9de6195",
+    "bytes": 565599
+  },
+  "projection_requirements": {
+    "event": "Preserve the whole workbook_area_rate_v1 event, including candidate/gaps/finding",
+    "source_dependencies": "root_source_ids + source_sha256 map keys bind app/new35/full selected norms and all parent PD/sum dependencies; do not retain only norm_id or numericresourcecards",
+    "replay": "Rebuild from preserved full envelopes, proposals, parent dependency and workbook arithmetic; drop candidate guidance on fingerprint mismatch. Candidate never authorizes C. Snapshot replay must reacquire parent geometry from independent parent basis, not copy prior candidate flags."
+  },
+  "remaining_gaps": [
+    "No replayable scoped review yet establishes project consumption absence/fallback priority. A source-bound modelC is not negative-coverage proof.",
+    "No reviewed target edition chain or project edge prescription admitted here. v11 may deliver primarychain/context, which alone does not close these projectconditions.",
+    "Parent-source selected norm conditions remain separate from the conditional appendix arithmetic; no extrapolation to future batch acceptance."
+  ],
+  "conclusion_ru": "Реализован используемый source-bound кандидат123.30 в существующем расчётном trace. Обязательные условия остаютсяN; новыеC не назначаются. На сохранённом75 с явно описанными дополнениями источников получены123.30т/1000м², сохранены106м²/5см и отдельная арифметика13.0698т; это не новый подтверждённый результат позиции.",
+  "postgres_regression_preparation": {
+    "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\asphalt-appendix-projection-regression-v31.json",
+    "sha256": "bd9ce178fc74ac2dc987b37607f69e549bf838c36a77fe32ccd7299b3b0aa48b",
+    "bytes": 3236
+  },
+  "guard_scope_refinement": {
+    "reproducer_before": "2 failing unitcases: seedskg/100m² and seeds tonnes/1000m² + unrelated ГЭСН47прил27.1 lost existing direct resource proof",
+    "minimal_fix": "appendix_recipe requires material + positively recognised appendixtype + т/1000м² + explicitreference",
+    "after": "3 regressioncasesPASS: seedskg,seedstonnes, recognisedasphaltkg retains old resource route.39 own appendixtests in211focusedPASS.",
+    "files": [
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_resource_consumption.py",
+        "sha256": "0351a8870d58df8425ef8e115b56b36ec9657cd34013b7a10bf3c62cd779afb6",
+        "bytes": 32366
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\tests\\test_asphalt_appendix_candidate.py",
+        "sha256": "912fe102587cea4180d548d20b0e0628dc4e425fbd92e737835828b3855f7f55",
+        "bytes": 19214
+      }
+    ]
+  },
+  "root_observed_postgres_validation": {
+    "observed_by": "root",
+    "test_database": "explicit own smeta_test_v28_areal",
+    "junit": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\appendix-projection-v31.xml",
+      "sha256": "59e7e70b7aa6805f06c75fccc6425e7796991a84c95d6eb2a6818c15ffaba8de"
+    },
+    "suites": [
+      {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "6",
+        "time": "20.617",
+        "timestamp": "2026-11-04T23:02:52.592298+00:00",
+        "hostname": "d287d7401e4b"
+      }
+    ],
+    "testcases": [
+      {
+        "classname": "tests.test_appendix_candidate_projection",
+        "name": "test_postgres_full_and_batch_keep_appendix_inputs_and_exclude_unselected_ocr",
+        "time": "7.397"
+      },
+      {
+        "classname": "tests.test_appendix_candidate_projection",
+        "name": "test_postgres_does_not_hide_tampered_appendix_candidate_inputs[anchor]",
+        "time": "1.112"
+      },
+      {
+        "classname": "tests.test_appendix_candidate_projection",
+        "name": "test_postgres_does_not_hide_tampered_appendix_candidate_inputs[proposal]",
+        "time": "1.254"
+      },
+      {
+        "classname": "tests.test_appendix_candidate_projection",
+        "name": "test_postgres_does_not_hide_tampered_appendix_candidate_inputs[selected_norm_item]",
+        "time": "1.188"
+      },
+      {
+        "classname": "tests.test_appendix_candidate_projection",
+        "name": "test_postgres_does_not_hide_tampered_appendix_candidate_inputs[appendix_literal]",
+        "time": "1.289"
+      },
+      {
+        "classname": "tests.test_appendix_candidate_projection",
+        "name": "test_postgres_does_not_hide_tampered_appendix_candidate_inputs[selected_qualifier]",
+        "time": "1.274"
+      }
+    ],
+    "pilot_writes": 0,
+    "SQL_changes": false,
+    "repeat_tests_performed": false
+  },
+  "helper_frozen_for_broad_final_verification": true
+}

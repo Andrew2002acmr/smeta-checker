@@ -1,0 +1,250 @@
+{
+  "kind": "source_augmented_75_candidate_planning_v31",
+  "assembly_only": true,
+  "not_a_fresh_model_run": true,
+  "assembly_sha256": "55bf9e98beec1a4b09640d7c709ba2a60299e51bb915aece12335c4de9de6195",
+  "actions": [
+    {
+      "key": "claim:basis:comment:consumption:1",
+      "family": "consumption_basis",
+      "state": "source_derived_candidate_requires_conditions",
+      "action": "verify_applicability_conditions",
+      "dependency_position": null,
+      "source_ids": [
+        "agent:p90:cell:6ae5fa7c01d92f821ea016b4",
+        "collection:clause-44b6dbf37f4b8f166f90c17874fd5963",
+        "collection:clause-51ca0934e697b15a5155c8ac9d43519a",
+        "donor74:collection:clause-d7fb04d617811bd6b4ffa2e8e065774e",
+        "donor74:n2:full:362f7443a0655c4daf68",
+        "donor74:n7:full:3e85787285197a4c7334",
+        "n4",
+        "n4:part:1300",
+        "parent-74:geometry:5e340dfb52fe5a7bafee4ea0",
+        "parent-74:geometry:b3a61826e6c7cdbd8fe284cc"
+      ],
+      "unreadable_source_ids": [],
+      "model_delivery": {
+        "version": 1,
+        "context_stage": null,
+        "source_states": {
+          "agent:p90:cell:6ae5fa7c01d92f821ea016b4": "not_measured",
+          "collection:clause-44b6dbf37f4b8f166f90c17874fd5963": "not_measured",
+          "collection:clause-51ca0934e697b15a5155c8ac9d43519a": "not_measured",
+          "donor74:collection:clause-d7fb04d617811bd6b4ffa2e8e065774e": "not_measured",
+          "donor74:n2:full:362f7443a0655c4daf68": "not_measured",
+          "donor74:n7:full:3e85787285197a4c7334": "not_measured",
+          "n4": "not_measured",
+          "n4:part:1300": "not_measured",
+          "parent-74:geometry:5e340dfb52fe5a7bafee4ea0": "not_measured",
+          "parent-74:geometry:b3a61826e6c7cdbd8fe284cc": "not_measured"
+        },
+        "next_offset_by_source": {},
+        "comprehension_established": false,
+        "absence_established": false
+      },
+      "read_requests": [],
+      "proposal_count": 0,
+      "reason": "Производный расход вычислен по связанным исходным данным; это условный кандидат, не подтверждение расхода. Не ищи итоговое число буквально в ПД или нормативе. Проверь оставшиеся условия: edition_chain; project_consumption_priority; edge_prescription; density_interval_operators. Площадь, толщина и арифметика сохраняют собственные проверки; зависимое количество материала этим кандидатом не подтверждено.",
+      "retry_fingerprint": "d5bc2732e45669d3e6fd12434df5d56b1423b45dbb9e47cfebc8c40d3f00c631",
+      "verification": {
+        "version": "verification-relations-v4",
+        "family": "calculation_basis",
+        "relation": "operands_units_and_derivation",
+        "property": "consumption",
+        "source_routes": [
+          "workbook",
+          "project",
+          "normative_or_explicit_estimator_basis"
+        ],
+        "project_literal_required": false,
+        "required": true,
+        "automatic_confirmation": false,
+        "missing_project_literal_is_mismatch": false
+      },
+      "conditional_rate_candidate": {
+        "kind": "appendix_derived_rate_candidate_v1",
+        "rate": "123.30",
+        "unit": "т/1000м2",
+        "expression": "98.64+(12.33*2)",
+        "root_source_ids": [
+          "collection:clause-44b6dbf37f4b8f166f90c17874fd5963",
+          "collection:clause-51ca0934e697b15a5155c8ac9d43519a",
+          "donor74:collection:clause-d7fb04d617811bd6b4ffa2e8e065774e",
+          "donor74:n2:full:362f7443a0655c4daf68",
+          "donor74:n7:full:3e85787285197a4c7334",
+          "n4",
+          "parent-74:geometry:5e340dfb52fe5a7bafee4ea0",
+          "parent-74:geometry:b3a61826e6c7cdbd8fe284cc"
+        ],
+        "pending_condition_ids": [
+          "edition_chain",
+          "project_consumption_priority",
+          "edge_prescription",
+          "density_interval_operators"
+        ],
+        "pending_conditions": [
+          "Нужна проверенная привязка редакции приложения 27.1 и полной цепочки изменений.",
+          "Нужна полнота проверки проектных данных о расходе: проектный расход имеет приоритет перед приложением.",
+          "Нужна проверка проектного требования об уплотнении внешних кромок прижимным вальцом (1,004).",
+          "Интервал Γ в ВОР записан сокращённо: требуется привязка к строгому нижнему и включённому верхнему пределу колонки."
+        ]
+      }
+    },
+    {
+      "key": "claim:derived:rate",
+      "family": "consumption_basis",
+      "state": "source_derived_candidate_requires_conditions",
+      "action": "verify_applicability_conditions",
+      "dependency_position": null,
+      "source_ids": [
+        "agent:p90:cell:6ae5fa7c01d92f821ea016b4",
+        "collection:clause-44b6dbf37f4b8f166f90c17874fd5963",
+        "collection:clause-51ca0934e697b15a5155c8ac9d43519a",
+        "donor74:collection:clause-d7fb04d617811bd6b4ffa2e8e065774e",
+        "donor74:n2:full:362f7443a0655c4daf68",
+        "donor74:n7:full:3e85787285197a4c7334",
+        "n4",
+        "n4:part:1300",
+        "parent-74:geometry:5e340dfb52fe5a7bafee4ea0",
+        "parent-74:geometry:b3a61826e6c7cdbd8fe284cc"
+      ],
+      "unreadable_source_ids": [],
+      "model_delivery": {
+        "version": 1,
+        "context_stage": null,
+        "source_states": {
+          "agent:p90:cell:6ae5fa7c01d92f821ea016b4": "not_measured",
+          "collection:clause-44b6dbf37f4b8f166f90c17874fd5963": "not_measured",
+          "collection:clause-51ca0934e697b15a5155c8ac9d43519a": "not_measured",
+          "donor74:collection:clause-d7fb04d617811bd6b4ffa2e8e065774e": "not_measured",
+          "donor74:n2:full:362f7443a0655c4daf68": "not_measured",
+          "donor74:n7:full:3e85787285197a4c7334": "not_measured",
+          "n4": "not_measured",
+          "n4:part:1300": "not_measured",
+          "parent-74:geometry:5e340dfb52fe5a7bafee4ea0": "not_measured",
+          "parent-74:geometry:b3a61826e6c7cdbd8fe284cc": "not_measured"
+        },
+        "next_offset_by_source": {},
+        "comprehension_established": false,
+        "absence_established": false
+      },
+      "read_requests": [],
+      "proposal_count": 0,
+      "reason": "Производный расход вычислен по связанным исходным данным; это условный кандидат, не подтверждение расхода. Не ищи итоговое число буквально в ПД или нормативе. Проверь оставшиеся условия: edition_chain; project_consumption_priority; edge_prescription; density_interval_operators. Площадь, толщина и арифметика сохраняют собственные проверки; зависимое количество материала этим кандидатом не подтверждено.",
+      "retry_fingerprint": "9c7713336bf4707dd477fb74e8aa3041a230ebd6c6c822e3f09354956eb34ab0",
+      "verification": {
+        "version": "verification-relations-v4",
+        "family": "calculation_basis",
+        "relation": "operands_units_and_derivation",
+        "property": "",
+        "source_routes": [
+          "workbook",
+          "project",
+          "normative_or_explicit_estimator_basis"
+        ],
+        "project_literal_required": false,
+        "required": true,
+        "automatic_confirmation": false,
+        "missing_project_literal_is_mismatch": false
+      },
+      "conditional_rate_candidate": {
+        "kind": "appendix_derived_rate_candidate_v1",
+        "rate": "123.30",
+        "unit": "т/1000м2",
+        "expression": "98.64+(12.33*2)",
+        "root_source_ids": [
+          "collection:clause-44b6dbf37f4b8f166f90c17874fd5963",
+          "collection:clause-51ca0934e697b15a5155c8ac9d43519a",
+          "donor74:collection:clause-d7fb04d617811bd6b4ffa2e8e065774e",
+          "donor74:n2:full:362f7443a0655c4daf68",
+          "donor74:n7:full:3e85787285197a4c7334",
+          "n4",
+          "parent-74:geometry:5e340dfb52fe5a7bafee4ea0",
+          "parent-74:geometry:b3a61826e6c7cdbd8fe284cc"
+        ],
+        "pending_condition_ids": [
+          "edition_chain",
+          "project_consumption_priority",
+          "edge_prescription",
+          "density_interval_operators"
+        ],
+        "pending_conditions": [
+          "Нужна проверенная привязка редакции приложения 27.1 и полной цепочки изменений.",
+          "Нужна полнота проверки проектных данных о расходе: проектный расход имеет приоритет перед приложением.",
+          "Нужна проверка проектного требования об уплотнении внешних кромок прижимным вальцом (1,004).",
+          "Интервал Γ в ВОР записан сокращённо: требуется привязка к строгому нижнему и включённому верхнему пределу колонки."
+        ]
+      }
+    },
+    {
+      "key": "card:factor:75:123.3",
+      "family": "formula_operand",
+      "state": "source_derived_candidate_requires_conditions",
+      "action": "verify_applicability_conditions",
+      "dependency_position": null,
+      "source_ids": [
+        "collection:clause-44b6dbf37f4b8f166f90c17874fd5963",
+        "collection:clause-51ca0934e697b15a5155c8ac9d43519a",
+        "donor74:collection:clause-d7fb04d617811bd6b4ffa2e8e065774e",
+        "donor74:n2:full:362f7443a0655c4daf68",
+        "donor74:n7:full:3e85787285197a4c7334",
+        "n4",
+        "parent-74:geometry:5e340dfb52fe5a7bafee4ea0",
+        "parent-74:geometry:b3a61826e6c7cdbd8fe284cc"
+      ],
+      "unreadable_source_ids": [],
+      "model_delivery": {
+        "version": 1,
+        "context_stage": null,
+        "source_states": {
+          "collection:clause-44b6dbf37f4b8f166f90c17874fd5963": "not_measured",
+          "collection:clause-51ca0934e697b15a5155c8ac9d43519a": "not_measured",
+          "donor74:collection:clause-d7fb04d617811bd6b4ffa2e8e065774e": "not_measured",
+          "donor74:n2:full:362f7443a0655c4daf68": "not_measured",
+          "donor74:n7:full:3e85787285197a4c7334": "not_measured",
+          "n4": "not_measured",
+          "parent-74:geometry:5e340dfb52fe5a7bafee4ea0": "not_measured",
+          "parent-74:geometry:b3a61826e6c7cdbd8fe284cc": "not_measured"
+        },
+        "next_offset_by_source": {},
+        "comprehension_established": false,
+        "absence_established": false
+      },
+      "read_requests": [],
+      "proposal_count": 0,
+      "reason": "Производный расход вычислен по связанным исходным данным; это условный кандидат, не подтверждение расхода. Не ищи итоговое число буквально в ПД или нормативе. Проверь оставшиеся условия: edition_chain; project_consumption_priority; edge_prescription; density_interval_operators. Площадь, толщина и арифметика сохраняют собственные проверки; зависимое количество материала этим кандидатом не подтверждено.",
+      "retry_fingerprint": "eda6d9d263cbe18da7d5f1868406e3145902728c98bff2cb3a4316f394bfdc8e",
+      "conditional_rate_candidate": {
+        "kind": "appendix_derived_rate_candidate_v1",
+        "rate": "123.30",
+        "unit": "т/1000м2",
+        "expression": "98.64+(12.33*2)",
+        "root_source_ids": [
+          "collection:clause-44b6dbf37f4b8f166f90c17874fd5963",
+          "collection:clause-51ca0934e697b15a5155c8ac9d43519a",
+          "donor74:collection:clause-d7fb04d617811bd6b4ffa2e8e065774e",
+          "donor74:n2:full:362f7443a0655c4daf68",
+          "donor74:n7:full:3e85787285197a4c7334",
+          "n4",
+          "parent-74:geometry:5e340dfb52fe5a7bafee4ea0",
+          "parent-74:geometry:b3a61826e6c7cdbd8fe284cc"
+        ],
+        "pending_condition_ids": [
+          "edition_chain",
+          "project_consumption_priority",
+          "edge_prescription",
+          "density_interval_operators"
+        ],
+        "pending_conditions": [
+          "Нужна проверенная привязка редакции приложения 27.1 и полной цепочки изменений.",
+          "Нужна полнота проверки проектных данных о расходе: проектный расход имеет приоритет перед приложением.",
+          "Нужна проверка проектного требования об уплотнении внешних кромок прижимным вальцом (1,004).",
+          "Интервал Γ в ВОР записан сокращённо: требуется привязка к строгому нижнему и включённому верхнему пределу колонки."
+        ]
+      }
+    }
+  ],
+  "raw_position_status_not_promoted": true,
+  "model_calls": 0,
+  "postgres_writes": 0
+}

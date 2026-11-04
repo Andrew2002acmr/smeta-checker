@@ -78,7 +78,15 @@ def _declared_rate(comment):
     # annotation matcher has swallowed its operator (e.g. ``2 ^ 8 = 8``).
     # Only a closed parenthesized annotation is supported in this form.
     annotation = match[2].rstrip()
-    if annotation and (not annotation.endswith(')') or re.search(r'[><&|@!^%]', annotation)):
+    operators=annotation
+    if re.search(r'прил(?:ожени[ея])?\.?\s*27\.1\b',annotation,re.I):
+        from normative_resource_consumption import _appendix_band
+        from normative_parameters import clean
+        band=_appendix_band(annotation)
+        if band:
+            operators=re.sub(r'(?:γ|ү|y)\s*[-=:]?\s*'+re.escape(band[1])+r'\s*т\s*/\s*[мm]3',
+                'Γ',clean(annotation).replace('³','3'),flags=re.I)
+    if annotation and (not annotation.endswith(')') or re.search(r'[><&|@!^%]', operators)):
         return None
     value = _declared_equation(match[3])
     declared_value = Decimal(match[4].replace(',', '.'))
@@ -270,6 +278,12 @@ def geometric_rate_replay_supported(position,result):
     A stored physical proof cannot survive changed sources/proposals merely
     because its old input/output cards are still green.
     """
+    candidates=[e['appendix_rate_candidate'] for e in result.get('evidence_trace',[])
+        if e.get('kind')==PROOF and 'appendix_rate_candidate' in e]
+    if candidates:
+        from normative_resource_consumption import appendix_rate_candidate
+        if len(candidates)!=1 or position is None or appendix_rate_candidate(position,result)!=candidates[0]:
+            return False
     resource_events=[e for e in result.get('evidence_trace',[]) if e.get('kind')==PROOF
         and 'resource_rate_basis' in e]
     if resource_events:
@@ -341,8 +355,9 @@ def annotate(position, result, positions):
     """Identify operands in UI/model evidence; no operand becomes a PD citation."""
     # Only an exact item recorded by this server can be reevaluated. A
     # model-owned unknown, even with the same topic/claim, is never erased.
-    own_findings=[e['resource_scope_finding'] for e in result.get('evidence_trace',[])
-        if e.get('kind')==PROOF and isinstance(e.get('resource_scope_finding'),dict)]
+    own_findings=[e[key] for e in result.get('evidence_trace',[]) for key in
+        ('resource_scope_finding','appendix_scope_finding')
+        if e.get('kind')==PROOF and isinstance(e.get(key),dict)]
     kept=list(result.get('items',[]))
     for finding in own_findings:
         for index in range(len(kept)-1,-1,-1):
@@ -355,7 +370,9 @@ def annotate(position, result, positions):
     if not proof:
         return
     proof['related_area_candidates'] = related_area(position, positions)
-    physical_rate=project_rate_proof(position,result,positions)
+    from normative_resource_consumption import appendix_recipe,appendix_rate_candidate
+    declared_appendix=appendix_recipe(position,proof)
+    physical_rate=None if declared_appendix else project_rate_proof(position,result,positions)
     if physical_rate:
         proof['geometric_rate_basis']=physical_rate
     # Rebuild the input from literal evidence. A stored green card or another
@@ -377,7 +394,7 @@ def annotate(position, result, positions):
     current_cards={c['id']:c for c in result.get('parameter_cards',[])}
     scope_gaps=[]
     scope_gap_source_ids=[]
-    resource_rate=areal_consumption_proof(position,result,area_card=area_basis or {},
+    resource_rate=None if declared_appendix else areal_consumption_proof(position,result,area_card=area_basis or {},
         arithmetic_card=current_cards.get(f'calculation:{position.index}',{}),scope_gaps=scope_gaps,
         scope_gap_source_ids=scope_gap_source_ids)
     if scope_gaps:
@@ -408,6 +425,24 @@ def annotate(position, result, positions):
                 reason='Количество рассчитано из повторно проверенной проектной площади и буквального '
                     'расхода ресурса выбранной нормы с приведением площадных и материальных единиц. '
                     'Это расчётный результат, не буквальная масса ПД; семантические условия проверяются отдельно.')
+    if declared_appendix:
+        appendix_gaps=[]
+        candidate=appendix_rate_candidate(position,result,gaps=appendix_gaps)
+        if candidate:
+            proof['appendix_rate_candidate']=candidate
+        proof['appendix_scope_gaps']=appendix_gaps
+        ids=candidate['root_source_ids'] if candidate else []
+        lookup={s['id']:s for s in result.get('sources',[])}
+        finding=dict(topic='Оставшиеся условия расхода по приложению 27.1',state='needs_facts',required=True,
+            claim_ids=['normative:applicability',*sorted({c for item in result.get('items',[])
+                for c in item.get('claim_ids',[]) if project_rate_claim(c)})],
+            explanation=' '.join(appendix_gaps),
+            project_source_ids=[sid for sid in ids if lookup[sid]['kind']=='project'],
+            normative_source_ids=[sid for sid in ids if lookup[sid]['kind']=='normative'])
+        result.setdefault('items',[]).append(finding)
+        proof['appendix_scope_finding']=deepcopy(finding)
+        if result.get('state')=='confirmed':
+            result['state']='needs_facts'
     result['evidence_trace'].append(proof)
     for card in result.get('parameter_cards', []):
         if scope_gaps and card.get('id') in {'quantity',f"factor:{position.index}:{proof['rate']}"}:
@@ -433,6 +468,13 @@ def annotate(position, result, positions):
                     reason='Расход получен из независимо подтверждённых собственного количества '
                         'материала и площади того же объекта ПД; размерность и арифметика проверены. '
                         'Норма способа работ и её условия этим не подтверждаются.')
+            if declared_appendix:
+                prefix=(f"Табличный кандидат {candidate['base']} + {candidate['step']} × "
+                    f"{candidate['signed_steps']} = {candidate['rate']} {candidate['unit']}. " if candidate else '')
+                card.update(label='Кандидат расхода по приложению 27.1',
+                    reason=prefix+' '.join(appendix_gaps))
+                if card['state']=='confirmed':
+                    card['state']='needs_facts'
         elif value == Decimal(proof['divisor']) and value != 1:
             if proof['density_required']:
                 card.update(label='Перевод литров и масса', role='calculation', state='needs_facts',

@@ -1,0 +1,295 @@
+{
+  "schema": "collection27_census_overview_v31",
+  "created_utc": "2026-11-04T23:09:47.171798+00:00",
+  "sources": {
+    "original1046": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\official1046-collection27.pdf",
+      "sha256": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5",
+      "pages": 142
+    },
+    "official378": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\official378-collection27.pdf",
+      "sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366",
+      "pages": 160
+    }
+  },
+  "parser_before": {
+    "version": "native-definition-scope-v1",
+    "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\definition-census-v31\\normative_definition_parser.before.py",
+    "sha256": "3b5cc101a91943f3e8a583746b65b1e07bba92b8c7836ea86cd125a51806b90a"
+  },
+  "parser_after": {
+    "version": "native-definition-scope-v1",
+    "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_definition_parser.py",
+    "sha256": "7fb70013ea33546e05b120bb34d0ab0892c402e74efc8d886216305f83ada398"
+  },
+  "baseline_coverage": {
+    "original1046": {
+      "accepted_definitions": 680,
+      "raw_inventory_keys": 710,
+      "explicit_parser_gaps": 2,
+      "gap_reasons": {
+        "ambiguous_heading_or_continuation": 2
+      }
+    },
+    "official378": {
+      "accepted_definitions": 784,
+      "raw_inventory_keys": 784,
+      "explicit_parser_gaps": 0,
+      "gap_reasons": {}
+    }
+  },
+  "baseline_audit_categories": {
+    "unchanged": 458,
+    "changed": 121,
+    "new": 85,
+    "ambiguousparsergap": 120,
+    "missing": 11
+  },
+  "raw_parser_comparison": {
+    "unchanged": 489,
+    "changed": 180,
+    "new": 115,
+    "missing": 11
+  },
+  "interpretation": "Rawparser new115 includes30original-parser gaps. Auditednew85 excludes them. All comparisons are accepted native definition text/measure/composition, no resource aliases/matrices or full edition applicability.",
+  "strict_changed_subcounts": {
+    "same_non_whitespace_glyph_sequence": 40,
+    "different_non_whitespace_glyph_sequence": 81
+  },
+  "missing_definition_codes": [
+    "ГЭСН:27-03-011-01",
+    "ГЭСН:27-03-011-02",
+    "ГЭСН:27-03-011-03",
+    "ГЭСН:27-03-011-04",
+    "ГЭСН:27-03-011-05",
+    "ГЭСН:27-03-012-01",
+    "ГЭСН:27-03-012-02",
+    "ГЭСН:27-03-012-03",
+    "ГЭСН:27-03-012-04",
+    "ГЭСН:27-03-012-05",
+    "ГЭСН:27-03-012-06"
+  ],
+  "new_definition_tables": [
+    "ГЭСН:27-02-027",
+    "ГЭСН:27-02-028",
+    "ГЭСН:27-02-029",
+    "ГЭСН:27-02-030",
+    "ГЭСН:27-02-031",
+    "ГЭСН:27-02-032",
+    "ГЭСН:27-03-013",
+    "ГЭСН:27-03-014",
+    "ГЭСН:27-03-015",
+    "ГЭСН:27-03-016",
+    "ГЭСН:27-04-002",
+    "ГЭСН:27-06-009",
+    "ГЭСН:27-06-070",
+    "ГЭСН:27-06-072",
+    "ГЭСН:27-06-073",
+    "ГЭСН:27-06-074",
+    "ГЭСН:27-06-075",
+    "ГЭСН:27-06-077",
+    "ГЭСН:27-06-079",
+    "ГЭСН:27-06-080",
+    "ГЭСН:27-07-015",
+    "ГЭСН:27-08-001",
+    "ГЭСН:27-09-035"
+  ],
+  "tc_counts": {
+    "changed": 11,
+    "unchanged": 64,
+    "new": 5
+  },
+  "tc_paragraph_boundary_checks": {
+    "old_contiguous": "1.27.1..1.27.75",
+    "new_contiguous": "1.27.1..1.27.80",
+    "sectionII_end_seen": true
+  },
+  "tc_changes": [
+    {
+      "code": "1.27.1",
+      "category": "changed",
+      "old_pages": [
+        1
+      ],
+      "new_pages": [
+        1
+      ],
+      "review_note": "Typo/verb wording and wrapping; no claimed substantive scope change from this diff alone."
+    },
+    {
+      "code": "1.27.12",
+      "category": "changed",
+      "old_pages": [
+        1
+      ],
+      "new_pages": [
+        1
+      ],
+      "review_note": "Verb wording and m2 spacing; numerical8-manholes/1000m2 condition unchanged."
+    },
+    {
+      "code": "1.27.18",
+      "category": "changed",
+      "old_pages": [
+        2
+      ],
+      "new_pages": [
+        2
+      ],
+      "review_note": "Only code-line wrapping; all18cm two-layer branches retained."
+    },
+    {
+      "code": "1.27.26",
+      "category": "changed",
+      "old_pages": [
+        2
+      ],
+      "new_pages": [
+        2
+      ],
+      "review_note": "Substantive: old011/012 milling machine drum selection and extra transport language replaced by013..016 loading+500m haul inclusion; beyond500m extra."
+    },
+    {
+      "code": "1.27.27",
+      "category": "changed",
+      "old_pages": [
+        2
+      ],
+      "new_pages": [
+        2
+      ],
+      "review_note": "Only code-line wrapping; lean concrete>20cm two-layer condition retained."
+    },
+    {
+      "code": "1.27.35",
+      "category": "changed",
+      "old_pages": [
+        3
+      ],
+      "new_pages": [
+        3
+      ],
+      "review_note": "Verbal editorial changes; both versions still project-data-only before later102 amendment. No fallback introduced by378."
+    },
+    {
+      "code": "1.27.37",
+      "category": "changed",
+      "old_pages": [
+        3
+      ],
+      "new_pages": [
+        3
+      ],
+      "review_note": "Substantive:8cm ceiling becomes7cm; corresponding two-course trigger changes. Applicable edition remains separate from physical PD thickness."
+    },
+    {
+      "code": "1.27.41",
+      "category": "changed",
+      "old_pages": [
+        3
+      ],
+      "new_pages": [
+        3
+      ],
+      "review_note": "Verbal editorial/negative paraphrase; washing block costs remain included in overhead and not extra."
+    },
+    {
+      "code": "1.27.42",
+      "category": "changed",
+      "old_pages": [
+        3
+      ],
+      "new_pages": [
+        3
+      ],
+      "review_note": "Verb wording; lift/additional berm costs remain project-dependent."
+    },
+    {
+      "code": "1.27.62",
+      "category": "changed",
+      "old_pages": [
+        4
+      ],
+      "new_pages": [
+        4
+      ],
+      "review_note": "Verb wording;4-cable threshold retained."
+    },
+    {
+      "code": "1.27.69",
+      "category": "changed",
+      "old_pages": [
+        4
+      ],
+      "new_pages": [
+        4
+      ],
+      "review_note": "Substantive expansion:27-02-031 and27-02-032 added alongside27-07-010 to exclusion of base construction."
+    },
+    {
+      "code": "1.27.76",
+      "category": "new",
+      "old_pages": [],
+      "new_pages": [
+        5
+      ],
+      "review_note": "New:27-02-032 ready openings/plastic sockets; breaking openings and connecting pipes invoke labour coefficients27.3."
+    },
+    {
+      "code": "1.27.77",
+      "category": "new",
+      "old_pages": [],
+      "new_pages": [
+        5
+      ],
+      "review_note": "New:07001/02 exclude stone profile correction after preliminary regeneration; needed correction07003 extra."
+    },
+    {
+      "code": "1.27.78",
+      "category": "new",
+      "old_pages": [],
+      "new_pages": [
+        5
+      ],
+      "review_note": "New:manual tactile plates01503/04 up to4units at one placement location."
+    },
+    {
+      "code": "1.27.79",
+      "category": "new",
+      "old_pages": [],
+      "new_pages": [
+        5
+      ],
+      "review_note": "New:0800122 includes10km delivery and return; material rate project-dependent on aerolandscape zoning."
+    },
+    {
+      "code": "1.27.80",
+      "category": "new",
+      "old_pages": [],
+      "new_pages": [
+        5
+      ],
+      "review_note": "New:reusable formwork depreciation linked to collection06 appendices6.2/6.3 and clause1.6.17."
+    }
+  ],
+  "full_reports": [
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\definition-census-v31\\collection27-native-definition-census-v31.json",
+      "sha256": "b7f38e7ced24c9d4615466c3606fe434e7cb60ffc7e9bc1c382c8ded43f064a5",
+      "bytes": 90334
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\definition-census-v31\\all-definition-comparisons.json",
+      "sha256": "bf814c3a2184ffdc51f1b4f1a0d474469add6751e67a4ebdb6accfd05730ff71",
+      "bytes": 11282064
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\definition-census-v31\\all-tc-1-27-paragraph-comparisons.json",
+      "sha256": "099d28f6089f34fb1cf9e69ecb5ae4ad9aefe1dd52f62e29a7eabee1bf67b4d4",
+      "bytes": 711102
+    }
+  ],
+  "release_recommendation": "Use the existing parser for a broad candidate source preparation, but do not import every accepted record as a complete fullnorm without gap review. Proven silent truncation and footer contamination are fixed below; wrapped measure branches and remaining flagged geometry still need fail-closed review. Do not transfer existing norm IDs/resource aliases to a different document SHA.",
+  "no_applicability_or_status_changes": true
+}

@@ -86,6 +86,92 @@ def _family(claim):
     return 'claim_identity'
 
 
+def _appendix_candidate(position, review, sources):
+    """Plan from a bound derived candidate; never treat it as certification.
+
+    A conditional result is not a number to find literally in another PDF.
+    Its remaining premises still require evidence, including negative project
+    coverage where a normative fallback depends on absent project data.
+    """
+    from analysis_replay import digest
+    from audit_models import VorPosition
+    from normative_parameters import number, clean
+    from normative_verdict import source_supported
+    from normative_workbook_rate import analyze
+
+    candidates = [event['appendix_rate_candidate']
+        for event in review.get('evidence_trace', [])
+        if event.get('kind') == 'workbook_area_rate_v1'
+        and isinstance(event.get('appendix_rate_candidate'), dict)]
+    if len(candidates) != 1:
+        return None
+    candidate = candidates[0]
+    try:
+        recipe = analyze(VorPosition.model_validate(position))
+        roots = candidate.get('root_source_ids')
+        hashes = candidate.get('source_sha256')
+        conditions = candidate.get('pending_condition_ids')
+        if (not recipe or candidate.get('kind') != 'appendix_derived_rate_candidate_v1'
+                or candidate.get('conditional_arithmetic_verified') is not True
+                or candidate.get('normative_basis_verified') is not False
+                or candidate.get('dependent_output_verified') is not False
+                or number(candidate.get('rate')) != number(recipe['rate'])
+                or clean(candidate.get('unit', '')) != clean(recipe['rate_unit'])
+                or not isinstance(roots, list) or not 1 <= len(roots) <= 32
+                or not all(isinstance(sid, str) and sid for sid in roots)
+                or len(roots) != len(set(roots)) or not isinstance(hashes, dict)
+                or set(roots) != set(hashes) or set(roots) - sources.keys()
+                or any(digest(sources[sid]) != hashes[sid] for sid in roots)
+                or candidate.get('proposals_sha256') != digest(review.get('parameter_proposals', []))
+                or candidate.get('selected_applicability_sha256') != digest([
+                    item for item in review.get('items', []) if item.get('state') == 'confirmed'
+                    and 'normative:applicability' in item.get('claim_ids', []) and source_supported(item)])
+                or not isinstance(conditions, list) or not 1 <= len(conditions) <= 12
+                or not all(isinstance(item, str) and 0 < len(item) <= 100 for item in conditions)):
+            return None
+        return candidate
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return None
+
+
+def _plan_appendix_conditions(position, review, actions, sources):
+    """Keep independent work tasks; focus only the derived rate's obligations."""
+    from analysis_replay import digest
+    from normative_parameters import number
+    from normative_workbook_rate import project_rate_claim
+
+    candidate = _appendix_candidate(position, review, sources)
+    if not candidate:
+        return
+    for action in actions:
+        key = action['key']
+        claim = key.removeprefix('claim:') if key.startswith('claim:') else ''
+        factor = key.split(':')
+        is_rate_card = (len(factor) == 4 and factor[:2] == ['card', 'factor']
+            and factor[2] == str(position.get('index'))
+            and number(factor[3]) == number(candidate['rate']))
+        if not (project_rate_claim(claim) or is_rate_card):
+            continue
+        refs = sorted(set(action['source_ids']) | set(candidate['root_source_ids']))
+        delivery = source_delivery(refs, sources, review.get('coverage') or {})
+        unread = [sid for sid, state in delivery['source_states'].items()
+            if state in {'partial_text', 'not_sent'}]
+        action.update(state='source_derived_candidate_requires_conditions',
+            action='read_registered_source' if unread else 'verify_applicability_conditions',
+            source_ids=refs, model_delivery=delivery,
+            read_requests=[dict(tool='read_source', source_id=sid,
+                offset=delivery['next_offset_by_source'].get(sid, 0)) for sid in unread],
+            conditional_rate_candidate={key: candidate[key] for key in (
+                'kind', 'rate', 'unit', 'expression', 'root_source_ids',
+                'pending_condition_ids', 'pending_conditions') if key in candidate},
+            reason='Производный расход вычислен по связанным исходным данным; это условный кандидат, '
+                'не подтверждение расхода. Не ищи итоговое число буквально в ПД или нормативе. '
+                'Проверь оставшиеся условия: ' + '; '.join(candidate['pending_condition_ids']) + '. '
+                'Площадь, толщина и арифметика сохраняют собственные проверки; '
+                'зависимое количество материала этим кандидатом не подтверждено.')
+        action['retry_fingerprint'] = digest([action['retry_fingerprint'], candidate, delivery])
+
+
 def build_work_plan(position, review, matching, *, derived=False, relation=None) -> dict[str, Any]:
     """One obligation per claim/card; pin identity to actual evidence and scope.
 
@@ -110,6 +196,11 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
         and source_supported(item) for claim in item.get('claim_ids', [])
         if claim != 'derived:parent' or item.get('normative_source_ids')
             or geometry_dependency or allocation_dependency}
+    # Required aspects of the same claim are conjunctive. A model's broad C
+    # must not erase a separately recorded N about its applicability. This
+    # changes planning only; independent quantity/thickness cards stay intact.
+    confirmed.difference_update(claim for item in items if item.get('state') != 'confirmed'
+        for claim in item.get('claim_ids', []))
     from normative_workbook_arithmetic import arithmetic_claims
     confirmed.update(arithmetic_claims(review))
     if any(e.get('kind')=='named_coefficient_policy_v1' for e in review.get('evidence_trace',[])):
@@ -200,7 +291,8 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
         if item.get('state') != 'confirmed' and not item.get('claim_ids'):
             append(f'unbound_item:{index}', 'claim_identity',
                 item.get('project_source_ids', []) + item.get('normative_source_ids', []), item=item)
-    return dict(kind=VERSION, schema_revision=3, scope=scope, actions=actions,
+    _plan_appendix_conditions(position, review, actions, sources)
+    return dict(kind=VERSION, schema_revision=4, scope=scope, actions=actions,
         input_fingerprint=_identity([scope, actions]),
         project_search=dict(recorded_queries=len(queries),
             remaining_candidate_queries=sum(e.get('next_offset') is not None for e in queries),
