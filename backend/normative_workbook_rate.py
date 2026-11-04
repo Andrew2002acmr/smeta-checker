@@ -2,34 +2,116 @@
 import ast
 from copy import deepcopy
 from decimal import Decimal
+from fractions import Fraction
 import re
 from typing import Any
 
 PROOF = 'workbook_area_rate_v1'
 RATE = re.compile(r'(?:расход|норма\s+расхода)(?:\s+[а-яёa-z]+){0,4}\s*[:=–—-]?\s*'
-    r'(\d+(?:[.,]\d+)?)\s*(кг|kg|л|l|[мm][3³])\s*/\s*'
+    r'(\d+(?:[.,]\d+)?)\s*(кг|kg|л|l|[мm][3³]|т|t)\s*/\s*'
     r'(?:(\d+(?:[.,]\d+)?)\s*)?(?:м|m)(?:²|2|\^2)(?!\w)', re.I)
+# The alternative order occurs in estimator comments containing an explicit
+# appendix calculation. Reading that declaration does not verify its inputs,
+# normative origin, applicability or the material's measured properties.
+RATE_BEFORE_FORMULA = re.compile(
+    r'(?:расход|норма\s+расхода)\b[^\n;=]{0,80}?\bна\s*'
+    r'(\d+(?:[.,]\d+)?)\s*[мm](?:²|2|\^2)(?!\w)'
+    r'([^\n;=]{0,300}?)'
+    r'(?<![\w.,])([0-9][0-9.,\s()+*/×−-]{0,100})\s*=\s*'
+    r'(\d+(?:[.,]\d+)?)\s*(кг|kg|л|l|[мm][3³]|т|t)(?!\w)', re.I)
+
+
+def _declared_equation(expression):
+    """Evaluate only bounded decimal arithmetic copied from a declaration."""
+    text = expression.strip().replace(',', '.').replace('×', '*').replace('−', '-')
+    if len(text) > 100 or not re.fullmatch(r'[0-9.\s()+*/-]+', text):
+        return None
+    try:
+        tree = ast.parse(text, mode='eval')
+        if len(list(ast.walk(tree))) > 30:
+            return None
+
+        def evaluate(node):
+            if isinstance(node, ast.Constant) and type(node.value) in (int, float):
+                literal = ast.get_source_segment(text, node)
+                if not literal or not re.fullmatch(r'\d+(?:\.\d+)?', literal):
+                    raise ValueError('Unsupported literal')
+                value = Fraction(Decimal(literal))
+            elif isinstance(node, ast.BinOp):
+                left, right = evaluate(node.left), evaluate(node.right)
+                if isinstance(node.op, ast.Add):
+                    value = left + right
+                elif isinstance(node.op, ast.Sub):
+                    value = left - right
+                elif isinstance(node.op, ast.Mult):
+                    value = left * right
+                elif isinstance(node.op, ast.Div):
+                    value = left / right
+                else:
+                    raise ValueError('Unsupported operation')
+            else:
+                raise ValueError('Unsupported expression')
+            if abs(value) > 10 ** 15:
+                raise ValueError('Out of bounds')
+            return value
+
+        return evaluate(tree.body)
+    except (SyntaxError, ValueError, ArithmeticError):
+        return None
+
+
+def _declared_rate(comment):
+    literal = list(RATE.finditer(comment))
+    equations = list(RATE_BEFORE_FORMULA.finditer(comment))
+    # Repeated or competing rates cannot be selected by the formula's result.
+    if len(literal) + len(equations) != 1:
+        return None
+    if literal:
+        match = literal[0]
+        return dict(rate=match[1], numerator=match[2], per_area=match[3] or '1', quote=match[0])
+    match = equations[0]
+    # This bounded form describes one completed equation. A continued unit,
+    # second result, alternative or extra arithmetic is not a unique rate.
+    if comment[match.end():].strip() not in ('', '.'):
+        return None
+    # Do not validate a numeric suffix of an unsupported expression after the
+    # annotation matcher has swallowed its operator (e.g. ``2 ^ 8 = 8``).
+    # Only a closed parenthesized annotation is supported in this form.
+    annotation = match[2].rstrip()
+    if annotation and (not annotation.endswith(')') or re.search(r'[><&|@!^%]', annotation)):
+        return None
+    value = _declared_equation(match[3])
+    declared_value = Decimal(match[4].replace(',', '.'))
+    if value is None or value != Fraction(declared_value):
+        return None
+    return dict(rate=match[4], numerator=match[5], per_area=match[1], quote=match[0],
+        declared_equation=dict(expression=match[3].strip(), result=format(declared_value, 'f'),
+            inputs_verified=False, normative_basis_verified=False))
 
 
 def analyze(position) -> dict[str, Any] | None:
     """Only an explicit, unique dimensioned rate and bounded product are typed."""
-    rates = list(RATE.finditer(getattr(position, 'comment', '') or ''))
-    if len(rates) != 1:
+    declared = _declared_rate(getattr(position, 'comment', '') or '')
+    if declared is None:
         return None
-    rate = Decimal(rates[0][1].replace(',', '.'))
-    per_area=Decimal((rates[0][3] or '1').replace(',','.'))
+    rate = Decimal(declared['rate'].replace(',', '.'))
+    per_area=Decimal(declared['per_area'].replace(',','.'))
     if rate <= 0 or rate == 1000:
         return None
     if per_area <= 0 or per_area > Decimal('1e6'):
         return None
     output_unit=str(position.unit).strip().rstrip('.').lower().replace('³','3')
-    numerator=rates[0][2].lower().replace('³','3')
+    numerator=declared['numerator'].lower().replace('³','3')
     numerator={'kg':'кг','l':'л','m3':'м3'}.get(numerator,numerator)
     pair=(numerator,output_unit)
     conversions={('кг','т'):('mass','kilograms_to_tonnes',Decimal(1000),False),
         ('кг','t'):('mass','kilograms_to_tonnes',Decimal(1000),False),
         ('кг','кг'):('mass','same_mass_unit',Decimal(1),False),
         ('кг','kg'):('mass','same_mass_unit',Decimal(1),False),
+        ('т','т'):('mass','same_mass_unit',Decimal(1),False),
+        ('т','t'):('mass','same_mass_unit',Decimal(1),False),
+        ('t','т'):('mass','same_mass_unit',Decimal(1),False),
+        ('t','t'):('mass','same_mass_unit',Decimal(1),False),
         ('л','т'):('mass','litres_to_cubic_metres',Decimal(1000),True),
         ('л','t'):('mass','litres_to_cubic_metres',Decimal(1000),True),
         ('л','м3'):('volume','litres_to_cubic_metres',Decimal(1000),False),
@@ -78,11 +160,12 @@ def analyze(position) -> dict[str, Any] | None:
     denominator_label='' if per_area==1 else str(per_area)
     return dict(kind=PROOF, expression=expression, area=str(area), area_unit='м2',
         rate=str(rate), rate_unit=numerator+'/'+denominator_label+'м2',
-        rate_quote=rates[0][0], comment=position.comment,
+        rate_quote=declared['quote'], comment=position.comment,
         rate_origin='vor_comment', rate_applicability_verified=False,
         divisor=str(divisor),rate_denominator_area=str(per_area),conversion=conversion,
         output_dimension=output_dimension,output_unit=position.unit,
-        density_required=density_required, project_quantity_verified=False)
+        density_required=density_required, project_quantity_verified=False,
+        **({'declared_equation': declared['declared_equation']} if 'declared_equation' in declared else {}))
 
 
 def related_area(position, positions):

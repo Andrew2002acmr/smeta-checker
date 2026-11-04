@@ -41,6 +41,103 @@ SCOPE = (
     'но отдельно проверь все его условия. Статусы требований не меняются автоматически.'
 )
 
+# Addressed simultaneous navigation, not an asserted consolidated edition.
+# These hashes bind the two actually reviewed v5/v9 records, including their
+# retained native layout/punctuation, and the original independent review.
+ROAD_BASE_SHA = '6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5'
+ROAD_ORDER_SHA = '5151486c1540769b94985d066fdef6442d0892fcbd1ad52a0704ea591852c223'
+ROAD_ORDER_ID = 'pdf-' + ROAD_ORDER_SHA[:24]
+ROAD_ORDER_DESIGNATION = 'ГЭСН 27 ФСНБ-2022 — приказ Минстроя 102/пр от 16.02.2024 (поправка)'
+ROAD_REVIEW_SHA = '7e57bd9562030228588fb1122996cf2114c9b311ae458f90aad4059c40a537af'
+ROAD_PAIR = (
+    ('1.27.35', 'clause-44b6dbf37f4b8f166f90c17874fd5963', 222,
+     '157fa34c6f0d450ac689423409d65b01e5bd00a9d122c9aa7fd2e23a5f2c0374'),
+    ('27.1', 'clause-51ca0934e697b15a5155c8ac9d43519a', 243,
+     '7ea7f8524e1c03e4a86da419f75ce929d9a66a34b48f86edb6cdc83cc168a073'),
+)
+ROAD_PAIR_SCOPE = (
+    'Новая 1.27.35 и ДОБАВЛЕННОЕ приложение 27.1 приказа 102/пр даны рядом '
+    'с исходной техчастью как кандидаты, без подмены. PDF назван ГЭСН 81-02-27-2022, '
+    'но его стр.140 уже содержит другое 27.1, а 102/пр предписывает ДОПОЛНИТЬ. '
+    'Соответствие бинарника целевой цепочке 1046/пр не удостоверено. '
+    'Консолидация и применимость поправки не подтверждены. '
+    'Два fallback при отсутствии проектных данных относятся к горячим смесям '
+    'и отдельно ЩМА в перечисленных нормах. Лоток 27-06-030-02/27-06-069-01 '
+    'остаётся по проектным данным; 27-07-006 не включён. Таблица требует типа '
+    'смеси и максимальной плотности КАМЕННЫХ материалов; 1,004 требует '
+    'проектного условия прижимного вальца. Доставка не подтверждает ни один claim.'
+)
+
+
+def _road_amendment_pair(kb, source, norms, pin):
+    try:
+        return _road_amendment_pair_checked(kb, source, norms, pin)
+    except (KeyError, ValueError, TypeError, AttributeError, sqlite3.Error):
+        return [], [], 'road_amendment_pair_unavailable'
+
+
+def _road_amendment_pair_checked(kb, source, norms, pin):
+    """Known literal pair only; never follow arbitrary amends_source_ids."""
+    matched = [norm for norm in norms if norm['family'] == 'ГЭСН'
+               and norm['table_code'] in {'27-06-029', '27-06-030', '27-06-031', '27-06-032'}
+               and norm['code'] != '27-06-030-02']
+    if (source.get('sha256') != ROAD_BASE_SHA
+            or source.get('id') != 'pdf-' + ROAD_BASE_SHA[:24]
+            or source.get('designation') != 'ГЭСН 27 ФСНБ-2022'
+            or source.get('pages') != 142 or not matched):
+        return [], [], ''
+    with kb.connect() as db:
+        row = db.execute('SELECT * FROM sources WHERE id=?', (ROAD_ORDER_ID,)).fetchone()
+    if not row:
+        return [], [], 'road_amendment_pair_unavailable'
+    amendment = dict(row)
+    metadata = json.loads(amendment.get('metadata_json') or '{}')
+    review = metadata.get('independent_verification')
+    review_sha = hashlib.sha256(json.dumps(review, ensure_ascii=False, sort_keys=True,
+                                          separators=(',', ':')).encode()).hexdigest()
+    if (amendment.get('sha256') != ROAD_ORDER_SHA or amendment.get('kind') != 'GESN'
+            or amendment.get('designation') != ROAD_ORDER_DESIGNATION
+            or amendment.get('pages') != 764
+            or amendment.get('blob_path') != 'blobs/' + ROAD_ORDER_SHA + '.pdf'
+            or metadata.get('sha256') != ROAD_ORDER_SHA
+            or metadata.get('status') != 'pdf_verified'
+            or metadata.get('amends_source_ids') != [source['id']]
+            or metadata.get('supersedes_labels') != ['1.27.35']
+            or review_sha != ROAD_REVIEW_SHA):
+        return [], [], 'road_amendment_pair_identity_mismatch'
+    cards, literals = [], []
+    for label, entity_id, page, text_sha in ROAD_PAIR:
+        item = kb.entity('clause', entity_id)
+        with kb.connect() as db:
+            stored = db.execute('SELECT text FROM clauses WHERE id=? AND source_id=?',
+                                (entity_id, ROAD_ORDER_ID)).fetchone()
+        text = item.get('text')
+        if (not stored or text != stored['text'] or not isinstance(text, str)
+                or hashlib.sha256(text.encode()).hexdigest() != text_sha
+                or item.get('id') != entity_id or item.get('label') != label
+                or item.get('entity_kind') != 'clause' or item.get('source_kind') != 'GESN'
+                or item.get('source_id') != ROAD_ORDER_ID
+                or item.get('designation') != amendment.get('designation')
+                or item.get('edition') != metadata
+                or item.get('status') != 'native_visually_verified'
+                or item.get('citations') != [dict(source_id=ROAD_ORDER_ID, physical_page=page)]
+                or len(text) > MAX_CHUNK_CHARS):
+            return [], [], 'road_amendment_pair_literal_mismatch'
+        card_id = 'collection:' + entity_id
+        relation = dict(kind='simultaneous_addressed_amendment_navigation',
+                        target_edition_state='unresolved')
+        cards.append(dict(id=card_id, kind='normative', source_id=ROAD_ORDER_ID,
+            source_sha256=ROAD_ORDER_SHA, page=page, citation_pages=[page],
+            label=amendment['designation'] + ' · ' + label, clause_id=entity_id,
+            text=text, text_sha256=text_sha, origin=item['status'],
+            citations=deepcopy(item['citations']), kb_identity=deepcopy(pin),
+            amendment_navigation=relation, automatic_application_allowed=False))
+        literals.append(dict(source_id=card_id, physical_pages=[page], quote=text,
+            matched_paragraphs=[dict(label=label,
+                candidate_ids=[norm['id'] for norm in matched],
+                references=list(dict.fromkeys(norm['table_code'] for norm in matched)))]))
+    return cards, literals, ''
+
 
 def _normal(text):
     value = unicodedata.normalize('NFKC', text)
@@ -157,6 +254,11 @@ def collection_context(kb, candidates, *, expected_pin) -> dict[str, Any]:
             if any(not _pages(norm, source) for norm in norms):
                 warnings.append('candidate_citations_unverified')
                 continue
+            pair_cards, pair_literals, pair_warning = _road_amendment_pair(kb, source, norms, pin)
+            cards.extend(pair_cards)
+            literals.extend(pair_literals)
+            if pair_warning:
+                warnings.append(pair_warning)
             boundary = min(page for norm in norms for page in _pages(norm, source))
             terms = list(dict.fromkeys(ref for norm in norms
                                       for ref in (norm['code'], norm['table_code'])))
@@ -225,6 +327,12 @@ def collection_context(kb, candidates, *, expected_pin) -> dict[str, Any]:
         context = dict(scope='same_collection_literal_navigation_only', kb=pin,
             instruction=SCOPE, literal_chunks=literals, coverage_complete=False,
             warnings=list(dict.fromkeys(warnings)))
+        if any(card.get('amendment_navigation') for card in cards):
+            context['addressed_amendment_instruction'] = ROAD_PAIR_SCOPE
+            context['addressed_amendment_navigation'] = dict(
+                source_ids=['collection:' + record[1] for record in ROAD_PAIR],
+                base_source_sha256=ROAD_BASE_SHA, amendment_source_sha256=ROAD_ORDER_SHA,
+                independent_review_sha256=ROAD_REVIEW_SHA, target_edition_state='unresolved')
         result = dict(sources=cards, preferred_source_ids=[card['id'] for card in cards],
             context=context, reason='literal_collection_context', warnings=context['warnings'])
         serialized = json.dumps(result, ensure_ascii=False, separators=(',', ':'))

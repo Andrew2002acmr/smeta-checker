@@ -143,3 +143,80 @@ def test_comment_rate_and_unit_conversion_do_not_erase_real_operand_disagreement
     assert finding['inputs']['different_operands'] == [('5231.08', '5303.08')]
     assert '0.4 л/м2' in finding['message'] and '1000' in finding['message']
     assert Decimal(finding['inputs']['actual_value']) != Decimal(finding['inputs']['display_value'])
+
+
+@pytest.mark.parametrize('comment,formula,area,rate,equation', [
+    ('Расход ЩМА на 1000м2 Тех.часть ГЭСН 81-02-27-2022 прил. 27.1'
+     '(Ү-2,7-2,9т/м3) 98,64+(12,33*2)=123,3т',
+     '=8921/1000*123.3', '8921', '123.3', '98,64+(12,33*2)'),
+    ('Расход а/б смеси на 1000м2 Тех.часть ГЭСН 81-02-27-2022 прил. 27.1'
+     '(Ү-2,7-2,9т/м3) 98,56+(12,32*8)=197,12т',
+     '=874.42/1000*197.12', '874.42', '197.12', '98,56+(12,32*8)'),
+    ('Норма расхода смеси на 100 м² (проектный расчёт) 10-(2*2)=6 т',
+     '=310*6/100', '310', '6', '10-(2*2)'),
+])
+def test_reversed_rate_declaration_exposes_area_without_certifying_appendix_inputs(
+        comment, formula, area, rate, equation):
+    p = position(comment=comment, calculation={'expression': formula})
+    proof = analyze(p)
+    assert proof is not None
+    assert proof['area'] == area and proof['rate'] == rate
+    assert proof['rate_unit'] == 'т/' + proof['rate_denominator_area'] + 'м2'
+    assert proof['output_dimension'] == 'mass' and not proof['density_required']
+    assert proof['declared_equation']['expression'] == equation
+    assert not proof['declared_equation']['inputs_verified']
+    assert not proof['declared_equation']['normative_basis_verified']
+    assert not proof['rate_applicability_verified'] and not proof['project_quantity_verified']
+    # No amount in the declaration is relabelled a measured material density.
+    assert 'density' not in proof['declared_equation']
+
+
+@pytest.mark.parametrize('comment,formula,unit', [
+    ('Расход на 1000м2 (приложение) 98,64+(12,33*2)=123,4т', '=106/1000*123.4', 'т'),
+    ('Расход на 1000м2 (приложение) 98,64+(12,33*2)=123,3т', '=106/1000*123.4', 'т'),
+    ('Расход на 1000м2 (приложение) 98,64+(12,33*2)=123,3т', '=106*123.3', 'т'),
+    ('Расход на 1000м2 (приложение) 98,64+(12,33*2)=123,3т', '=106/1000*123.3', 'м3'),
+    ('Расход на 1000м2 (приложение) 98,64+(12,33*2)=123,3т; Расход 1кг/м2',
+     '=106/1000*123.3', 'т'),
+    ('Расход на 1000м2 (приложение) 98,64/0=123,3т', '=106/1000*123.3', 'т'),
+    ('Расход на 1000м2 (приложение) 2**3=8т', '=106/1000*8', 'т'),
+    ('Расход на 1000м2 (приложение) 2 ^ 8 = 8т', '=106/1000*8', 'т'),
+    ('Расход на 1000м2 (приложение) x * 8 = 8т', '=106/1000*8', 'т'),
+    ('Расход на 1000м2 (приложение) 2 >> 8 = 8т', '=106/1000*8', 'т'),
+    ('Расход на 1000м2 (приложение) 2 & 8 = 8т', '=106/1000*8', 'т'),
+    ('Расход на 1000м2 (приложение) 2 | 8 = 8т', '=106/1000*8', 'т'),
+    ('Расход на 1000м2 (приложение) 2 @ 8 = 8т', '=106/1000*8', 'т'),
+    ('Расход на 1000м2 (приложение) 2 ! 8 = 8т', '=106/1000*8', 'т'),
+    ('Расход на 1000м2 (приложение) '
+     '1000000000000000+0.0000000000000001-1000000000000000+8=8т', '=106/1000*8', 'т'),
+    ('Расход на 1000м2 (приложение) '
+     '100000000000000+0.0000000000000001-100000000000000+8=8т', '=106/1000*8', 'т'),
+    ('Расход на 1000м2 (варианты) 8=8т или 9=9т', '=106/1000*8', 'т'),
+    ('Расход на 1000м2 (варианты) 8=8т +1т', '=106/1000*8', 'т'),
+    ('Расход на 1000м2 (варианты) 8=8т/м2', '=106/1000*8', 'т'),
+])
+def test_invalid_or_competing_reversed_declarations_are_not_typed(comment, formula, unit):
+    assert analyze(position(comment=comment, unit=unit, calculation={'expression': formula})) is None
+
+
+def test_tonnes_per_area_do_not_need_a_fictitious_mass_density_conversion():
+    proof = analyze(position(comment='Расход 123,3т/1000м2',
+        calculation={'expression': '=106/1000*123.3'}))
+    assert proof['rate_unit'] == 'т/1000м2' and proof['divisor'] == '1000'
+    assert proof['conversion'] == 'same_mass_unit' and not proof['density_required']
+
+
+def test_reversed_declaration_alone_leaves_rate_quantity_and_area_unconfirmed():
+    p = position(comment='Расход на 1000м2 (приложение) 98,64+(12,33*2)=123,3т',
+        calculation={'expression': '=106/1000*123.3'})
+    result = dict(evidence_trace=[], parameter_cards=[
+        dict(id='calculation:7', state='confirmed', role='calculation'),
+        *[dict(id='factor:7:' + n, state='needs_facts', role='project_value')
+          for n in ['106', '123.3', '1000']],
+        dict(id='quantity', state='needs_facts', role='project_value')])
+    annotate(p, result, {7: p})
+    cards = {c['id']: c for c in result['parameter_cards']}
+    assert all(cards[c]['state'] == 'needs_facts'
+        for c in ['factor:7:106', 'factor:7:123.3', 'quantity'])
+    assert cards['factor:7:1000']['state'] == 'confirmed'
+    assert 'declared_equation' in result['evidence_trace'][0]

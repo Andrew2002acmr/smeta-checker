@@ -1,0 +1,363 @@
+{
+  "audit": "curb-bedding-durability-audit-v30",
+  "created_at_utc": "2026-11-04T21:39:22.597048+00:00",
+  "read_only": true,
+  "kb_pin": {
+    "relative": "releases/road-seed-function-20261105-v9/knowledge.sqlite",
+    "sha256": "269e95860694342d2c509921c213b1b8b507dbdf812f7079b8cc01bfb88e6c0c",
+    "sqlite_mode": "ro immutable, verified cache on C"
+  },
+  "project_pdf": {
+    "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\blobs\\e4\\81\\e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+    "sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+    "pages": 99,
+    "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+  },
+  "baseline": {
+    "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\baseline-run.json",
+    "sha256": "54b80be6b4d22123726c28aeb78e94b76366e26dc7811874e07a3535d9899e09"
+  },
+  "positions": [
+    {
+      "index": 41,
+      "row": 61,
+      "work": "Смеси бетонные тяжелого бетона В15 F150 W4",
+      "quantity": "4.13",
+      "unit": "м3",
+      "comment": "Расход бетона 0,059м3/м",
+      "formula": "0,059*70",
+      "section": [
+        {
+          "text": "Раздел 2. Устройство дорожной одежды пешеходных и технических  тротуаров, лестничных маршей",
+          "address": "A51"
+        }
+      ]
+    },
+    {
+      "index": 67,
+      "row": 89,
+      "work": "Смеси бетонные тяжелого бетона В15 F150 W4",
+      "quantity": "16.461",
+      "unit": "м3",
+      "comment": "Расход бетона 0,059м3/м",
+      "formula": "0,059*279",
+      "section": [
+        {
+          "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+          "address": "A70"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "designation": "ГЭСН 27 ФСНБ-2022",
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\knowledge\\road-norms\\blobs\\6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5.pdf",
+      "sha256": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5",
+      "origin": "pinned local primary PDF bytes; amendment completeness not independently recertified"
+    },
+    {
+      "designation": "ГОСТ 26633-2015",
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\knowledge\\road-norms\\blobs\\56e516ed61046ebac720733905ba47604135b7a204e35bfba4f7c3719c719f7c.pdf",
+      "sha256": "56e516ed61046ebac720733905ba47604135b7a204e35bfba4f7c3719c719f7c",
+      "origin": "pinned local primary PDF bytes; amendment completeness not independently recertified"
+    },
+    {
+      "designation": "ГОСТ 7473-2010",
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\knowledge\\road-norms\\blobs\\bbc0d6358e802d8d3b96171ef3c39586497171582437c09c5faf0276e2a03d12.pdf",
+      "sha256": "bbc0d6358e802d8d3b96171ef3c39586497171582437c09c5faf0276e2a03d12",
+      "origin": "pinned local primary PDF bytes; amendment completeness not independently recertified"
+    },
+    {
+      "designation": "СП 78.13330.2012, изм.1–3",
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\knowledge\\road-norms\\blobs\\00d837c15bec55db1040996117b875e57ee03e22b6ffb82ec0191ad45f167fc3.pdf",
+      "sha256": "00d837c15bec55db1040996117b875e57ee03e22b6ffb82ec0191ad45f167fc3",
+      "origin": "pinned local primary PDF bytes; amendment completeness not independently recertified"
+    },
+    {
+      "designation": "СП 82.13330.2016, изм.1–2",
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\knowledge\\road-norms\\blobs\\eead2c4827cde9210c2841b4a921612b3de44bb478799956d34c1313d0557a2f.pdf",
+      "sha256": "eead2c4827cde9210c2841b4a921612b3de44bb478799956d34c1313d0557a2f",
+      "origin": "pinned local primary PDF bytes; amendment completeness not independently recertified"
+    },
+    {
+      "designation": "СП 34.13330.2021, изм.1",
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\knowledge\\road-norms\\blobs\\ce4dd8baf4a25526c00830ba591c0080a4af9762f3d97227b2fe90ccc885287d.pdf",
+      "sha256": "ce4dd8baf4a25526c00830ba591c0080a4af9762f3d97227b2fe90ccc885287d",
+      "origin": "pinned local primary PDF bytes; amendment completeness not independently recertified"
+    },
+    {
+      "designation": "ГОСТ 31384-2017 с Поправками",
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\gost31384-official-mos.pdf",
+      "sha256": "7de7c7ee8b5b9f447834fe9f1185aba330e45e6b78a8fe45c4f56778bd485cc5",
+      "origin": "government-hosted primary normative PDF, not a newly consolidated release",
+      "url": "https://www.mos.ru/upload/documents/files/3974/GOST31384-2017Zashitabetonnihijelezobetonnihkonstrykciiotkorrozii_.pdf",
+      "official_registry": "https://protect.gost.ru/gost/details/645b9112-d5cb-43de-925d-e0738985ccb2",
+      "access_date": "2026-11-05"
+    }
+  ],
+  "findings": [
+    {
+      "source": "ГЭСН 27",
+      "pages": [
+        12,
+        13
+      ],
+      "code": "27-02-010-02",
+      "resource_code": "04.1.02.05-0006",
+      "quote": "Смеси бетонные тяжелого бетона (БСТ), класс В15 (М200)",
+      "measurer": "100 м",
+      "resource_quantity_m3": "5.9",
+      "normalized_rate_m3_per_m": "0.059",
+      "scope": "Concrete curb at coverings other than cement concrete. Column ancestry checked on preceding page12, second column; row read on p13.",
+      "positive_basis": "Concrete class and rate match the declared VOR material/rate; F150 and W4 are not part of this resource row.",
+      "limit": "The resource name establishes neither zero environmental requirements nor sufficient durability of a chosen mix."
+    },
+    {
+      "source": "ГОСТ 7473-2010",
+      "page": 5,
+      "clause": "4.3",
+      "quote": "и, при необходимости, других нормируемых показателей качества",
+      "meaning": "F and W are legitimate additional specified quality characteristics in a concrete mix designation. They are not entailed by class B15 and the example B25/P1/F200/W4 is not a mandatory bedding recipe.",
+      "positive_basis": "Adding F150/W4 to a resource otherwise described only by B15 is not by itself a contradiction.",
+      "limit": "Valid designation syntax does not establish adequacy for the actual exposure or authorize arbitrary characteristics."
+    },
+    {
+      "source": "ГОСТ 26633-2015",
+      "page": 5,
+      "clauses": [
+        "4.3.1",
+        "4.3.2",
+        "4.3.4",
+        "4.4.2"
+      ],
+      "quote": "устанавливают в соответствии с нормами проектирования и указывают в проектной и технологической документации",
+      "meaning": "Strength, frost resistance and water tightness are separately classified; F1/F2 method prefixes are distinct. Assignment follows applicable design requirements and exposure; mix selection references ГОСТ31384.",
+      "limit": "B15 alone cannot derive F150/W4 or certify their compatibility."
+    },
+    {
+      "source": "ГОСТ 26633-2015",
+      "page": 10,
+      "clause": "А.2.1",
+      "meaning": "Road/aerodrome covering and base concrete requirements depend on structural layer and operating climate.",
+      "limit": "A curb bedding haunch is not automatically the structural pavement base addressed by this annex."
+    },
+    {
+      "source": "СП 82.13330.2016",
+      "pages": [
+        22,
+        23
+      ],
+      "clause": "6.25",
+      "quote": "на бетонном основании с присыпкой грунтом с наружной стороны или укреплением бетоном",
+      "meaning": "Curb installation on concrete bedding is permitted; this clause does not prescribe a universal bedding F/W pair.",
+      "excluded_transfer": "The B25/F200 option on p23 addresses monolithic curb walls under combined special climate/permafrost conditions; the p23 F150 rule addresses exterior stair steps. Neither describes concrete bedding below precast curb stones."
+    },
+    {
+      "source": "СП 78.13330.2012",
+      "pages": [
+        44,
+        45
+      ],
+      "clauses": [
+        "14.1.1",
+        "14.1.2",
+        "14.1.3"
+      ],
+      "meaning": "Section14 addresses construction of monolithic cement-concrete pavement/base layers, including moving slip forms or roller-compacted rigid mixes; project and technological requirements govern. No direct universal F150/W4 bedding minimum established.",
+      "limit": "The word основание is not sufficient to equate a narrow curb foundation with a pavement layer."
+    },
+    {
+      "source": "СП 34.13330.2021",
+      "page": 58,
+      "clause": "8.37; таблица8.5",
+      "literal_table": {
+        "scope": "Конструктивный слой дорожной одежды",
+        "temperature_columns_C": [
+          "0..−5",
+          "−5..−15",
+          "ниже−15"
+        ],
+        "covering_F": [
+          "100",
+          "150",
+          "200"
+        ],
+        "base_F": [
+          "25",
+          "50",
+          "50"
+        ]
+      },
+      "meaning": "These are layer-specific minima under road-pavement materials. Even though F150 numerically exceeds the tabulated base minima, applicability to curb bedding has not been established.",
+      "limit": "Cannot manufacture a compatibility proof by importing the less restrictive base row."
+    },
+    {
+      "source": "ГОСТ 31384-2017",
+      "pages": [
+        9,
+        12,
+        22,
+        23,
+        36,
+        37
+      ],
+      "clauses": [
+        "7.3",
+        "7.4.5.1",
+        "таблицаА.1",
+        "таблицаЕ.1,примечания2–4"
+      ],
+      "quote": "согласно требованиям соответствующих документов",
+      "meaning": "Exposure classification distinguishes wetness and deicing salts. Е.1 distinguishes F1/F2 and winter five-day design temperature; wettest portion governs. Note3 redirects road structures to specialized standards. These are conditional design requirements, not future-batch passport conditions.",
+      "limit": "Do not apply generic Е.1 blindly to a road curb foundation, replace five-day temperature with monthly mean, or equate bare F150 with a tested method. Need the actual applicable design route, exposure, drainage/protection and intended frost method."
+    },
+    {
+      "source": "Original PD",
+      "pages": [
+        39,
+        76
+      ],
+      "meaning": "PD39 specifies B30/F200 for the precast BR100.30.18 stone. PD76 TypeIII shows distinct road curb and lawn curb interfaces with foundation geometry.",
+      "limit": "Stone durability is not bedding durability; no literal bedding F150/W4 specification was identified in these reviewed details."
+    },
+    {
+      "source": "Original PD",
+      "pages": [
+        15,
+        27
+      ],
+      "quote": "маркам бетона W4 – неагрессивные-среднеагрессивные, к маркам бетона W6, W8 – неагрессивные.",
+      "additional_literal": "По водопроницаемости для бетонов марок W4-W6, W10-W20 – неагрессивные.",
+      "meaning": "The project contains groundwater aggressiveness information; W4 cannot be presumed harmless throughout the project. Both adjacent statements are retained without silently resolving their differing scope.",
+      "limit": "The occurrence of an aggressive groundwater category does not prove contact with each bedding segment. Requires location/level, chemistry, drainage/protection and the underlying geotechnical assessment (PD27 references Приложение М)."
+    },
+    {
+      "source": "Original PD",
+      "pages": [
+        17,
+        18
+      ],
+      "positive_fact": "Table1.1 gives January monthly mean −17.4°C; PD18 mentions cold-day/five-day data but no numerical five-day0.92 value is printed on that reviewed page.",
+      "limit": "Monthly mean, absolute minimum and cold five-day design temperature are different metrics; no F minimum chosen by substituting one for another."
+    }
+  ],
+  "decision": {
+    "additional_declared_specification": true,
+    "additional_specification_automatically_incompatible": false,
+    "positive_b15_rate_basis": true,
+    "durability_compatibility_proved": false,
+    "mandatory_universal_bedding_minimum_F150_W4_found": false,
+    "reason": "F150/W4 is a declared additional specification; compatible syntax and a B15 resource match are positive partial facts. Complete suitability for this actual bedding is not independently established. Exposure-sensitive normative conditions remain; absence of an explicit F/W minimum in GESN/SP82 is not a compatibility certificate.",
+    "no_status_assigned": true
+  },
+  "exact_missing_facts": [
+    "The applicable design classification for the precast-curb bedding/haunch, with a primary standard/project bridge rather than pavement-layer or curb-stone analogy.",
+    "For the actual locations of positions41/67: saturation/wetting, freeze-thaw, deicer exposure, groundwater contact/aggressiveness and protective measures, or an explicit approved project bedding durability specification/assessment resolving these conditions.",
+    "Intended frost-resistance test-method scope behind declared F150, where the selected standard requires F1/F2 distinction.",
+    "For W4: locate the relevant geotechnical water/soil chemistry assessment and establish whether the bedding is exposed to the project’s nonaggressive or medium-aggressive category; do not generalize PD15/27 to all curb segments."
+  ],
+  "not_required_for_this_audit": [
+    "Passport/testing of a future concrete delivery merely to verify VOR specification and normative scope.",
+    "Repeated project wording of 5.9m3/100m where a genuinely applicable normative resource independently supplies it.",
+    "Importing B30/F200 of the manufactured curb stone into its bedding."
+  ],
+  "next_safe_step": "Obtain/read existing designer bedding specification or detail-linked durability/exposure assessment; alternatively complete a bounded design-standard applicability check. Preserve B15/rate/quantity facts independently; no automatic confirmation or mismatch from unresolved F/W alone.",
+  "artifacts": [
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\00d837-p44.png",
+      "sha256": "e2a5fc0f7086602e603ed28f229380cf8a63218fd7c37c4629d0669f48e14afc",
+      "visually_reviewed": false
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\31384-p22.png",
+      "sha256": "094c276b4be5003895a09a7d5631296be20c98b59f94b9c94b35da249f30fab6",
+      "visually_reviewed": false
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\31384-p23.png",
+      "sha256": "523fc09d5751af9ad8f52f1570f6e5306158f283b1e3fbdc0160161e09b6509a",
+      "visually_reviewed": false
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\31384-p36.png",
+      "sha256": "086ce3546be41aea49db484505d7a74ed1406534efd86b0b50648e48c0df0915",
+      "visually_reviewed": true
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\31384-p37.png",
+      "sha256": "da252f321ed2bf03443de70df7e8a58ca6760d4046443106bb764bd90a132f53",
+      "visually_reviewed": true
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\56e516-p10.png",
+      "sha256": "5596af2302ff22e236438034f39be58a6db433bcd7fc4b5f17357783a44a3de0",
+      "visually_reviewed": false
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\56e516-p5.png",
+      "sha256": "53dd7586987c7ca90309dd170cacfc6b7da7a0e8f6d2fa33a156866dac57a57e",
+      "visually_reviewed": true
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\bbc0d6-p5.png",
+      "sha256": "ccafec35f863990b1bba93c656af6f7c56e663536c54f25bb449a8c72555902f",
+      "visually_reviewed": true
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\ce4dd8-p58.png",
+      "sha256": "845b93c340c90c695c3268da1f729e571b3e8afb84025279729b506f85e9a415",
+      "visually_reviewed": true
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\eead2c-p22.png",
+      "sha256": "b58b2863a7aaeeb9f84ce2c7cbd6304176e42959415bf57c98c7ca1d3645f1a9",
+      "visually_reviewed": true
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\eead2c-p23.png",
+      "sha256": "36813cd4c29071f764a0e992005c640b0ad1d23a7e10ff54c8bf7d7d4b3e3ffc",
+      "visually_reviewed": true
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\gesn27-p12.png",
+      "sha256": "38dee5a535501064ffd2a7e19d3b212ece933ea24835d0d6d22317b733b52571",
+      "visually_reviewed": true
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\gesn27-p13.png",
+      "sha256": "dda4ac637134c179f79da493a9e7a0877b569b28c2c67d5908f57f026b10d1a3",
+      "visually_reviewed": true
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\pd15.png",
+      "sha256": "8432570b621e894fa36d0bfe21bd18a1454289c8a5cfad241b1fc688da4089ed",
+      "visually_reviewed": true
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\pd16.png",
+      "sha256": "0f82f9c7d13a0efd2f3656669c236ebd02163396e012dd01d1db76029ba3a149",
+      "visually_reviewed": false
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\pd17.png",
+      "sha256": "1eff9a5e3b0d4c9803642deda4f0d981b8cba2277181b7f5ffb43762d00a4200",
+      "visually_reviewed": true
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\pd18.png",
+      "sha256": "09d852e78810f5166db2bb8d42c2eefd487b9364118e3dfffad6d4bdb2504260",
+      "visually_reviewed": true
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-durability-v30\\pd27.png",
+      "sha256": "a83bdf66ea609e5bb84660d619696057f0226f1499f9ae1aa2b0f5f6f10881c2",
+      "visually_reviewed": true
+    }
+  ],
+  "limits": [
+    "No code, DB, active KB pin, production status or model runs changed.",
+    "Local sources first; additional online lookup used only generic normative document identifiers on official hosts, without project text.",
+    "Edition completeness of local copies is not recertified by this targeted audit."
+  ]
+}

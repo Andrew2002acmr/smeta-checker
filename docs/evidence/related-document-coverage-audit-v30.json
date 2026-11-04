@@ -1,0 +1,734 @@
+{
+  "kind": "related-document-coverage-audit-v30",
+  "created_at_utc": "2026-11-04T21:40:08.649547+00:00",
+  "mode": "read_only_original_primary_PDF_content_audit",
+  "model_calls": 0,
+  "database_writes": false,
+  "production_changes": false,
+  "pins_changed": false,
+  "normative_sources_rebuilt": false,
+  "expected_VOR_number_search": false,
+  "headline_ru": "Найдены самостоятельные первичные факты трамвайного пересечения, контактной сети и инженерных траншей; не найден общий мост для переноса их материалов/расхода к улице, тротуарам, съездам или автопавильону. Совпадение объекта006/26 обосновывает связанный sourcecandidate, но не текущую редакцию и не автоматическое подключение.",
+  "sources": [
+    {
+      "candidate": {
+        "project_id": "669bc134-0074-4700-bc82-a5f4c59b469a",
+        "version_id": "d3350283-6d14-4c5b-a369-4d75213730b9",
+        "filename": "006.26-ТКР3.pdf",
+        "sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+        "blob_key": "42/39/4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+        "size": 7766472
+      },
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\blobs\\42\\39\\4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+      "sha_verified": true,
+      "page_count": 37,
+      "observed_document_code": "006/26-ТКР3",
+      "observed_title": "Том3.3. Часть3. Трамвайные пути",
+      "title_pages": [
+        1,
+        2
+      ],
+      "object_title": "Мост через р. Искитимка (Большая Камышная) по ул. Автозаводская с подъездными путями",
+      "provenance_occurrences": [
+        {
+          "project_id": "669bc134-0074-4700-bc82-a5f4c59b469a",
+          "version_id": "d3350283-6d14-4c5b-a369-4d75213730b9",
+          "filename": "006.26-ТКР3.pdf"
+        }
+      ],
+      "metadata": {
+        "format": "PDF 1.7",
+        "title": "",
+        "author": "Тарарыков Дмитрий",
+        "subject": "",
+        "keywords": "",
+        "creator": "Acrobat PDFMaker 21 для Word",
+        "producer": "Adobe PDF Library 21.7.131",
+        "creationDate": "D:20261020104021+07'00'",
+        "modDate": "D:20261020105447+07'00'",
+        "trapped": "",
+        "encryption": null
+      },
+      "native_low_text_pages": [
+        36
+      ],
+      "current_revision_for_VOR_established": false,
+      "auto_attachment_authorized": false
+    },
+    {
+      "candidate": {
+        "project_id": "077a8bc8-2f24-4164-9257-e28c6cca5f93",
+        "version_id": "79e6fed6-0df8-4d7b-856b-3dc14772ae46",
+        "filename": "006_26 ТКР4 ул. Автозаводская.pdf",
+        "sha256": "1af8f247d8a097b73ac1653b862073fc56b0f38b69b0a142859034f3567ff82e",
+        "blob_key": "1a/f8/1af8f247d8a097b73ac1653b862073fc56b0f38b69b0a142859034f3567ff82e",
+        "size": 29499533
+      },
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\blobs\\1a\\f8\\1af8f247d8a097b73ac1653b862073fc56b0f38b69b0a142859034f3567ff82e",
+      "sha_verified": true,
+      "page_count": 58,
+      "observed_document_code": "006/26-ТКР4",
+      "observed_title": "Том3.4. Часть4. Контактная сеть трамвая",
+      "title_pages": [
+        3,
+        4
+      ],
+      "object_title": "Мост через р. Искитимка (Большая Камышная) по ул. Автозаводская с подъездными путями",
+      "provenance_occurrences": [
+        {
+          "project_id": "077a8bc8-2f24-4164-9257-e28c6cca5f93",
+          "version_id": "79e6fed6-0df8-4d7b-856b-3dc14772ae46",
+          "filename": "006_26 ТКР4 ул. Автозаводская.pdf"
+        }
+      ],
+      "metadata": {
+        "format": "PDF 1.7",
+        "title": "",
+        "author": "Васильева С.В.",
+        "subject": "",
+        "keywords": "",
+        "creator": "Acrobat PDFMaker 23 для Word",
+        "producer": "Adobe PDF Library 23.6.96",
+        "creationDate": "D:20261020124754+07'00'",
+        "modDate": "D:20261020125618+07'00'",
+        "trapped": "",
+        "encryption": null
+      },
+      "native_low_text_pages": [
+        37,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        49
+      ],
+      "current_revision_for_VOR_established": false,
+      "auto_attachment_authorized": false
+    },
+    {
+      "candidate": {
+        "project_id": "f202ef40-3627-401e-ba17-9accc81d1527",
+        "version_id": "e1a469f8-a6a5-4c7d-a297-ee25351de1e7",
+        "filename": "006_26_Раздел ПД №3 Часть 9.1_2.pdf",
+        "sha256": "f079e089e220226979a0448103e88dabe60af6998a946a417bc66633a133e5c9",
+        "blob_key": "f0/79/f079e089e220226979a0448103e88dabe60af6998a946a417bc66633a133e5c9",
+        "size": 23214507
+      },
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\blobs\\f0\\79\\f079e089e220226979a0448103e88dabe60af6998a946a417bc66633a133e5c9",
+      "sha_verified": true,
+      "page_count": 49,
+      "observed_document_code": "006/26-ТКР9.1",
+      "observed_title": "Том3.9.1. Часть9. Сети связи",
+      "title_pages": [
+        1,
+        2
+      ],
+      "object_title": "Мост через р. Искитимка (Большая Камышная) по ул. Автозаводская с подъездными путями",
+      "provenance_occurrences": [
+        {
+          "project_id": "f202ef40-3627-401e-ba17-9accc81d1527",
+          "version_id": "e1a469f8-a6a5-4c7d-a297-ee25351de1e7",
+          "filename": "006_26_Раздел ПД №3 Часть 9.1_2.pdf"
+        },
+        {
+          "project_id": "4463f162-68ac-4e62-b72b-5f2e55305c5b",
+          "version_id": "33a117a8-84c9-46f1-911e-cfda81da7dc0",
+          "filename": "006_26_Раздел ПД №3 Часть 9.1_2.pdf"
+        }
+      ],
+      "metadata": {
+        "format": "PDF 1.7",
+        "title": "",
+        "author": "Ангелина Геннадьевна Теклева",
+        "subject": "",
+        "keywords": "",
+        "creator": "Acrobat PDFMaker 24 для Word",
+        "producer": "Adobe PDF Library 24.4.252",
+        "creationDate": "D:20261019171802+07'00'",
+        "modDate": "D:20261026131940+07'00'",
+        "trapped": "",
+        "encryption": null
+      },
+      "native_low_text_pages": [],
+      "current_revision_for_VOR_established": false,
+      "auto_attachment_authorized": false
+    },
+    {
+      "candidate": {
+        "project_id": "1cc60175-36c8-44df-83aa-f49a7cd1bf54",
+        "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+        "filename": "006_26_Раздел ПД №3.1.pdf",
+        "sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+        "blob_key": "e4/81/e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+        "size": 15491969
+      },
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\blobs\\e4\\81\\e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+      "sha_verified": true,
+      "page_count": 99,
+      "observed_document_code": "006/26-ТКР1",
+      "observed_title": "Том3.1. Часть1. Капитальный ремонт ул.Автозаводская",
+      "title_pages": [
+        1,
+        2
+      ],
+      "object_title": "Мост через р. Искитимка (Большая Камышная) по ул. Автозаводская с подъездными путями",
+      "provenance_occurrences": [
+        {
+          "project_id": "1cc60175-36c8-44df-83aa-f49a7cd1bf54",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "filename": "006_26_Раздел ПД №3.1.pdf"
+        },
+        {
+          "project_id": "e908e48b-2b2a-4dad-b0b1-a3abeef3d330",
+          "version_id": "798c520f-0dc0-45f6-b45e-3e7ee1a48943",
+          "filename": "006_26_Раздел ПД №3.1.pdf"
+        }
+      ],
+      "metadata": {
+        "format": "PDF 1.7",
+        "title": "",
+        "author": "Ангелина Геннадьевна Теклева",
+        "subject": "",
+        "keywords": "",
+        "creator": "Microsoft® Word LTSC",
+        "producer": "Microsoft® Word LTSC",
+        "creationDate": "D:20261022153351+07'00'",
+        "modDate": "D:20261026141205+07'00'",
+        "trapped": "",
+        "encryption": null
+      },
+      "native_low_text_pages": [
+        67,
+        68,
+        69,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99
+      ],
+      "current_revision_for_VOR_established": false,
+      "auto_attachment_authorized": false
+    },
+    {
+      "candidate": {
+        "project_id": "f202ef40-3627-401e-ba17-9accc81d1527",
+        "version_id": "8da3123f-8bf1-46b4-96ef-a6ca5f0d99bd",
+        "filename": "006_26_Раздел ПД №3.7-ГЧ л.1-7.pdf",
+        "sha256": "480f64815ee4acb3e68463740b3eb1a5342dab75d92f049411a57fab6ddf3d57",
+        "blob_key": "48/0f/480f64815ee4acb3e68463740b3eb1a5342dab75d92f049411a57fab6ddf3d57",
+        "size": 3569410
+      },
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\blobs\\48\\0f\\480f64815ee4acb3e68463740b3eb1a5342dab75d92f049411a57fab6ddf3d57",
+      "sha_verified": true,
+      "page_count": 7,
+      "observed_document_code": "006/26-ТКР7-ГЧ",
+      "observed_title": "Наружное освещение, графическая часть, листы1–7",
+      "title_pages": [
+        1,
+        2
+      ],
+      "object_title": "Мост через р. Искитимка (Большая Камышная) по ул. Автозаводская с подъездными путями",
+      "provenance_occurrences": [
+        {
+          "project_id": "f202ef40-3627-401e-ba17-9accc81d1527",
+          "version_id": "8da3123f-8bf1-46b4-96ef-a6ca5f0d99bd",
+          "filename": "006_26_Раздел ПД №3.7-ГЧ л.1-7.pdf"
+        }
+      ],
+      "metadata": {
+        "format": "PDF 1.7",
+        "title": "Лист_1",
+        "author": "",
+        "subject": "",
+        "keywords": "",
+        "creator": "AutoCAD 2024 — Русский (Russian) 2024 (24.3)",
+        "producer": "pdfplot16.hdi 16.03.152.00000",
+        "creationDate": "D:20261026131026+07'00'",
+        "modDate": "D:20261026131026+07'00'",
+        "trapped": "",
+        "encryption": null
+      },
+      "native_low_text_pages": [],
+      "current_revision_for_VOR_established": false,
+      "auto_attachment_authorized": false
+    }
+  ],
+  "connection_assessment": {
+    "strong_original_PD_link": {
+      "from_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+      "page": 39,
+      "literal": "Проектные решения по трамвайному полотну представлены в томе -006/26-ТКР3.",
+      "candidate_sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e"
+    },
+    "other_candidates": "Same object title and006/26 part codes; lightingdrawing directly refers contactpart4. No complete common approved composition/revision register was located. TKR4physical1/2 are only composition cover pages, not a full list.",
+    "title_revision_limits": [
+      "TKR4 contains composition cover dated2025 then another dated2026; this does not identify a final approved combined revision.",
+      "TKR3 has a registration-of-changes sheet (physical31); no audit of formal approval/current revision is inferred from file date/stamp.",
+      "Part9.1 physical45 title block visibly says30/09-ТКР9.1-ГЧ although cover says006/26-ТКР9.1; identical object title does not erase that mismatch.",
+      "Part3.7 filename corresponds to stamped006/26-ТКР7-ГЧ, outdoor lighting, not a road/material specification."
+    ]
+  },
+  "high_value_primary_source_candidates": [
+    {
+      "id": "tram_asphalt_band_note",
+      "source_sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+      "source_filename": "006.26-ТКР3.pdf",
+      "page": 26,
+      "scope": "Ведомость объёмов строительно-монтажных работ трамвайного пути, продолжение; связь с пересечением из строк15–22 physical25/26.",
+      "literal_quote": "4) Нормы расхода асфальтобетонной смеси согласно приложения27.1 ГЭСН81-02-27-2022 (Y-2,7-2,9т/м3):\n- для типов А-22 и А-32 на толщину4см98,56тн. плюс/минус12,32тн. на каждые0,5см.\n- для ЩМА-16 на толщину4см равна98,64тн. плюс/минус12,33тн. на каждые0,5см.",
+      "limits": "Y/Ү-like printed glyph retained as source notation, not silently converted to a measured bulk density. This is explicit project consumption parameterization for the tram crossing. It is not an approved common street/sidewalk/exit specification, not physical batch testing and not automatic normative confirmation. Read together with amended order102, not old base appendix.",
+      "bbox_PD_points": [
+        68,
+        650,
+        580,
+        750
+      ],
+      "status": "source_candidate_only"
+    },
+    {
+      "id": "tram_emulsion",
+      "source_sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+      "source_filename": "006.26-ТКР3.pdf",
+      "page": 25,
+      "scope": "Трамвайное пересечение; строки17/17.1 и19/19.1, продолжение21/21.1 наphysical26.",
+      "literal_quote": "Розлив битумной эмульсии на бетонное основание |т|0,15; Битумная эмульсия ЭБДК Б |т|0,16.",
+      "limits": "Literal work/material masses only. No emulsion density or litre-to-tonne conversion printed; cannot transfer to other street surfaces.",
+      "bbox_PD_points": null,
+      "status": "source_candidate_only"
+    },
+    {
+      "id": "tram_stone_allowance",
+      "source_sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+      "source_filename": "006.26-ТКР3.pdf",
+      "page": 26,
+      "scope": "Примечание1 к ведомости трамвайных путей.",
+      "literal_quote": "При определении объема сыпучих материалов в неуплотненном состоянии применен коэффициент: для щебеночного балласта фракции20-40мм —1,17.",
+      "limits": "Compaction/loose-volume allowance for tram ballast only; not a mass density or universal ЩПС allowance.",
+      "bbox_PD_points": [
+        68,
+        405,
+        580,
+        482
+      ],
+      "status": "source_candidate_only"
+    },
+    {
+      "id": "bus_stop_contact_pole",
+      "source_sha256": "1af8f247d8a097b73ac1653b862073fc56b0f38b69b0a142859034f3567ff82e",
+      "source_filename": "006_26 ТКР4 ул. Автозаводская.pdf",
+      "page": 24,
+      "scope": "Переустройство контактной сети, п6; ПК4+54.",
+      "literal_quote": "...на ПК4+54 демонтируется две тросовые поперечины и арматуру контактной сети, т.к. при организации автобусной остановки одну опору пришлось демонтировать и установить новую. Замена контактного провода на данном участке проектом не предусмотрена.",
+      "limits": "Supports coordination of bus-stop and contact-network works. Does not specify pavilion model/foundation, curb profile, bay construction or surface area.",
+      "bbox_PD_points": [
+        55,
+        85,
+        570,
+        165
+      ],
+      "status": "source_candidate_only"
+    },
+    {
+      "id": "contact_pole_concrete",
+      "source_sha256": "1af8f247d8a097b73ac1653b862073fc56b0f38b69b0a142859034f3567ff82e",
+      "source_filename": "006_26 ТКР4 ул. Автозаводская.pdf",
+      "page": 27,
+      "scope": "Фундамент/ригель опоры контактной сети.",
+      "literal_quote": "Бетон ригеля фундамента укладывать на подстилающий слой из тощего бетона кл.В7,5 толщиной8см.",
+      "limits": "This concrete belongs to a contact-network pole foundation; no bridge to curb bedding. Adjacent text sets crushed-stone preparation20cm and C5 trench backfill.",
+      "bbox_PD_points": [
+        55,
+        30,
+        570,
+        140
+      ],
+      "status": "source_candidate_only"
+    },
+    {
+      "id": "telecom_foundation",
+      "source_sha256": "f079e089e220226979a0448103e88dabe60af6998a946a417bc66633a133e5c9",
+      "source_filename": "006_26_Раздел ПД №3 Часть 9.1_2.pdf",
+      "page": 49,
+      "scope": "006/26-ТКР9.1-ГЧ, лист6 «Фундамент Фм1», сети связи ПАОРостелеком.",
+      "literal_quote": "Фундаменты Фм1 выполнить из бетона В25 W8 F200 с добавлением «Кальматрон-Д» по подготовке из бетона кл.В7,5 толщиной100мм.",
+      "limits": "Real foundation fact for telecommunications support only. Not curb/автопавильон foundation. Drawing specifies two foundations and per-one material quantities; no transfer.",
+      "bbox_PD_points": null,
+      "status": "source_candidate_only"
+    },
+    {
+      "id": "lighting_ground_density",
+      "source_sha256": "480f64815ee4acb3e68463740b3eb1a5342dab75d92f049411a57fab6ddf3d57",
+      "source_filename": "006_26_Раздел ПД №3.7-ГЧ л.1-7.pdf",
+      "page": 2,
+      "scope": "006/26-ТКР7-ГЧ лист2; габариты кабельной траншеи, ИГЭ1б, ссылка006/26-ИГИ.",
+      "literal_quote": "Техногенный грунт — грунт щебенистый серый неоднородный средней степени водонасыщения с суглинистым твердым заполнителем с примесью органического вещества. Группа грунта по трудности разработки —2(41б). Плотность грунта ρ=2,24т/м3.",
+      "limits": "Density of in-situ engineering-geological soil unit, not asphalt mineral aggregate, ЩПС product bulk density or emulsion density. Same text appears telecomphysical45, whose title-block code is anomalous.",
+      "bbox_PD_points": [
+        1362.59,
+        642.97,
+        1801.93,
+        842
+      ],
+      "status": "source_candidate_only"
+    },
+    {
+      "id": "lighting_contact_reference",
+      "source_sha256": "480f64815ee4acb3e68463740b3eb1a5342dab75d92f049411a57fab6ddf3d57",
+      "source_filename": "006_26_Раздел ПД №3.7-ГЧ л.1-7.pdf",
+      "page": 4,
+      "scope": "Монтаж светильников на опорах контактной сети.",
+      "literal_quote": "Опора контактной сети см. раздел006/26-ТКР4.",
+      "limits": "Direct coordinated-volume reference. Does not establish active revision or legal attachment to current VOR.",
+      "bbox_PD_points": [
+        619.67,
+        220.7,
+        760.73,
+        393.91
+      ],
+      "status": "source_candidate_only"
+    },
+    {
+      "id": "tram_stops_scope_exclusion",
+      "source_sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+      "source_filename": "006.26-ТКР3.pdf",
+      "page": 11,
+      "scope": "П4.2 «Пересечения и остановочные площадки», именно трамвайный участок.",
+      "literal_quote": "Остановочные площадки на ремонтируемом участке проектом не предусматриваются.",
+      "limits": "This statement concerns tram stopping platforms. It cannot negate street bus stops or substitute for their design.",
+      "bbox_PD_points": null,
+      "status": "source_candidate_only"
+    }
+  ],
+  "explicit_references": [
+    {
+      "source_sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+      "page": 5,
+      "target_code": "006/26-ИГДИ",
+      "quote": " 11.06.2026 г. (приложение Б); - технические отчеты по комплексным инженерным изысканиям, выполненные ООО «КДФП» в 2026 году: • инженерно-геодезический (док. № 006/26-ИГДИ); • инженерно-геологический (док. № 006/26-ИГИ); • инженерно-гидрометеорологический (док. № 006/26-ИГМИ); • инженерно-экологический (док. № 006/26-ИЭИ). Настоящая проектная докуме",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+      "page": 5,
+      "target_code": "006/26-ИГИ",
+      "quote": "еты по комплексным инженерным изысканиям, выполненные ООО «КДФП» в 2026 году: • инженерно-геодезический (док. № 006/26-ИГДИ); • инженерно-геологический (док. № 006/26-ИГИ); • инженерно-гидрометеорологический (док. № 006/26-ИГМИ); • инженерно-экологический (док. № 006/26-ИЭИ). Настоящая проектная документация разработана в соответствии с техническим",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+      "page": 5,
+      "target_code": "006/26-ИГМИ",
+      "quote": "О «КДФП» в 2026 году: • инженерно-геодезический (док. № 006/26-ИГДИ); • инженерно-геологический (док. № 006/26-ИГИ); • инженерно-гидрометеорологический (док. № 006/26-ИГМИ); • инженерно-экологический (док. № 006/26-ИЭИ). Настоящая проектная документация разработана в соответствии с техническими условиями, требованиями действующих технических регламе",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+      "page": 5,
+      "target_code": "006/26-ИЭИ",
+      "quote": "(док. № 006/26-ИГДИ); • инженерно-геологический (док. № 006/26-ИГИ); • инженерно-гидрометеорологический (док. № 006/26-ИГМИ); • инженерно-экологический (док. № 006/26-ИЭИ). Настоящая проектная документация разработана в соответствии с техническими условиями, требованиями действующих технических регламентов, стандартов, сводов правил, других докумен",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+      "page": 9,
+      "target_code": "006/26-ИГМИ",
+      "quote": "айона подробно изучены в ходе выполнения инженерно- гидрометеорологических и инженерно-экологических изысканий, их подробная характеристика приведена в отчетах 006/26-ИГМИ и 006/26-ИЭИ соответственно. 4 Обоснование проектных решений 4.1 Технические параметры. План и продольный профиль. На участке трамвайного пути, подлежащего ремонту, уложен звеньев",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+      "page": 9,
+      "target_code": "006/26-ИЭИ",
+      "quote": " изучены в ходе выполнения инженерно- гидрометеорологических и инженерно-экологических изысканий, их подробная характеристика приведена в отчетах 006/26-ИГМИ и 006/26-ИЭИ соответственно. 4 Обоснование проектных решений 4.1 Технические параметры. План и продольный профиль. На участке трамвайного пути, подлежащего ремонту, уложен звеньевой путь, рель",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+      "page": 14,
+      "target_code": "006/26-ПОС5",
+      "quote": "роосвещение на месте производства работ, а также необходимое оборудование для мойки колес автотранспорта на выезде с площадки предусмотрено в разделе 5, том 5, 006/26-ПОС5. Конструкции из асфальта, бетона и железобетона (дорожное покрытие) намечено разбирать, в основном, методом предварительного разрушения при помощи экскаватора и гидромолота с посл",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+      "page": 18,
+      "target_code": "006/26-ПОС5",
+      "quote": "граждение места производства работ и организационно-технические мероприятия определены схемами организации дорожного движения, приведенными в разделе 5, том 5, 006/26-ПОС5. 6.8 Описание решений по вывозу и утилизации отходов Площадки для вывоза демонтируемых материалов, конструкций и строительного мусора в зависимости от их годности для повторной ук",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "1af8f247d8a097b73ac1653b862073fc56b0f38b69b0a142859034f3567ff82e",
+      "page": 28,
+      "target_code": "006/26-ПОС",
+      "quote": "логических карт и ГЭСН-2001 «Государственные элементные сметные нормы на строи- тельные работы» и приведены в разделе «Проект организации строительства» том 5, 006/26- ПОС. 10. Сведения о численности и профессионально-квалификационном со- ставе персонала с распределением по группам производственных процессов, число и оснащенность рабочих мест Для эк",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "f079e089e220226979a0448103e88dabe60af6998a946a417bc66633a133e5c9",
+      "page": 45,
+      "target_code": "006/26-ИГИ",
+      "quote": "л. Автозаводская с подъездными путями\" Ларина 10.26 10.26 Трубников Соловьева Проверил Бородулина 10.26 Габариты траншеи и объём земляных работ ( ИГЭ -1 б см . 006/26- ИГИ . Техногенный грунт - грунт щебенистый серый неоднородный средней степени водонасыщения с суглинистым твердым заполнителем с примесью органического вещества . Группа грунта по тру",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+      "page": 11,
+      "target_code": "006/26-ИГДИ",
+      "quote": "16). На основании полученных полевых материалов составлены: инженерно-топографический план масштаба 1:500 с сечением рельефа горизонталями через 0.5 м (чертеж 006/26-ИГДИ -Г.1, лист 1,2). Съемка подземных и надземных сооружений. Выполнена съемка подземных и надземных коммуникаций. Подземные коммуникации представлены: кабеля связи, водопровода и кан",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+      "page": 25,
+      "target_code": "006/26-ИГИ",
+      "quote": "сти, группы грунта в зависимости от трудности разработки и консистенция показаны на продольных профилях автомобильной дороги, инженерно-геологических разрезах (006/26-ИГИ-Г.2; 006/26-ИГИ-Г.3). ",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+      "page": 39,
+      "target_code": "006/26-ТКР3",
+      "quote": " Наносится плодородный слой почвы толщиной 0, 20 м и сеются многолетние травы. Трамвайное полотно Проектные решения по трамвайному полотну представлены в томе -006/26-ТКР3. Продольный профиль Опорные точки сложились из существующих планировочных решений: – мостовой переход через р. Искитимская (Большая Камышная); – существующие отметки ул. Автозавос",
+      "resolved_candidate_sha256": "4239752dc25f5ce595fbfc1cb704ba0b1fa40456e264f3111ac370bc9563549e",
+      "catalog_resolution": "candidate_identified_keep_separate"
+    },
+    {
+      "source_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+      "page": 54,
+      "target_code": "006/26-ТКР2",
+      "quote": "е проектной документации на капитальный ремонт ул. Автозаводская предусматривается строительство моста через р. Искитимка (Большая Камышная), см том 3.2 (шифр– 006/26-ТКР2). ",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+      "page": 55,
+      "target_code": "006/26-ТКР2",
+      "quote": "ННЫХ СООРУЖЕНИЙ, ИСПОЛЬЗУЕМЫХ МАТЕРИАЛОВ И ИЗДЕЛИЙ Описание схемы и технических решений моста через р. Искитимка (Большая Камышная) приведено в томе 3.2 (шифр– 006/26-ТКР2). ",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+      "page": 62,
+      "target_code": "006/26-ТКР8",
+      "quote": "етофоров, дорожных ограждений и направляющих устройств\" (утв. Приказом Росстандарта от 20.12.2019 N 1425-ст). Проектные решения представлены в томе 3.8 (шифр – 006/26-ТКР8). ",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "480f64815ee4acb3e68463740b3eb1a5342dab75d92f049411a57fab6ddf3d57",
+      "page": 2,
+      "target_code": "006/26-ИГИ",
+      "quote": "тельной части ) Установка ПУНО 700 3000 Электрод Уголок 50 х50 х5 мм Сталь полосовая 5 х50 мм 1000 1000 Габариты траншеи и объём земляных работ ( ИГЭ -1 б см . 006/26- ИГИ . Техногенный грунт - грунт щебенистый серый неоднородный средней степени водонасыщения с суглинистым твердым заполнителем с примесью органического вещества . Группа грунта по тру",
+      "resolved_candidate_sha256": null,
+      "catalog_resolution": "not_in_inspected_candidate_catalog"
+    },
+    {
+      "source_sha256": "480f64815ee4acb3e68463740b3eb1a5342dab75d92f049411a57fab6ddf3d57",
+      "page": 4,
+      "target_code": "006/26-ТКР4",
+      "quote": "2000 2000 2500 Ревизионное окно Опора контактной сети см. раздел 006/26- ТКР 4 Питающий кабель в полимерной трубе Street X1/83/ Ш 8M/4,0 К Кронштейн 1. К 1-2,0-2,0- О 5- ц ∅219 ∅325 ∅402 10-15° 9000 11500 2000 2000 2500 Street X1/103/ Ш 8M/750/ К 5 Кронштейн",
+      "resolved_candidate_sha256": "1af8f247d8a097b73ac1653b862073fc56b0f38b69b0a142859034f3567ff82e",
+      "catalog_resolution": "candidate_identified_keep_separate"
+    }
+  ],
+  "topic_closure": {
+    "curb_profile_and_bedding": "No new explicit curb section/profile or curb-bed concrete from the four inspected native texts. Extra B7.5/B25/B15 facts concern contact/telecom/tram structures and cannot close curb proof. OriginalPD39/40 has curb product grades; graphical curb profile remains separate.",
+    "lawn_sowing_and_watering": "No new affirmative lawn kind, sowing dose/method or watering regime in the four candidate native texts. Generic земля/подземный/многолетний false substring hits discarded. Engineering subvolumes do not fill the actual47 lawn-kind gap. Image-only TKR4technicalassignment not fully text searched, so absolute absence from all graphics not claimed.",
+    "emulsion_density": "No explicit emulsion mass-density relation. Tram work/material masses do not prove density.",
+    "asphalt_stone_density": "TKR3p26 contains a declared band linked to its own consumption note; high value but tram scope only. New order102 header clarifies maximum density of stone materials, not bulk asphalt/emulsion density; see separateasphalt-declared-band-scope-v30.json.",
+    "pavilion": "No additional exact pavilion specification/model/foundation found in candidate native text. OriginalPD74pavilion legend is prior known evidence; TKР4p24 only establishes a bus-stop/pole coordination event, not pavilion construction."
+  },
+  "real_missing_and_next_primary_routes": [
+    {
+      "target": "006/26-ПОС/ПОС5, том5",
+      "primary_references": [
+        "TKR3physical14/18",
+        "TKR4physical28"
+      ],
+      "why": "Explicitly delegated construction organization/machine/technology planning; may contain method facts, but no lawn/irrigation fact is asserted before reading.",
+      "availability": "Not in inspected candidatecatalog."
+    },
+    {
+      "target": "006/26-ТКР2, том3.2",
+      "primary_references": [
+        "OriginalPDphysical54/55"
+      ],
+      "why": "Explicit bridge structural/material reference. Relevant if a candidate work actually belongs to bridge, not a generic road-material substitute.",
+      "availability": "Not in inspected candidatecatalog."
+    },
+    {
+      "target": "006/26-ТКР8, том3.8",
+      "primary_references": [
+        "OriginalPDphysical62"
+      ],
+      "why": "Explicit road-equipment/traffic-organization reference. Could resolve scope of road fixtures; pavilion detail is not promised.",
+      "availability": "Not in inspected candidatecatalog."
+    },
+    {
+      "target": "006/26-ИГИ",
+      "primary_references": [
+        "PDphysical25",
+        "TKR3physical5",
+        "Lightingphysical2",
+        "Telecomphysical45"
+      ],
+      "why": "Origin of engineering-ground density; not a substitute for purchased-material density.",
+      "availability": "Not in inspected candidatecatalog."
+    },
+    {
+      "target": "Common006/26 approved composition/revision/transmittal",
+      "why": "Needed before attaching sibling-volume versions from other storedprojects; no automaticcurrentrevision decision."
+    }
+  ],
+  "search_coverage": {
+    "unique_PDFs": 5,
+    "physical_pages_native_scanned": 250,
+    "candidate_extra_pages": 151,
+    "all_native_pages_examined_for_target_terms_and_crossreferences": true,
+    "graphic_visual_reads": "Title pages and high-value facts rendered and visually checked; TKR4physical37–58 visual index distinguishes assignment/TU/plan/specification pages. No blanket full-resolution reading of every scanned assignment page.",
+    "OCR": "System Tesseract binary not available in current Windows PATH; no install/newOCR subsystem, no numeric/unit quality flags assigned.",
+    "not_exhausted": "Image-only full text of TKR4technicalassignmentphysical38–46 and any unextracted labels elsewhere. Missing nativehit is not proof of absence. References are exhausted only within provided candidatecatalog and native indexed content.",
+    "no_single_PDF_absence_claim": "Most valuable closure is source-role isolation; no finding promotes current VOR statuses."
+  },
+  "artifacts": {
+    "native_navigation": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\related-document-native-navigation-v30.json",
+      "sha256": "a8ca2d9a7733f3d913e0f054933f4cd0015893bf1f3d8260dd649a5219eb51d7"
+    },
+    "explicit_reference_navigation": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\related-document-explicit-references-v30.json",
+      "sha256": "ae62784e2fc62271b3bf4501c06264b49820cc0bc821d51727a148f385870c7b"
+    },
+    "crop_inventory": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\related-document-source-crops-v30.json",
+      "sha256": "9b71ea97f8a9acf3781d0230b8cee8290954a9397d9057600df4a8178b3ad951"
+    },
+    "rendered_images": [
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-1af8-p24-crop2.png",
+        "sha256": "68939527e3522865c745a0e4c2f312667de9465b9a03dfdf5cbbd009572bb34a"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-1af8-p24.png",
+        "sha256": "f259418de127c924016f647d0c117a9eec6e72402df39a222560bb2ce788679a"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-1af8-p27-crop3.png",
+        "sha256": "3c4c2742d06573da7e03d25ee6ad40db7cde00aa7c7ea8522ce4c9d14b7efac4"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-1af8-p27.png",
+        "sha256": "551137f77ffd5a64ccd11e36f244ef3d20f8386020f6598a27c29c1af51e8d7b"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-1af8-p3.png",
+        "sha256": "4a54bb594d119198cb5e293074a6b6613a4bf2ad1b3aa7d9e9875479e12b5483"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-423975-p1.png",
+        "sha256": "5801a8744c57b9be7b1f630e38bb1132ff5d2101a51b549d253304903119fb9c"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-423975-p25.png",
+        "sha256": "6388c971d9b6f4fc67b8dee99e48f3aeee5f1cac2365127bf56691d1f3d3b0b3"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-423975-p26-crop0.png",
+        "sha256": "d0522fabaf18de245dc9b2e6f2ea123e341061a35dde269306ea4b3da77f8abd"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-423975-p26-crop1.png",
+        "sha256": "80fed5c6cd4ed507b5a80a433c97d232227e79ddf24fad8c2d5bdf2ce2755ed0"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-423975-p26.png",
+        "sha256": "1f94a7d513087676f1ff05aadc8ce7fa6b1dd05ced86d0d1d99549db0d70b52a"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-423975-p31.png",
+        "sha256": "76d2f9ccdc4738b3518be46716b755d8d0c2ddc362a396b4cc9b961d27bb05e4"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-423975-p37.png",
+        "sha256": "d627c385e29c103e920dd027e689a66a80a8ac48dbfc8e0b29757e33b40b0e88"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-480f-p2-crop4.png",
+        "sha256": "acd13e3d8b450bdba8a00954fe33def2b7a1c1b6abaff85c158467c2f47a22ce"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-480f-p2-crop5.png",
+        "sha256": "c603cdcd2c3cfa647b0f6ee85aa5ec7ee157919152f33b61c7564ca081c7171c"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-480f-p2.png",
+        "sha256": "aaa768f467f0d5a8049cc3d6a2e48854d1d1cac833800f75a609904bc48f0b3c"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-480f-p4-crop6.png",
+        "sha256": "292f8679bd0b783f8d2a9d8e8e59a3d51e4a0e6c22e7f31a8542230ea601d43a"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-480f-p4.png",
+        "sha256": "6622d3932ff7d8cccc3df18e7cb4bd45cdd7f1cf0fb4042c91929823bae4c43a"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-f079-p2.png",
+        "sha256": "e39f7c8a9dcc7cf48ecb3356bef99f03f7fe8340d915a327016c2af38d7092c7"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-f079-p45-crop7.png",
+        "sha256": "0fd6d530ae37fbc18ef6cfcacb329c198843a49c97d8545ab5d2c43f64384d46"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-f079-p45.png",
+        "sha256": "8e13b26fbe7fcf8284f6c479a78e0a57bcb52c4079548cb05f41e66083b4983b"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-f079-p49.png",
+        "sha256": "524c5f8736ff0d876e0288880c38b5676262e5496c0c477da153f192e911b48e"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\coverage-v30-tkr4-appendix-visual-index.png",
+        "sha256": "4d85980b9068ae658644c19567d971eb643a19434351a524e8cfe2adffe8f801"
+      }
+    ]
+  },
+  "limits": "Only saved primary bytes inspected; no external accounts/DB attachment/source activation/revision acceptance. Source candidates are separated by SHA,part,physicalpage and local scope."
+}
