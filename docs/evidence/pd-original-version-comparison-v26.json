@@ -1,0 +1,507 @@
+{
+  "schema": 1,
+  "audit": "pd_original_content_revision_comparison_v26",
+  "date": "2026-11-05",
+  "result": "substantive_content_changes_proved_sources_must_remain_separate",
+  "summary_ru": "29ea не является metadata-дубликатом e481. При тех же титуле, шифре006/26-ТКР1 и99страницах обнаружены новые выноски на плане65, реальные изменения числовых ячеек ведомости89 и две новые таблицы по автобусным остановкам/посадочным площадкам на91. На92 добавлен OCR и заменена растровая упаковка; новых инженерных данных там при визуальном просмотре не установлено. Различия91 не обнаруживались native-text-сравнением, так как native текст пуст в обеих копиях.",
+  "method": {
+    "scope": "Чтение двух PDF целиком на CPU: текст/геометрия/decoded page-content всех99страниц, аннотации и вложения; RGBотрисовка всех99страниц72dpiс аннотациями; визуальная сверка всех четырёх отличающихся страниц и увеличенных crop65/89/91. Сверки103позиций и поиска ожидаемых чисел ВОР не выполнялось.",
+    "renderer": "PyMuPDF get_pixmap Matrix(1,1), csRGB, alpha=False, annots=True",
+    "coordinates": "Bbox crop заданы в PDF points визуально ориентированной страницы page.rect, origin top-left. Для rotated e481p89 это display-coordinates; crop получен из полного render перед вырезанием.",
+    "limits": "Совпадение растров95страниц72dpi не равно доказательству побайтовой идентичности PDF или отсутствия субпиксельных/скрытых различий."
+  },
+  "sources": [
+    {
+      "id": "e481",
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\blobs\\e4\\81\\e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+      "sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+      "size": 15491969,
+      "page_count": 99,
+      "metadata": {
+        "format": "PDF 1.7",
+        "creator": "Microsoft® Word LTSC",
+        "producer": "Microsoft® Word LTSC",
+        "creationDate": "D:20261022153351+07'00'",
+        "modDate": "D:20261026141205+07'00'",
+        "title": "",
+        "DocumentID": "uuid:2C976B7C-4536-4C02-98F7-30BBF075DC28",
+        "InstanceID": "uuid:4605ab25-2f5a-4e16-a12f-261fd08f81a2",
+        "history_action": null,
+        "history_when": null,
+        "history_parameters": null
+      },
+      "xref_length": 658,
+      "embedded_files": [],
+      "form_count": 0,
+      "signature_flags": -1,
+      "saved_origin_candidates": [
+        {
+          "project_id": "1cc60175-36c8-44df-83aa-f49a7cd1bf54",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "filename": "006_26_Раздел ПД №3.1.pdf",
+          "sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+          "blob_key": "e4/81/e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+          "size": 15491969
+        },
+        {
+          "project_id": "e908e48b-2b2a-4dad-b0b1-a3abeef3d330",
+          "version_id": "798c520f-0dc0-45f6-b45e-3e7ee1a48943",
+          "filename": "006_26_Раздел ПД №3.1.pdf",
+          "sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+          "blob_key": "e4/81/e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+          "size": 15491969
+        }
+      ]
+    },
+    {
+      "id": "29ea",
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\blobs\\29\\ea\\29eaa4d2fc140b9c4a5e8f321641d399d6e7d18cc0552f9f068a6da81fa4a969",
+      "sha256": "29eaa4d2fc140b9c4a5e8f321641d399d6e7d18cc0552f9f068a6da81fa4a969",
+      "size": 15524438,
+      "page_count": 99,
+      "metadata": {
+        "format": "PDF 1.7",
+        "creator": "Microsoft® Word LTSC",
+        "producer": "Microsoft® Word LTSC",
+        "creationDate": "D:20261022153351+07'00'",
+        "modDate": "D:20261027104651+07'00'",
+        "title": "",
+        "DocumentID": "uuid:2C976B7C-4536-4C02-98F7-30BBF075DC28",
+        "InstanceID": "uuid:228c7975-03a1-419d-b5f5-4bf570bf0723",
+        "history_action": "editedScannedDoc",
+        "history_when": "2026-10-26T16:29:27+07:00",
+        "history_parameters": "Page:89"
+      },
+      "xref_length": 1050,
+      "embedded_files": [],
+      "form_count": 0,
+      "signature_flags": -1,
+      "saved_origin_candidates": [
+        {
+          "project_id": "ebe92b1c-5f54-40fa-ba29-00fc894789d6",
+          "version_id": "6838d165-4ef7-40ca-b302-3c752869c8e3",
+          "filename": "006_26_Раздел ПД №3.1.pdf",
+          "sha256": "29eaa4d2fc140b9c4a5e8f321641d399d6e7d18cc0552f9f068a6da81fa4a969",
+          "blob_key": "29/ea/29eaa4d2fc140b9c4a5e8f321641d399d6e7d18cc0552f9f068a6da81fa4a969",
+          "size": 15524438
+        }
+      ]
+    }
+  ],
+  "document_identity": {
+    "visible_title_equal": true,
+    "visible_title": "«Мост через р. Искитимка (Большая Камышная)\nпо ул. Автозаводская с подъездными путями»\nПРОЕКТНАЯ ДОКУМЕНТАЦИЯ\nРаздел 3. Технологические и конструктивные решения\nлинейного объекта. Искусственные сооружения\nЧасть 1. Капитальный ремонт ул. Автозаводская в границах от ул.\nПролетарская до середины проезда к зданию ул. Автозаводская, 10Б\n006/26-ТКР1\nТом 3.1\nКемерово, 2026",
+    "code": "006/26-ТКР1",
+    "volume": "3.1",
+    "pdf_info_title_empty_both": true,
+    "common_xmp_document_id": "uuid:2C976B7C-4536-4C02-98F7-30BBF075DC28",
+    "formal_revision_status": "Изменённого обозначения шифра/формальной ревизии на просмотренных титуле и изменённых листах не установлено. Поздний ModDate, общийDocumentID и новые данные не доказывают утверждение этой версии или её применимость к текущей ВОР."
+  },
+  "comparison_summary": {
+    "size_delta_bytes": 32469,
+    "native_text_changed_pages": [
+      65,
+      89,
+      92
+    ],
+    "page_geometry_changed_pages": [
+      89,
+      91,
+      92
+    ],
+    "decoded_page_content_changed_pages": [
+      65,
+      89,
+      91,
+      92
+    ],
+    "raster_72dpi_changed_pages": [
+      65,
+      89,
+      91,
+      92
+    ],
+    "raster_72dpi_equal_page_count": 95,
+    "no_raster_change_observed_at_critical_structure_pages": [
+      50,
+      74,
+      75,
+      76
+    ],
+    "annotation_lists_equal": true,
+    "annotation_inventory": {
+      "e481": [
+        {
+          "page": 85,
+          "type": [
+            9,
+            "Underline"
+          ],
+          "bbox_pdf_points": [
+            558.0360107421875,
+            798.2971801757812,
+            577.4039916992188,
+            814.0044555664062
+          ],
+          "content": "",
+          "subject": "Подчеркивание",
+          "creationDate": "D:20261023161451+07'00'",
+          "modDate": "D:20261023161451+07'00'",
+          "id": "908204e3-76e2-4aab-98a0-320034d648c9",
+          "flags": 4
+        }
+      ],
+      "29ea": [
+        {
+          "page": 85,
+          "type": [
+            9,
+            "Underline"
+          ],
+          "bbox_pdf_points": [
+            558.0360107421875,
+            798.2971801757812,
+            577.4039916992188,
+            814.0044555664062
+          ],
+          "content": "",
+          "subject": "Подчеркивание",
+          "creationDate": "D:20261023161451+07'00'",
+          "modDate": "D:20261023161451+07'00'",
+          "id": "908204e3-76e2-4aab-98a0-320034d648c9",
+          "flags": 4
+        }
+      ]
+    },
+    "attachments_empty_both": true
+  },
+  "page_changes": [
+    {
+      "physical_page": 65,
+      "type": "new_visible_plan_callouts_and_native_representation_change",
+      "drawing_code": "006/26-ТКР1-1",
+      "title": "План М1:500",
+      "new_visual_literals": [
+        "Восстановление нарушенного благоустройства S=23,55 м²",
+        "Восстановление нарушенного благоустройства S=2,12 м²",
+        "Восстановление нарушенного благоустройства S=154,41 м²",
+        "Восстановление нарушенного благоустройства S=176,66 м²"
+      ],
+      "evidence_bbox_display_pdf_points": [
+        [
+          65,
+          350,
+          780,
+          445
+        ],
+        [
+          1865,
+          365,
+          2070,
+          440
+        ]
+      ],
+      "crop_keys": [
+        "29ea-p65-restoration-west",
+        "29ea-p65-restoration-east",
+        "e481-p65-restoration-west",
+        "e481-p65-restoration-east"
+      ],
+      "limits": "Native слой65 также потерял ряд пикетных подписей и изменил порядок/состав топографических строк. Утрата native-строки не равна удалению визуального объекта. Новое изменение геометрии дорожной одежды/остановки на65 этим обзором не установлено."
+    },
+    {
+      "physical_page": 89,
+      "type": "visible_numeric_edits_plus_new_error_prone_OCR_and_raster_replacement",
+      "drawing_code": "006/26-ТКР1-В.2-2",
+      "title": "Ведомость работ по устройству дорожной одежды",
+      "visual_examples": [
+        {
+          "scope": "Левая ось, строка8+00-8+10, первые две колонки площади покрытия",
+          "e481": "37,24 м²",
+          "29ea": "37,27 м²"
+        },
+        {
+          "scope": "Левая ось, Итог, первые две колонки площади покрытия",
+          "e481": "933,38 м²",
+          "29ea": "933,41 м²"
+        },
+        {
+          "scope": "Всего, первые две колонки площади покрытия",
+          "e481": "4388,24 м²",
+          "29ea": "4388,27 м²"
+        },
+        {
+          "scope": "Левая ось, покрытие справаА22Нн8см, строка6+60-6+80",
+          "e481": "70,01 м²",
+          "29ea": "70,28 м²"
+        },
+        {
+          "scope": "Та же колонка, итог группы6+48-7+00",
+          "e481": "125,73 м²",
+          "29ea": "126,00 м²"
+        },
+        {
+          "scope": "Та же колонка, нижний Всего",
+          "e481": "2719,86 м²",
+          "29ea": "2720,13 м²"
+        }
+      ],
+      "evidence_bbox_display_pdf_points": [
+        45,
+        475,
+        1178,
+        738
+      ],
+      "crop_keys": [
+        "e481-p89-lower-table",
+        "29ea-p89-lower-table"
+      ],
+      "limits": "Это визуально проверенные примеры, а не полный поклеточный аудит ведомости. OCR29ea содержит ошибки букв/цифр и не принят как самостоятельное доказательство этих значений."
+    },
+    {
+      "physical_page": 91,
+      "type": "two_substantive_new_bus_stop_tables_without_native_text",
+      "drawing_code": "006/26-ТКР1-В.3",
+      "e481": "Ведомость газонов наA3, нижнее поле пустое до подписи составителя. Таблиц остановок нет.",
+      "29ea": "Ведомость газонов уменьшена наA4; ниже добавлены две таблицы остановок.",
+      "new_tables": [
+        {
+          "heading": "Ведомость работ по устройству автобусных остановок",
+          "table_heading": "Ведомость устройства дорожной одежды. Автобусные остановки",
+          "bbox_display_pdf_points": [
+            68,
+            350,
+            574,
+            521
+          ],
+          "row_label": "Всего:",
+          "columns_and_raw_total_values": [
+            {
+              "literal_group": "Покрытие",
+              "literal_material": "ЩМА-16 на ПБВ 60",
+              "thickness_m": "0,05",
+              "area_m2": "83,81",
+              "volume_m3": "4,19"
+            },
+            {
+              "literal_group": "Покрытие",
+              "literal_material": "А22Нт на БНД 70/100",
+              "thickness_m": "0,07",
+              "area_m2": "83,81",
+              "volume_m3": "5,87"
+            },
+            {
+              "literal_group": "Покрытие",
+              "literal_material": "А32От на БНД 70/100",
+              "thickness_m": "0,10",
+              "area_m2": "83,81",
+              "volume_m3": "8,38"
+            },
+            {
+              "literal_group": "Основание",
+              "literal_material": "Щебеночно-песчаная смесь типа 0/63 мм",
+              "thickness_m": "0,20",
+              "area_m2": "126,53",
+              "volume_m3": "22,31"
+            },
+            {
+              "literal_group": "Основание",
+              "literal_material": "Щебеночно-песчаная смесь типа 0/31,5 мм",
+              "thickness_m": "0,24",
+              "area_m2": "101,89",
+              "volume_m3": "21,64"
+            }
+          ],
+          "scope_limit": "Индивидуальные остановки и начальный/конечный пикет в итоговой строке не заполнены. А32От10см буквально находится в группеПокрытие, а неОснование. Материал не дополнен категориями/марками, отсутствующими в заголовке."
+        },
+        {
+          "heading": "Установка бортового и устройство посадочных площадок на автобусных остановках",
+          "bbox_display_pdf_points": [
+            145,
+            536,
+            492,
+            706
+          ],
+          "raw_row": {
+            "station": "0+00-8+07,68",
+            "distance_m": "807,68",
+            "bus_stop_curb_BR100_30_18_m": "161",
+            "boarding_platform_surface_A5Vl_5cm_m2": "148",
+            "boarding_platform_base_ShchPS_0_31_5_20cm_m2": "148"
+          },
+          "raw_total": {
+            "curb_m": "161",
+            "surface_m2": "148",
+            "base_m2": "148"
+          },
+          "scope_limit": "Единицы основания здесьм², не м³. Отдельный объём основания и разбиение по остановкам в таблице не указаны."
+        }
+      ],
+      "complete_visually_reviewed_crop": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-version-v26-29ea-p91-stop-tables.png",
+        "sha256": "a14011d0cab3de1a54f5a927ee0d16c360872239eaaf2e97cd725576d863c236",
+        "size": 387083
+      },
+      "complete_crop_bbox_display_pdf_points": [
+        60,
+        345,
+        575,
+        715
+      ],
+      "old_full_page_render": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-version-v26-e481-p91-72dpi.png",
+        "sha256": "9a9780617f7f6aea816d3da5fb459095a2c6247e449ca8508d277bef5f76a23d",
+        "size": 114173
+      },
+      "new_full_page_render": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-version-v26-29ea-p91-72dpi.png",
+        "sha256": "c2d67bb820bc163e13d591a88a43214e22191a6088813016ca04de2448f69546",
+        "size": 145827
+      },
+      "native_text_empty_both": true
+    },
+    {
+      "physical_page": 92,
+      "type": "new_OCR_and_raster_representation_change",
+      "drawing_code": "006/26-ТКР1-В.4",
+      "title": "Ведомость работ по устройству бортовых и газонных камней",
+      "observation": "На видимых таблице/заголовках/итогах инженерное изменение при просмотре не установлено.29ea имеет новый ошибочный OCR, native e481 пуст. Изображения/размерPDFнемного отличаются.",
+      "crop_keys": [
+        "e481-p92-72dpi",
+        "29ea-p92-72dpi"
+      ],
+      "limits": "Не объявляется побайтовая тождественность графики или полный поклеточный сертификат ведомости92."
+    }
+  ],
+  "new91_arithmetic_observations": [
+    {
+      "source_only": "29ea physical91",
+      "material": "ЩПС0/63",
+      "raw_area_m2": "126,53",
+      "raw_thickness_m": "0,20",
+      "raw_volume_m3": "22,31",
+      "area_times_thickness_m3": "25,306",
+      "printed_volume_minus_product_m3": "-2,996",
+      "finding": "Печатная параA/h/Vне сходится. Сырые значения сохранены без исправления."
+    },
+    {
+      "source_only": "29ea physical91",
+      "material": "ЩПС0/31,5",
+      "raw_area_m2": "101,89",
+      "raw_thickness_m": "0,24",
+      "raw_volume_m3": "21,64",
+      "area_times_thickness_m3": "24,4536",
+      "printed_volume_minus_product_m3": "-2,8136",
+      "finding": "Печатная параA/h/Vне сходится. Сырые значения сохранены без исправления."
+    }
+  ],
+  "origin_and_version_boundary": {
+    "saved_candidate_manifest": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\additional-pdf-candidates.json",
+      "sha256": "7e13276ff0fb68b21d5b4f7299b97c0a8359f43c2a42565e3fdea329a9ea51d8",
+      "size": 2718
+    },
+    "manifest_verified_fact": "В сохранённомadditional-pdf-candidates.json SHA29ea связан с filename006_26_РазделПД№3.1.pdf, projectebe92b1c-5f54-40fa-ba29-00fc894789d6 и version6838d165-4ef7-40ca-b302-3c752869c8e3. SHAe481 связан с двумя другимиproject/version. BlobSHA/size перепроверены на диске.",
+    "parent_readonly_DB_verification_reported": {
+      "method_owner": "root agent, сведения из сообщения, SQLreceipt этим аудитом не читался",
+      "29ea": {
+        "project_id": "ebe92b1c-5f54-40fa-ba29-00fc894789d6",
+        "project_name": "Трамвайные пути",
+        "document_id": "a49069a1-e76e-470d-beb2-940dacb20b5b",
+        "current_version_id": "6838d165-4ef7-40ca-b302-3c752869c8e3",
+        "version_no": 1,
+        "created_at": "2026-10-27T07:40:05.035387Z"
+      },
+      "e481": [
+        {
+          "project_id": "1cc60175-36c8-44df-83aa-f49a7cd1bf54",
+          "project_name": "Автозаводская",
+          "created_at": "2026-10-26T07:28:03.43047Z"
+        },
+        {
+          "project_id": "e908e48b-2b2a-4dad-b0b1-a3abeef3d330",
+          "project_name": "Дорожники",
+          "created_at": "2026-10-27T01:58:18.607252Z"
+        }
+      ],
+      "metadata_document_code_and_construction_title": "отсутствуют",
+      "overrides": {}
+    },
+    "decision": "Копия29ea - самостоятельный первичный источник с существенными изменениями, а не автоматически актуальная ПД для данной ВОР. Совпадениеfilename/титула/DocumentIDили более поздняя дата не разрешает подмену/присоединение. Требуется подтверждение применимой версии. Никаких pin/DB/project/snapshot/status изменений не сделано."
+  },
+  "supporting_artifacts": {
+    "per_page_text_geometry_content_hashes": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-original-version-comparison-v26-page-hashes.json",
+      "sha256": "8aee57d593ee53e732437bfecc2e164b762e641b8602c0437cdb6f7f9579aa1e",
+      "size": 137547
+    },
+    "all_page_raster_comparison_detail": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-original-version-comparison-v26-render-detail.json",
+      "sha256": "543c8d45d0410f68e3669c1309c1078a1b099436aa1a7237baf7f652d38af88b",
+      "size": 36364
+    },
+    "crop_inventory": {
+      "29ea-p91-stop-tables": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-version-v26-29ea-p91-stop-tables.png",
+        "sha256": "a14011d0cab3de1a54f5a927ee0d16c360872239eaaf2e97cd725576d863c236",
+        "size": 387083
+      },
+      "e481-p91-72dpi": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-version-v26-e481-p91-72dpi.png",
+        "sha256": "9a9780617f7f6aea816d3da5fb459095a2c6247e449ca8508d277bef5f76a23d",
+        "size": 114173
+      },
+      "29ea-p91-72dpi": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-version-v26-29ea-p91-72dpi.png",
+        "sha256": "c2d67bb820bc163e13d591a88a43214e22191a6088813016ca04de2448f69546",
+        "size": 145827
+      },
+      "e481-p89-lower-table": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-version-v26-e481-p89-lower-table.png",
+        "sha256": "7b47f83e54e794cf0ca7402085c48ab94e5bb64bae7df1120756d0840679522c",
+        "size": 638696
+      },
+      "29ea-p89-lower-table": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-version-v26-29ea-p89-lower-table.png",
+        "sha256": "a981b1fc41eef88bf881c41818035983f8319d1a4f5cb4db9efc7de221ad51b6",
+        "size": 436119
+      },
+      "e481-p65-restoration-west": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-version-v26-e481-p65-restoration-west.png",
+        "sha256": "bf73357368effa1069c90c960022b822701118b68f1049863b24d7cef67a5a30",
+        "size": 242307
+      },
+      "29ea-p65-restoration-west": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-version-v26-29ea-p65-restoration-west.png",
+        "sha256": "dc7255bed4a9f0b2eb8a5db245eb0b54b7238548a0c13c510883270ec64467e8",
+        "size": 263122
+      },
+      "e481-p65-restoration-east": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-version-v26-e481-p65-restoration-east.png",
+        "sha256": "531389f103381381d4e358648299b81d046fa879923aea68d5d4ce9ef64461aa",
+        "size": 75461
+      },
+      "29ea-p65-restoration-east": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-version-v26-29ea-p65-restoration-east.png",
+        "sha256": "6201ede6f752281566cd6140fe7a37c4e4b4619a5136cfc834ab75f88ae672e8",
+        "size": 83474
+      },
+      "e481-p92-72dpi": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-version-v26-e481-p92-72dpi.png",
+        "sha256": "9941f0eb26f8cfb0086566a7fdd06abbd71846276285eb0370545154004006e8",
+        "size": 73356
+      },
+      "29ea-p92-72dpi": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\pd-version-v26-29ea-p92-72dpi.png",
+        "sha256": "d1080ca7cd3064a3b6e0b76a0f9b56eefcabde1336031708f84e184623ccdbba",
+        "size": 51112
+      }
+    }
+  },
+  "limits": [
+    "Это аудит первичных документов, не подтверждение ни одной строки ВОР.",
+    "Отдельно сохранённые факты29ea не становятся фактамиe481 или текущего проекта.",
+    "Новые таблицы дают факты заголовков, толщин и сырых итогов, но содержат арифметические несогласованности и не доказывают расход/сметные коэффициенты.",
+    "Не устанавливалась официальная утверждённость или применимость редакции29ea."
+  ]
+}

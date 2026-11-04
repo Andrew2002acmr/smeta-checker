@@ -309,7 +309,10 @@ def findings(position, result, positions, relation, *, cards=None):
 
 
 def feedback(position, result, positions, relation):
+    from normative_parameter_feedback import selected_measure_scope_feedback
     return [
+        selected_measure_scope_feedback(f, result)
+        if f['reason'] == 'unverified_selected_measure' else
         "Для выбранной нормы "
         + f["base_code"]
         + " базовая толщина "

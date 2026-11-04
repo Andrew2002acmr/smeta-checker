@@ -1,0 +1,347 @@
+{
+  "kind": "independent_ocr_pdf_clip_benchmark_v26",
+  "source_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+  "frozen_engine_sha256": "369a9fed8c533c4e8996f47dfbb0b09678ac52e1cd35bb8ce12caa6022331950",
+  "page_rect": [
+    0.0,
+    0.0,
+    2979.239990234375,
+    841.9199829101562
+  ],
+  "frozen_whole_page_dpi": 98,
+  "frozen_whole_page_pixels": [
+    4056,
+    1146
+  ],
+  "frozen_quadrant_pixel_bbox": [
+    1825,
+    516,
+    4056,
+    1146
+  ],
+  "tesseract_version": "tesseract 5.3.0",
+  "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.36",
+  "pymupdf_version": "2.0",
+  "traineddata_sha256": {
+    "/usr/share/tesseract-ocr/5/tessdata/eng.traineddata": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+    "/usr/share/tesseract-ocr/5/tessdata/rus.traineddata": "e16e5e036cce1d9ec2b00063cf8b54472625b9e14d893a169e2b0dedeb4df225"
+  },
+  "settings": {
+    "pass_budget": 8,
+    "passes_used": 3,
+    "per_pass_timeout": 15,
+    "psm_all": 6,
+    "language_all": "rus+eng",
+    "same_frozen_enhancement": true,
+    "no_expected_text_ocr_hint": true,
+    "rotation": 0,
+    "target_bbox_for_evaluation_only": [
+      1615,
+      791,
+      1850,
+      816
+    ],
+    "attempted_passes": 3,
+    "successful_passes": 2,
+    "failed_passes": 1
+  },
+  "records": [
+    {
+      "name": "old_q4_whole_render",
+      "status": "success",
+      "mode": "exact frozen whole-page cap then PILq4",
+      "physical_page": 74,
+      "dpi": 98,
+      "clip_pdf_bbox": [
+        1340.5110902805066,
+        379.0843902108557,
+        2979.239990234375,
+        841.9199829101562
+      ],
+      "pixel_size_tesseract": [
+        2231,
+        630
+      ],
+      "word_count": 371,
+      "label_gate_60_count": 41,
+      "target_words_after_ocr": [
+        {
+          "text": "азы",
+          "conf": 15,
+          "left": 437,
+          "top": 517,
+          "width": 37,
+          "height": 44,
+          "pdf_bbox": [
+            1661.4992253230168,
+            758.9034400926627,
+            1688.6767104410326,
+            791.2284656145187
+          ]
+        },
+        {
+          "text": "TCE",
+          "conf": 35,
+          "left": 382,
+          "top": 575,
+          "width": 40,
+          "height": 13,
+          "pdf_bbox": [
+            1621.1002609583988,
+            801.5137010078363,
+            1650.4813259508483,
+            811.0642767302029
+          ]
+        },
+        {
+          "text": "-",
+          "conf": 51,
+          "left": 438,
+          "top": 580,
+          "width": 4,
+          "height": 2,
+          "pdf_bbox": [
+            1662.233751947828,
+            805.1869993625928,
+            1665.171858447073,
+            806.6563187044953
+          ]
+        },
+        {
+          "text": "mpoccmupyensl",
+          "conf": 34,
+          "left": 449,
+          "top": 560,
+          "width": 72,
+          "height": 33,
+          "pdf_bbox": [
+            1670.3135448207518,
+            790.4938059435674,
+            1723.1994618071608,
+            814.7375750849592
+          ]
+        },
+        {
+          "text": "abnonaturson",
+          "conf": 0,
+          "left": 526,
+          "top": 560,
+          "width": 67,
+          "height": 33,
+          "pdf_bbox": [
+            1726.872094931217,
+            790.4938059435674,
+            1776.0853787935698,
+            814.7375750849592
+          ]
+        }
+      ],
+      "target_text_after_ocr": "азы TCE - mpoccmupyensl abnonaturson",
+      "time_seconds": 8.163172960281372,
+      "time_measurement": "filesystem mtime TSV minus PNG; encloses OCR call and small file I/O overhead. Exact perf_counter sample lost when later quadrant timed out; not represented as exact CPU time.",
+      "raw_tsv_path": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\ocr-clip-benchmark-v26\\old_q4_whole_render.tsv",
+      "words_pdf_bbox_path": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\ocr-clip-benchmark-v26\\old_q4_whole_render.words.json"
+    },
+    {
+      "name": "new_q4_true_pdf_clip",
+      "status": "timeout",
+      "mode": "same physical q4 extent direct PDF clip",
+      "physical_page": 74,
+      "dpi": 179,
+      "clip_pdf_bbox": [
+        1340.5110902805066,
+        379.0843902108557,
+        2979.239990234375,
+        841.9199829101562
+      ],
+      "pixel_size_tesseract": [
+        4075,
+        1152
+      ],
+      "timeout_seconds": 15,
+      "elapsed_lower_bound_seconds": 15,
+      "raw_tsv_path": "",
+      "words_pdf_bbox_path": "",
+      "error": "frozen run_tsv RuntimeError TSV pass timeout(15с,PSM6); partial stdout not retained by frozen wrapper",
+      "quality_assessment": "No recognized result to compare; do not treat timeout as text absence."
+    },
+    {
+      "name": "new_legend_true_pdf_clip",
+      "mode": "semantic legend strip, direct PDFclip cap",
+      "physical_page": 74,
+      "dpi": 300,
+      "pixel_size_before_enhancement": [
+        1209,
+        188
+      ],
+      "pixel_size_tesseract": [
+        1209,
+        188
+      ],
+      "png_pixels": 227292,
+      "max_side": 4096,
+      "max_pixels": 12000000,
+      "clip_pdf_bbox": [
+        1585.0,
+        780.0,
+        1875.0,
+        825.0
+      ],
+      "render_seconds": 0.40604969300056837,
+      "tesseract_seconds": 0.43191753400060406,
+      "psm": 6,
+      "language": "rus+eng",
+      "timeout_seconds": 15,
+      "word_count": 8,
+      "label_gate_60_count": 4,
+      "target_words_after_ocr": [
+        {
+          "text": "Sa",
+          "conf": 22,
+          "left": 152,
+          "top": 90,
+          "width": 79,
+          "height": 39,
+          "pdf_bbox": [
+            1621.4598842018197,
+            801.5425531914893,
+            1640.409429280397,
+            810.8776595744681
+          ]
+        },
+        {
+          "text": "=",
+          "conf": 47,
+          "left": 242,
+          "top": 90,
+          "width": 32,
+          "height": 39,
+          "pdf_bbox": [
+            1643.0479735318445,
+            801.5425531914893,
+            1650.7237386269644,
+            810.8776595744681
+          ]
+        },
+        {
+          "text": "-",
+          "conf": 76,
+          "left": 322,
+          "top": 107,
+          "width": 13,
+          "height": 3,
+          "pdf_bbox": [
+            1662.2373862696443,
+            805.6117021276596,
+            1665.3556658395369,
+            806.3297872340426
+          ]
+        },
+        {
+          "text": "проектируемый",
+          "conf": 92,
+          "left": 351,
+          "top": 87,
+          "width": 225,
+          "height": 39,
+          "pdf_bbox": [
+            1669.1935483870968,
+            800.8244680851063,
+            1723.163771712159,
+            810.1595744680851
+          ]
+        },
+        {
+          "text": "автопавильон",
+          "conf": 52,
+          "left": 591,
+          "top": 87,
+          "width": 207,
+          "height": 30,
+          "pdf_bbox": [
+            1726.7617866004962,
+            800.8244680851063,
+            1776.4143920595534,
+            808.0053191489362
+          ]
+        }
+      ],
+      "target_text_after_ocr": "Sa = - проектируемый автопавильон",
+      "png_sha256": "386b7338dd58758b02871d6d11aeb56e5c3cd8dae77f0832909bdb693fcab3d8",
+      "tsv_sha256": "2c4256ffb56926a8a742aee5588915d33ff5a5cc4d3feba392d51c7a63977c35",
+      "coordinate_map": "image_px -> optional enhancement inverse -> clip-local PDF points + clip origin; rotation0",
+      "status": "success",
+      "raw_tsv_path": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\ocr-clip-benchmark-v26\\new_legend_true_pdf_clip.tsv",
+      "words_pdf_bbox_path": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\ocr-clip-benchmark-v26\\new_legend_true_pdf_clip.words.json"
+    }
+  ],
+  "proof_limits": [
+    "No model calls, no network, no database reads/writes, no production/snapshot changes.",
+    "Raw OCR results remain unreviewed; numeric_verified/unit_verified not assigned.",
+    "Only page74 targeted, no99page run.",
+    "Quadrant mapping uses rounded raster dimensions; bbox mapping residual below one raster pixel expected; physical pixel-origin rounding must be separately tested in production."
+  ],
+  "container": {
+    "image": "smeta-checker-local-backend:table-fix-v29",
+    "network": "none",
+    "rootfs": "read-only",
+    "source_mounts": "read-only",
+    "memory_limit_bytes": 1073741824,
+    "tmpfs_tmp_bytes": 268435456,
+    "production_containers_used": false
+  },
+  "raw_artifacts": {
+    "new_legend_true_pdf_clip.png": {
+      "path": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\ocr-clip-benchmark-v26\\new_legend_true_pdf_clip.png",
+      "bytes": 14312,
+      "sha256": "386b7338dd58758b02871d6d11aeb56e5c3cd8dae77f0832909bdb693fcab3d8"
+    },
+    "new_legend_true_pdf_clip.tsv": {
+      "path": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\ocr-clip-benchmark-v26\\new_legend_true_pdf_clip.tsv",
+      "bytes": 606,
+      "sha256": "2c4256ffb56926a8a742aee5588915d33ff5a5cc4d3feba392d51c7a63977c35"
+    },
+    "new_legend_true_pdf_clip.words.json": {
+      "path": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\ocr-clip-benchmark-v26\\new_legend_true_pdf_clip.words.json",
+      "bytes": 1915,
+      "sha256": "a63b267f77d906be85b511899433c01019be277a6befdad2b95b50a92b4df634"
+    },
+    "new_q4_true_pdf_clip.png": {
+      "path": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\ocr-clip-benchmark-v26\\new_q4_true_pdf_clip.png",
+      "bytes": 2471089,
+      "sha256": "6fbec5c3fce363f869ef76d84f05c6e5e1097d575ed8201cc889d75a3f32cdd7"
+    },
+    "old_q4_whole_render.png": {
+      "path": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\ocr-clip-benchmark-v26\\old_q4_whole_render.png",
+      "bytes": 1103583,
+      "sha256": "3b00affd2555693b178493d3c39aa7f9cd355b4ba8de79a51089a6d15332ec51"
+    },
+    "old_q4_whole_render.tsv": {
+      "path": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\ocr-clip-benchmark-v26\\old_q4_whole_render.tsv",
+      "bytes": 16993,
+      "sha256": "b3d9da8c2092275f96cde38825f337b9ea1dbc58dc8b3979b66179eb5db745ea"
+    },
+    "old_q4_whole_render.words.json": {
+      "path": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\ocr-clip-benchmark-v26\\old_q4_whole_render.words.json",
+      "bytes": 88180,
+      "sha256": "d52a23cd3e009fbad2bd85f0752c863b432cf931f04406b0130124cda9d80d6a"
+    }
+  },
+  "conclusion": {
+    "same_engine_and_settings": true,
+    "old_whole_page_cap_problem_reproduced": "At page2979.24x841.92pts the requested300DPI is capped98 before quadrant slicing; q4 therefore remains98DPI.",
+    "actual_pdf_clip_dpi_increase": {
+      "same_q4": 179,
+      "semantic_legend": 300
+    },
+    "observed_tradeoff": "same-q4 higherdpi exceeded fixed15s; tightsemanticlegend recognized primary phrase in0.432s. Quality benefit of true highdpi crop is demonstrated on tightlegend, while full-quadrant throughput remains unresolved.",
+    "not_claimed": [
+      "No guarantee all4newquadrants fit15s",
+      "No full99page corpus repair",
+      "No automatic application/quantity confirmation",
+      "No new numeric_verified/unit_verified flag"
+    ],
+    "suggested_minimal_class_fix": "DirectPDFclip before rendering, cap each clip independently, preserve rotation/page-space mapping and boundedpass/timebudgets. Prefer a small semantic/low-confidence label region when quadrant would time out; fail closed on failed OCR."
+  },
+  "timing_limitation": "One old-call exactperf_counter duration was lost on later timeout; enclosing rawfile timestamp delta8.163s retained explicitly. Newtightcall measured perf_counter0.431918s, newquadtimeouthard15s. No timeout increase/retry."
+}

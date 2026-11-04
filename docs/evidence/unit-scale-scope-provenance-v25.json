@@ -1,0 +1,895 @@
+{
+  "schema": 1,
+  "run_id": "ed70d1f2-0f2e-4adc-bcca-7c186fb72a44",
+  "project_id": "1cc60175-36c8-44df-83aa-f49a7cd1bf54",
+  "vor_version_id": "26f1775f-3fac-4873-80ec-64276cb47d26",
+  "conclusion": "No observed producer loss of verified scope. Raw model omitted fields first, schema defaults retained unknown; followups explicitly repeated unknown. Proven feedback defect: unverified_selected_measure was presented as another request for adjustments without naming missing selected-measure scope.",
+  "production_fix": {
+    "files": [
+      "normative_parameter_feedback.py",
+      "normative_thickness_adjustment.py"
+    ],
+    "scope": "feedback only; guards/findings/apply_guard unchanged",
+    "tests": "tests/test_selected_measure_feedback.py:9passed; Ruff clean; Pyright changed files0errors",
+    "broader_suite": "2 unrelated existing findings negative controls fail(page,single_proposal); no guard modifications made"
+  },
+  "positions": [
+    {
+      "index": 4,
+      "conclusion": "model_omission_then_explicit_unknown_not_pipeline_loss",
+      "first_raw_unit_scale": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-02.answer.json",
+        "sha256": "4b28916a9810c1154fb3866c5b5fa843a04d75823b1346d4740a10bc1e6bd7d1",
+        "unit_scale_raw": [
+          {
+            "parameter": "unit_scale",
+            "source_id": "s45",
+            "quote": "Измеритель: 1000 м2",
+            "value": "1000",
+            "unit": "м2"
+          }
+        ],
+        "scope_keys_presence": [
+          {
+            "scope_state": false,
+            "scope_quote": false
+          }
+        ],
+        "schema_normalized": [
+          {
+            "scope_relation": "same_layer",
+            "operation": "direct",
+            "operand_source_ids": [],
+            "scope_state": "unresolved",
+            "scope_quote": "",
+            "parameter": "unit_scale",
+            "value": "1000",
+            "unit": "м2",
+            "source_id": "s45",
+            "quote": "Измеритель: 1000 м2",
+            "conditions": []
+          }
+        ],
+        "wire_request_path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-02.request.json",
+        "wire_request_sha256": "0acfd66a4689bc124605732d84555879c5c3b3aaad8e5c38fbc77426e71c7ad5",
+        "answer_validation": []
+      },
+      "all_raw_unit_scale_answers": [
+        {
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-02.answer.json",
+          "sha256": "4b28916a9810c1154fb3866c5b5fa843a04d75823b1346d4740a10bc1e6bd7d1",
+          "unit_scale_raw": [
+            {
+              "parameter": "unit_scale",
+              "source_id": "s45",
+              "quote": "Измеритель: 1000 м2",
+              "value": "1000",
+              "unit": "м2"
+            }
+          ],
+          "scope_keys_presence": [
+            {
+              "scope_state": false,
+              "scope_quote": false
+            }
+          ],
+          "schema_normalized": [
+            {
+              "scope_relation": "same_layer",
+              "operation": "direct",
+              "operand_source_ids": [],
+              "scope_state": "unresolved",
+              "scope_quote": "",
+              "parameter": "unit_scale",
+              "value": "1000",
+              "unit": "м2",
+              "source_id": "s45",
+              "quote": "Измеритель: 1000 м2",
+              "conditions": []
+            }
+          ],
+          "wire_request_path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-02.request.json",
+          "wire_request_sha256": "0acfd66a4689bc124605732d84555879c5c3b3aaad8e5c38fbc77426e71c7ad5",
+          "answer_validation": []
+        },
+        {
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-03.answer.json",
+          "sha256": "e2cfac03b8adaf6820d99ef7a3cf5659a374358c137f37ad772fee2e7e1d358c",
+          "unit_scale_raw": [
+            {
+              "value": "1000",
+              "parameter": "unit_scale",
+              "source_id": "s45",
+              "quote": "Измеритель: 1000 м2",
+              "unit": "м2"
+            }
+          ],
+          "scope_keys_presence": [
+            {
+              "scope_state": false,
+              "scope_quote": false
+            }
+          ],
+          "schema_normalized": [
+            {
+              "scope_relation": "same_layer",
+              "operation": "direct",
+              "operand_source_ids": [],
+              "scope_state": "unresolved",
+              "scope_quote": "",
+              "parameter": "unit_scale",
+              "value": "1000",
+              "unit": "м2",
+              "source_id": "s45",
+              "quote": "Измеритель: 1000 м2",
+              "conditions": []
+            }
+          ],
+          "wire_request_path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-03.request.json",
+          "wire_request_sha256": "efe5c5272dfda7aaeba3dabdf503f80221fa53f035458d3498893cb05c301444",
+          "answer_validation": [
+            "Для выбранной нормы 27-04-003-06 базовая толщина 15.00 см, проверенная толщина операции ВОР 10.00 см. Нужна явно выбранная поправка с буквальной ссылкой на эту базу, измерителем, шагом и направлением изменения. Укажи в adjustments base_source_id, adjustment_source_id, signed_steps, base_quote, adjustment_quote и включи обе нормы в нормативные ссылки применимости. Без доказанного расчёта поправки применимость остаётся needs_facts; это не доказанная ошибка ВОР. Доступные буквальные кандидаты: n8:full:f6aa24a5e4b561e8f9f6 (27-04-003-08), шаги -5"
+          ]
+        },
+        {
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-05.answer.json",
+          "sha256": "a1be40f2923cd35ce962e54a621e43d99a267f8210c428f4faa4588cbba459e5",
+          "unit_scale_raw": [
+            {
+              "unit": "м2",
+              "quote": "Измеритель: 1000 м2",
+              "value": "1000",
+              "operation": "direct",
+              "parameter": "unit_scale",
+              "source_id": "s53",
+              "conditions": [],
+              "scope_quote": "",
+              "scope_state": "unresolved",
+              "scope_relation": "same_layer",
+              "operand_source_ids": []
+            }
+          ],
+          "scope_keys_presence": [
+            {
+              "scope_state": true,
+              "scope_quote": true
+            }
+          ],
+          "schema_normalized": [
+            {
+              "scope_relation": "same_layer",
+              "operation": "direct",
+              "operand_source_ids": [],
+              "scope_state": "unresolved",
+              "scope_quote": "",
+              "parameter": "unit_scale",
+              "value": "1000",
+              "unit": "м2",
+              "source_id": "s53",
+              "quote": "Измеритель: 1000 м2",
+              "conditions": []
+            }
+          ],
+          "wire_request_path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-05.request.json",
+          "wire_request_sha256": "16c1663bc7b267566dad5cb52ecce8e1b7a1aa04026f13e462dd05fd804ce9b9",
+          "answer_validation": []
+        },
+        {
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-06.answer.json",
+          "sha256": "83012d10f21d2924f77d96c33c44ec319e1288fe2e929f687f39b3647d411d64",
+          "unit_scale_raw": [
+            {
+              "unit": "м2",
+              "quote": "Измеритель: 1000 м2",
+              "value": "1000",
+              "operation": "direct",
+              "parameter": "unit_scale",
+              "source_id": "s53",
+              "conditions": [],
+              "scope_quote": "",
+              "scope_state": "unresolved",
+              "scope_relation": "same_layer",
+              "operand_source_ids": []
+            }
+          ],
+          "scope_keys_presence": [
+            {
+              "scope_state": true,
+              "scope_quote": true
+            }
+          ],
+          "schema_normalized": [
+            {
+              "scope_relation": "same_layer",
+              "operation": "direct",
+              "operand_source_ids": [],
+              "scope_state": "unresolved",
+              "scope_quote": "",
+              "parameter": "unit_scale",
+              "value": "1000",
+              "unit": "м2",
+              "source_id": "s53",
+              "quote": "Измеритель: 1000 м2",
+              "conditions": []
+            }
+          ],
+          "wire_request_path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-06.request.json",
+          "wire_request_sha256": "4af4b8ab79a74209b1457fe65fae47eada4c09380c6992bba1a33372079d39c5",
+          "answer_validation": [
+            "Для выбранной нормы 27-04-003-06 базовая толщина 15.00 см, проверенная толщина операции ВОР 10.00 см. Нужна явно выбранная поправка с буквальной ссылкой на эту базу, измерителем, шагом и направлением изменения. Укажи в adjustments base_source_id, adjustment_source_id, signed_steps, base_quote, adjustment_quote и включи обе нормы в нормативные ссылки применимости. Без доказанного расчёта поправки применимость остаётся needs_facts; это не доказанная ошибка ВОР. Доступные буквальные кандидаты: n8:full:f6aa24a5e4b561e8f9f6 (27-04-003-08), шаги -5"
+          ]
+        }
+      ],
+      "phases": [
+        {
+          "phase": "initial",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\new-4-initial.json",
+          "sha256": "66203a6bff67b6978b458b6572641161b074540ca3b35d130b274960cab8cb75",
+          "saved_state": "needs_facts",
+          "saved_unit_scale": [
+            {
+              "unit": "м2",
+              "quote": "Измеритель: 1000 м2",
+              "value": "1000",
+              "operation": "direct",
+              "parameter": "unit_scale",
+              "source_id": "agent:n:norm-e66ab9327f20d1a1f80bfce37052ac53:full:b8da6338a3f7352e8ce4",
+              "conditions": [],
+              "scope_quote": "",
+              "scope_state": "unresolved",
+              "scope_relation": "same_layer",
+              "operand_source_ids": []
+            }
+          ],
+          "telemetry_responses": [
+            {
+              "response_index": 1,
+              "response_text_sha256": "554dfce9fadfb32ee5f01a10b02c799ef5a69d9c9e2781bccc86393b75a53aac",
+              "unit_scale_raw": [
+                {
+                  "parameter": "unit_scale",
+                  "source_id": "s45",
+                  "quote": "Измеритель: 1000 м2",
+                  "value": "1000",
+                  "unit": "м2"
+                }
+              ],
+              "matching_bridge_answer_paths": [
+                "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-02.answer.json"
+              ]
+            },
+            {
+              "response_index": 2,
+              "response_text_sha256": "1f7d8ed7d7e10a6f7fe974aa4d33d701a9177a9c6f25ef0ba094fd473569e7d1",
+              "unit_scale_raw": [
+                {
+                  "value": "1000",
+                  "parameter": "unit_scale",
+                  "source_id": "s45",
+                  "quote": "Измеритель: 1000 м2",
+                  "unit": "м2"
+                }
+              ],
+              "matching_bridge_answer_paths": [
+                "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-03.answer.json"
+              ]
+            }
+          ],
+          "agent_artifact_reference": {
+            "key": "17172e586b9ec804cf6be88da4323614287064c024b8be1ff8b04065ded1c9a3",
+            "stage": "normative_agent_evidence",
+            "sha256": "85a1bbb2bf818f904d30d6561c1109e7a6473ea69c4b07a47bdb921cce593520",
+            "source_contract": {
+              "schema": 1,
+              "source_pipeline": "4073723ddb1fa45522d9acf8868c8bb93902a5d715762becfece5008f72ef239"
+            }
+          },
+          "artifact_content_inspected": false
+        },
+        {
+          "phase": "followup",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\new-4-followup.json",
+          "sha256": "dcf2b9a25e1a4331673cb504ea3c9b7df0a75d5ea20ce7470e7ac0425a91c23a",
+          "saved_state": "needs_facts",
+          "saved_unit_scale": [
+            {
+              "unit": "м2",
+              "quote": "Измеритель: 1000 м2",
+              "value": "1000",
+              "operation": "direct",
+              "parameter": "unit_scale",
+              "source_id": "agent:n:norm-e66ab9327f20d1a1f80bfce37052ac53:full:b8da6338a3f7352e8ce4",
+              "conditions": [],
+              "scope_quote": "",
+              "scope_state": "unresolved",
+              "scope_relation": "same_layer",
+              "operand_source_ids": []
+            }
+          ],
+          "telemetry_responses": [
+            {
+              "response_index": 1,
+              "response_text_sha256": "9123efd77411cc9186e993cddd8d6b6340140d53803829f90db6b4f83c1e253a",
+              "unit_scale_raw": [
+                {
+                  "unit": "м2",
+                  "quote": "Измеритель: 1000 м2",
+                  "value": "1000",
+                  "operation": "direct",
+                  "parameter": "unit_scale",
+                  "source_id": "s53",
+                  "conditions": [],
+                  "scope_quote": "",
+                  "scope_state": "unresolved",
+                  "scope_relation": "same_layer",
+                  "operand_source_ids": []
+                }
+              ],
+              "matching_bridge_answer_paths": [
+                "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-05.answer.json"
+              ]
+            },
+            {
+              "response_index": 2,
+              "response_text_sha256": "cb64216c850f7e827a8ee4a1ce46ac22d8d6ee7813d047f1d80db2008c46539c",
+              "unit_scale_raw": [
+                {
+                  "unit": "м2",
+                  "quote": "Измеритель: 1000 м2",
+                  "value": "1000",
+                  "operation": "direct",
+                  "parameter": "unit_scale",
+                  "source_id": "s53",
+                  "conditions": [],
+                  "scope_quote": "",
+                  "scope_state": "unresolved",
+                  "scope_relation": "same_layer",
+                  "operand_source_ids": []
+                }
+              ],
+              "matching_bridge_answer_paths": [
+                "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-06.answer.json"
+              ]
+            }
+          ],
+          "agent_artifact_reference": {
+            "key": "db082bd06dd8165c4d537a1ad60ee09342271b4507677b5b226a4b20917a5a7c",
+            "stage": "normative_agent_evidence",
+            "sha256": "615b74906d37b0e3674af3a12757991f087f4df7d3b4d16c9b6346cfda2d0fb5",
+            "source_contract": {
+              "schema": 1,
+              "source_pipeline": "4073723ddb1fa45522d9acf8868c8bb93902a5d715762becfece5008f72ef239"
+            }
+          },
+          "artifact_content_inspected": false
+        },
+        {
+          "phase": "final",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\new-4-final.json",
+          "sha256": "dcf2b9a25e1a4331673cb504ea3c9b7df0a75d5ea20ce7470e7ac0425a91c23a",
+          "saved_state": "needs_facts",
+          "saved_unit_scale": [
+            {
+              "unit": "м2",
+              "quote": "Измеритель: 1000 м2",
+              "value": "1000",
+              "operation": "direct",
+              "parameter": "unit_scale",
+              "source_id": "agent:n:norm-e66ab9327f20d1a1f80bfce37052ac53:full:b8da6338a3f7352e8ce4",
+              "conditions": [],
+              "scope_quote": "",
+              "scope_state": "unresolved",
+              "scope_relation": "same_layer",
+              "operand_source_ids": []
+            }
+          ],
+          "telemetry_responses": [
+            {
+              "response_index": 1,
+              "response_text_sha256": "9123efd77411cc9186e993cddd8d6b6340140d53803829f90db6b4f83c1e253a",
+              "unit_scale_raw": [
+                {
+                  "unit": "м2",
+                  "quote": "Измеритель: 1000 м2",
+                  "value": "1000",
+                  "operation": "direct",
+                  "parameter": "unit_scale",
+                  "source_id": "s53",
+                  "conditions": [],
+                  "scope_quote": "",
+                  "scope_state": "unresolved",
+                  "scope_relation": "same_layer",
+                  "operand_source_ids": []
+                }
+              ],
+              "matching_bridge_answer_paths": [
+                "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-05.answer.json"
+              ]
+            },
+            {
+              "response_index": 2,
+              "response_text_sha256": "cb64216c850f7e827a8ee4a1ce46ac22d8d6ee7813d047f1d80db2008c46539c",
+              "unit_scale_raw": [
+                {
+                  "unit": "м2",
+                  "quote": "Измеритель: 1000 м2",
+                  "value": "1000",
+                  "operation": "direct",
+                  "parameter": "unit_scale",
+                  "source_id": "s53",
+                  "conditions": [],
+                  "scope_quote": "",
+                  "scope_state": "unresolved",
+                  "scope_relation": "same_layer",
+                  "operand_source_ids": []
+                }
+              ],
+              "matching_bridge_answer_paths": [
+                "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-04-06.answer.json"
+              ]
+            }
+          ],
+          "agent_artifact_reference": {
+            "key": "db082bd06dd8165c4d537a1ad60ee09342271b4507677b5b226a4b20917a5a7c",
+            "stage": "normative_agent_evidence",
+            "sha256": "615b74906d37b0e3674af3a12757991f087f4df7d3b4d16c9b6346cfda2d0fb5",
+            "source_contract": {
+              "schema": 1,
+              "source_pipeline": "4073723ddb1fa45522d9acf8868c8bb93902a5d715762becfece5008f72ef239"
+            }
+          },
+          "artifact_content_inspected": false
+        }
+      ],
+      "observed_default": {
+        "scope_state": "unresolved",
+        "scope_quote": ""
+      },
+      "latest_findings": [
+        {
+          "kind": "mandatory_norm_thickness_adjustment_v1",
+          "reason": "unverified_selected_measure",
+          "base_source_id": "agent:n:norm-e66ab9327f20d1a1f80bfce37052ac53:full:b8da6338a3f7352e8ce4",
+          "base_code": "27-04-003-06",
+          "project_source_id": "prepared:native:50",
+          "project_quote": "Средний слой основания — щебёночно-песчаная смесь для оснований фр. 0/63 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=20 см",
+          "project_scope_quote": "Средний слой основания — щебёночно-песчаная смесь для оснований фр. 0/63 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=20 см",
+          "operation_quote": "h = 10см",
+          "operation_cm": "10.00",
+          "base_cm": "15.00",
+          "base_quote": "толщиной 15 см",
+          "adjustment_candidates": [
+            {
+              "source_id": "n8:full:f6aa24a5e4b561e8f9f6",
+              "code": "27-04-003-08",
+              "base_quote": "толщиной 15 см",
+              "adjustment_quote": "Таблица ГЭСН 27-04-003 Устройство оснований и покрытий из песчано-гравийных или\nщебеночно-песчаных смесей\nИзмеритель: 1000 м2\n27-04-003-08 На каждый 1 см изменения толщины слоя добавлять или исключать к нормам с 27-04-003-05 по 27-04-003-07\n",
+              "signed_steps": -5,
+              "scope_verified": false
+            }
+          ]
+        }
+      ],
+      "new_feedback": [
+        "Для выбранной нормы 27-04-003-06, unit_scale.source_id=agent:n:norm-e66ab9327f20d1a1f80bfce37052ac53:full:b8da6338a3f7352e8ce4: причина unverified_selected_measure — scope_state остаётся unresolved; scope_quote отсутствует. Буквальное число измерителя не подтверждает область выбранной нормы. Проверь связь её определения с материалом, конструкцией и технологической операцией ВОР по источникам ПД и пункту техчасти. Только если связь доказана, передай для ЭТОГО unit_scale scope_state=\"verified\" и scope_quote — точный фрагмент ТОГО ЖЕ нормативного источника с определением выбранной нормы и строкой «Измеритель»; обоснуй связь с ПД в normative:applicability. Если связь не установлена, сохрани unresolved и укажи конкретное недостающее основание. Исходные adjustments для этой базы уже переданы (1): перепроверь их буквальные ссылки, измеритель, шаг, направление и число шагов; не повторяй их вслепую и исправляй только недоказанные или ошибочные поля. Это обратная связь, а не подтверждение области или поправки; независимые guards остаются обязательны."
+      ],
+      "readonly_replay_state": "needs_facts",
+      "feedback_changes_input": false,
+      "scope_automatically_certified": false,
+      "artifact_limit": "References and integrity hashes recorded; original artifact payload is not claimed inspected. Direct bridge answers and identical telemetry response text independently establish the pre-validator omission/explicit unknown."
+    },
+    {
+      "index": 6,
+      "conclusion": "model_omission_then_explicit_unknown_not_pipeline_loss",
+      "first_raw_unit_scale": {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-06-03.answer.json",
+        "sha256": "8f42f855f2c7088234b380c66236afedd5f527ee26b1d1df51b9f213fd2cb9a1",
+        "unit_scale_raw": [
+          {
+            "value": "1000",
+            "quote": "Измеритель: 1000 м2",
+            "parameter": "unit_scale",
+            "unit": "м2",
+            "source_id": "s50"
+          }
+        ],
+        "scope_keys_presence": [
+          {
+            "scope_state": false,
+            "scope_quote": false
+          }
+        ],
+        "schema_normalized": [
+          {
+            "scope_relation": "same_layer",
+            "operation": "direct",
+            "operand_source_ids": [],
+            "scope_state": "unresolved",
+            "scope_quote": "",
+            "parameter": "unit_scale",
+            "value": "1000",
+            "unit": "м2",
+            "source_id": "s50",
+            "quote": "Измеритель: 1000 м2",
+            "conditions": []
+          }
+        ],
+        "wire_request_path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-06-03.request.json",
+        "wire_request_sha256": "99803bb0d3de9a4e42dc165e32a7c5b4182759150028263c0e938332bd6499cb",
+        "answer_validation": []
+      },
+      "all_raw_unit_scale_answers": [
+        {
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-06-03.answer.json",
+          "sha256": "8f42f855f2c7088234b380c66236afedd5f527ee26b1d1df51b9f213fd2cb9a1",
+          "unit_scale_raw": [
+            {
+              "value": "1000",
+              "quote": "Измеритель: 1000 м2",
+              "parameter": "unit_scale",
+              "unit": "м2",
+              "source_id": "s50"
+            }
+          ],
+          "scope_keys_presence": [
+            {
+              "scope_state": false,
+              "scope_quote": false
+            }
+          ],
+          "schema_normalized": [
+            {
+              "scope_relation": "same_layer",
+              "operation": "direct",
+              "operand_source_ids": [],
+              "scope_state": "unresolved",
+              "scope_quote": "",
+              "parameter": "unit_scale",
+              "value": "1000",
+              "unit": "м2",
+              "source_id": "s50",
+              "quote": "Измеритель: 1000 м2",
+              "conditions": []
+            }
+          ],
+          "wire_request_path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-06-03.request.json",
+          "wire_request_sha256": "99803bb0d3de9a4e42dc165e32a7c5b4182759150028263c0e938332bd6499cb",
+          "answer_validation": []
+        },
+        {
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-06-05.answer.json",
+          "sha256": "001d874847465a7826701c976c345397e63a721956e107fbf3704bbc48c4d9a0",
+          "unit_scale_raw": [
+            {
+              "unit": "м2",
+              "quote": "Измеритель: 1000 м2",
+              "value": "1000",
+              "operation": "direct",
+              "parameter": "unit_scale",
+              "source_id": "s50",
+              "conditions": [],
+              "scope_quote": "",
+              "scope_state": "unresolved",
+              "scope_relation": "same_layer",
+              "operand_source_ids": []
+            }
+          ],
+          "scope_keys_presence": [
+            {
+              "scope_state": true,
+              "scope_quote": true
+            }
+          ],
+          "schema_normalized": [
+            {
+              "scope_relation": "same_layer",
+              "operation": "direct",
+              "operand_source_ids": [],
+              "scope_state": "unresolved",
+              "scope_quote": "",
+              "parameter": "unit_scale",
+              "value": "1000",
+              "unit": "м2",
+              "source_id": "s50",
+              "quote": "Измеритель: 1000 м2",
+              "conditions": []
+            }
+          ],
+          "wire_request_path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-06-05.request.json",
+          "wire_request_sha256": "a34bfd043d073f3bcfa06c80e160d54d3b2bd2a42b59ce92bfd48edad2ad14f2",
+          "answer_validation": []
+        },
+        {
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-06-06.answer.json",
+          "sha256": "ab404ffb722e953743f67b33c1e7213f48be0b3c62ca264d4776b110dd5a0c27",
+          "unit_scale_raw": [
+            {
+              "unit": "м2",
+              "quote": "Измеритель: 1000 м2",
+              "value": "1000",
+              "operation": "direct",
+              "parameter": "unit_scale",
+              "source_id": "s50",
+              "conditions": [],
+              "scope_quote": "",
+              "scope_state": "unresolved",
+              "scope_relation": "same_layer",
+              "operand_source_ids": []
+            }
+          ],
+          "scope_keys_presence": [
+            {
+              "scope_state": true,
+              "scope_quote": true
+            }
+          ],
+          "schema_normalized": [
+            {
+              "scope_relation": "same_layer",
+              "operation": "direct",
+              "operand_source_ids": [],
+              "scope_state": "unresolved",
+              "scope_quote": "",
+              "parameter": "unit_scale",
+              "value": "1000",
+              "unit": "м2",
+              "source_id": "s50",
+              "quote": "Измеритель: 1000 м2",
+              "conditions": []
+            }
+          ],
+          "wire_request_path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-06-06.request.json",
+          "wire_request_sha256": "d90ce0581952e57e952d430f8cfbe25494f05c4e83adb9fb118d61de9c0131c1",
+          "answer_validation": [
+            "Для выбранной нормы 27-04-003-07 базовая толщина 15.00 см, проверенная толщина операции ВОР 10.00 см. Нужна явно выбранная поправка с буквальной ссылкой на эту базу, измерителем, шагом и направлением изменения. Укажи в adjustments base_source_id, adjustment_source_id, signed_steps, base_quote, adjustment_quote и включи обе нормы в нормативные ссылки применимости. Без доказанного расчёта поправки применимость остаётся needs_facts; это не доказанная ошибка ВОР. Доступные буквальные кандидаты: n8:full:f6aa24a5e4b561e8f9f6 (27-04-003-08), шаги -5"
+          ]
+        }
+      ],
+      "phases": [
+        {
+          "phase": "initial",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\new-6-initial.json",
+          "sha256": "dddda3757bcea6e08922a2353b95dda1d86913beab2c3f1b0e72c10f3b0a0bc5",
+          "saved_state": "needs_facts",
+          "saved_unit_scale": [
+            {
+              "unit": "м2",
+              "quote": "Измеритель: 1000 м2",
+              "value": "1000",
+              "operation": "direct",
+              "parameter": "unit_scale",
+              "source_id": "agent:n:norm-9fa5ca83c85fa83a9f10a6d1a1669939:full:ffae8cd5bcdc388a194b",
+              "conditions": [],
+              "scope_quote": "",
+              "scope_state": "unresolved",
+              "scope_relation": "same_layer",
+              "operand_source_ids": []
+            }
+          ],
+          "telemetry_responses": [
+            {
+              "response_index": 2,
+              "response_text_sha256": "04ebdfaa8b7019b73eb21a0ef0d09f1700802ab23ff1590fe33215cec839eb34",
+              "unit_scale_raw": [
+                {
+                  "value": "1000",
+                  "quote": "Измеритель: 1000 м2",
+                  "parameter": "unit_scale",
+                  "unit": "м2",
+                  "source_id": "s50"
+                }
+              ],
+              "matching_bridge_answer_paths": [
+                "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-06-03.answer.json"
+              ]
+            }
+          ],
+          "agent_artifact_reference": {
+            "key": "425705c0cdd4c1fae2100eaeca4096593636417460565fe65adec44ecc71c42d",
+            "stage": "normative_agent_evidence",
+            "sha256": "67a90490e4a379eb172508c2a7528c2b57be4486585fd8f2dd498dad1da0c1e0",
+            "source_contract": {
+              "schema": 1,
+              "source_pipeline": "4073723ddb1fa45522d9acf8868c8bb93902a5d715762becfece5008f72ef239"
+            }
+          },
+          "artifact_content_inspected": false
+        },
+        {
+          "phase": "followup",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\new-6-followup.json",
+          "sha256": "d51139d1d3403159cec4dcf0fde1c3e651054498ed8f697c61e6afe4eabbb9de",
+          "saved_state": "needs_facts",
+          "saved_unit_scale": [
+            {
+              "unit": "м2",
+              "quote": "Измеритель: 1000 м2",
+              "value": "1000",
+              "operation": "direct",
+              "parameter": "unit_scale",
+              "source_id": "agent:n:norm-9fa5ca83c85fa83a9f10a6d1a1669939:full:ffae8cd5bcdc388a194b",
+              "conditions": [],
+              "scope_quote": "",
+              "scope_state": "unresolved",
+              "scope_relation": "same_layer",
+              "operand_source_ids": []
+            }
+          ],
+          "telemetry_responses": [
+            {
+              "response_index": 1,
+              "response_text_sha256": "02078e8e62396e249f44ca793ea96dbbd02747f9d0b496b92dc34a723d79454f",
+              "unit_scale_raw": [
+                {
+                  "unit": "м2",
+                  "quote": "Измеритель: 1000 м2",
+                  "value": "1000",
+                  "operation": "direct",
+                  "parameter": "unit_scale",
+                  "source_id": "s50",
+                  "conditions": [],
+                  "scope_quote": "",
+                  "scope_state": "unresolved",
+                  "scope_relation": "same_layer",
+                  "operand_source_ids": []
+                }
+              ],
+              "matching_bridge_answer_paths": [
+                "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-06-05.answer.json"
+              ]
+            },
+            {
+              "response_index": 2,
+              "response_text_sha256": "c70a077051b79023679a12fe374c1c7a884a4a82c42a521f202231e26fc91ac9",
+              "unit_scale_raw": [
+                {
+                  "unit": "м2",
+                  "quote": "Измеритель: 1000 м2",
+                  "value": "1000",
+                  "operation": "direct",
+                  "parameter": "unit_scale",
+                  "source_id": "s50",
+                  "conditions": [],
+                  "scope_quote": "",
+                  "scope_state": "unresolved",
+                  "scope_relation": "same_layer",
+                  "operand_source_ids": []
+                }
+              ],
+              "matching_bridge_answer_paths": [
+                "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-06-06.answer.json"
+              ]
+            }
+          ],
+          "agent_artifact_reference": {
+            "key": "017d0fec0836988702910ae374d6e6ffff88b42daabe2562487bcba96cb18c35",
+            "stage": "normative_agent_evidence",
+            "sha256": "0f1c7d4a6d7b4d0bd23e2695d09338dc3506ca1cf45b52ef1ae309f5df14b27c",
+            "source_contract": {
+              "schema": 1,
+              "source_pipeline": "4073723ddb1fa45522d9acf8868c8bb93902a5d715762becfece5008f72ef239"
+            }
+          },
+          "artifact_content_inspected": false
+        },
+        {
+          "phase": "final",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\new-6-final.json",
+          "sha256": "d51139d1d3403159cec4dcf0fde1c3e651054498ed8f697c61e6afe4eabbb9de",
+          "saved_state": "needs_facts",
+          "saved_unit_scale": [
+            {
+              "unit": "м2",
+              "quote": "Измеритель: 1000 м2",
+              "value": "1000",
+              "operation": "direct",
+              "parameter": "unit_scale",
+              "source_id": "agent:n:norm-9fa5ca83c85fa83a9f10a6d1a1669939:full:ffae8cd5bcdc388a194b",
+              "conditions": [],
+              "scope_quote": "",
+              "scope_state": "unresolved",
+              "scope_relation": "same_layer",
+              "operand_source_ids": []
+            }
+          ],
+          "telemetry_responses": [
+            {
+              "response_index": 1,
+              "response_text_sha256": "02078e8e62396e249f44ca793ea96dbbd02747f9d0b496b92dc34a723d79454f",
+              "unit_scale_raw": [
+                {
+                  "unit": "м2",
+                  "quote": "Измеритель: 1000 м2",
+                  "value": "1000",
+                  "operation": "direct",
+                  "parameter": "unit_scale",
+                  "source_id": "s50",
+                  "conditions": [],
+                  "scope_quote": "",
+                  "scope_state": "unresolved",
+                  "scope_relation": "same_layer",
+                  "operand_source_ids": []
+                }
+              ],
+              "matching_bridge_answer_paths": [
+                "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-06-05.answer.json"
+              ]
+            },
+            {
+              "response_index": 2,
+              "response_text_sha256": "c70a077051b79023679a12fe374c1c7a884a4a82c42a521f202231e26fc91ac9",
+              "unit_scale_raw": [
+                {
+                  "unit": "м2",
+                  "quote": "Измеритель: 1000 м2",
+                  "value": "1000",
+                  "operation": "direct",
+                  "parameter": "unit_scale",
+                  "source_id": "s50",
+                  "conditions": [],
+                  "scope_quote": "",
+                  "scope_state": "unresolved",
+                  "scope_relation": "same_layer",
+                  "operand_source_ids": []
+                }
+              ],
+              "matching_bridge_answer_paths": [
+                "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\codex-pipeline-20261104\\q-06-06.answer.json"
+              ]
+            }
+          ],
+          "agent_artifact_reference": {
+            "key": "017d0fec0836988702910ae374d6e6ffff88b42daabe2562487bcba96cb18c35",
+            "stage": "normative_agent_evidence",
+            "sha256": "0f1c7d4a6d7b4d0bd23e2695d09338dc3506ca1cf45b52ef1ae309f5df14b27c",
+            "source_contract": {
+              "schema": 1,
+              "source_pipeline": "4073723ddb1fa45522d9acf8868c8bb93902a5d715762becfece5008f72ef239"
+            }
+          },
+          "artifact_content_inspected": false
+        }
+      ],
+      "observed_default": {
+        "scope_state": "unresolved",
+        "scope_quote": ""
+      },
+      "latest_findings": [
+        {
+          "kind": "mandatory_norm_thickness_adjustment_v1",
+          "reason": "unverified_selected_measure",
+          "base_source_id": "agent:n:norm-9fa5ca83c85fa83a9f10a6d1a1669939:full:ffae8cd5bcdc388a194b",
+          "base_code": "27-04-003-07",
+          "project_source_id": "prepared:native:50",
+          "project_quote": "Средний слой основания — щебёночно-песчаная смесь для оснований фр. 0/63 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=20 см",
+          "project_scope_quote": "Средний слой основания — щебёночно-песчаная смесь для оснований фр. 0/63 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=20 см",
+          "operation_quote": "h = 10см",
+          "operation_cm": "10.00",
+          "base_cm": "15.00",
+          "base_quote": "толщиной 15 см",
+          "adjustment_candidates": [
+            {
+              "source_id": "n8:full:f6aa24a5e4b561e8f9f6",
+              "code": "27-04-003-08",
+              "base_quote": "толщиной 15 см",
+              "adjustment_quote": "Таблица ГЭСН 27-04-003 Устройство оснований и покрытий из песчано-гравийных или\nщебеночно-песчаных смесей\nИзмеритель: 1000 м2\n27-04-003-08 На каждый 1 см изменения толщины слоя добавлять или исключать к нормам с 27-04-003-05 по 27-04-003-07\n",
+              "signed_steps": -5,
+              "scope_verified": false
+            }
+          ]
+        }
+      ],
+      "new_feedback": [
+        "Для выбранной нормы 27-04-003-07, unit_scale.source_id=agent:n:norm-9fa5ca83c85fa83a9f10a6d1a1669939:full:ffae8cd5bcdc388a194b: причина unverified_selected_measure — scope_state остаётся unresolved; scope_quote отсутствует. Буквальное число измерителя не подтверждает область выбранной нормы. Проверь связь её определения с материалом, конструкцией и технологической операцией ВОР по источникам ПД и пункту техчасти. Только если связь доказана, передай для ЭТОГО unit_scale scope_state=\"verified\" и scope_quote — точный фрагмент ТОГО ЖЕ нормативного источника с определением выбранной нормы и строкой «Измеритель»; обоснуй связь с ПД в normative:applicability. Если связь не установлена, сохрани unresolved и укажи конкретное недостающее основание. Исходные adjustments для этой базы уже переданы (1): перепроверь их буквальные ссылки, измеритель, шаг, направление и число шагов; не повторяй их вслепую и исправляй только недоказанные или ошибочные поля. Это обратная связь, а не подтверждение области или поправки; независимые guards остаются обязательны."
+      ],
+      "readonly_replay_state": "needs_facts",
+      "feedback_changes_input": false,
+      "scope_automatically_certified": false,
+      "artifact_limit": "References and integrity hashes recorded; original artifact payload is not claimed inspected. Direct bridge answers and identical telemetry response text independently establish the pre-validator omission/explicit unknown."
+    }
+  ],
+  "db_reads": 0,
+  "db_writes": 0,
+  "model_calls": 0,
+  "routerai_calls": 0
+}

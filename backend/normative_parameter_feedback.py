@@ -2,6 +2,36 @@
 from normative_parameters import clean, measure, quoted, unit_quoted
 
 
+def selected_measure_scope_feedback(finding, result):
+    """Name the unresolved selected measure without making a scope decision."""
+    sid = finding['base_source_id']
+    proposals = [p for p in result.get('parameter_proposals', [])
+        if p.get('parameter') == 'unit_scale' and p.get('source_id') == sid]
+    missing = []
+    if any(p.get('scope_state') != 'verified' for p in proposals) or not proposals:
+        missing.append('scope_state остаётся unresolved')
+    if any(not p.get('scope_quote') for p in proposals) or not proposals:
+        missing.append('scope_quote отсутствует')
+    choices = [e for e in result.get('evidence_trace', [])
+        if e.get('kind') == 'norm_thickness_adjustment_proposal_v1'
+        and e.get('base_source_id') == sid]
+    return ('Для выбранной нормы ' + finding['base_code'] + ', unit_scale.source_id=' + sid
+        + ': причина unverified_selected_measure — ' + '; '.join(missing) + '. '
+        'Одного числа недостаточно для однозначного выбора определения нормы. '
+        'Установи выбранный код и принадлежность строки «Измеритель» его определению. '
+        'Только если код и буквальная принадлежность измерителя установлены, передай для ЭТОГО unit_scale '
+        'scope_state="verified" и scope_quote — точный фрагмент ТОГО ЖЕ нормативного источника '
+        'с определением выбранной нормы и строкой «Измеритель». Это не подтверждает её техническую применимость. '
+        'Связь с материалом, конструкцией и операцией ПД проверяй отдельно в normative:applicability; '
+        'при недостаточном основании оставь именно этот аспект needs_facts. '
+        'Если сам выбранный код или принадлежность измерителя не установлены, сохрани unit_scale unresolved. '
+        + ('Исходные adjustments для этой базы уже переданы (' + str(len(choices)) + '): '
+            'перепроверь их буквальные ссылки, измеритель, шаг, направление и число шагов; '
+            'не повторяй их вслепую и исправляй только недоказанные или ошибочные поля. '
+            if choices else 'Явная поправка ещё не передана: после проверки заполни adjustments с буквальными ссылками, шагом и числом шагов. ')
+        + 'Это обратная связь, а не подтверждение области или поправки; независимые guards остаются обязательны.')
+
+
 def header_parameter_verified(proposal,source):
     """A verified body-cell amount does not verify an OCR header's thickness."""
     if (proposal.get('parameter')!='thickness' or ':cell:' not in source.get('id','')

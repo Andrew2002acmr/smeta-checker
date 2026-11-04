@@ -1,0 +1,8 @@
+{
+  "file": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\checkpoint-20261105-v26\\pipeline-artifacts-v26.zip",
+  "bytes": 20878372,
+  "sha256": "1a6d5dd68264598e83aff88562368166d7fc629e8dabc406374619d5c859474c",
+  "files": 230,
+  "crc_verified": true,
+  "scope": "New v25/v26 artifacts and their v24 prepared-corpus input; unchanged original blob store and normative release remain under fact-pipeline-inputs."
+}

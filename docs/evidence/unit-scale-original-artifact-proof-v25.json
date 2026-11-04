@@ -1,0 +1,60 @@
+{
+  "artifacts_found": 4,
+  "content_and_storage_hashes_valid": true,
+  "model_requests": 0,
+  "database_writes": 0,
+  "rows": [
+    {
+      "key": "425705c0cdd4c1fae2100eaeca4096593636417460565fe65adec44ecc71c42d",
+      "stage": "normative_agent_evidence",
+      "snapshot_sha256": "67a90490e4a379eb172508c2a7528c2b57be4486585fd8f2dd498dad1da0c1e0",
+      "unit_scale": [
+        {
+          "parameter": "unit_scale",
+          "source_id": "agent:n:norm-9fa5ca83c85fa83a9f10a6d1a1669939:full:ffae8cd5bcdc388a194b",
+          "scope_state": "unresolved",
+          "scope_quote": ""
+        }
+      ]
+    },
+    {
+      "key": "017d0fec0836988702910ae374d6e6ffff88b42daabe2562487bcba96cb18c35",
+      "stage": "normative_agent_evidence",
+      "snapshot_sha256": "0f1c7d4a6d7b4d0bd23e2695d09338dc3506ca1cf45b52ef1ae309f5df14b27c",
+      "unit_scale": [
+        {
+          "parameter": "unit_scale",
+          "source_id": "agent:n:norm-9fa5ca83c85fa83a9f10a6d1a1669939:full:ffae8cd5bcdc388a194b",
+          "scope_state": "unresolved",
+          "scope_quote": ""
+        }
+      ]
+    },
+    {
+      "key": "17172e586b9ec804cf6be88da4323614287064c024b8be1ff8b04065ded1c9a3",
+      "stage": "normative_agent_evidence",
+      "snapshot_sha256": "85a1bbb2bf818f904d30d6561c1109e7a6473ea69c4b07a47bdb921cce593520",
+      "unit_scale": [
+        {
+          "parameter": "unit_scale",
+          "source_id": "agent:n:norm-e66ab9327f20d1a1f80bfce37052ac53:full:b8da6338a3f7352e8ce4",
+          "scope_state": "unresolved",
+          "scope_quote": ""
+        }
+      ]
+    },
+    {
+      "key": "db082bd06dd8165c4d537a1ad60ee09342271b4507677b5b226a4b20917a5a7c",
+      "stage": "normative_agent_evidence",
+      "snapshot_sha256": "615b74906d37b0e3674af3a12757991f087f4df7d3b4d16c9b6346cfda2d0fb5",
+      "unit_scale": [
+        {
+          "parameter": "unit_scale",
+          "source_id": "agent:n:norm-e66ab9327f20d1a1f80bfce37052ac53:full:b8da6338a3f7352e8ce4",
+          "scope_state": "unresolved",
+          "scope_quote": ""
+        }
+      ]
+    }
+  ]
+}

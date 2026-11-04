@@ -30,7 +30,7 @@ from functools import lru_cache
 
 from PIL import Image
 
-ALGO_VERSION = "ocr-tsv-v5"
+ALGO_VERSION = "ocr-tsv-v6-pdf-clips"
 CACHE_FORMAT = "ocr-tsv-v1"
 CACHE_SCHEMA = 2
 ORIENTATIONS = (0, 90, 180, 270)
@@ -120,6 +120,18 @@ def bounded_render_dpi(width_pt, height_pt, dpi=200, max_pixels=12000000,
             return dpi
         dpi -= 1
     raise ValueError("Размер страницы не позволяет рендер в пределах бюджета изображения")
+
+
+def _bounded_clip_dpi(clip, dpi, max_pixels, max_side):
+    """Include the clip's fractional device origin in the allocation bound."""
+    import pymupdf
+    chosen = bounded_render_dpi(clip.width, clip.height, dpi, max_pixels, max_side)
+    while chosen > 0:
+        device = (clip * pymupdf.Matrix(chosen / 72, chosen / 72)).irect
+        if device.width * device.height <= max_pixels and max(device.width, device.height) <= max_side:
+            return chosen
+        chosen -= 1
+    raise ValueError("Кроп не позволяет рендер в пределах бюджета изображения")
 
 
 def run_tsv(png_bytes, language="rus+eng", psm=OVERVIEW_PSM,
@@ -584,19 +596,28 @@ def recognize_page(page, *, language="rus+eng", dpi=200, max_pixels=12000000,
     dpi_crop = None
     recovered = False
     if needs_crops and passes_used < MAX_TSV_PASSES:
-        dpi_crop = bounded_render_dpi(
-            float(rect.width), float(rect.height),
-            min(QUADRANT_DPI, max(dpi, QUADRANT_DPI)), max_pixels, max_side)
-        hires = _pil_from_pixmap(page.get_pixmap(dpi=dpi_crop, alpha=False))
-        rotated = _rotate(hires, best_angle)
-        rotated_size = rotated.size
-        for name, box in quadrant_boxes(rotated_size[0], rotated_size[1]):
+        import pymupdf
+        # The grid remains in the chosen overview orientation. Render each
+        # corresponding display-frame PDF clip directly: limiting a whole-page
+        # bitmap first otherwise deprives large CAD crops of their own budget.
+        for name, box in quadrant_boxes(best['size'][0], best['size'][1]):
             if passes_used >= MAX_TSV_PASSES:
                 break
-            crop = rotated.crop(box)
-            enhanced = _enhance_crop(crop)
-            rescale = crop.width / enhanced.width
+            base_box = _unrotate_box(box, best_angle, best['size'])
+            clip = pymupdf.Rect(rect.x0 + base_box[0] * scale[0],
+                rect.y0 + base_box[1] * scale[1], rect.x0 + base_box[2] * scale[0],
+                rect.y0 + base_box[3] * scale[1])
             try:
+                clip_dpi = _bounded_clip_dpi(clip, QUADRANT_DPI, max_pixels, max_side)
+                dpi_crop = clip_dpi if dpi_crop is None else min(dpi_crop, clip_dpi)
+                clip_pix = page.get_pixmap(dpi=clip_dpi, alpha=False, clip=clip)
+                # get_pixmap(clip=...) preserves intrinsic page rotation and
+                # reports the rounded absolute device origin in pix.x/pix.y.
+                device_origin = (clip_pix.x, clip_pix.y)
+                crop = _rotate(_pil_from_pixmap(clip_pix), best_angle)
+                del clip_pix
+                enhanced = _enhance_crop(crop)
+                rescale = crop.width / enhanced.width
                 raw = parse_tsv(run_tsv(_to_png(enhanced), language, CROP_PSM, timeout))
                 passes_used += 1
             except SoftTimeLimitExceeded:
@@ -606,25 +627,24 @@ def recognize_page(page, *, language="rus+eng", dpi=200, max_pixels=12000000,
                 pass_failures.append("crop %s: %s" % (name, str(exc)[:160]))
                 continue
             crops_done.append(name)
-            origin = (box[0], box[1])
             for word in raw:
                 box_px = (word["left"] * rescale, word["top"] * rescale,
                           (word["left"] + word["width"]) * rescale,
                           (word["top"] + word["height"]) * rescale)
-                # Rescale crop pixels (hi-res) into the rotated overview frame.
-                factor_x = best["size"][0] / rotated_size[0]
-                factor_y = best["size"][1] / rotated_size[1]
-                frame_box = ((box_px[0] + origin[0]) * factor_x,
-                             (box_px[1] + origin[1]) * factor_y,
-                             (box_px[2] + origin[0]) * factor_x,
-                             (box_px[3] + origin[1]) * factor_y)
+                local_box = _unrotate_box(box_px, best_angle, crop.size)
+                pixel_pt = 72 / clip_dpi
+                display_box = [(local_box[0] + device_origin[0]) * pixel_pt,
+                               (local_box[1] + device_origin[1]) * pixel_pt,
+                               (local_box[2] + device_origin[0]) * pixel_pt,
+                               (local_box[3] + device_origin[1]) * pixel_pt]
+                overview_box = ((display_box[0] - rect.x0) / scale[0],
+                                (display_box[1] - rect.y0) / scale[1],
+                                (display_box[2] - rect.x0) / scale[0],
+                                (display_box[3] - rect.y0) / scale[1])
+                frame_box = _unrotate_box(overview_box, -best_angle, base_size)
                 # TSV-frame coords for banding (transpose-aware).
                 tx0, ty0, tx1, ty1 = frame_box
-                base_box = _unrotate_box(frame_box, best_angle, best["size"])
-                mapped = [rect.x0 + base_box[0] * scale[0],
-                          rect.y0 + base_box[1] * scale[1],
-                          rect.x0 + base_box[2] * scale[0],
-                          rect.y0 + base_box[3] * scale[1]]
+                mapped = display_box
                 if page_derotation is not None:
                     mapped = list(_apply_matrix(mapped, page_derotation))
                 bounds = _apply_matrix((rect.x0, rect.y0, rect.x1, rect.y1), page_derotation) if page_derotation else (rect.x0, rect.y0, rect.x1, rect.y1)
