@@ -154,8 +154,11 @@ def retrieve(context, record, index, payload, position, citations, kb, normalize
             quote=c["quote"][:2000]) for c in citations[:6]])
     items = {}
     client = None
-    tracing = TracingRun(context.settings.langfuse_public_key, context.settings.langfuse_secret_key,
-        context.settings.langfuse_base_url, context.settings.langfuse_environment,
+    tracing = TracingRun(
+        endpoint=context.settings.phoenix_collector_endpoint,
+        project=context.settings.phoenix_project_name,
+        public_url=context.settings.phoenix_public_url,
+        environment=context.settings.phoenix_environment,
         audit_run_id=str(record["id"]), redact_pdf=context.settings.telemetry_redact_pdf,
         mask_prompts=context.settings.telemetry_mask_prompts)
     trace = tracing.position(input={"operation": "normative-context", "position_index": index},

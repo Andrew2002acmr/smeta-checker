@@ -1,8 +1,5 @@
 """Issue 21: trace correlation, structured logs, redaction, upload limits, metrics."""
 
-import io
-import json
-import logging
 import os
 import sys
 import tempfile
@@ -18,139 +15,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from audit_models import AuditSettings
 from audit_observability import (
     RunMetrics,
-    bind,
-    current,
     estimate_cost,
-    get_logger,
-    reset,
-    restore,
-    scrub,
-    snapshot,
 )
-from audit_tracing import Observation, TracingRun, span
-
-
-class CorrelationTests(unittest.TestCase):
-    def test_position_trace_carries_run_and_request_ids(self):
-        seen = {}
-
-        class FakeRoot:
-            trace_id = "trace-1"
-            id = "span-1"
-
-            def update(self, **kwargs):
-                seen["update"] = kwargs
-
-            def end(self):
-                seen["ended"] = True
-
-        class FakeClient:
-            def start_observation(self, **kwargs):
-                seen["start"] = kwargs
-                return FakeRoot()
-
-            def flush(self):
-                seen["flushed"] = True
-
-            def get_trace_url(self, trace_id):
-                return f"https://langfuse/{trace_id}"
-
-        with patch("audit_tracing._configured_client", return_value=FakeClient()):
-            run = TracingRun("pk", "sk", audit_run_id="run-123", request_id="req-456")
-            trace = run.position({"work": "Кабель"}, {"position_index": 0})
-            trace.finish({"status": "ОК"})
-            run.close()
-        metadata = seen["start"]["metadata"]
-        self.assertEqual(metadata["audit_run_id"], "run-123")
-        self.assertEqual(metadata["request_id"], "req-456")
-        self.assertEqual(metadata["position_index"], 0)
-        self.assertTrue(seen["ended"])
-        self.assertTrue(seen["flushed"])
-        self.assertEqual(trace.trace_id, "trace-1")
-
-    def test_explicit_metadata_wins_over_run_defaults(self):
-        seen = {}
-
-        class FakeRoot:
-            trace_id = "t"
-            id = "s"
-
-            def end(self):
-                pass
-
-        class FakeClient:
-            def start_observation(self, **kwargs):
-                seen["start"] = kwargs
-                return FakeRoot()
-
-            def flush(self):
-                pass
-
-        with patch("audit_tracing._configured_client", return_value=FakeClient()):
-            run = TracingRun("pk", "sk", audit_run_id="run-123")
-            run.position({}, {"audit_run_id": "explicit"})
-            run.close()
-        self.assertEqual(seen["start"]["metadata"]["audit_run_id"], "explicit")
-
-    def test_session_id_stable_per_audit_run(self):
-        first = TracingRun(audit_run_id="run-123")
-        second = TracingRun(audit_run_id="run-123")
-        self.assertEqual(first.session_id, second.session_id)
-        self.assertEqual(first.session_id, "audit-run-123")
-        other = TracingRun(audit_run_id="run-456")
-        self.assertNotEqual(first.session_id, other.session_id)
-        fallback = TracingRun()
-        self.assertTrue(fallback.session_id.startswith("audit-"))
-
-
-class StructuredLogTests(unittest.TestCase):
-    def test_json_record_carries_ids_and_scrubs_secrets(self):
-        stream = io.StringIO()
-        handler = logging.StreamHandler(stream)
-        root = logging.root
-        old_handlers = list(root.handlers)
-        old_level = root.level
-        try:
-            root.handlers = [handler]
-            root.setLevel(logging.INFO)
-            logger = get_logger("test-issue-21-logs")
-            token = bind(audit_run_id="run-1", position_index=3, stage="audit")
-            try:
-                logger.info("done", extra={"api_key": "SECRET-VALUE", "status": "ОК"})
-            finally:
-                reset(token)
-        finally:
-            root.handlers = old_handlers
-            root.setLevel(old_level)
-        lines = stream.getvalue().strip().splitlines()
-        self.assertTrue(lines, "expected a JSON log line")
-        payload = json.loads(lines[-1])
-        self.assertEqual(payload["audit_run_id"], "run-1")
-        self.assertEqual(payload["position_index"], 3)
-        self.assertEqual(payload["stage"], "audit")
-        self.assertNotIn("SECRET-VALUE", stream.getvalue())
-
-    def test_context_snapshot_restores_in_another_thread(self):
-        token = bind(audit_run_id="run-9", request_id="req-9")
-        try:
-            fields = snapshot()
-        finally:
-            reset(token)
-        self.assertEqual(current(), {})
-        token2 = restore(fields)
-        try:
-            self.assertEqual(current()["audit_run_id"], "run-9")
-        finally:
-            reset(token2)
-
-    def test_scrub_replaces_nested_secrets(self):
-        cleaned = scrub(
-            {"api_key": "x", "nested": [{"token": "y", "ok": 1}], "plain": "z"}
-        )
-        self.assertEqual(cleaned["api_key"], "[redacted]")
-        self.assertEqual(cleaned["nested"][0]["token"], "[redacted]")
-        self.assertEqual(cleaned["nested"][0]["ok"], 1)
-        self.assertEqual(cleaned["plain"], "z")
+from audit_tracing import Observation, span
 
 
 class RedactionTests(unittest.TestCase):

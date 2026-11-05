@@ -253,10 +253,10 @@ def prepare_run(
     )
     pool: dict[str, Any] = {}
     trace_run = TracingRun(
-        context.settings.langfuse_public_key,
-        context.settings.langfuse_secret_key,
-        context.settings.langfuse_base_url,
-        context.settings.langfuse_environment,
+        endpoint=context.settings.phoenix_collector_endpoint,
+        project=context.settings.phoenix_project_name,
+        public_url=context.settings.phoenix_public_url,
+        environment=context.settings.phoenix_environment,
         audit_run_id=str(run_id),
         request_id=request_id,
         redact_pdf=context.settings.telemetry_redact_pdf,
@@ -645,10 +645,10 @@ def audit_position(
                 )
                 return {"position_index": position_index, "duplicate": False}
             trace_run = TracingRun(
-                context.settings.langfuse_public_key,
-                context.settings.langfuse_secret_key,
-                context.settings.langfuse_base_url,
-                context.settings.langfuse_environment,
+                endpoint=context.settings.phoenix_collector_endpoint,
+                project=context.settings.phoenix_project_name,
+                public_url=context.settings.phoenix_public_url,
+                environment=context.settings.phoenix_environment,
                 audit_run_id=str(run_id),
                 request_id=resolved_request,
                 redact_pdf=context.settings.telemetry_redact_pdf,

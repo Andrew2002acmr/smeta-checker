@@ -784,10 +784,10 @@ class AuditSettings(BaseModel):
     llm_base_url: str = "https://ai.api.cloud.yandex.net/v1"
     llm_api_key: str = ""
     llm_model: str = ""
-    langfuse_public_key: str = ""
-    langfuse_secret_key: str = ""
-    langfuse_base_url: str = "https://cloud.langfuse.com"
-    langfuse_environment: str = "development"
+    phoenix_collector_endpoint: str = ""
+    phoenix_project_name: str = "smeta-checker"
+    phoenix_public_url: str = ""
+    phoenix_environment: str = "production"
     telemetry_redact_pdf: bool = False
     telemetry_mask_prompts: bool = False
     database_url: str = ""
@@ -894,23 +894,17 @@ class AuditSettings(BaseModel):
             llm_base_url=llm_base_url,
             llm_api_key=llm_api_key,
             llm_model=llm_model,
-            langfuse_public_key=get_setting(
-                "LANGFUSE_PUBLIC_KEY", "", file_values=file_values, secrets=secrets
+            phoenix_collector_endpoint=get_setting(
+                "PHOENIX_COLLECTOR_ENDPOINT", "", file_values=file_values, secrets=secrets
             ),
-            langfuse_secret_key=get_setting(
-                "LANGFUSE_SECRET_KEY", "", file_values=file_values, secrets=secrets
+            phoenix_project_name=get_setting(
+                "PHOENIX_PROJECT_NAME", "smeta-checker", file_values=file_values, secrets=secrets
             ),
-            langfuse_base_url=get_setting(
-                "LANGFUSE_BASE_URL",
-                "https://cloud.langfuse.com",
-                file_values=file_values,
-                secrets=secrets,
+            phoenix_public_url=get_setting(
+                "PHOENIX_PUBLIC_URL", "", file_values=file_values, secrets=secrets
             ),
-            langfuse_environment=get_setting(
-                "LANGFUSE_ENVIRONMENT",
-                "development",
-                file_values=file_values,
-                secrets=secrets,
+            phoenix_environment=get_setting(
+                "PHOENIX_ENVIRONMENT", "production", file_values=file_values, secrets=secrets
             ),
             telemetry_redact_pdf=_truthy("AUDIT_TELEMETRY_REDACT_PDF"),
             telemetry_mask_prompts=_truthy("AUDIT_TELEMETRY_MASK_PROMPTS"),
