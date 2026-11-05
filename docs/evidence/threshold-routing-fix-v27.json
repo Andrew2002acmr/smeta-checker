@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "change": "conditional_comment_threshold_plan_routing_v27",
+  "contract_version": "verification-relations-v4",
+  "changed_production_and_test_files": [
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_verification_contract.py",
+      "sha256": "511442b8c7d737f4a7dfb794f9f95d9ae816afc7d2cf0fc294ced3084bd2c9c4"
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\normative_position_check.py",
+      "sha256": "5504f29552338faff24221e7c685d335f04a2b36d269f9e256ac57583e3a1fdf"
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\tests\\test_normative_verification_contract.py",
+      "sha256": "66d71bc1ad163ebe19ebf2a60575fcf8aed2d1df6232a6f149fb445c15bbe4bf"
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\tests\\test_material_prompt_contract.py",
+      "sha256": "20a24ac741a97f96cd059e8280c4e838f7dd6ead72adf83c3296d08a960a6438"
+    }
+  ],
+  "preceding_readonly_audit": {
+    "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\introduced-norm-selection-scope-audit-v27.json",
+    "sha256": "96b48c64375e125a61746f9a2785610a83b06caabb4325b75c778106b66ca480",
+    "boundary": "Read-only audit is retained as the pre-fix observation. The subsequent two-file metadata fix was separately authorized by root."
+  },
+  "behavior": "NPC builds verification_tasks once, then definitions_for_plan reuses a linear claim-id mapping for recognized contextual thresholds. The actual packet has identical verification/evidence_task in claim_definitions and verification_plan. Only positive full comment conditions reroute; threshold handles, expected_text, required flags, project operands, all ordinary claims and complete compound comment tails remain. No automatic confirmation.",
+  "standalone_definition_boundary": "Standalone definition(spec) without a complete position keeps the legacy fallback. The actual position-aware NPC caller now binds both packet fields from the same plan before methodology context creation; no contradictory fallback is sent for recognized thresholds.",
+  "validation": [
+    {
+      "command": "python -B -X utf8 -m pytest --basetemp=.audit_cache/goal80-20261104/pytest-threshold-v27-84ce12 --maxfail=1 --tb=short tests/test_normative_verification_contract.py tests/test_normative_layer_conditions.py tests/test_normative_layer_role_scope.py tests/test_normative_referenced_layer_condition.py tests/test_normative_conditional_selection.py tests/test_material_prompt_contract.py tests/test_quantity_subject_contract.py",
+      "result": "168 passed in 6.75s"
+    },
+    {
+      "command": "python -B -X utf8 -m ruff check normative_verification_contract.py normative_position_check.py tests/test_normative_verification_contract.py tests/test_material_prompt_contract.py",
+      "result": "All checks passed"
+    },
+    {
+      "command": "python -B -X utf8 -m pyright --pythonpath backend/.venv/Scripts/python.exe normative_verification_contract.py normative_position_check.py pdf_binding.py audit_delivery.py audit_models.py workspace_models.py normative_corpus.py",
+      "result": "0 errors, 0 warnings, 0 informations"
+    },
+    {
+      "command": "git diff --check -- backend/normative_verification_contract.py backend/normative_position_check.py backend/tests/test_normative_verification_contract.py backend/tests/test_material_prompt_contract.py",
+      "result": "passed"
+    }
+  ],
+  "test_coverage": [
+    "18cm condition with actual20cm middle layer remains unresolved for normative branch",
+    "ordinary8cm and conditional18cm in the same comment retain distinct subjects",
+    "full lower/upper/single role prefix and changed operator/threshold/unit survive",
+    "compound06/07/±1/08 tail and every existing required claim survive",
+    "negative/incomplete/three-layer comments are not rerouted",
+    "changed normative threshold/operator does not become confirmed",
+    "material scopes and original CPU selection guards retain tests",
+    "Actual agent wire has identical contextual definition/plan metadata for threshold18cm and unchanged ordinary8cm",
+    "Definition builder reuses the one plan without reparsing per claim; modifying a returned definition does not mutate the plan"
+  ],
+  "environment_recoveries": [
+    "Initial default encoding could not load an existing UTF8 fixture; rerun with -X utf8.",
+    "Default pytest temp directory denied by sandbox; rerun in a fresh .audit_cache basetemp.",
+    "Direct pyright including the pre-existing whole test file reports earlier line78 optional/type errors; final production+configured module check uses the explicit venv and passes. Those unrelated existing test lines were not edited."
+  ],
+  "not_changed": [
+    "normative_conditional_selection.py",
+    "normative_layer_conditions.py",
+    "normative_claim_definitions.py",
+    "NPC pipeline version",
+    "CPU guards",
+    "saved model answers",
+    "statuses",
+    "pin",
+    "source freeze of pilot47"
+  ],
+  "model_calls": 0,
+  "DB_writes": 0,
+  "pilot47_boundary": "Earlier pilot47 source freeze8714004 predates this metadata fix; no attribution of this fix to that pilot."
+}

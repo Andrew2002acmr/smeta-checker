@@ -1,0 +1,10 @@
+{
+  "authorized_attempt_cap": 60,
+  "previous_pilot_attempts": 30,
+  "diagnostic_attempts": 1,
+  "total_attempts": 31,
+  "remaining_attempts_conservative": 29,
+  "diagnostic_status": 429,
+  "blocker": "api_key_monthly_spending_limit_exceeded",
+  "retry_pilot_started": false
+}

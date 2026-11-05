@@ -1,0 +1,89 @@
+{
+  "kind": "areal-resource-recovery-binding-audit-v29",
+  "production_changes": false,
+  "database_writes": false,
+  "model_calls": 0,
+  "method": "Actual snapshot_answer/revalidate_answer restoration + actual hydrate + actual enrich; validate_agent_saved boundary stub invokes the same hydration/enrichment pair to avoid repository/DB side effects. Fake read-only query adapter and existing fixture style candidate serializer used; no SQLite/Postgres DB created or changed.",
+  "production_code_sha256": {
+    "normative_resource_recovery.py": "83ff3f6a7475c44f5754855a117e8687b7beeea619f305788936f1c0350fc677",
+    "normative_evidence_snapshot.py": "ad23a1881716a29cec84020e8cbcb373163863dfcae819be10b960af7629ab78",
+    "normative_resource_consumption.py": "b9657e50f74671b1b075decb38a3e3b7ccc997b18a33e5daa3018c5ea42b0ce5",
+    "normative_lawn_soil_scope.py": "e73f0233436b42fb40a3268d416fe97803d5cb21903b09cc27f1255a4b2bf364",
+    "normative_position_check.py": "5504f29552338faff24221e7c685d335f04a2b36d269f9e256ac57583e3a1fdf"
+  },
+  "baseline": {
+    "quantity": "confirmed",
+    "area": "confirmed",
+    "proof": true
+  },
+  "typed_event_count_after_snapshot_restore": 0,
+  "selected_norm_ids": [
+    [
+      "n"
+    ]
+  ],
+  "recovered_events": [
+    {
+      "norm_source_id": "recovered:a43996b39fc2f45d39e28790",
+      "base_card_exists": false,
+      "resources": [
+        "recovered:a43996b39fc2f45d39e28790:resources:60"
+      ]
+    }
+  ],
+  "recovery_metadata": [
+    {
+      "kind": "pinned_resource_recovery_v1",
+      "kb": {
+        "sha256": "immutable-test",
+        "release_id": "read-only-reproducer"
+      },
+      "norms": [
+        {
+          "norm_id": "norm-123",
+          "code": "27-06-035-01",
+          "base_source_id": "n",
+          "source_ids": [
+            "recovered:a43996b39fc2f45d39e28790:resources:60"
+          ],
+          "resource_count": 1,
+          "resources_truncated": false,
+          "project_rate_resources": []
+        }
+      ],
+      "model_requests": 0,
+      "applicability_confirmed": false
+    }
+  ],
+  "repeat_hydrate_typed_event_count": 1,
+  "after_standard_snapshot_hydrate": {
+    "quantity": "needs_facts",
+    "area": "confirmed",
+    "proof": false
+  },
+  "after_detached_base_source_rebind": {
+    "quantity": "confirmed",
+    "area": "confirmed",
+    "proof": true
+  },
+  "code_stable": true,
+  "finding_ru": "Подозрение подтверждено: fully qualified положительный пример после штатного удаления typedEVENT и восстановления hydrate теряет ресурсное доказательство. Восстановленный event.norm_source_id указывает на recovered prefix, а полноценной norm source card с таким id нет и model selection указывает на исходныйn. Это fail-closed replay gap, а не ложный C; actual47 независимо остаётся N по семантике.",
+  "minimal_patch_proposal": {
+    "location": "normative_resource_recovery.hydrate, after resource_sources(formatted,prefix,evidence_trace=trace)",
+    "change": "Keep recovered prefix and resource-source IDs unchanged; bind each recovered typed EVENT.norm_source_id to source[\"id\"] (the already selected full original definition card) rather than the resource-prefix alias. Existing pinned_resource_recovery_v1 already records base_source_id=source[\"id\"]. Preserve explicit alias/prefix metadata if needed for cleanup.",
+    "idempotency": "Adjust hydrate cleanup to replace only this recovery emission by recovered resource prefix (or explicit recovery marker) while retaining the original selected base ID; otherwise repeated hydrate would append duplicate rebound events because existing cleanup matches norm_source_id==prefix. Do not delete independent events for another definition merely sharing a code.",
+    "preserve": [
+      "Exact pinned KB norm id/code/PDF/status checks",
+      "Source_definition/full-selected-definition guard and all category/method guards",
+      "Original model items and applicability state",
+      "Existing resource source IDs/citations and no new aliases inserted into model-selected IDs",
+      "Legacy t/t behavior; no new C for actual47"
+    ],
+    "proof_of_sufficiency": "Detached in-memory event base rebind to n restores C for this fully qualified synthetic positive without altering resources, area, dose, selection, definition or model items.",
+    "test_needed": "Regression for snapshot removal→hydrate→enrich plus repeated hydration idempotency; unselected/wrong/ambiguous base and ordinary/meadow/method negatives remain rejected."
+  },
+  "limits": [
+    "This is a bounded helper integration reproducer, not an end-to-end repository validation with DB. validate_agent_saved exact hydrate call was inspected at line1167.",
+    "No production patch, source rebuilding, provider request, DB change or result-status update performed."
+  ]
+}

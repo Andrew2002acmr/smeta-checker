@@ -1,0 +1,1158 @@
+{
+  "schema": "position59_edition_scope_source_audit_v31",
+  "created_utc": "2026-11-04T22:53:04.877187+00:00",
+  "status": "partial_source_chain_no_verdict_change",
+  "scope": "Read-only saved source/position/callsite audit. No models, DB, production edits, KB changes or status changes.",
+  "inputs": [
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\linked-ten-v15\\new-59-final.json",
+      "sha256": "a50f6c0e844133cc0fe4361fb156e232a625cfe34159ab1f09b85f0487b76a00",
+      "bytes": 352033
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\confirmed-register-v30\\59.json",
+      "sha256": "5e9a9f5f1320ec6cc06c3e18a28c60393c199682e99262febe956374e7ad7a95",
+      "bytes": 241328
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\baseline-run.json",
+      "sha256": "54b80be6b4d22123726c28aeb78e94b76366e26dc7811874e07a3535d9899e09",
+      "bytes": 9001833
+    }
+  ],
+  "register_comparison": {
+    "different_top_level_fields": [
+      "parameter_schema_version"
+    ],
+    "items_equal": true,
+    "state_equal": true
+  },
+  "vor59": {
+    "unit": "м2",
+    "index": 59,
+    "number": "",
+    "volume": "874.42",
+    "comment": "Укладка а/укладчиком Vögele SUPER 1600 2 типоразмера",
+    "formula": "",
+    "file_ref": "",
+    "page_ref": "",
+    "reference": "",
+    "work_name": "Устройство нижнего слоя покрытия из асфальтобетонной смеси, асфальтоукладчиком 2 типоразмера, h = 8 см",
+    "bind_error": null,
+    "prep_error": null,
+    "calculation": {},
+    "document_id": "",
+    "formula_refs": {
+      "display_cell": "E81"
+    },
+    "explicit_refs": [],
+    "position_type": "Работа",
+    "primary_pages": [],
+    "target_indices": [],
+    "bind_error_kind": null,
+    "position_source": {
+      "row": 81,
+      "cells": {
+        "B81": "Устройство нижнего слоя покрытия из асфальтобетонной смеси, асфальтоукладчиком 2 типоразмера, h = 8 см",
+        "C81": "м2",
+        "D81": "874.42",
+        "I81": "Укладка а/укладчиком Vögele SUPER 1600 2 типоразмера",
+        "K81": "Работа"
+      },
+      "sheet": "Дорожная одежда",
+      "format": "xlsx",
+      "sections": [
+        {
+          "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+          "address": "A70"
+        }
+      ],
+      "scope_key": "",
+      "header_row": 15,
+      "position_id": "4b5d03827ea0ce64:Дорожная одежда:81",
+      "scope_reason": "unknown",
+      "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+      "continuation_rows": []
+    },
+    "prep_error_kind": null,
+    "designation_refs": [],
+    "location_description": "Страница не указана"
+  },
+  "relations": {
+    "parent": null,
+    "children": [
+      {
+        "row": 81,
+        "name": "Устройство нижнего слоя покрытия из асфальтобетонной смеси, асфальтоукладчиком 2 типоразмера, h = 8 см",
+        "unit": "т",
+        "work": "Асфальтобетонная смесь А22НЛ Асфальтобетон по ГОСТ 58406.2-2020 с использованием полимерно-битумного вяжущего БНД 70/100 по ГОСТ Р33133-2014, с максимальным размером зёрен 22,4 мм",
+        "index": 59,
+        "sheet": "Дорожная одежда",
+        "number": "60",
+        "quantity": "172.3656704",
+        "expression": "=874.42/1000*197.12",
+        "material_index": 60
+      }
+    ],
+    "material_owner": null,
+    "children_truncated": false
+  },
+  "nearby_rows": [
+    {
+      "unit": "т",
+      "index": 57,
+      "number": "",
+      "volume": "0.699536",
+      "comment": "Расход 0,8 л/м2",
+      "formula": "874,42*0,8/1000",
+      "file_ref": "",
+      "page_ref": "",
+      "reference": "",
+      "work_name": "Подгрунтовочные работы на верхний слой основания",
+      "bind_error": null,
+      "prep_error": null,
+      "calculation": {
+        "cell": "D79",
+        "error": null,
+        "value": "0.699536",
+        "status": "calculated",
+        "expression": "=874.42*0.8/1000",
+        "cached_value": 0.699536,
+        "dependencies": [
+          {
+            "cell": null,
+            "value": "874.42",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "874.42",
+            "cached_value": null
+          },
+          {
+            "cell": null,
+            "value": "0.8",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "0.8",
+            "cached_value": null
+          },
+          {
+            "cell": null,
+            "value": "1000",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "1000",
+            "cached_value": null
+          }
+        ],
+        "cached_mismatch": false
+      },
+      "document_id": "",
+      "formula_refs": {
+        "display_cell": "E79"
+      },
+      "explicit_refs": [],
+      "position_type": "Работа",
+      "primary_pages": [],
+      "target_indices": [],
+      "bind_error_kind": null,
+      "position_source": {
+        "row": 79,
+        "cells": {
+          "B79": "Подгрунтовочные работы на верхний слой основания",
+          "C79": "т",
+          "D79": "0.699536",
+          "E79": "874,42*0,8/1000",
+          "I79": "Расход 0,8 л/м2",
+          "K79": "Работа"
+        },
+        "sheet": "Дорожная одежда",
+        "format": "xlsx",
+        "sections": [
+          {
+            "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+            "address": "A70"
+          }
+        ],
+        "scope_key": "",
+        "header_row": 15,
+        "position_id": "4b5d03827ea0ce64:Дорожная одежда:79",
+        "scope_reason": "unknown",
+        "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+        "continuation_rows": []
+      },
+      "prep_error_kind": null,
+      "designation_refs": [],
+      "location_description": "Страница не указана"
+    },
+    {
+      "unit": "т",
+      "index": 58,
+      "number": "",
+      "volume": "0.721",
+      "comment": "Коэффициент расхода - 1,03",
+      "formula": "0,7*1,03",
+      "file_ref": "",
+      "page_ref": "",
+      "reference": "",
+      "work_name": "Битумная эмульсия ЭБДК Б",
+      "bind_error": null,
+      "prep_error": null,
+      "calculation": {
+        "cell": "D80",
+        "error": null,
+        "value": "0.721",
+        "status": "calculated",
+        "expression": "=0.7*1.03",
+        "cached_value": 0.721,
+        "dependencies": [
+          {
+            "cell": null,
+            "value": "0.7",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "0.7",
+            "cached_value": null
+          },
+          {
+            "cell": null,
+            "value": "1.03",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "1.03",
+            "cached_value": null
+          }
+        ],
+        "cached_mismatch": false
+      },
+      "document_id": "",
+      "formula_refs": {
+        "display_cell": "E80"
+      },
+      "explicit_refs": [],
+      "position_type": "Материал",
+      "primary_pages": [],
+      "target_indices": [],
+      "bind_error_kind": null,
+      "position_source": {
+        "row": 80,
+        "cells": {
+          "B80": "Битумная эмульсия ЭБДК Б",
+          "C80": "т",
+          "D80": "0.721",
+          "E80": "0,7*1,03",
+          "I80": "Коэффициент расхода - 1,03",
+          "K80": "Материал"
+        },
+        "sheet": "Дорожная одежда",
+        "format": "xlsx",
+        "sections": [
+          {
+            "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+            "address": "A70"
+          }
+        ],
+        "scope_key": "",
+        "header_row": 15,
+        "position_id": "4b5d03827ea0ce64:Дорожная одежда:80",
+        "scope_reason": "unknown",
+        "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+        "continuation_rows": []
+      },
+      "prep_error_kind": null,
+      "designation_refs": [],
+      "location_description": "Страница не указана"
+    },
+    {
+      "unit": "м2",
+      "index": 59,
+      "number": "",
+      "volume": "874.42",
+      "comment": "Укладка а/укладчиком Vögele SUPER 1600 2 типоразмера",
+      "formula": "",
+      "file_ref": "",
+      "page_ref": "",
+      "reference": "",
+      "work_name": "Устройство нижнего слоя покрытия из асфальтобетонной смеси, асфальтоукладчиком 2 типоразмера, h = 8 см",
+      "bind_error": null,
+      "prep_error": null,
+      "calculation": {},
+      "document_id": "",
+      "formula_refs": {
+        "display_cell": "E81"
+      },
+      "explicit_refs": [],
+      "position_type": "Работа",
+      "primary_pages": [],
+      "target_indices": [],
+      "bind_error_kind": null,
+      "position_source": {
+        "row": 81,
+        "cells": {
+          "B81": "Устройство нижнего слоя покрытия из асфальтобетонной смеси, асфальтоукладчиком 2 типоразмера, h = 8 см",
+          "C81": "м2",
+          "D81": "874.42",
+          "I81": "Укладка а/укладчиком Vögele SUPER 1600 2 типоразмера",
+          "K81": "Работа"
+        },
+        "sheet": "Дорожная одежда",
+        "format": "xlsx",
+        "sections": [
+          {
+            "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+            "address": "A70"
+          }
+        ],
+        "scope_key": "",
+        "header_row": 15,
+        "position_id": "4b5d03827ea0ce64:Дорожная одежда:81",
+        "scope_reason": "unknown",
+        "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+        "continuation_rows": []
+      },
+      "prep_error_kind": null,
+      "designation_refs": [],
+      "location_description": "Страница не указана"
+    },
+    {
+      "unit": "т",
+      "index": 60,
+      "number": "",
+      "volume": "172.3656704",
+      "comment": "Расход а/б смеси на 1000м2 Тех.часть ГЭСН 81-02-27-2022 прил. 27.1(Ү-2,7-2,9т/м3) 98,56+(12,32*8)=197,12т",
+      "formula": "874,42/1000*197,12",
+      "file_ref": "",
+      "page_ref": "",
+      "reference": "",
+      "work_name": "Асфальтобетонная смесь А22НЛ Асфальтобетон по ГОСТ 58406.2-2020 с использованием полимерно-битумного вяжущего БНД 70/100 по ГОСТ Р33133-2014, с максимальным размером зёрен 22,4 мм",
+      "bind_error": null,
+      "prep_error": null,
+      "calculation": {
+        "cell": "D82",
+        "error": null,
+        "value": "172.3656704",
+        "status": "calculated",
+        "expression": "=874.42/1000*197.12",
+        "cached_value": 172.3656704,
+        "dependencies": [
+          {
+            "cell": null,
+            "value": "874.42",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "874.42",
+            "cached_value": null
+          },
+          {
+            "cell": null,
+            "value": "1000",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "1000",
+            "cached_value": null
+          },
+          {
+            "cell": null,
+            "value": "197.12",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "197.12",
+            "cached_value": null
+          }
+        ],
+        "cached_mismatch": false
+      },
+      "document_id": "",
+      "formula_refs": {
+        "display_cell": "E82"
+      },
+      "explicit_refs": [],
+      "position_type": "Материал",
+      "primary_pages": [],
+      "target_indices": [],
+      "bind_error_kind": null,
+      "position_source": {
+        "row": 82,
+        "cells": {
+          "B82": "Асфальтобетонная смесь А22НЛ Асфальтобетон по ГОСТ 58406.2-2020 с использованием полимерно-битумного вяжущего БНД 70/100 по ГОСТ Р33133-2014, с максимальным размером зёрен 22,4 мм",
+          "C82": "т",
+          "D82": "172.3656704",
+          "E82": "874,42/1000*197,12",
+          "I82": "Расход а/б смеси на 1000м2 Тех.часть ГЭСН 81-02-27-2022 прил. 27.1(Ү-2,7-2,9т/м3) 98,56+(12,32*8)=197,12т",
+          "K82": "Материал"
+        },
+        "sheet": "Дорожная одежда",
+        "format": "xlsx",
+        "sections": [
+          {
+            "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+            "address": "A70"
+          }
+        ],
+        "scope_key": "",
+        "header_row": 15,
+        "position_id": "4b5d03827ea0ce64:Дорожная одежда:82",
+        "scope_reason": "unknown",
+        "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+        "continuation_rows": []
+      },
+      "prep_error_kind": null,
+      "designation_refs": [],
+      "location_description": "Страница не указана"
+    },
+    {
+      "unit": "т",
+      "index": 61,
+      "number": "",
+      "volume": "0.349768",
+      "comment": "Расход 0,4 л/м2",
+      "formula": "874,42*0,4/1000",
+      "file_ref": "",
+      "page_ref": "",
+      "reference": "",
+      "work_name": "Розлив битумной эмульсии на нижний слой покрытия",
+      "bind_error": null,
+      "prep_error": null,
+      "calculation": {
+        "cell": "D83",
+        "error": null,
+        "value": "0.349768",
+        "status": "calculated",
+        "expression": "=874.42*0.4/1000",
+        "cached_value": 0.349768,
+        "dependencies": [
+          {
+            "cell": null,
+            "value": "874.42",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "874.42",
+            "cached_value": null
+          },
+          {
+            "cell": null,
+            "value": "0.4",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "0.4",
+            "cached_value": null
+          },
+          {
+            "cell": null,
+            "value": "1000",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "1000",
+            "cached_value": null
+          }
+        ],
+        "cached_mismatch": false
+      },
+      "document_id": "",
+      "formula_refs": {
+        "display_cell": "E83"
+      },
+      "explicit_refs": [],
+      "position_type": "Работа",
+      "primary_pages": [],
+      "target_indices": [],
+      "bind_error_kind": null,
+      "position_source": {
+        "row": 83,
+        "cells": {
+          "B83": "Розлив битумной эмульсии на нижний слой покрытия",
+          "C83": "т",
+          "D83": "0.349768",
+          "E83": "874,42*0,4/1000",
+          "I83": "Расход 0,4 л/м2",
+          "K83": "Работа"
+        },
+        "sheet": "Дорожная одежда",
+        "format": "xlsx",
+        "sections": [
+          {
+            "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+            "address": "A70"
+          }
+        ],
+        "scope_key": "",
+        "header_row": 15,
+        "position_id": "4b5d03827ea0ce64:Дорожная одежда:83",
+        "scope_reason": "unknown",
+        "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+        "continuation_rows": []
+      },
+      "prep_error_kind": null,
+      "designation_refs": [],
+      "location_description": "Страница не указана"
+    },
+    {
+      "unit": "т",
+      "index": 62,
+      "number": "",
+      "volume": "0.3605",
+      "comment": "Коэффициент расхода - 1,03",
+      "formula": "0,35*1,03",
+      "file_ref": "",
+      "page_ref": "",
+      "reference": "",
+      "work_name": "Битумная эмульсия ЭБДК Б",
+      "bind_error": null,
+      "prep_error": null,
+      "calculation": {
+        "cell": "D84",
+        "error": null,
+        "value": "0.3605",
+        "status": "calculated",
+        "expression": "=0.35*1.03",
+        "cached_value": 0.3605,
+        "dependencies": [
+          {
+            "cell": null,
+            "value": "0.35",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "0.35",
+            "cached_value": null
+          },
+          {
+            "cell": null,
+            "value": "1.03",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "1.03",
+            "cached_value": null
+          }
+        ],
+        "cached_mismatch": false
+      },
+      "document_id": "",
+      "formula_refs": {
+        "display_cell": "E84"
+      },
+      "explicit_refs": [],
+      "position_type": "Материал",
+      "primary_pages": [],
+      "target_indices": [],
+      "bind_error_kind": null,
+      "position_source": {
+        "row": 84,
+        "cells": {
+          "B84": "Битумная эмульсия ЭБДК Б",
+          "C84": "т",
+          "D84": "0.3605",
+          "E84": "0,35*1,03",
+          "I84": "Коэффициент расхода - 1,03",
+          "K84": "Материал"
+        },
+        "sheet": "Дорожная одежда",
+        "format": "xlsx",
+        "sections": [
+          {
+            "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+            "address": "A70"
+          }
+        ],
+        "scope_key": "",
+        "header_row": 15,
+        "position_id": "4b5d03827ea0ce64:Дорожная одежда:84",
+        "scope_reason": "unknown",
+        "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+        "continuation_rows": []
+      },
+      "prep_error_kind": null,
+      "designation_refs": [],
+      "location_description": "Страница не указана"
+    },
+    {
+      "unit": "м2",
+      "index": 63,
+      "number": "",
+      "volume": "874.42",
+      "comment": "Укладка а/укладчиком Vögele SUPER 1600 2 типоразмера",
+      "formula": "",
+      "file_ref": "",
+      "page_ref": "",
+      "reference": "",
+      "work_name": "Устройство верхнего слоя покрытия из асфальтобетонной смеси, асфальтоукладчиком 3 типоразмера,, h = 6 см",
+      "bind_error": null,
+      "prep_error": null,
+      "calculation": {},
+      "document_id": "",
+      "formula_refs": {
+        "display_cell": "E85"
+      },
+      "explicit_refs": [],
+      "position_type": "Работа",
+      "primary_pages": [],
+      "target_indices": [],
+      "bind_error_kind": null,
+      "position_source": {
+        "row": 85,
+        "cells": {
+          "B85": "Устройство верхнего слоя покрытия из асфальтобетонной смеси, асфальтоукладчиком 3 типоразмера,, h = 6 см",
+          "C85": "м2",
+          "D85": "874.42",
+          "I85": "Укладка а/укладчиком Vögele SUPER 1600 2 типоразмера",
+          "K85": "Работа"
+        },
+        "sheet": "Дорожная одежда",
+        "format": "xlsx",
+        "sections": [
+          {
+            "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+            "address": "A70"
+          }
+        ],
+        "scope_key": "",
+        "header_row": 15,
+        "position_id": "4b5d03827ea0ce64:Дорожная одежда:85",
+        "scope_reason": "unknown",
+        "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+        "continuation_rows": []
+      },
+      "prep_error_kind": null,
+      "designation_refs": [],
+      "location_description": "Страница не указана"
+    },
+    {
+      "unit": "т",
+      "index": 64,
+      "number": "",
+      "volume": "130.0175098",
+      "comment": "Расход а/б смеси на 1000м2 Тех.часть ГЭСН 81-02-27-2022 прил. 27.1 (Ү-2,7-2,9т/м3) 99,13+(12,39*4)=148,69т",
+      "formula": "874,42/1000*148,69",
+      "file_ref": "",
+      "page_ref": "",
+      "reference": "",
+      "work_name": "Асфальтобетонная смесь А16ВЛ Асфальтобетон по ГОСТ 58406.2-2020 с использованием полимерно-битумного вяжущего на БНД 70/100 по ГОСТ 33133-2014, с максимальным размером зёрен 16 мм",
+      "bind_error": null,
+      "prep_error": null,
+      "calculation": {
+        "cell": "D86",
+        "error": null,
+        "value": "130.0175098",
+        "status": "calculated",
+        "expression": "=874.42/1000*148.69",
+        "cached_value": 130.0175098,
+        "dependencies": [
+          {
+            "cell": null,
+            "value": "874.42",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "874.42",
+            "cached_value": null
+          },
+          {
+            "cell": null,
+            "value": "1000",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "1000",
+            "cached_value": null
+          },
+          {
+            "cell": null,
+            "value": "148.69",
+            "origin": "formula_literal",
+            "status": "calculated",
+            "expression": "148.69",
+            "cached_value": null
+          }
+        ],
+        "cached_mismatch": false
+      },
+      "document_id": "",
+      "formula_refs": {
+        "display_cell": "E86"
+      },
+      "explicit_refs": [],
+      "position_type": "Материал",
+      "primary_pages": [],
+      "target_indices": [],
+      "bind_error_kind": null,
+      "position_source": {
+        "row": 86,
+        "cells": {
+          "B86": "Асфальтобетонная смесь А16ВЛ Асфальтобетон по ГОСТ 58406.2-2020 с использованием полимерно-битумного вяжущего на БНД 70/100 по ГОСТ 33133-2014, с максимальным размером зёрен 16 мм",
+          "C86": "т",
+          "D86": "130.0175098",
+          "E86": "874,42/1000*148,69",
+          "I86": "Расход а/б смеси на 1000м2 Тех.часть ГЭСН 81-02-27-2022 прил. 27.1 (Ү-2,7-2,9т/м3) 99,13+(12,39*4)=148,69т",
+          "K86": "Материал"
+        },
+        "sheet": "Дорожная одежда",
+        "format": "xlsx",
+        "sections": [
+          {
+            "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+            "address": "A70"
+          }
+        ],
+        "scope_key": "",
+        "header_row": 15,
+        "position_id": "4b5d03827ea0ce64:Дорожная одежда:86",
+        "scope_reason": "unknown",
+        "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+        "continuation_rows": []
+      },
+      "prep_error_kind": null,
+      "designation_refs": [],
+      "location_description": "Страница не указана"
+    }
+  ],
+  "independent_claims": [
+    {
+      "claim": "physical lower asphalt layer thickness8cm, exit scope, area874.42m2",
+      "basis": "Saved bound PDTypeIII native50 and PD90 total cell, literal parameter proposals/cards",
+      "source_ids": [
+        "agent:p50:0",
+        "agent:p90:cell:9daf30e9f69f8ce43d1ba515"
+      ],
+      "limit": "Does not establish one priced technological course or current normative edition."
+    },
+    {
+      "claim": "second paver size declared",
+      "basis": "VOR59 literal name/comment and selected029-01 resource row",
+      "limit": "Machine class is independent of numerical thickness-course applicability; brand certification not claimed."
+    },
+    {
+      "claim": "physical presence and basic laying process",
+      "basis": "PD construction and literal selected norm composition",
+      "limit": "Does not alone prove the selected norm plus adjustment is applicable at8cm in the correct edition."
+    },
+    {
+      "claim": "child60 mass and density basis",
+      "basis": "VOR60 independent rate formula; saved optional needs_facts",
+      "limit": "Not established by parent59 geometry. Maximum stone/material density must not be treated as mixture bulk density."
+    }
+  ],
+  "normative_applicability_dependency": {
+    "saved_summary": "Наличие, площадь и механизированное устройство нижнего покрытия съездов подтверждены; 8 см допускаются с поправкой. Расход дочернего материала требует проектного основания. Редакция на дату проекта не проверена.",
+    "saved_items": [
+      {
+        "state": "confirmed",
+        "topic": "Нижнее покрытие съездов",
+        "required": true,
+        "claim_ids": [
+          "quantity",
+          "unit"
+        ],
+        "explanation": "Тип III в ПД: нижний слой А22Нл на БНД 70/100, h=8 см. В ведомости съездов прочитан итог именно площади А22Нл h=0,08m: 874,42 м2. Он соответствует работе ВОР.",
+        "project_source_ids": [
+          "agent:p50:0",
+          "agent:p90:0",
+          "agent:p90:cell:9daf30e9f69f8ce43d1ba515"
+        ],
+        "normative_source_ids": []
+      },
+      {
+        "state": "confirmed",
+        "topic": "Нижнее покрытие съездов",
+        "required": true,
+        "claim_ids": [
+          "presence"
+        ],
+        "explanation": "Тип III в ПД: нижний слой А22Нл на БНД 70/100, h=8 см. В ведомости съездов прочитан итог именно площади А22Нл h=0,08m: 874,42 м2. Он соответствует работе ВОР.",
+        "project_source_ids": [
+          "agent:p50:0",
+          "agent:p90:0",
+          "agent:p90:cell:9daf30e9f69f8ce43d1ba515"
+        ],
+        "normative_source_ids": []
+      },
+      {
+        "state": "confirmed",
+        "topic": "Состав работ",
+        "required": true,
+        "claim_ids": [
+          "method"
+        ],
+        "explanation": "ПД задаёт асфальтобетонное покрытие А22Нл съездов. Норма 27-06-029-01 предусматривает подготовку основания, подачу и укладку горячей смеси, предварительное, основное и окончательное уплотнение; механизированный способ соответствует этой конструкции.",
+        "project_source_ids": [
+          "agent:p50:0"
+        ],
+        "normative_source_ids": [
+          "n2:full:8324c8b24f8448bc0fc2",
+          "collection:clause-d7fb04d617811bd6b4ffa2e8e065774e"
+        ]
+      },
+      {
+        "state": "confirmed",
+        "topic": "Асфальтоукладчик второго типоразмера",
+        "required": true,
+        "claim_ids": [
+          "method:comment:equipment:1"
+        ],
+        "explanation": "Заголовок нормы 27-06-029-01 прямо задаёт укладку асфальтоукладчиком второго типоразмера; ресурс 91.08.01-004 имеет ненулевой расход 2,04 маш.-ч. Для проектного покрытия съездов этот класс входит в выбранный способ. Проверяемый предикат не требует подтверждать торговую марку.",
+        "project_source_ids": [
+          "agent:p50:0"
+        ],
+        "normative_source_ids": [
+          "n2:full:8324c8b24f8448bc0fc2",
+          "n2:full:8324c8b24f8448bc0fc2:resources:57",
+          "collection:clause-d7fb04d617811bd6b4ffa2e8e065774e"
+        ]
+      },
+      {
+        "state": "confirmed",
+        "topic": "Применимость и толщина",
+        "required": true,
+        "claim_ids": [
+          "normative:applicability"
+        ],
+        "explanation": "Горячее асфальтобетонное покрытие съездов А22Нл толщиной 8 см соответствует области 27-06-029. Пункт 1.27.37 разрешает эти нормы до 8 см включительно. К базе 4 см применяется 8 добавлений по 0,5 см нормы 27-06-030-01. Расход смеси проверяется отдельно по 1.27.35.",
+        "project_source_ids": [
+          "agent:p50:0",
+          "agent:p90:0"
+        ],
+        "normative_source_ids": [
+          "n2:full:8324c8b24f8448bc0fc2",
+          "n7:full:4b15b36f7265345bc20c",
+          "collection:clause-d7fb04d617811bd6b4ffa2e8e065774e"
+        ]
+      },
+      {
+        "state": "needs_facts",
+        "topic": "Расход дочерней смеси",
+        "required": false,
+        "claim_ids": [
+          "related:60:rate"
+        ],
+        "explanation": "В ресурсах 27-06-029-01 строка «04.2.01.01 Смеси асфальтобетонные; т: П». Пункт 1.27.35 требует проектный расход. Формула ВОР 98,56+12,32*8=197,12 арифметически верна, но проектная плотность или основание данного массового расхода для А22Нл не установлены.",
+        "project_source_ids": [
+          "agent:p50:0"
+        ],
+        "normative_source_ids": [
+          "n2:full:8324c8b24f8448bc0fc2:resources:57",
+          "collection:clause-d7fb04d617811bd6b4ffa2e8e065774e"
+        ]
+      },
+      {
+        "state": "confirmed",
+        "topic": "Количество и единица по проверенным источникам",
+        "required": true,
+        "claim_ids": [
+          "quantity",
+          "unit"
+        ],
+        "explanation": "Количество 874.42 м2 подтверждено буквальными источниками ПД; значение ВОР сопоставлено с учётом единиц и точности записи. Измеритель выбранной нормы проверен по нормативному источнику.",
+        "project_source_ids": [
+          "agent:p90:cell:9daf30e9f69f8ce43d1ba515"
+        ],
+        "normative_source_ids": [
+          "n2:full:8324c8b24f8448bc0fc2"
+        ]
+      }
+    ],
+    "saved_kb_pin": {
+      "sha256": "5792fb3906ef159b188b6058e564429d402337234ad856d39b0bf0ee29084c8d",
+      "profile": "roads",
+      "database": "releases/fact-inline-20261103-v4/knowledge.sqlite",
+      "release_id": "fact-inline-20261103-v4"
+    },
+    "old_delivered_clause_source": {
+      "id": "collection:clause-d7fb04d617811bd6b4ffa2e8e065774e",
+      "kind": "normative",
+      "page": 3,
+      "text": "                                                ГЭСН 81-02-27-2022 Автомобильные дороги\n    а) при устройстве изоляционного слоя из бумаги двухслойной, пропитанной битумом, – 100 м2, битум жидкий –\n0,02 т;\n   б) при устройстве изоляционного слоя из черного песка: песок черный – 33 м3.\n   1.27.32.  Устройство  однослойных  покрытий  средствами  малой  механизации,  определяется  по  нормам\n27-06-002-17, 27-06-002-18, что обосновывается проектом.\n   1.27.33. При поверхностной обработке органическими вяжущими материалами  с применением битумной\nэмульсии в нормах табл. 27-06-023 фракции щебня мытого принимать по проекту.\n   1.27.34. Основания, устраиваемые из черного щебня с использованием двух расклинивающихся фракций щебня,\nопределяется по норме 27-06-018-01.\n   1.27.35. При определении затрат на устройство покрытий толщиной 4 см из горячих асфальтобетонных смесей с\nприменением норм табл. с 27-06-029 по 27-06-032 норму расхода асфальтобетонной смеси принимать на основании\nпроектных данных.\n  При применении щебёночно-мастичных асфальтобетонных смесей укладку определять по нормам 27-06-029-01,\n27-06-030-01, 27-06-031-01, 27-06-031-02, 27-06-032-01, 27-06-032-02, состав смеси подбирать индивидуально. Норму\nрасхода асфальтобетонной смеси принимать на основании проектных данных.\n  При определении затрат на устройство асфальтобетонного лотка вдоль кромки проезжей части с применением\nнорм 27-06-030-02, 27-06-069-01 норму расхода асфальтобетонной смеси принимать на основании проектных данных.\n   1.27.36. При укладке асфальтобетонных смесей во влажный и холодный периоды года при просушке оснований к\nнормам на укладку 1000 м2 покрытия добавлять нормы для разогревателей асфальтобетона, маш.-ч: при щебеночных\nили гравийных основаниях – 12,5, при бетонных основаниях – 9,4, при булыжных мостовых – 6,3. Необходимость\nпрогревания обосновывается проектом.\n       1.27.37. При устройстве покрытия из асфальтобетонных смесей не учтены работы по розливу вяжущих\n материалов.\n     При необходимости эти затраты определяются по табл. 27-06-026 или 27-06-035, а расход принимать по\n проекту.\n     Нормами табл. 27-06-029, 27-06-030, 27-06-031, 27-06-032 пользоваться при толщине слоя до 8 см. При\n толщине слоя более 8 см его устройство нормировать в два слоя (для каждого слоя отдельно) по нормам табл. 27-06-\n 029, 27-06-031 с корректировкой нормами табл. 27-06-030 и 27-06-032.\n   1.27.38. ",
+      "label": "ГЭСН 27 ФСНБ-2022 · page-3-offset-0",
+      "origin": "extracted_native_unreviewed",
+      "citations": [
+        {
+          "source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+          "physical_page": 3
+        }
+      ],
+      "clause_id": "clause-d7fb04d617811bd6b4ffa2e8e065774e",
+      "source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+      "kb_identity": {
+        "sha256": "5792fb3906ef159b188b6058e564429d402337234ad856d39b0bf0ee29084c8d",
+        "profile": "roads",
+        "database": "releases/fact-inline-20261103-v4/knowledge.sqlite",
+        "release_id": "fact-inline-20261103-v4"
+      },
+      "text_sha256": "34ba24df79735511e48e15461faf4c718547657df9c0b6a5619b1f26424e3426",
+      "source_sha256": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5",
+      "citation_pages": [
+        3
+      ],
+      "edition_status": "metadata_checked_amendments_incomplete",
+      "source_provenance": {
+        "url": "https://www.i-tat.ru/file/filemanag/2c4b502b6c2fe756f912fe206d8d1181.pdf",
+        "edition": "base designation verified; all amendments not verified",
+        "provenance": "institutional mirror; originating publisher not verified",
+        "edition_state": "metadata_checked_amendments_incomplete"
+      },
+      "automatic_application_allowed": false
+    },
+    "old_1_27_37_literal": "1.27.37. При устройстве покрытия из асфальтобетонных смесей не учтены работы по розливу вяжущих\n материалов.\n     При необходимости эти затраты определяются по табл. 27-06-026 или 27-06-035, а расход принимать по\n проекту.\n     Нормами табл. 27-06-029, 27-06-030, 27-06-031, 27-06-032 пользоваться при толщине слоя до 8 см. При\n толщине слоя более 8 см его устройство нормировать в два слоя (для каждого слоя отдельно) по нормам табл. 27-06-\n 029, 27-06-031 с корректировкой нормами табл. 27-06-030 и 27-06-032.",
+    "raw_model_selected_adjustments": [
+      {
+        "base_source_id": "s2",
+        "base_quote": "толщина слоя 4 см",
+        "adjustment_source_id": "s7",
+        "adjustment_quote": "Таблица ГЭСН 27-06-030 Нормы для корректировки таблицы 27-06-029\nИзмеритель: 1000 м2 (норма 27-06-030-01); 1000 м (норма 27-06-030-02)\nПри изменении толщины покрытия на 0,5 см добавлять или исключать:\n27-06-030-01 к норме 27-06-029-01",
+        "signed_steps": 8
+      }
+    ],
+    "authorship": "VOR59 has h8cm and paver class, but no norm029-01 or one-course4+8x0.5 prescription. Server exposed arithmetic candidates as scope_verified:false in q59-01; q59-02 model selected the candidate and justified it using delivered original8cm clause. This is a model-introduced pricing selection with edition risk, not evidence of an explicitly wrong VOR physical construction.",
+    "read_source": "q59-01 explicitly requested s31; saved evidence_trace contains read_source for the collection clause. Thus the original8cm condition was read, not merely absent from context.",
+    "quantity_vs_price": "A single physical8cm lower layer can require two separately priced courses under an applicable7cm ceiling without inventing two PD or VOR construction rows.",
+    "rate_arithmetic": "Child60 declares98.56+12.32*8=197.12t/1000m2. Numerically this equals2*98.56, but this scalar equality proves neither density/applicability nor equality of labour/machine pricing for one8cm versus two4cm courses."
+  },
+  "project_date_and_identity": {
+    "original_pd": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\blobs\\e4\\81\\e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+      "sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+      "bytes": 15491969
+    },
+    "pd_title_year": "2026",
+    "pd_designation": "006/26-ТКР1,Том3.1",
+    "pd_first_two_pages": [
+      "«Мост через р. Искитимка (Большая Камышная)\nпо ул. Автозаводская с подъездными путями»\nПРОЕКТНАЯ ДОКУМЕНТАЦИЯ\nРаздел 3. Технологические и конструктивные решения\nлинейного объекта. Искусственные сооружения\nЧасть 1. Капитальный ремонт ул. Автозаводская в границах от ул.\nПролетарская до середины проезда к зданию ул. Автозаводская, 10Б\n006/26-ТКР1\nТом 3.1\nКемерово, 2026\n",
+      "Заказчик:\nАдминистрация города Кемерово\n«Мост через р. Искитимка (Большая Камышная)\nпо ул. Автозаводская с подъездными путями»\nПРОЕКТНАЯ ДОКУМЕНТАЦИЯ\nРаздел 3. Технологические и конструктивные решения\nлинейного объекта. Искусственные сооружения\nЧасть 1. Капитальный ремонт ул. Автозаводская в границах от ул.\nПролетарская до середины проезда к зданию ул. Автозаводская, 10Б\n006/26-ТКР1\nТом 3.1\nТехнический директор\nА.Н. Соболев\nГлавный инженер проекта\nД.С. Трубников\nКемерово, 2026\n"
+    ],
+    "pdf_metadata": {
+      "format": "PDF 1.7",
+      "title": "",
+      "author": "Ангелина Геннадьевна Теклева",
+      "subject": "",
+      "keywords": "",
+      "creator": "Microsoft® Word LTSC",
+      "producer": "Microsoft® Word LTSC",
+      "creationDate": "D:20261022153351+07'00'",
+      "modDate": "D:20261026141205+07'00'",
+      "trapped": "",
+      "encryption": null
+    },
+    "vor_original": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\blobs\\4b\\5d\\4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+      "sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+      "bytes": 24709
+    },
+    "vor_docprops_core_raw": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:dcmitype=\"http://purl.org/dc/dcmitype/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><dc:creator>Михаил Алексеевич Грузденко</dc:creator><cp:lastModifiedBy>Михаил Алексеевич Грузденко</cp:lastModifiedBy><cp:lastPrinted>2025-01-10T07:33:13Z</cp:lastPrinted><dcterms:created xsi:type=\"dcterms:W3CDTF\">2024-12-17T08:18:00Z</dcterms:created><dcterms:modified xsi:type=\"dcterms:W3CDTF\">2026-10-13T02:02:23Z</dcterms:modified></cp:coreProperties>",
+    "saved_project_date": "",
+    "conclusion": "No explicit approved project/estimate normative edition cutoff was identified. Title2026, PDF creation/modification and XLSX file dates are not approval dates or legal price-basis dates. Saved summary itself says edition on project date unverified."
+  },
+  "primary_chain": {
+    "prior_frozen_report": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30.json",
+      "sha256": "579568a7fd922ca3afa82effd1349178ef60ef3bf6c743e14ed2aa24b25f0f41",
+      "bytes": 85465
+    },
+    "original1046": "Official exact6aa source p3 has8cm; authenticity resolved in v30.",
+    "replacement378": "Official2d9d1f source p3 has7cm, and appendix27.1 absent within inspected appendix coverage.",
+    "order69": {
+      "sha256": "ed354800378624cb0b1da9c6f4adf3ad5bbecf27b5fbeac47cf27d5e67b6c174",
+      "physical_page": 188,
+      "literal": "1.27.37. При устройстве покрытия из асфальтобетонных смесей не \nучтены работы по розливу вяжущих материалов (кроме норм табл. 27-06-031). \nПри необходимости эти затраты определяются по табл. 27-06-026 или 27-06-\n035, а расход принимается по проекту. \nНормы табл. 27-06-029, 27-06-030, 27-06-031, 27-06-032 применяются \nпри устройстве слоя покрытия толщиной до 7 см. При толщине слоя более 7 \nсм затраты на его устройство определяются по нормам табл. 27-06-029, 27-06-\n031 в два слоя (для каждого слоя отдельно) и корректируется нормами табл. \n27-06-030 и 27-06-032.».",
+      "effect": "Explicit replacement of1.27.37 retains7cm and adds binder exception for031. Not evidence of restoration to8cm."
+    },
+    "later_bounded_checks": [
+      {
+        "order": 696,
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\position59-edition-v31\\official696-amendment.pdf",
+        "sha256": "b50fd9dca74b044f1f088cafc9fae5d3c98137b42955809234de6af2c3901b85",
+        "bytes": 25501808,
+        "pages": 770,
+        "exact_whitespace_folded_clause_hits": [],
+        "road_heading_pages": [
+          276
+        ],
+        "negative_scope": "Exact native clause-number search over every page; does not certify completeness of the amendment chain or all possible unnumbered edits."
+      },
+      {
+        "order": 91,
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\position59-edition-v31\\official91-amendment.pdf",
+        "sha256": "379e15c7e1a5984ad722a44b7971bb7c0938ca40bf784e2371228b9a6b49e4b3",
+        "bytes": 23362765,
+        "pages": 950,
+        "exact_whitespace_folded_clause_hits": [],
+        "road_heading_pages": [
+          254
+        ],
+        "negative_scope": "Exact native clause-number search over every page; does not certify completeness of the amendment chain or all possible unnumbered edits."
+      },
+      {
+        "order": 527,
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\position59-edition-v31\\official527-amendment.pdf",
+        "sha256": "45013c805d6f4a93a451e0708a325e08d97814157b6323b85d4a74338a19f558",
+        "bytes": 36247679,
+        "pages": 1059,
+        "exact_whitespace_folded_clause_hits": [],
+        "road_heading_pages": [
+          343
+        ],
+        "negative_scope": "Exact native clause-number search over every page; does not certify completeness of the amendment chain or all possible unnumbered edits."
+      }
+    ],
+    "order301": {
+      "download": {
+        "url": "https://www.minstroyrf.gov.ru/upload/iblock/6e9/5q59c8y4u28t6lx16l5a53hcphfbzo5s/%D0%BF%D1%80%D0%B8%D0%BA%D0%B0%D0%B7%20301%D0%BF%D1%80.pdf",
+        "utc": "2026-11-04T22:50:07.092654+00:00",
+        "link_discovery": "parent supplied link from secondary index; facts only from primary downloaded bytes",
+        "head_status": 200,
+        "head_headers": {
+          "Server": "nginx",
+          "Date": "Wed, 04 Nov 2026 22:49:57 GMT",
+          "Content-Type": "application/pdf",
+          "Content-Length": "399889",
+          "Connection": "close",
+          "Last-Modified": "Tue, 19 May 2026 08:23:07 GMT",
+          "ETag": "\"6a0c1deb-61a11\"",
+          "Strict-Transport-Security": "max-age=31536000;",
+          "Accept-Ranges": "bytes"
+        },
+        "remaining_budget_bytes": 14887748,
+        "result": "saved",
+        "bytes": 399889,
+        "sha256": "771ff3154187c524ea78ed373b28408e2119883e86783ef328315f9533f90ef3",
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\position59-edition-v31\\official301-order.pdf"
+      },
+      "physical_page": 1,
+      "visual_validated_transcription": {
+        "date": "15.05.2026",
+        "number": "301/пр",
+        "application_from": "25.05.2026",
+        "approved_attached_amendments": true,
+        "previous_last_order": "17.02.2026№91/пр"
+      },
+      "limits": "This one-page signed order is not its annex. No clause35/37 content is proved by this order alone. Annex301 remains a specific gap."
+    },
+    "order435": {
+      "download": {
+        "url": "https://www.minstroyrf.gov.ru/upload/iblock/09d/27076vjuagfdysdjfpw04e4wlju47c06/09.07.2026_435_%D0%BF%D1%80.pdf",
+        "utc": "2026-11-04T22:50:08.040309+00:00",
+        "link_discovery": "parent supplied link from secondary index; facts only from primary downloaded bytes",
+        "head_status": 200,
+        "head_headers": {
+          "Server": "nginx",
+          "Date": "Wed, 04 Nov 2026 22:49:58 GMT",
+          "Content-Type": "application/pdf",
+          "Content-Length": "598937",
+          "Connection": "close",
+          "Last-Modified": "Fri, 10 Jul 2026 08:05:40 GMT",
+          "ETag": "\"6a50a7d4-92399\"",
+          "Strict-Transport-Security": "max-age=31536000;",
+          "Accept-Ranges": "bytes"
+        },
+        "remaining_budget_bytes": 14487859,
+        "result": "saved",
+        "bytes": 598937,
+        "sha256": "3dac0655d08af0ccc1af12d54ce3fccddd8f9bbca991ff7c635bc2ae96d1e11b",
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\position59-edition-v31\\official435-order.pdf"
+      },
+      "visual_review_pages": [
+        1,
+        2
+      ],
+      "date": "09.07.2026",
+      "number": "435/пр",
+      "literal_scope": "ГЭСН36-01-005-01: after Измеритель replace м2 with1000м2",
+      "explicit_prior_order": "15мая2026№301/пр",
+      "limit": "No road1.27.37 change in this two-page signed order."
+    },
+    "order527_visual_review": {
+      "pages": [
+        1,
+        343,
+        344
+      ],
+      "identity": "12.08.2026№527/пр",
+      "road_entry": "SectionIII starts with27-06-067, then27-07-002/004; not a claim that067 is the only road amendment.",
+      "limits": "Annex frontmatter contains no previous-order list. Native exact clause-number negatives do not close missing301 annex or any other unchecked amendments."
+    },
+    "secondary_policy": "Consolidated secondary8cm text and search snippets were used only as discovery leads, never as evidence restoring8cm.",
+    "unchecked_specific_chain_members": [
+      "19.05.2025№299/пр annex was not independently read in this audit; it lies between69 and490.",
+      "15.05.2026№301/пр annex remains absent; its signed order is now primary-verified."
+    ],
+    "known_risk": "The currently saved normativeappC relies on original8cm wording. Applicable later edition and unchecked299/301annexes remain unresolved; no automatic revocationC or newP is inferred."
+  },
+  "callsite_reproduction": {
+    "probe": {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\position59-edition-v31\\position59-readonly-probe.json",
+      "sha256": "03b6caab658cba8b45dd98cf6b902b31bca53aff1861d7d3cba7e043d5e4b24c",
+      "bytes": 26833
+    },
+    "actual_current_saved_source_results": {
+      "source_sha": {
+        "normative_conditional_selection.py": "0535d3dc386036f5f734725e8a2cbe4bad070eb3fdea9ad3d700bfe6356be209",
+        "normative_thickness_adjustment.py": "6f956007ee18a04a18b7178e518ffe2d7733806d9f584806433cca954aeaa045",
+        "normative_parameter_anchors.py": "95923bf34579ead4260922404c617f7437b541986042e0e1004669886e0c5bab"
+      },
+      "project_thickness": {
+        "source_id": "agent:p50:0",
+        "value": [
+          "length",
+          "0.08"
+        ],
+        "role": "нижн",
+        "single_layer": false,
+        "family": "асфальтобетон",
+        "quote": "Нижний слой покрытия — А22Нл Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=8 см",
+        "scope_quote": "Нижний слой покрытия — А22Нл Асфальтобетон по ГОСТ 58406.2-2020 на БНД\n70/100 по ГОСТ 33133-2014, h=8 см"
+      },
+      "selection_findings": [],
+      "adjustment_findings": [],
+      "arithmetic_candidates": [
+        {
+          "base_source_id": "n2:full:8324c8b24f8448bc0fc2",
+          "adjustment_source_id": "n7:full:4b15b36f7265345bc20c",
+          "base_quote": "толщина слоя 4 см",
+          "adjustment_quote": "Таблица ГЭСН 27-06-030 Нормы для корректировки таблицы 27-06-029\nИзмеритель: 1000 м2 (норма 27-06-030-01); 1000 м (норма 27-06-030-02)\nПри изменении толщины покрытия на 0,5 см добавлять или исключать:\n27-06-030-01 к норме 27-06-029-01",
+          "target_cm": "8.00",
+          "base_cm": "4.00",
+          "step_cm": "0.500",
+          "signed_steps": "8",
+          "scope_verified": false,
+          "explanation": "Только арифметика: применимость нормы и возможность уменьшения/увеличения проверь по пункту техчасти."
+        },
+        {
+          "base_source_id": "n4:full:2ba3852aa430b7d77cba",
+          "adjustment_source_id": "n9:full:d6889f5626d7e57bba7e",
+          "base_quote": "толщина слоя 4 см",
+          "adjustment_quote": "Таблица ГЭСН 27-07-006 Устройство покрытия дорожек и тротуаров из горячих\nасфальтобетонных смесей асфальтоукладчиками первого типоразмера,\nтолщина слоя 4 см\nИзмеритель: 1000 м2\n27-07-006-02 При изменении толщины слоя покрытия на 0,5 см добавлять или исключать к норме 27-07-006-01\n",
+          "target_cm": "8.00",
+          "base_cm": "4.00",
+          "step_cm": "0.500",
+          "signed_steps": "8",
+          "scope_verified": false,
+          "explanation": "Только арифметика: применимость нормы и возможность уменьшения/увеличения проверь по пункту техчасти."
+        }
+      ]
+    },
+    "literal_regex_probe": {
+      "old_literal_matches": 0,
+      "order69_literal_matches": 0,
+      "pattern": "(?P<prefix>При\\s+толщин[а-яё]*\\s+[^.!?]{0,180}?)\\s+(?P<operator>не\\s+менее|не\\s+более|более|свыше|менее)\\s+(?P<value>\\d+(?:[.,]\\d+)?)\\s*(?P<unit>мм|см|м)\\b(?P<action>\\s+(?:(?:его|е[её]|их)\\s+)?(?:(?:следует|необходимо)\\s+)?нормир[а-яё]*\\s+в\\s+(?:два|2)\\s+слоя\\s+по\\s+норм[а-яё]*\\s+(?P<bases>\\d{2}\\s*-\\s*\\d{2}\\s*-\\s*\\d{3}\\s*-\\s*\\d{2,3}(?:\\s*(?:и|,)\\s*\\d{2}\\s*-\\s*\\d{2}\\s*-\\s*\\d{3}\\s*-\\s*\\d{2,3})*))(?P<tail>[^.!?]{0,350})(?=[.!?]|$)"
+    },
+    "explanation": "Thickness adjustment guard validates arithmetic4+8*0.5=8 and literal selected measure, not global1.27.37 ceiling. Existing conditional matcher requires a different phrase structure plus full4-part norm codes; both original and69 table-level asphalt wording yield0matches. This is a coverage limitation of current guard, not a proof of edition applicability.",
+    "callsites": [
+      "normative_parameters.py:654 imports conditional apply_guard",
+      "normative_parent_basis.py:385 imports conditional apply_guard",
+      "normative_conditional_selection.py:354 invokes adjustment guard",
+      "normative_agent.py:719 exposes arithmetic candidates",
+      "normative_position_check.py:967 instructs model that arithmetic is not applicability"
+    ],
+    "limits": "Only purefindings and regex probes run; no saving/publishing/guard mutation and no synthetic replacement source under an existing sourceID."
+  },
+  "exact_remaining_facts": [
+    "Primary299annex19.05.2025 and301annex15.05.2026 contents, especially road general provisions35/37, or a verified later consolidated primary literal chain.",
+    "Approved applicable project/estimate normative edition/date.",
+    "If7cm ceiling applies: a literal justified two-course pricing plan and corresponding adjustments/measure/citations; physicalh8 remains independent.",
+    "Forchild60: own applicable source rate, weighted maximum stone/material density branch and project-first/fallback conditions, independent of parent59 geometry."
+  ],
+  "download_budget": {
+    "limit_bytes": 100000000,
+    "downloaded_pdf_bytes": 86111078,
+    "no_more_unbounded_search": true
+  },
+  "checks": {
+    "register_items_unchanged": true,
+    "old_saved_guard_findings_empty": true,
+    "both_literal_conditions_unmatched": true,
+    "no_production_status_changes": true
+  }
+}

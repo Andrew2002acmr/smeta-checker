@@ -1,0 +1,108 @@
+{
+  "source_sha256": "954aae66bfea185f14a7b996b06b5d2964d509c14b09b5d3f5ad13edba8d5432",
+  "source_path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\knowledge\\road-norms\\blobs\\954aae66bfea185f14a7b996b06b5d2964d509c14b09b5d3f5ad13edba8d5432.pdf",
+  "physical_page": 16,
+  "table": "Таблица 8",
+  "heading": "Показатели материалоемкости",
+  "method": {
+    "skill": "pdf:pdf",
+    "rendering": "Poppler pdftoppm; full physical page16 at180dpi; requested PDF-point bounding boxes and header context rendered directly by Poppler at864dpi (12pixels per PDF point)",
+    "inspection": "All readings manually visually verified through view_image on original page raster and separate high-resolution crops; no OCR, extracted text, other transcripts, pilot answers, root reports or source code used.",
+    "bbox_coordinate_system": "PDF points, unrotated page, origin at top left. Crop pixel bounds floor(x0*12),floor(y0*12),ceil(x1*12),ceil(y1*12)."
+  },
+  "passed": true,
+  "headers": {
+    "mark": "Марка камня",
+    "group": "Расход материалов",
+    "concrete": "Бетон, м³",
+    "steel": "Сталь, кг",
+    "steel_subcolumns": [
+      "на камень",
+      "на 1 м³ бетона"
+    ],
+    "column_order": [
+      "Марка камня",
+      "Бетон, м³",
+      "Сталь, кг — на камень",
+      "Сталь, кг — на 1 м³ бетона"
+    ]
+  },
+  "readings": [
+    {
+      "label": "БР100.20.8",
+      "full_row": "БР100.20.8 | 0,016 | - | -",
+      "stone_mark": "БР100.20.8",
+      "concrete_m3": "0,016",
+      "steel_kg_per_stone": "-",
+      "steel_kg_per_1_m3_concrete": "-"
+    },
+    {
+      "label": "БР100.30.18",
+      "full_row": "БР100.30.18 | 0,052 | - | -",
+      "stone_mark": "БР100.30.18",
+      "concrete_m3": "0,052",
+      "steel_kg_per_stone": "-",
+      "steel_kg_per_1_m3_concrete": "-"
+    },
+    {
+      "label": "БР100.30.15",
+      "full_row": "БР100.30.15 | 0,043 | - | -",
+      "stone_mark": "БР100.30.15",
+      "concrete_m3": "0,043",
+      "steel_kg_per_stone": "-",
+      "steel_kg_per_1_m3_concrete": "-"
+    }
+  ],
+  "inline_regions": [
+    {
+      "bbox": [
+        200.99583435058594,
+        79.82687377929688,
+        207.0366973876953,
+        92.457763671875
+      ],
+      "text": "3",
+      "context": "Надстрочная цифра 3 справа от «м» в заголовке «Бетон, м³».",
+      "normalized_context_reading": "Бетон, м³",
+      "png": "gost6665-bbox1-independent.png",
+      "visually_verified": true
+    },
+    {
+      "bbox": [
+        335.542236328125,
+        95.20359802246094,
+        341.5830993652344,
+        107.83448791503906
+      ],
+      "text": "3",
+      "context": "Надстрочная цифра 3 справа от «м» в правом подзаголовке стали «на 1 м³», следующая строка «бетона».",
+      "normalized_context_reading": "Сталь, кг — на 1 м³ бетона",
+      "png": "gost6665-bbox2-independent.png",
+      "visually_verified": true
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\gost6665-page16-independent.png",
+      "sha256": "8557315b72f32094f4e2595be8047610aff0a8df7b7b052b95f7f4816ad3e4a4"
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\gost6665-bbox1-independent.png",
+      "sha256": "c62f45cc6e19bb0e84c8267dffefca88312049eb70c9c6cb296553e7bdbe7490"
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\gost6665-bbox2-independent.png",
+      "sha256": "374724015a0531a7e35476b290910bdd4ad17802d5e619ffdeece5aafb5e1953"
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\gost6665-header-context-independent.png",
+      "sha256": "49c60ed496e73fc8e4ae08fea052a150f470a9638490ff53c4d7bc80c1e6acc6"
+    }
+  ],
+  "limits": [
+    "Only literal visual readings; no conclusions about applicability or correctness of any bill-of-quantities position.",
+    "Line breaks and layout spacing normalized; superscript digit3 represented by Unicode³ in normalized unit headings. Inline region text records the digit itself as3.",
+    "Hyphens in steel cells are preserved as textual dashes, not interpreted as numeric zero.",
+    "Poppler emitted optional nameToUnicode warnings for Bulgarian/Greek/Thai; requested page and regions rendered successfully and visible Cyrillic text and numeric glyphs were legible."
+  ]
+}

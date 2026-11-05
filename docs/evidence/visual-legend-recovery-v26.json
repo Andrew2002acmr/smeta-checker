@@ -1,0 +1,159 @@
+{
+  "schema": 1,
+  "kind": "inactive_visual_legend_recovery_v26",
+  "rechecked_by": "unit18_42",
+  "model_calls": 0,
+  "network_calls": 0,
+  "database_writes": 0,
+  "active_prepared_pin_changed": false,
+  "document": {
+    "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+    "original_pdf_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+    "extraction_pdf_sha256": "092229c4218b7a9128d694e78ce4185c8e2485d6244378595dc3abe219d51104",
+    "identity_artifact_sha256": "027aad84135242bcf502cd21cc78053cc72f18f4a3b5b3b9b03efbfbe4912d52",
+    "identity_selector": "documents[0].pdf_identity",
+    "page": 74,
+    "page_geometry": {
+      "height": 841.9199829101562,
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "width": 2979.239990234375
+    }
+  },
+  "snapshot": {
+    "old_sha256": "adecbe5e30d420419cc04ebe8723f974e7b47767918a8fbc94ab7bab5f979f32",
+    "new_sha256": "5d7fbdec24baf5b75635439da0d9bb138b7739eb03bdca9c616a350478672a03",
+    "old_corpus_id": "8c0356d7c56384c69a42f8642573a10dbf828ba17bd08eeae930463a24de61ce",
+    "new_corpus_id": "bcd4650ad342edfa5823e22dfc372eb86020dce1d8443794a397a5a6ea0c3a1e",
+    "serialization": "existing PageTextIndex.from_snapshot/to_snapshot; exact canonical corpus hashes roundtrip"
+  },
+  "literal": "проектируемый автопавильон",
+  "origin": "region_ocr_with_bounded_visual_label_review",
+  "scope": "legend_label_only",
+  "reviewed_bbox_pdf_points": [
+    1615,
+    791,
+    1850,
+    816
+  ],
+  "render_clip_bbox_pdf_points": [
+    1585.0,
+    780.0,
+    1875.0,
+    825.0
+  ],
+  "render_pixmap_origin": [
+    6604,
+    3250
+  ],
+  "dpi": 300,
+  "image_sha256": "386b7338dd58758b02871d6d11aeb56e5c3cd8dae77f0832909bdb693fcab3d8",
+  "tsv_sha256": "2c4256ffb56926a8a742aee5588915d33ff5a5cc4d3feba392d51c7a63977c35",
+  "literal_fragment_artifact_sha256": "7ea1c135555c59086539842144bce0ad0bb2fc50236264d2effb1e37039a29dd",
+  "word_boxes": [
+    {
+      "conf": 92,
+      "height": 39,
+      "left": 351,
+      "pdf_bbox": [
+        1669.2,
+        800.88,
+        1723.2,
+        810.24
+      ],
+      "text": "проектируемый",
+      "top": 87,
+      "width": 225
+    },
+    {
+      "conf": 52,
+      "height": 30,
+      "left": 591,
+      "pdf_bbox": [
+        1726.8,
+        800.88,
+        1776.48,
+        808.08
+      ],
+      "text": "автопавильон",
+      "top": 87,
+      "width": 207
+    }
+  ],
+  "engine": {
+    "language": "rus+eng",
+    "name": "tesseract",
+    "psm": 6,
+    "traineddata_sha256": {
+      "/usr/share/tesseract-ocr/5/tessdata/eng.traineddata": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+      "/usr/share/tesseract-ocr/5/tessdata/rus.traineddata": "e16e5e036cce1d9ec2b00063cf8b54472625b9e14d893a169e2b0dedeb4df225"
+    },
+    "version": "tesseract 5.3.0"
+  },
+  "annotated_fragment": "[РЕГИОНАЛЬНОЕ OCR-ЧТЕНИЕ ОРИГИНАЛА: ЛЕГЕНДА ПЛАНА ПОКРЫТИЙ]\nБуквальная подпись условного обозначения:\nпроектируемый автопавильон\n[Область: только подпись легенды. Это восстановленный OCR-фрагмент растрового чтения оригинала, не нативный текст. Условное обозначение не устанавливает наличие его экземпляра на плане, количество объектов, место установки, конструкцию, размеры или объём работ. Объекты и их привязки следует дочитывать по оригинальному чертежу.]",
+  "changes": {
+    "changed_text_indices": [
+      73
+    ],
+    "old_text_exact_prefix_preserved": true,
+    "metadata_only_added_key": "region_ocr_recovery",
+    "other_snapshot_fields_exact_equal": true,
+    "equal_field_sha256": {
+      "tables": "09fdf830bca599e6e5e7861a0bb216be794f8189309a026f41408c4287f78096",
+      "table_rows": "630c46ea045da1bbd694d84f8114632f9765245bd5a94e9863d1364a88fd91ab",
+      "locators": "3cae723a8954afca5e453011174b2561c2f3164cc284034a8e8c07e66c250bf4",
+      "quality": "56048d175246ec3035fc74deaa7574696c28ce4562ba826106159352e13e9a94",
+      "errors": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "pending_ocr": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  "real_EvidenceTools_semantic_search": {
+    "query": "проектируемый автопавильон",
+    "old": {
+      "returned_pages": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "source74_present": false
+    },
+    "new": {
+      "returned_pages": [
+        74,
+        1,
+        2,
+        3,
+        4
+      ],
+      "source74_present": true
+    }
+  },
+  "real_EvidenceTools_read_page": {
+    "page": 74,
+    "offset": 8000,
+    "source_id": "agent:p74:8000",
+    "origin": "ocr_unverified",
+    "full_fragment_delivered": true,
+    "source_text_characters": 2057,
+    "source_text_sha256": "b62f8fd99d2158b23e223f148b855e4a3b4b0956cb5630e5c50545ef06ff5e9f",
+    "numeric_verified_field_present": false,
+    "unit_verified_field_present": false,
+    "verified_parameters_field_present": false
+  },
+  "limitations": [
+    "Only the literal label in a drawing legend is recovered. No count, actual object occurrence, location, construction, dimensions or work quantity established.",
+    "OCR word confidence52 retained for автопавильон; bounded visual label reading does not promote page quality or numeric/unit verification.",
+    "Original and extraction PDF SHAs are different and explicitly bound to one existing document version; no hash substituted.",
+    "Old text body, tables, cells, locators and all quality/numeric flags remain exact. Only text append and recovery provenance added.",
+    "Snapshot is inactive. No new evidence API, registry rule or per-position rule added.",
+    "Search fallback old returns generic pages; absence of page74 from that search is not absence of the object from original PDF."
+  ]
+}

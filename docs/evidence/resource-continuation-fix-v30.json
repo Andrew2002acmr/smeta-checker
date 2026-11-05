@@ -1,0 +1,140 @@
+{
+  "kind": "owned_continuation_fix_v30",
+  "files": {
+    "scripts/normative_resource_continuation.py": {
+      "sha256": "559670fd39040f370c4c76e4c67e7209dddada6f4edf9639606ce7a02c3726cf",
+      "bytes": 24449
+    },
+    "scripts/prepare_resource_continuation.py": {
+      "sha256": "f7a3e2150c4cde5fd95aa7c5f887f25ca0834f76128fd3db24cbdd3605ca6bfc",
+      "bytes": 6297
+    },
+    "scripts/README.normative-resource-continuation.md": {
+      "sha256": "5fe5a7bef7da67d14945d83f58442de4e88e030aa5c312d42ade4f81698c28dc",
+      "bytes": 3238
+    },
+    "tests/test_native_resource_continuation.py": {
+      "sha256": "2a50c7fd842633e39ae22c74107491fcbb9efa43e187a9228ca2b4addf3ba58f",
+      "bytes": 12516
+    },
+    "tests/fixtures/gesn27_resource_continuation_12_13.json": {
+      "sha256": "3bd73b3b7c7d4592644c3e0656ec49d6df694acadb5c4cb0ab6a7f5f5d39d4d8",
+      "bytes": 76261
+    }
+  },
+  "upstream": {
+    "path": "smeta-checker-local/comprehensive-road-kb/tools/resource_continuation.py",
+    "sha256": "f813bb06f8442bcb0ef47fe8e5dbf2a8b06628aeaed8fb220f75a8b6da52bf32",
+    "version": "native-resource-continuation-proposal-v1"
+  },
+  "upstream_unchanged": true,
+  "dependencies": {
+    "python": "3.14.4",
+    "pymupdf": "2.0",
+    "dependency_group": "existing full pin",
+    "new_dependencies": []
+  },
+  "original_build_entry": "external comprehensive-road-kb/assemble.py build line102 -> resource_compiler.extract -> continuation helper; external files untouched",
+  "current_entry": "python -X utf8 -m scripts.prepare_resource_continuation (explicit root/database SHA/source/adjacent page pair/literal norm+resource selectors)",
+  "algorithm_version": "native-resource-continuation-proposal-v2-per-column",
+  "tolerance_pdf_points": 0.75,
+  "descriptor_gate": "all0/1/2 edges mandatory",
+  "quantity_admission": "per column both edges unchanged within0.75; no numeric remapping",
+  "actual_stable_columns": [
+    "27-02-010-01",
+    "27-02-010-02",
+    "27-02-010-03"
+  ],
+  "actual_rejected_columns": [
+    "27-02-010-04",
+    "27-02-010-05"
+  ],
+  "second_reproduced_gate": "Top p13 code cell vertically merges5 separate literal machine resource codes; now every individual line must match strict RESOURCE syntax.",
+  "candidate": {
+    "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\curb-bedding-v30\\owned-parser-targeted-candidate-final.json",
+    "sha256": "b5e7a41e7e559c5e7e8cfb34b879f70caf94ee53b0e695abeca6ada6c655e2a7",
+    "row": {
+      "id": "resource-df38daef15577e2829287500aa6a9ed9",
+      "norm_id": "norm-684a0dd3eb2dd69b788b91180ddde7cf",
+      "resource_code": "04.1.02.05-0006",
+      "name": "Смеси бетонные тяжелого бетона (БСТ), класс В15 (М200)",
+      "unit": "м3",
+      "raw_quantity": "5,9",
+      "quantity": "5.9",
+      "quantity_kind": "numeric",
+      "status": "extracted_native_geometric_row_unreviewed",
+      "citation_json": "{\"bbox\":[405.42999267578125,247.69098815917968,445.3000030517578,257.9539855957031],\"coordinate_system\":\"pdf-points\",\"physical_page\":13,\"source_id\":\"pdf-6aa5203d913dd5eb1538a4c2\"}",
+      "proof": {
+        "version": "native-resource-continuation-proposal-v2-per-column",
+        "source_sha256": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5",
+        "norm_code": "27-02-010-02",
+        "header_page": 12,
+        "header_table_id": "t3",
+        "header_bbox": [
+          405.42999267578125,
+          721.8800252278646,
+          445.3000030517578,
+          744.8159484863281
+        ],
+        "header_text": "27-02-\n010-02",
+        "table_id": "t1",
+        "table_bbox": [
+          56.35636329650879,
+          40.07997131347656,
+          578.64404296875,
+          394.2739852905273
+        ],
+        "unit_bbox": [
+          314.70201110839844,
+          247.69098815917968,
+          365.7099914550781,
+          257.9539855957031
+        ],
+        "name_bbox": [
+          130.34000396728516,
+          247.69098815917968,
+          314.70201110839844,
+          268.2409606933594
+        ],
+        "numeric_bbox": [
+          405.42999267578125,
+          247.69098815917968,
+          445.3000030517578,
+          257.9539855957031
+        ],
+        "inherited_header_geometry_tolerance_pdf_points": 0.75,
+        "admitted_column": 4,
+        "header_inheritance": "independent_unchanged_column",
+        "no_model_calls": true,
+        "no_ocr_calls": true
+      }
+    },
+    "status": "native_candidate_requires_visual_review"
+  },
+  "tests": {
+    "pytest": "31 passed (including actual primary PDF + readonly SQLite targeted export and exact reviewed-row regeneration)",
+    "ruff": "passed",
+    "pyright": "0 errors,0 warnings"
+  },
+  "reviewed_staging_api": "scripts.normative_resource_continuation.apply_reviewed; exact primary PDF regeneration; idempotent same rows/no overwrite/conflicting IDs or norm-resource pairs fail before insert",
+  "no_review_autoapproval": true,
+  "old_v1_reviews_not_reapproved": true,
+  "sqlite_schema_changes": false,
+  "current_pointer_unchanged": true,
+  "current_pointer_sha256": "8d5b876745a40226b6f142f67293c8e4c4d9e85602f973e9497f587b7c666a15",
+  "active_database_unchanged": true,
+  "v9_unchanged": true,
+  "v9_pin": {
+    "database": "releases/road-seed-function-20261105-v9/knowledge.sqlite",
+    "release_id": "road-seed-function-20261105-v9",
+    "profile": "roads",
+    "sha256": "269e95860694342d2c509921c213b1b8b507dbdf812f7079b8cc01bfb88e6c0c"
+  },
+  "release_created": false,
+  "application_database_access": false,
+  "application_database_writes": 0,
+  "production_corpus_writes": 0,
+  "model_calls": 0,
+  "routerai_calls": 0,
+  "next_step": "Independent artifact/code review, then explicitly authorized inactive v10 clone+reviewed target-row import with previous metadata preserved; amendment102p222 is separate and not touched here."
+}

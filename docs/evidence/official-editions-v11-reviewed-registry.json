@@ -1,0 +1,1242 @@
+{
+  "schema": "addressed_collection_context_v1",
+  "registry_sha256": "96cd308fca9b8f5354c95c43f1265c3edfe4077c06533b1d8d856608d01b4bbd",
+  "registry": {
+    "schema": "addressed_collection_context_v1",
+    "base_pin": {
+      "database": "releases/road-resource-continuation-20261105-v10/knowledge.sqlite",
+      "sha256": "3740d58f5252c3b79c7e3a337b24fa51152fca7b5c0f41f157e30f60791a00d3",
+      "release_id": "road-resource-continuation-20261105-v10",
+      "profile": "roads"
+    },
+    "release_id": "road-official-editions-20261105-v11",
+    "sources": [
+      {
+        "key": "378",
+        "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+        "sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366",
+        "kind": "GESN",
+        "designation": "ГЭСН 27 ФСНБ-2022 — официальный файл каталога редакции приказа 378/пр от18.05.2022",
+        "date": "2022-05-18",
+        "file": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\official378-collection27.pdf",
+        "physical_page_count": 160,
+        "url": "https://minstroyrf.gov.ru/trades/tree_download.php?folder=fsnb2022&ID=26",
+        "blob_path": "blobs/2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366.pdf",
+        "role": "collection_definition_base",
+        "edition_scope": "Addressed literals only, not a consolidated or complete-current edition",
+        "resources_imported": false
+      },
+      {
+        "key": "747",
+        "source_id": "pdf-4414a1bba9654e694eba7c7b",
+        "sha256": "4414a1bba9654e694eba7c7b3372122e10e740f3a1f1dfd14465d60b0fc6f78b",
+        "kind": "GESN",
+        "designation": "ГЭСН 27 ФСНБ-2022 — приказ 747/пр от07.11.2024, адресная поправка1.27.35",
+        "date": "2024-11-07",
+        "file": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\official747-amendment.pdf",
+        "physical_page_count": 600,
+        "url": "https://minstroyrf.gov.ru/upload/iblock/e3e/ipwb8dahepbbm3m9wf8mjyery4hqzttr/dop12-svod-_1_.pdf",
+        "blob_path": "blobs/4414a1bba9654e694eba7c7b3372122e10e740f3a1f1dfd14465d60b0fc6f78b.pdf",
+        "role": "addressed_amendment",
+        "edition_scope": "Addressed literals only, not a consolidated or complete-current edition",
+        "resources_imported": false
+      },
+      {
+        "key": "69",
+        "source_id": "pdf-ed354800378624cb0b1da9c6",
+        "sha256": "ed354800378624cb0b1da9c6f4adf3ad5bbecf27b5fbeac47cf27d5e67b6c174",
+        "kind": "GESN",
+        "designation": "ГЭСН 27 ФСНБ-2022 — приказ 69/пр от07.02.2025, адресные поправки1.27.35/37",
+        "date": "2025-02-07",
+        "file": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\official69-amendment.pdf",
+        "physical_page_count": 826,
+        "url": "https://minstroyrf.gov.ru/upload/iblock/84f/03inr57clu5c6j0ds8ce3xu7gz8b10k5/07.02.2025_69_%D0%BF%D1%80%D0%B8%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5.pdf",
+        "blob_path": "blobs/ed354800378624cb0b1da9c6f4adf3ad5bbecf27b5fbeac47cf27d5e67b6c174.pdf",
+        "role": "addressed_amendment",
+        "edition_scope": "Addressed literals only, not a consolidated or complete-current edition",
+        "resources_imported": false
+      },
+      {
+        "key": "490",
+        "source_id": "pdf-39109e5721888ecf15c1b953",
+        "sha256": "39109e5721888ecf15c1b9539b83b9a9781782227098cedf88ff4cfc66d04f5a",
+        "kind": "GESN",
+        "designation": "ГЭСН 27 ФСНБ-2022 — приказ 490/пр от14.08.2025, проверенная граница сборника27",
+        "date": "2025-08-14",
+        "file": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\official490-amendment.pdf",
+        "physical_page_count": 374,
+        "url": "https://minstroyrf.gov.ru/upload/iblock/344/lwutu839abyqvyzs53tjylitotwjeq0b/%D0%9F%D1%80%D0%B8%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5%20%D0%BA%20%D0%BF%D1%80%D0%B8%D0%BA%D0%B0%D0%B7%D1%83%20%D0%9C%D0%B8%D0%BD%D1%81%D1%82%D1%80%D0%BE%D1%8F%20%D0%A0%D0%BE%D1%81%D1%81%D0%B8%D0%B8%20%D0%BE%D1%82%2014%20%D0%B0%D0%B2%D0%B3%D1%83%D1%81%D1%82%D0%B0%202025%20%D0%B3.%20%E2%84%96%20490%D0%BF%D1%80.pdf",
+        "blob_path": "blobs/39109e5721888ecf15c1b9539b83b9a9781782227098cedf88ff4cfc66d04f5a.pdf",
+        "role": "addressed_amendment",
+        "edition_scope": "Addressed literals only, not a consolidated or complete-current edition",
+        "resources_imported": false
+      }
+    ],
+    "clauses": [
+      {
+        "id": "clause-93f68987f3b34b8537cc6e49e0afe97a",
+        "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+        "label": "identity:collection27",
+        "title": "identity:collection27",
+        "text": "СМЕТНЫЕ НОРМЫ \nНА СТРОИТЕЛЬНЫЕ РАБОТЫ \n \nГЭСН 81-02-27-2022 \n \nСборник 27. Автомобильные дороги",
+        "raw_text_sha256": "4d529a4ae1f2ceaeb7b238dc15c838c7e0f7a36d3ca9383fc1a63931db9b02ac",
+        "physical_pages": [
+          1
+        ],
+        "citations": [
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 1,
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          }
+        ],
+        "status": "reviewed_literal_transcription",
+        "relation": "identity",
+        "date": "2022-05-18",
+        "selection": {
+          "physical_page": 1,
+          "start": "СМЕТНЫЕ НОРМЫ",
+          "end_exclusive": "I. ОБЩИЕ ПОЛОЖЕНИЯ"
+        },
+        "verification_method": "independent original PDF visual reading and literal native-text comparison"
+      },
+      {
+        "id": "clause-f77d39e50e09267da53ecc841677c011",
+        "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+        "label": "1.27.35",
+        "title": "1.27.35",
+        "text": "1.27.35. При определении затрат на устройство покрытий толщиной 4 см из горячих асфальтобетонных смесей с \nприменением норм табл. с 27-06-029 по 27-06-032 норма расхода асфальтобетонной смеси принимается на основании \nпроектных данных. \nПри применении щебёночно-мастичных асфальтобетонных смесей укладка определяется по нормам 27-06-029-01, \n27-06-030-01, 27-06-031-01, 27-06-031-02, 27-06-032-01, 27-06-032-02, состав смеси подбирается индивидуально. Норма \nрасхода асфальтобетонной смеси принимается на основании проектных данных. \nПри определении затрат на устройство асфальтобетонного лотка вдоль кромки проезжей части с применением норм \n27-06-030-02, 27-06-069-01 норма расхода асфальтобетонной смеси принимается на основании проектных данных.",
+        "raw_text_sha256": "34e726c131c68cf039e81e6026185b5b89b5ccbd0d729c2302c449eaad2149db",
+        "physical_pages": [
+          3
+        ],
+        "citations": [
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 3,
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          }
+        ],
+        "status": "reviewed_literal_transcription",
+        "relation": "base",
+        "date": "2022-05-18",
+        "selection": {
+          "physical_page": 3,
+          "start": "1.27.35.",
+          "end_exclusive": "1.27.36."
+        },
+        "verification_method": "independent original PDF visual reading and literal native-text comparison"
+      },
+      {
+        "id": "clause-c0c77a6bcc87b05dc9a8c8ef8f044157",
+        "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+        "label": "1.27.37",
+        "title": "1.27.37",
+        "text": "1.27.37. При устройстве покрытия из асфальтобетонных смесей не учтены работы по розливу вяжущих \nматериалов. \nПри необходимости эти затраты определяются по табл. 27-06-026 или 27-06-035, а расход принимается по \nпроекту. \nНормами табл. 27-06-029, 27-06-030, 27-06-031, 27-06-032 пользоваться при толщине слоя до 7 см. При толщине \nслоя более 7 см его устройство нормируется в два слоя (для каждого слоя отдельно) по нормам табл. 27-06-029, 27-\n06-031 с корректировкой нормами табл. 27-06-030 и 27-06-032.",
+        "raw_text_sha256": "ed29482c2e8b7149419a4421327863b1823e74f0d8bc20851b5d180a13a07ffd",
+        "physical_pages": [
+          3
+        ],
+        "citations": [
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 3,
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          }
+        ],
+        "status": "reviewed_literal_transcription",
+        "relation": "base",
+        "date": "2022-05-18",
+        "selection": {
+          "physical_page": 3,
+          "start": "1.27.37.",
+          "end_exclusive": "1.27.38."
+        },
+        "verification_method": "independent original PDF visual reading and literal native-text comparison"
+      },
+      {
+        "id": "clause-db77c96a445b8833b450b84f9804a301",
+        "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+        "label": "appendix-entry:27.2",
+        "title": "appendix-entry:27.2",
+        "text": "IV. ПРИЛОЖЕНИЯ \nПриложение 27.2 \n \nНорма расхода материалов",
+        "raw_text_sha256": "ff875b196927de3787cab947278eec56b117b32257aa9963cfd05e20863aacc0",
+        "physical_pages": [
+          158
+        ],
+        "citations": [
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 158,
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          }
+        ],
+        "status": "reviewed_literal_transcription",
+        "relation": "identity",
+        "date": "2022-05-18",
+        "selection": {
+          "physical_page": 158,
+          "start": "IV. ПРИЛОЖЕНИЯ",
+          "end_exclusive": "Шифр таблиц"
+        },
+        "verification_method": "independent original PDF visual reading and literal native-text comparison"
+      },
+      {
+        "id": "clause-68cd3f96cd60dcb9fc5bd74f235524ad",
+        "source_id": "pdf-4414a1bba9654e694eba7c7b",
+        "label": "identity:order747",
+        "title": "identity:order747",
+        "text": "Приложение к приказу \n \nМинистерства строительства \n \nи жилищно-коммунального хозяйства \n \nРоссийской Федерации \n \nот «7» ноября 2024 г. № 747/пр \nИзменения, \nкоторые вносятся в приказ Министерства строительства \nи жилищно-коммунального хозяйства Российской Федерации \nот 30 декабря 2021 г. № 1046/пр «Об утверждении сметных нормативов»",
+        "raw_text_sha256": "539a3135a6f52c1b162f3f280ac7f00a8662d1536f7904f4d0e54e86b7692120",
+        "physical_pages": [
+          1
+        ],
+        "citations": [
+          {
+            "source_id": "pdf-4414a1bba9654e694eba7c7b",
+            "physical_page": 1,
+            "source_sha256": "4414a1bba9654e694eba7c7b3372122e10e740f3a1f1dfd14465d60b0fc6f78b"
+          }
+        ],
+        "status": "reviewed_literal_transcription",
+        "relation": "identity",
+        "date": "2024-11-07",
+        "selection": {
+          "physical_page": 1,
+          "start": "Приложение к приказу",
+          "end_exclusive": "1. В приложение"
+        },
+        "verification_method": "independent original PDF visual reading and literal native-text comparison"
+      },
+      {
+        "id": "clause-1f249d8bc83836500c5df8f3414e908b",
+        "source_id": "pdf-4414a1bba9654e694eba7c7b",
+        "label": "1.27.35",
+        "title": "1.27.35",
+        "text": "1.21.1.2. Пункт 1.27.35 изложить в следующей редакции: \n«1.27.35. При определении затрат на устройство покрытий толщиной 4 \nсм из горячих асфальтобетонных смесей с применением норм табл. с 27-06-029 \nпо 27-06-032 норма расхода асфальтобетонной смеси принимается на \nосновании проектных данных. В случае отсутствия проектных данных норма \nрасхода асфальтобетонной смеси принимается по приложению 27.1. \nПри применении щебёночно-мастичных асфальтобетонных смесей \nукладка определяется по нормам 27-06-029-01, 27-06-030-01, 27-06-031-01, 27-\n06-031-02, \n27-06-032-01, \n27-06-032-02, \nсостав \nсмеси \nподбирается \nиндивидуально. Норма расхода асфальтобетонной смеси принимается на \nосновании проектных данных. В случае отсутствия проектных данных норма \nрасхода асфальтобетонной смеси принимается по приложению 27.1. \nМаксимальная плотность каменных материалов, указанная в приложении \n27.1, определяется нахождением средневзвешенной величины максимальных \nплотностей щебня (по фракциям), песка и минерального порошка по их долям. \nПри определении затрат на устройство асфальтобетонного лотка вдоль \nкромки проезжей части с применением норм 27-06-030-02, 27-06-069-01 норма \nрасхода асфальтобетонной смеси принимается на основании проектных \nданных.».",
+        "raw_text_sha256": "1de65390075daf11aa312de7cc37e72c70f205580984f095fa270f3d779b4d71",
+        "physical_pages": [
+          126
+        ],
+        "citations": [
+          {
+            "source_id": "pdf-4414a1bba9654e694eba7c7b",
+            "physical_page": 126,
+            "source_sha256": "4414a1bba9654e694eba7c7b3372122e10e740f3a1f1dfd14465d60b0fc6f78b"
+          }
+        ],
+        "status": "reviewed_literal_transcription",
+        "relation": "replacement",
+        "date": "2024-11-07",
+        "selection": {
+          "physical_page": 126,
+          "start": "1.21.1.2.",
+          "end_exclusive": "1.21.2."
+        },
+        "verification_method": "independent original PDF visual reading and literal native-text comparison"
+      },
+      {
+        "id": "clause-22c9986aa9f83f33487204cdea2238d8",
+        "source_id": "pdf-ed354800378624cb0b1da9c6",
+        "label": "1.27.35",
+        "title": "1.27.35",
+        "text": "1.26.1.6. Пункт 1.27.35 изложить в следующей редакции: \n«1.27.35. При определении затрат на устройство покрытий толщиной 4 \nсм из горячих асфальтобетонных смесей с применением норм табл. с 27-06-\n029 по 27-06-032 норма расхода асфальтобетонной смеси принимается на \nосновании проектных данных. В случае отсутствия проектных данных норма \nрасхода асфальтобетонной смеси принимается по приложению 27.1. \nПри применении щебёночно-мастичных асфальтобетонных смесей \nукладка определяется по нормам 27-06-029-01, 27-06-030-01, 27-06-031-01, 27-\n06-031-02, 27-06-032-01, 27-06-032-02, табл. 27-06-075 состав смеси \nподбирается индивидуально. Норма расхода асфальтобетонной смеси \nпринимается на основании проектных данных. В случае отсутствия \nпроектных данных норма расхода асфальтобетонной смеси принимается по \nприложению 27.1. \nМаксимальная \nплотность \nкаменных \nматериалов, \nуказанная \nв \nприложении 27.1, определяется нахождением средневзвешенной величины \nмаксимальных плотностей щебня (по фракциям), песка и минерального \nпорошка по их долям. \nПри определении затрат на устройство асфальтобетонного лотка вдоль \nкромки проезжей части с применением норм 27-06-030-02, 27-06-069-01 \nнорма расхода асфальтобетонной смеси принимается на основании проектных \nданных.».",
+        "raw_text_sha256": "ff7f3cf6a63c684617b420bba0a6a335d885ddd77a34442c480c05fef05a28b4",
+        "physical_pages": [
+          188
+        ],
+        "citations": [
+          {
+            "source_id": "pdf-ed354800378624cb0b1da9c6",
+            "physical_page": 188,
+            "source_sha256": "ed354800378624cb0b1da9c6f4adf3ad5bbecf27b5fbeac47cf27d5e67b6c174"
+          }
+        ],
+        "status": "reviewed_literal_transcription",
+        "relation": "replacement",
+        "date": "2025-02-07",
+        "selection": {
+          "physical_page": 188,
+          "start": "1.26.1.6.",
+          "end_exclusive": "1.26.1.7."
+        },
+        "verification_method": "independent original PDF visual reading and literal native-text comparison"
+      },
+      {
+        "id": "clause-966d53cb86ffe467e81adc5016d12e62",
+        "source_id": "pdf-ed354800378624cb0b1da9c6",
+        "label": "1.27.37",
+        "title": "1.27.37",
+        "text": "1.26.1.7. Пункт 1.27.37 изложить в следующей редакции: \n«1.27.37. При устройстве покрытия из асфальтобетонных смесей не \nучтены работы по розливу вяжущих материалов (кроме норм табл. 27-06-031). \nПри необходимости эти затраты определяются по табл. 27-06-026 или 27-06-\n035, а расход принимается по проекту. \nНормы табл. 27-06-029, 27-06-030, 27-06-031, 27-06-032 применяются \nпри устройстве слоя покрытия толщиной до 7 см. При толщине слоя более 7 \nсм затраты на его устройство определяются по нормам табл. 27-06-029, 27-06-\n031 в два слоя (для каждого слоя отдельно) и корректируется нормами табл. \n27-06-030 и 27-06-032.».",
+        "raw_text_sha256": "7de34ee817460c516fa8118024e1e18a6d976ea9e8eb4aaad96e6959ca5e5d95",
+        "physical_pages": [
+          188
+        ],
+        "citations": [
+          {
+            "source_id": "pdf-ed354800378624cb0b1da9c6",
+            "physical_page": 188,
+            "source_sha256": "ed354800378624cb0b1da9c6f4adf3ad5bbecf27b5fbeac47cf27d5e67b6c174"
+          }
+        ],
+        "status": "reviewed_literal_transcription",
+        "relation": "replacement",
+        "date": "2025-02-07",
+        "selection": {
+          "physical_page": 188,
+          "start": "1.26.1.7.",
+          "end_exclusive": "1.26.1.8."
+        },
+        "verification_method": "independent original PDF visual reading and literal native-text comparison"
+      },
+      {
+        "id": "clause-b0493e8f75c5812939eb16b8e9db0edf",
+        "source_id": "pdf-39109e5721888ecf15c1b953",
+        "label": "identity:order490",
+        "title": "identity:order490",
+        "text": "Приложение к приказу \n \nМинистерства строительства \n \nи жилищно-коммунального хозяйства \n \nРоссийской Федерации \n \nот «14» августа 2025 г. № 490/пр \nИзменения, \nкоторые вносятся в приказ Министерства строительства \nи жилищно-коммунального хозяйства Российской Федерации \nот 30 декабря 2021 г. № 1046/пр «Об утверждении сметных нормативов»",
+        "raw_text_sha256": "69fc044dc661c92b0c5ee8027ebde7ade4af430731e24d3dd77f17566ba992f8",
+        "physical_pages": [
+          1
+        ],
+        "citations": [
+          {
+            "source_id": "pdf-39109e5721888ecf15c1b953",
+            "physical_page": 1,
+            "source_sha256": "39109e5721888ecf15c1b9539b83b9a9781782227098cedf88ff4cfc66d04f5a"
+          }
+        ],
+        "status": "reviewed_literal_transcription",
+        "relation": "identity",
+        "date": "2025-08-14",
+        "selection": {
+          "physical_page": 1,
+          "start": "Приложение к приказу",
+          "end_exclusive": "1. В приложение"
+        },
+        "verification_method": "independent original PDF visual reading and literal native-text comparison"
+      },
+      {
+        "id": "clause-8561d35094489b2d10c5f35307716ace",
+        "source_id": "pdf-39109e5721888ecf15c1b953",
+        "label": "road-section:start",
+        "title": "road-section:start",
+        "text": "1.17. В сборнике 27 «Автомобильные дороги»: \n1.17.1. Раздел III. «ГОСУДАРСТВЕННЫЕ ЭЛЕМЕНТНЫЕ СМЕТНЫЕ \nНОРМЫ НА СТРОИТЕЛЬНЫЕ РАБОТЫ»:",
+        "raw_text_sha256": "6ff309877281622626db438aafe2c4367d72e42b1caa38fcb95fb82bf924d190",
+        "physical_pages": [
+          96
+        ],
+        "citations": [
+          {
+            "source_id": "pdf-39109e5721888ecf15c1b953",
+            "physical_page": 96,
+            "source_sha256": "39109e5721888ecf15c1b9539b83b9a9781782227098cedf88ff4cfc66d04f5a"
+          }
+        ],
+        "status": "reviewed_literal_transcription",
+        "relation": "amend",
+        "date": "2025-08-14",
+        "selection": {
+          "physical_page": 96,
+          "start": "1.17. В сборнике 27",
+          "end_exclusive": "1.17.1.1."
+        },
+        "verification_method": "independent original PDF visual reading and literal native-text comparison"
+      },
+      {
+        "id": "clause-63db2f17f109b459d9118612cf37e0db",
+        "source_id": "pdf-39109e5721888ecf15c1b953",
+        "label": "road-section:end",
+        "title": "road-section:end",
+        "text": "1.18. В сборнике 28 «Железные дороги»:",
+        "raw_text_sha256": "daea8a3779f000648deef78ac278e7130e95026ab58f0eb9dbc3cef4aefdd8ab",
+        "physical_pages": [
+          115
+        ],
+        "citations": [
+          {
+            "source_id": "pdf-39109e5721888ecf15c1b953",
+            "physical_page": 115,
+            "source_sha256": "39109e5721888ecf15c1b9539b83b9a9781782227098cedf88ff4cfc66d04f5a"
+          }
+        ],
+        "status": "reviewed_literal_transcription",
+        "relation": "identity",
+        "date": "2025-08-14",
+        "selection": {
+          "physical_page": 115,
+          "start": "1.18. В сборнике 28",
+          "end_exclusive": "1.18.1."
+        },
+        "verification_method": "independent original PDF visual reading and literal native-text comparison"
+      }
+    ],
+    "norm_definitions": [
+      {
+        "id": "norm-de5f7e55e2dc5bd748c6e76c49c1de2c",
+        "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+        "code": "27-02-010-02",
+        "table_code": "27-02-010",
+        "family": "ГЭСН",
+        "title": "Установка бортовых камней · Установка бортовых камней бетонных: · при других видах покрытий",
+        "text": "Таблица ГЭСН 27-02-010 Установка бортовых камней\nИзмеритель: 100 м\nУстановка бортовых камней бетонных:\n27-02-010-02 при других видах покрытий\nСостав работ:\nДля норм с 27-02-010-01 по 27-02-010-04:\n01. Устройство бетонного основания с уплотнением, установкой и снятием опалубки.\n02. Установка бортовых камней с подтеской, заливкой швов и их расшивкой.\n03. Очистка гранитных бортов.",
+        "raw_text_sha256": "3ab5f2fa481dd29f485c71895353cc213e9b2a7a828e7666804c252a7da2dbf7",
+        "citations": [
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 13,
+            "bbox": [
+              56.82500076293945,
+              40.78098678588867,
+              242.3300018310547,
+              50.743988037109375
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 12,
+            "bbox": [
+              64.42500305175781,
+              763.5560302734375,
+              151.54698181152344,
+              773.5189819335938
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 12,
+            "bbox": [
+              129.64999389648438,
+              775.9559936523438,
+              283.1499938964844,
+              785.9189453125
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 12,
+            "bbox": [
+              70.42500305175781,
+              674.531005859375,
+              233.1300048828125,
+              684.4939575195312
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 12,
+            "bbox": [
+              70.42500305175781,
+              685.531005859375,
+              402.9800109863281,
+              695.4939575195312
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 12,
+            "bbox": [
+              70.42500305175781,
+              696.7310180664062,
+              370.3800048828125,
+              706.6939697265625
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 12,
+            "bbox": [
+              70.42500305175781,
+              707.7310180664062,
+              192.5,
+              717.6939697265625
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 12,
+            "bbox": [
+              56.82500076293945,
+              648.7489624023438,
+              344.6720275878906,
+              660.9259643554688
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          }
+        ],
+        "status": "extracted_native_unreviewed",
+        "proof": {
+          "version": "native-definition-scope-v1",
+          "rows": [
+            {
+              "page": 13,
+              "bbox": [
+                56.82500076293945,
+                40.78098678588867,
+                242.3300018310547,
+                50.743988037109375
+              ],
+              "text": "27-02-010-02 при других видах покрытий"
+            },
+            {
+              "page": 12,
+              "bbox": [
+                64.42500305175781,
+                763.5560302734375,
+                151.54698181152344,
+                773.5189819335938
+              ],
+              "text": "Измеритель: 100 м"
+            },
+            {
+              "page": 12,
+              "bbox": [
+                129.64999389648438,
+                775.9559936523438,
+                283.1499938964844,
+                785.9189453125
+              ],
+              "text": "Установка бортовых камней бетонных:"
+            },
+            {
+              "page": 12,
+              "bbox": [
+                70.42500305175781,
+                674.531005859375,
+                233.1300048828125,
+                684.4939575195312
+              ],
+              "text": "Для норм с 27-02-010-01 по 27-02-010-04:"
+            },
+            {
+              "page": 12,
+              "bbox": [
+                70.42500305175781,
+                685.531005859375,
+                402.9800109863281,
+                695.4939575195312
+              ],
+              "text": "01. Устройство бетонного основания с уплотнением, установкой и снятием опалубки."
+            },
+            {
+              "page": 12,
+              "bbox": [
+                70.42500305175781,
+                696.7310180664062,
+                370.3800048828125,
+                706.6939697265625
+              ],
+              "text": "02. Установка бортовых камней с подтеской, заливкой швов и их расшивкой."
+            },
+            {
+              "page": 12,
+              "bbox": [
+                70.42500305175781,
+                707.7310180664062,
+                192.5,
+                717.6939697265625
+              ],
+              "text": "03. Очистка гранитных бортов."
+            },
+            {
+              "page": 12,
+              "bbox": [
+                56.82500076293945,
+                648.7489624023438,
+                344.6720275878906,
+                660.9259643554688
+              ],
+              "text": "Таблица ГЭСН 27-02-010 Установка бортовых камней"
+            }
+          ],
+          "parents": [
+            "Установка бортовых камней бетонных:"
+          ],
+          "own_label": "при других видах покрытий",
+          "code_bbox": [
+            56.82500076293945,
+            40.78098678588867,
+            108.4800033569336,
+            50.743988037109375
+          ],
+          "label_indent": 132.64999389648438
+        },
+        "physical_pages": [
+          12,
+          13
+        ],
+        "relation": "definition",
+        "date": "2022-05-18",
+        "independent_reproduction": "Matches independently regenerated native parser output and root probe exactly",
+        "resources": []
+      },
+      {
+        "id": "norm-3ff390a3655a078f080cfe0c5891d466",
+        "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+        "code": "27-06-031-01",
+        "table_code": "27-06-031",
+        "family": "ГЭСН",
+        "title": "Устройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками третьего и четвертого типоразмеров · Устройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками: · третьего типоразмера, ширина укладки до 6 м, толщина слоя 4 см",
+        "text": "Таблица ГЭСН 27-06-031 Устройство покрытия из горячих асфальтобетонных смесей\nасфальтоукладчиками третьего и четвертого типоразмеров\nИзмеритель: 1000 м2\nУстройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками:\n27-06-031-01 третьего типоразмера, ширина укладки до 6 м, толщина слоя 4 см\nСостав работ:\n01. Разбивочные работы.\n02. Очистка основания.\n03. Проливка битумом.\n04. Прием асфальтобетонной смеси в перегружатель, укладка смеси с обрубкой краев, устранением дефектов, трамбованием\nмест, недоступных укатке.\n05. Укатка.\n06. Вырубка образцов и заделка вырубок.",
+        "raw_text_sha256": "362f7443a0655c4daf68217976a418a8650a52ce736dc68d647d41d67b33d95c",
+        "citations": [
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 67,
+            "bbox": [
+              56.82500076293945,
+              762.9559936523438,
+              387.9800109863281,
+              772.9189453125
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 67,
+            "bbox": [
+              64.42500305175781,
+              737.9559936523438,
+              160.5199737548828,
+              747.9189453125
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 67,
+            "bbox": [
+              129.64999389648438,
+              750.3560180664062,
+              452.3999938964844,
+              760.3189697265625
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 67,
+            "bbox": [
+              70.42500305175781,
+              661.7310180664062,
+              168.3000030517578,
+              671.6939697265625
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 67,
+            "bbox": [
+              70.42500305175781,
+              672.7310180664062,
+              162.6999969482422,
+              682.6939697265625
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 67,
+            "bbox": [
+              70.42500305175781,
+              683.9309692382812,
+              161.89999389648438,
+              693.8939208984375
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 67,
+            "bbox": [
+              70.42500305175781,
+              694.9309692382812,
+              554.5220947265625,
+              704.8939208984375
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 67,
+            "bbox": [
+              70.42500305175781,
+              705.3309936523438,
+              174.89999389648438,
+              715.2939453125
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 67,
+            "bbox": [
+              70.42500305175781,
+              715.531005859375,
+              115.4800033569336,
+              725.4939575195312
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 67,
+            "bbox": [
+              70.42500305175781,
+              726.5609741210938,
+              232.72999572753906,
+              736.52392578125
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 67,
+            "bbox": [
+              56.82500076293945,
+              625.948974609375,
+              504.721923828125,
+              638.1259765625
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 67,
+            "bbox": [
+              200.8800048828125,
+              638.3489990234375,
+              498.9690246582031,
+              650.5260009765625
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          }
+        ],
+        "status": "extracted_native_unreviewed",
+        "proof": {
+          "version": "native-definition-scope-v1",
+          "rows": [
+            {
+              "page": 67,
+              "bbox": [
+                56.82500076293945,
+                762.9559936523438,
+                387.9800109863281,
+                772.9189453125
+              ],
+              "text": "27-06-031-01 третьего типоразмера, ширина укладки до 6 м, толщина слоя 4 см"
+            },
+            {
+              "page": 67,
+              "bbox": [
+                64.42500305175781,
+                737.9559936523438,
+                160.5199737548828,
+                747.9189453125
+              ],
+              "text": "Измеритель: 1000 м2"
+            },
+            {
+              "page": 67,
+              "bbox": [
+                129.64999389648438,
+                750.3560180664062,
+                452.3999938964844,
+                760.3189697265625
+              ],
+              "text": "Устройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками:"
+            },
+            {
+              "page": 67,
+              "bbox": [
+                70.42500305175781,
+                661.7310180664062,
+                168.3000030517578,
+                671.6939697265625
+              ],
+              "text": "01. Разбивочные работы."
+            },
+            {
+              "page": 67,
+              "bbox": [
+                70.42500305175781,
+                672.7310180664062,
+                162.6999969482422,
+                682.6939697265625
+              ],
+              "text": "02. Очистка основания."
+            },
+            {
+              "page": 67,
+              "bbox": [
+                70.42500305175781,
+                683.9309692382812,
+                161.89999389648438,
+                693.8939208984375
+              ],
+              "text": "03. Проливка битумом."
+            },
+            {
+              "page": 67,
+              "bbox": [
+                70.42500305175781,
+                694.9309692382812,
+                554.5220947265625,
+                704.8939208984375
+              ],
+              "text": "04. Прием асфальтобетонной смеси в перегружатель, укладка смеси с обрубкой краев, устранением дефектов, трамбованием"
+            },
+            {
+              "page": 67,
+              "bbox": [
+                70.42500305175781,
+                705.3309936523438,
+                174.89999389648438,
+                715.2939453125
+              ],
+              "text": "мест, недоступных укатке."
+            },
+            {
+              "page": 67,
+              "bbox": [
+                70.42500305175781,
+                715.531005859375,
+                115.4800033569336,
+                725.4939575195312
+              ],
+              "text": "05. Укатка."
+            },
+            {
+              "page": 67,
+              "bbox": [
+                70.42500305175781,
+                726.5609741210938,
+                232.72999572753906,
+                736.52392578125
+              ],
+              "text": "06. Вырубка образцов и заделка вырубок."
+            },
+            {
+              "page": 67,
+              "bbox": [
+                56.82500076293945,
+                625.948974609375,
+                504.721923828125,
+                638.1259765625
+              ],
+              "text": "Таблица ГЭСН 27-06-031 Устройство покрытия из горячих асфальтобетонных смесей"
+            },
+            {
+              "page": 67,
+              "bbox": [
+                200.8800048828125,
+                638.3489990234375,
+                498.9690246582031,
+                650.5260009765625
+              ],
+              "text": "асфальтоукладчиками третьего и четвертого типоразмеров"
+            }
+          ],
+          "parents": [
+            "Устройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками:"
+          ],
+          "own_label": "третьего типоразмера, ширина укладки до 6 м, толщина слоя 4 см",
+          "code_bbox": [
+            56.82500076293945,
+            762.9559936523438,
+            108.4800033569336,
+            772.9189453125
+          ],
+          "label_indent": 132.64999389648438
+        },
+        "physical_pages": [
+          67
+        ],
+        "relation": "definition",
+        "date": "2022-05-18",
+        "independent_reproduction": "Matches independently regenerated native parser output and root probe exactly",
+        "resources": []
+      },
+      {
+        "id": "norm-612de5ea8d3b67a0a5a62594571f2a6b",
+        "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+        "code": "27-06-032-01",
+        "table_code": "27-06-032",
+        "family": "ГЭСН",
+        "title": "Нормы для корректировки таблицы 27-06-031 · При изменении толщины покрытия на 0,5 см добавлять или исключать: · к норме 27-06-031-01",
+        "text": "Таблица ГЭСН 27-06-032 Нормы для корректировки таблицы 27-06-031\nИзмеритель: 1000 м2\nПри изменении толщины покрытия на 0,5 см добавлять или исключать:\n27-06-032-01 к норме 27-06-031-01\nСостав работ:\n01. Прием асфальтобетонной смеси в перегружатель, укладка смеси с обрубкой краев, устранением дефектов, трамбованием\nмест недоступных укатке.\n02. Укатка.",
+        "raw_text_sha256": "3e85787285197a4c7334c565539ae734c2d2fe2c1f69a8a38f9dadae9b8db5a1",
+        "citations": [
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 68,
+            "bbox": [
+              56.82500076293945,
+              367.6509704589844,
+              216.72000122070312,
+              377.6139831542969
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 68,
+            "bbox": [
+              64.42500305175781,
+              342.6609802246094,
+              160.5199737548828,
+              352.6239929199219
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 68,
+            "bbox": [
+              129.64999389648438,
+              355.06097412109375,
+              407.7799987792969,
+              365.02398681640625
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 68,
+            "bbox": [
+              70.42500305175781,
+              310.8609924316406,
+              554.5900268554688,
+              320.8240051269531
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 68,
+            "bbox": [
+              70.42500305175781,
+              321.0610046386719,
+              172.6999969482422,
+              331.0240173339844
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 68,
+            "bbox": [
+              70.42500305175781,
+              331.260986328125,
+              115.4800033569336,
+              341.2239990234375
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          },
+          {
+            "source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+            "physical_page": 68,
+            "bbox": [
+              56.82500076293945,
+              285.0790100097656,
+              433.0090026855469,
+              297.2560119628906
+            ],
+            "coordinate_system": "pdf-points",
+            "source_sha256": "2d9d1f7aa5f6ee79799a726c2219f56c4ebc29f32bf446826e32a28a69d79366"
+          }
+        ],
+        "status": "extracted_native_unreviewed",
+        "proof": {
+          "version": "native-definition-scope-v1",
+          "rows": [
+            {
+              "page": 68,
+              "bbox": [
+                56.82500076293945,
+                367.6509704589844,
+                216.72000122070312,
+                377.6139831542969
+              ],
+              "text": "27-06-032-01 к норме 27-06-031-01"
+            },
+            {
+              "page": 68,
+              "bbox": [
+                64.42500305175781,
+                342.6609802246094,
+                160.5199737548828,
+                352.6239929199219
+              ],
+              "text": "Измеритель: 1000 м2"
+            },
+            {
+              "page": 68,
+              "bbox": [
+                129.64999389648438,
+                355.06097412109375,
+                407.7799987792969,
+                365.02398681640625
+              ],
+              "text": "При изменении толщины покрытия на 0,5 см добавлять или исключать:"
+            },
+            {
+              "page": 68,
+              "bbox": [
+                70.42500305175781,
+                310.8609924316406,
+                554.5900268554688,
+                320.8240051269531
+              ],
+              "text": "01. Прием асфальтобетонной смеси в перегружатель, укладка смеси с обрубкой краев, устранением дефектов, трамбованием"
+            },
+            {
+              "page": 68,
+              "bbox": [
+                70.42500305175781,
+                321.0610046386719,
+                172.6999969482422,
+                331.0240173339844
+              ],
+              "text": "мест недоступных укатке."
+            },
+            {
+              "page": 68,
+              "bbox": [
+                70.42500305175781,
+                331.260986328125,
+                115.4800033569336,
+                341.2239990234375
+              ],
+              "text": "02. Укатка."
+            },
+            {
+              "page": 68,
+              "bbox": [
+                56.82500076293945,
+                285.0790100097656,
+                433.0090026855469,
+                297.2560119628906
+              ],
+              "text": "Таблица ГЭСН 27-06-032 Нормы для корректировки таблицы 27-06-031"
+            }
+          ],
+          "parents": [
+            "При изменении толщины покрытия на 0,5 см добавлять или исключать:"
+          ],
+          "own_label": "к норме 27-06-031-01",
+          "code_bbox": [
+            56.82500076293945,
+            367.6509704589844,
+            108.4800033569336,
+            377.6139831542969
+          ],
+          "label_indent": 132.64999389648438
+        },
+        "physical_pages": [
+          68
+        ],
+        "relation": "definition",
+        "date": "2022-05-18",
+        "independent_reproduction": "Matches independently regenerated native parser output and root probe exactly",
+        "resources": []
+      }
+    ],
+    "preserved_appendix102": {
+      "source_id": "pdf-5151486c1540769b94985d06",
+      "sha256": "5151486c1540769b94985d066fdef6442d0892fcbd1ad52a0704ea591852c223",
+      "blob_path": "blobs/5151486c1540769b94985d066fdef6442d0892fcbd1ad52a0704ea591852c223.pdf",
+      "row_sha256": "ffb89f999786669bc45b99ef9ef19cd038d9dc4b0265f6dc35d9a087514af5d9",
+      "clauses": [
+        {
+          "id": "clause-44b6dbf37f4b8f166f90c17874fd5963",
+          "source_id": "pdf-5151486c1540769b94985d06",
+          "label": "1.27.35",
+          "raw_text_sha256": "157fa34c6f0d450ac689423409d65b01e5bd00a9d122c9aa7fd2e23a5f2c0374",
+          "status": "native_visually_verified",
+          "citations": [
+            {
+              "source_id": "pdf-5151486c1540769b94985d06",
+              "physical_page": 222
+            }
+          ],
+          "relation": "replacement",
+          "date": "2024-02-16",
+          "row_sha256": "b7a72d973ec3d4ced79ecf22e8a5a2e7f5caa602f90708c04201686361a8620b"
+        },
+        {
+          "id": "clause-51ca0934e697b15a5155c8ac9d43519a",
+          "source_id": "pdf-5151486c1540769b94985d06",
+          "label": "27.1",
+          "raw_text_sha256": "7ea7f8524e1c03e4a86da419f75ce929d9a66a34b48f86edb6cdc83cc168a073",
+          "status": "native_visually_verified",
+          "citations": [
+            {
+              "source_id": "pdf-5151486c1540769b94985d06",
+              "physical_page": 243
+            }
+          ],
+          "relation": "add",
+          "date": "2024-02-16",
+          "row_sha256": "363a4d8747c85d3fe53dd1770e2e483567edc5dad2fa74e3393998f8851a9b14"
+        }
+      ]
+    },
+    "relations": [
+      {
+        "relation": "add",
+        "source_id": "pdf-5151486c1540769b94985d06",
+        "clause_id": "clause-51ca0934e697b15a5155c8ac9d43519a",
+        "date": "2024-02-16",
+        "target_source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+        "target_label": "27.1",
+        "scope": "Appendix addition; existing102 bytes and row preserved"
+      },
+      {
+        "relation": "replacement",
+        "source_id": "pdf-5151486c1540769b94985d06",
+        "clause_id": "clause-44b6dbf37f4b8f166f90c17874fd5963",
+        "date": "2024-02-16",
+        "target_source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+        "target_label": "1.27.35"
+      },
+      {
+        "relation": "replacement",
+        "source_id": "pdf-4414a1bba9654e694eba7c7b",
+        "clause_id": "clause-1f249d8bc83836500c5df8f3414e908b",
+        "date": "2024-11-07",
+        "target_label": "1.27.35",
+        "replaces_clause_id": "clause-44b6dbf37f4b8f166f90c17874fd5963",
+        "latest_addressed_in_review": false
+      },
+      {
+        "relation": "replacement",
+        "source_id": "pdf-ed354800378624cb0b1da9c6",
+        "clause_id": "clause-22c9986aa9f83f33487204cdea2238d8",
+        "date": "2025-02-07",
+        "target_label": "1.27.35",
+        "replaces_clause_id": "clause-1f249d8bc83836500c5df8f3414e908b",
+        "latest_addressed_in_review": true
+      },
+      {
+        "relation": "replacement",
+        "source_id": "pdf-ed354800378624cb0b1da9c6",
+        "clause_id": "clause-966d53cb86ffe467e81adc5016d12e62",
+        "date": "2025-02-07",
+        "target_label": "1.27.37",
+        "replaces_clause_id": "clause-c0c77a6bcc87b05dc9a8c8ef8f044157",
+        "latest_addressed_in_review": true
+      }
+    ],
+    "definition_equivalences": [
+      {
+        "code": "27-02-010-02",
+        "old_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+        "old_norm_id": "norm-684a0dd3eb2dd69b788b91180ddde7cf",
+        "old_raw_text_sha256": "3ab5f2fa481dd29f485c71895353cc213e9b2a7a828e7666804c252a7da2dbf7",
+        "new_source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+        "new_norm_id": "norm-de5f7e55e2dc5bd748c6e76c49c1de2c",
+        "new_raw_text_sha256": "3ab5f2fa481dd29f485c71895353cc213e9b2a7a828e7666804c252a7da2dbf7",
+        "normalized_text_sha256": "01cf594229bfb3b51ba78a45a39b595698821057757eae49250ebb10cff2a3d9",
+        "normalization": "Unicode whitespace collapse only",
+        "relation": "identity",
+        "scope": "selected_definition_text_only",
+        "resources_equivalent": false,
+        "automatic_applicability": false
+      },
+      {
+        "code": "27-06-031-01",
+        "old_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+        "old_norm_id": "norm-03d14ab4c5a8c1e95aa460e3a53761a3",
+        "old_raw_text_sha256": "362f7443a0655c4daf68217976a418a8650a52ce736dc68d647d41d67b33d95c",
+        "new_source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+        "new_norm_id": "norm-3ff390a3655a078f080cfe0c5891d466",
+        "new_raw_text_sha256": "362f7443a0655c4daf68217976a418a8650a52ce736dc68d647d41d67b33d95c",
+        "normalized_text_sha256": "88b2b60478eff4bf8e6ca99f518a93ab6ba0c27bd8543941cdb5485a79625fbc",
+        "normalization": "Unicode whitespace collapse only",
+        "relation": "identity",
+        "scope": "selected_definition_text_only",
+        "resources_equivalent": false,
+        "automatic_applicability": false
+      },
+      {
+        "code": "27-06-032-01",
+        "old_source_id": "pdf-6aa5203d913dd5eb1538a4c2",
+        "old_norm_id": "norm-fce868e39fcfdd40a678e4284b8dc091",
+        "old_raw_text_sha256": "3e85787285197a4c7334c565539ae734c2d2fe2c1f69a8a38f9dadae9b8db5a1",
+        "new_source_id": "pdf-2d9d1f7aa5f6ee79799a726c",
+        "new_norm_id": "norm-612de5ea8d3b67a0a5a62594571f2a6b",
+        "new_raw_text_sha256": "3e85787285197a4c7334c565539ae734c2d2fe2c1f69a8a38f9dadae9b8db5a1",
+        "normalized_text_sha256": "4ebba6af15733cad7743afb506867f0a6c264078634f22eadc59f0ca046582a2",
+        "normalization": "Unicode whitespace collapse only",
+        "relation": "identity",
+        "scope": "selected_definition_text_only",
+        "resources_equivalent": false,
+        "automatic_applicability": false
+      }
+    ],
+    "native_parser": {
+      "version": "native-definition-scope-v1",
+      "path": "backend/normative_definition_parser.py",
+      "sha256": "3b5cc101a91943f3e8a583746b65b1e07bba92b8c7836ea86cd125a51806b90a"
+    },
+    "review_receipts": [
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\official-editions-independent-review-v30.json",
+        "sha256": "7639f02cdaf0b1658dfaf9b85a458426c0047dd8ce8633aff697dc23b41eb96f"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order490-addressed-37-followup-v30.json",
+        "sha256": "cc317befda2ed74e9de2cf9d41c3ded4f0549d114e97603599a57581d7d12a76"
+      },
+      {
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\official378-independent-selected-definitions-v31.json",
+        "sha256": "a8484642f753a00a7576b26b04ed8baeed4657d8dc9cfcc2fa2e46f16234dbc0"
+      }
+    ],
+    "limits": {
+      "full_chapter_index": false,
+      "resources_copied_from_other_sources": false,
+      "resources_added": 0,
+      "consolidated_edition": false,
+      "later_amendment_completeness": false,
+      "normative_applicability_inferred": false,
+      "source490_boundary": "Only explicit identity and collection27 SectionIII boundary literals; no fabricated no-amendment clause",
+      "symbols": "Weighted-density definition is literal wording; Γ numeric value and any mixture density are not inferred."
+    }
+  }
+}

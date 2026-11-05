@@ -1,0 +1,44 @@
+{
+  "cpu_contracts": {
+    "file": "final-contract-tests-v29.xml",
+    "sha256": "f98c795fcb3e09562f522f69708ee3fc464fb074de5cbc46c96839d64fdd1a7c",
+    "tests": 376,
+    "skipped": 0,
+    "seconds": 7.979
+  },
+  "postgres_runs": [
+    {
+      "file": "areal-projection-tests-v29.xml",
+      "sha256": "87231c110d612ab3019f0b7faec3fdc7762c1d850d3784f24ffffb79de650cfc",
+      "tests": 49,
+      "skipped": 0,
+      "seconds": 55.125
+    },
+    {
+      "file": "areal-recovery-projection-tests-v29.xml",
+      "sha256": "996a68a1556c57f5d18cacc512bdf66f5dae2aee0b39097f3d49b995b2fb4e48",
+      "tests": 8,
+      "skipped": 0,
+      "seconds": 20.894
+    }
+  ],
+  "postgres_unique_cases": 51,
+  "postgres_database": "smeta_test_v28_areal",
+  "working_database_untouched": true,
+  "ruff": "passed",
+  "pyright": "Changed production helpers checked by their authors; not a whole-repository green claim",
+  "full_suite_green_claimed": false,
+  "confirmed_register_revalidated": 20,
+  "production_sha256": {
+    "normative_verification_contract.py": "511442b8c7d737f4a7dfb794f9f95d9ae816afc7d2cf0fc294ced3084bd2c9c4",
+    "normative_position_check.py": "5504f29552338faff24221e7c685d335f04a2b36d269f9e256ac57583e3a1fdf",
+    "normative_resource_consumption.py": "b9657e50f74671b1b075decb38a3e3b7ccc997b18a33e5daa3018c5ea42b0ce5",
+    "normative_workbook_rate.py": "5d43809b77eb4ecf6cfd9b1ba36a589f5ac6dde7bd0cd42b19d4331a65bb240e",
+    "normative_lawn_soil_scope.py": "e73f0233436b42fb40a3268d416fe97803d5cb21903b09cc27f1255a4b2bf364",
+    "normative_resource_recovery.py": "c8e2a993aefd8743d68cfa9d2e7e0ba2e5fd4b0b6d7e88b33d5867056ef790c0",
+    "storage_db.py": "8cc188bb869853e4e81f7a741aa20399be9a4bfce9b8bd130ebb943ed0131151"
+  },
+  "actual_local_replay": "daa34ef5-faf2-4120-bb78-aa8a6a39a7c5",
+  "full_batch_workspace_equal": true,
+  "model_requests_during_tests": 0
+}

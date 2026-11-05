@@ -1,0 +1,23 @@
+{
+  "kind": "saved_wire_repacking_only",
+  "position_index": 54,
+  "source": "s45",
+  "canonical_source_id": "agent:p90:cell:8ac4da5095820fee014ce195",
+  "original_characters": 58000,
+  "repacked_characters": 58000,
+  "text_fully_delivered": true,
+  "numeric_verified": true,
+  "unit_verified": true,
+  "model_requests": 0,
+  "fresh_model": false,
+  "engineering_confirmation": false,
+  "read_source_ids": [
+    "s27",
+    "s44",
+    "s46",
+    "s0",
+    "s25",
+    "s36",
+    "s45"
+  ]
+}

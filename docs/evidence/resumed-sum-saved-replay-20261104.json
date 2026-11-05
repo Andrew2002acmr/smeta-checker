@@ -1,0 +1,115 @@
+{
+  "fresh_model": false,
+  "model_calls": 0,
+  "postgres_used": false,
+  "ocr_used": false,
+  "source_run_id": "f3e57b43-3e16-4fdd-a36f-780d3c0f17c4",
+  "index": 23,
+  "inputs": {
+    "q-23-06.request.json": "8605cf9bcf94d5c87fdae6b2b38681c473a85cafcc07a87eb59738c044723cfd",
+    "q-23-06.answer.json": "9590e4df50af9d6027d7bb9808fd83e2c14468b20eb01181790f691140f82746",
+    "new-23-final.json": "acebf4cc9550b926ce519f8d029b7dd183cafa7292abae077f697ea739b66e7c"
+  },
+  "alias_binding": {
+    "s26": "agent:p89:cell:6e8325f99d020f9b7771086c",
+    "s31": "agent:p89:cell:44ad061d6e90913690dbbf38"
+  },
+  "selected_proposal": {
+    "scope_relation": "same_layer",
+    "operation": "sum",
+    "operand_source_ids": [
+      "agent:p89:cell:6e8325f99d020f9b7771086c",
+      "agent:p89:cell:44ad061d6e90913690dbbf38"
+    ],
+    "scope_state": "verified",
+    "scope_quote": "Покрытие | Слева | А22 НТ на\nБНД 70/100 | h=0,07m | Площадь, | \nЕдиница по Tesseract: м2\nСтрока итога: Всего:\nЕдиница физического столбца: м2\nПокрытие | Справа | А22 НТ на\nБНД 70/100 | h=0,07m | Площадь, | 2 M\nСтрока итога: Всего:\nЕдиница физического столбца: м2\n4388.24 + 4532.73 = 8920.97 м2. Ячейки: agent:p89:cell:6e8325f99d020f9b7771086c, agent:p89:cell:44ad061d6e90913690dbbf38",
+    "parameter": "quantity",
+    "value": "8920.97",
+    "unit": "м2",
+    "source_id": "agent:sum:b1d518339024d716b549455d",
+    "quote": "4388.24 + 4532.73 = 8920.97 м2",
+    "conditions": []
+  },
+  "before": [
+    {
+      "id": "quantity",
+      "state": "possible_mismatch",
+      "found_value": "4532.73",
+      "found_unit": "м2",
+      "source_ids": [
+        "agent:p89:cell:44ad061d6e90913690dbbf38"
+      ],
+      "reason": "Значение в источнике отличается от значения ВОР после приведения единиц."
+    },
+    {
+      "id": "thickness",
+      "state": "confirmed",
+      "found_value": "7",
+      "found_unit": "см",
+      "source_ids": [
+        "agent:p49:0"
+      ],
+      "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+    }
+  ],
+  "after": [
+    {
+      "id": "quantity",
+      "state": "confirmed",
+      "found_value": "8920.97",
+      "found_unit": "м2",
+      "source_ids": [
+        "agent:sum:b1d518339024d716b549455d"
+      ],
+      "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+    },
+    {
+      "id": "thickness",
+      "state": "confirmed",
+      "found_value": "7",
+      "found_unit": "см",
+      "source_ids": [
+        "agent:p49:0"
+      ],
+      "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+    }
+  ],
+  "trace": [
+    {
+      "kind": "explicit_sum_source_binding_v1",
+      "original_proposal": {
+        "scope_relation": "same_layer",
+        "operation": "sum",
+        "operand_source_ids": [
+          "agent:p89:cell:6e8325f99d020f9b7771086c",
+          "agent:p89:cell:44ad061d6e90913690dbbf38"
+        ],
+        "scope_state": "verified",
+        "scope_quote": "Покрытие | Слева | А22 НТ на\nБНД 70/100 | h=0,07m | Площадь, | \nЕдиница по Tesseract: м2\nСтрока итога: Всего:\nЕдиница физического столбца: м2\nВсего:\n4388,24\nПокрытие | Справа | А22 НТ на\nБНД 70/100 | h=0,07m | Площадь, | 2 M\nСтрока итога: Всего:\nЕдиница физического столбца: м2\nВсего:\n4532,73",
+        "parameter": "quantity",
+        "value": "8920.97",
+        "unit": "м2",
+        "source_id": "",
+        "quote": "4388,24 + 4532,73 = 8920,97 м2",
+        "conditions": []
+      },
+      "replacement_proposal": {
+        "scope_relation": "same_layer",
+        "operation": "sum",
+        "operand_source_ids": [
+          "agent:p89:cell:6e8325f99d020f9b7771086c",
+          "agent:p89:cell:44ad061d6e90913690dbbf38"
+        ],
+        "scope_state": "verified",
+        "scope_quote": "Покрытие | Слева | А22 НТ на\nБНД 70/100 | h=0,07m | Площадь, | \nЕдиница по Tesseract: м2\nСтрока итога: Всего:\nЕдиница физического столбца: м2\nПокрытие | Справа | А22 НТ на\nБНД 70/100 | h=0,07m | Площадь, | 2 M\nСтрока итога: Всего:\nЕдиница физического столбца: м2\n4388.24 + 4532.73 = 8920.97 м2. Ячейки: agent:p89:cell:6e8325f99d020f9b7771086c, agent:p89:cell:44ad061d6e90913690dbbf38",
+        "parameter": "quantity",
+        "value": "8920.97",
+        "unit": "м2",
+        "source_id": "agent:sum:b1d518339024d716b549455d",
+        "quote": "4388.24 + 4532.73 = 8920.97 м2",
+        "conditions": []
+      }
+    }
+  ],
+  "limits": "Local mechanical projection, not a new fresh run or full material confirmation."
+}

@@ -1,0 +1,138 @@
+{
+  "kind": "bounded_pdf_clip_render_fix_v26",
+  "physical_page": 74,
+  "pdf_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+  "changes": [
+    "Existing 4-quadrant crop branch renders PDF clip directly; per-clip 12MP/4096px caps include fractional device origins",
+    "OCR rotation inverted locally, absolute pixmap pixel origin and DPI mapped to display PDF, intrinsic derotation applied last",
+    "Overview+layout frame, quality gates, word provenance, numeric flags and timeout/pass budgets preserved",
+    "ALGO_VERSION=ocr-tsv-v6-pdf-clips changes future OCR cache identity; no existing preparation/results updated"
+  ],
+  "production_code_sha256": {
+    "ocr_engine.py": "624c407046e37fbdd5005db88bd40f8a172192e6fc7b34d43dd1aec1028bb6f4",
+    "tests\\test_ocr_pdf_clips.py": "b848329a755ec83cecf73eeba4db4c7476135e94bccedee28468ff511d9964da",
+    "tests\\test_pdf_ocr_quality.py": "4bb28439a0e96b0129e96cb19d8e8144f2d4a2b6ae70007588f0b8f5fb7f34f8"
+  },
+  "checks": {
+    "pytest_passed": 113,
+    "pytest_skipped": 1,
+    "ruff": "passed",
+    "pyright": "0errors",
+    "rotation_cases": 16,
+    "nonzero_cropbox": true,
+    "fractional_origin_negative_control": "naive72dpi:1001px>1000cap;fixed71dpi fits",
+    "render_failure_budget": true,
+    "actual_primary_pdf_regression": true
+  },
+  "comparison": {
+    "old": {
+      "report": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\ocr-pdf-clip-full-page-v26-old.json",
+      "report_sha256": "606d04eaaa2d076d4598816db2ccea6ef2a2552fe19a672fe2173bebb4eb630d",
+      "engine_sha256": "369a9fed8c533c4e8996f47dfbb0b09678ac52e1cd35bb8ce12caa6022331950",
+      "elapsed_seconds": 59.513,
+      "quality": {
+        "state": "uncertain",
+        "origin": "ocr",
+        "engine": "tesseract",
+        "tesseract": "tesseract 5.3.0",
+        "language": "rus+eng",
+        "algo": "ocr-tsv-v5",
+        "dpi_overview": 98,
+        "dpi_crop": 98,
+        "psm_overview": 11,
+        "psm_crop": 6,
+        "rotation": 0,
+        "page_rotation": 0,
+        "passes": 8,
+        "passes_max": 8,
+        "words_kept": 167,
+        "words_dropped_low_conf": 1108,
+        "confidence_mean": 78.03592814371258,
+        "reasons": [
+          "quadrant_recovery",
+          "low_confidence_dropped:1108",
+          "layout_unresolved:multi_row_no_repeated_columns"
+        ],
+        "layout": {
+          "rows": 44,
+          "cols": 0,
+          "resolved": false,
+          "reason": "multi_row_no_repeated_columns"
+        },
+        "transform": "rot:0 scale:0.73453,0.73466",
+        "crops": [
+          "q1",
+          "q2",
+          "q3",
+          "q4"
+        ]
+      },
+      "evaluated_label_words": []
+    },
+    "new": {
+      "report": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\ocr-pdf-clip-full-page-v26-new.json",
+      "report_sha256": "ccc544991b6e08a8080240b546c9d7795d3477ea0a496b1e404b9d3489a9b938",
+      "engine_sha256": "624c407046e37fbdd5005db88bd40f8a172192e6fc7b34d43dd1aec1028bb6f4",
+      "elapsed_seconds": 84.62,
+      "quality": {
+        "state": "uncertain",
+        "origin": "ocr",
+        "engine": "tesseract",
+        "tesseract": "tesseract 5.3.0",
+        "language": "rus+eng",
+        "algo": "ocr-tsv-v6-pdf-clips",
+        "dpi_overview": 98,
+        "dpi_crop": 179,
+        "psm_overview": 11,
+        "psm_crop": 6,
+        "rotation": 0,
+        "page_rotation": 0,
+        "passes": 8,
+        "passes_max": 8,
+        "words_kept": 226,
+        "words_dropped_low_conf": 1282,
+        "confidence_mean": 80.38495575221239,
+        "reasons": [
+          "quadrant_recovery",
+          "low_confidence_dropped:1282",
+          "pass_incomplete:crop q4: TSV pass timeout (15 с, PSM 6)"
+        ],
+        "layout": {
+          "rows": 70,
+          "cols": 3,
+          "resolved": true,
+          "reason": ""
+        },
+        "transform": "rot:0 scale:0.73453,0.73466",
+        "crops": [
+          "q1",
+          "q2",
+          "q3"
+        ]
+      },
+      "evaluated_label_words": []
+    }
+  },
+  "benchmark_script": {
+    "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\ocr-pdf-clip-full-page-v26.py",
+    "sha256": "1f0c5cbd37846a02dc442ef9ae3b1573ef62b132e91a7a248c1f8a910ca6bc21"
+  },
+  "rendered_artifacts": [
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\ocr-pdf-clips-v26-p74-q4.png",
+      "sha256": "638238b33352f0618e252081819457ce2999f354c9e732004632d85cc8233ce4"
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\ocr-pdf-clips-v26-p74-legend179.png",
+      "sha256": "0c0cbeff6f1ee51cd67b85f309e164da3d172992ba25ed1955dc697b21b73245"
+    }
+  ],
+  "visual_check": "The179dpi legend crop visibly reads «проектируемый автопавильон». This is visual inspection, not an emitted OCR fact or unit verification.",
+  "actual_effect": "Whole-page DPI cap no longer controls crop rendering:98→179dpi. Actual accepted words167→226. Target label remains absent because the full q4 TSV pass times out at15s. Four-quadrant rendering alone does not solve this particular OCR omission.",
+  "limits": "No claim of recovered pavilion evidence, no numeric/unit certification, no new model check or verdict. No timeout/pass/grid expansion.",
+  "model_calls": 0,
+  "routerai_calls": 0,
+  "database_reads": 0,
+  "database_writes": 0,
+  "network": "Docker--network none"
+}

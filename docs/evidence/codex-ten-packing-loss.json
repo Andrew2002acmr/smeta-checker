@@ -1,0 +1,156 @@
+{
+  "index": 2,
+  "vor_row": 20,
+  "packet": "q-02-03.request.json",
+  "packet_sha256": "96c1d5bcf61dbdd1381d53acdd95b7363608e51d9d2b86114a32e80a085dc46a",
+  "input_characters": 58000,
+  "relevant_source_ids": [
+    "s46",
+    "s47"
+  ],
+  "source_ids_archived": [
+    "s46",
+    "s47"
+  ],
+  "literal_lower_layer_condition_delivered": false,
+  "tool_results": [
+    {
+      "request": {
+        "tool": "read_source",
+        "document_version_id": "",
+        "query": "",
+        "page": 1,
+        "table_id": "",
+        "offset": 200,
+        "operand_ids": [],
+        "unit": "",
+        "source_id": "s46",
+        "row_ids": [],
+        "column_ids": []
+      },
+      "result": {
+        "source_id": "s47"
+      }
+    },
+    {
+      "request": {
+        "tool": "read_source",
+        "document_version_id": "",
+        "query": "",
+        "page": 1,
+        "table_id": "",
+        "offset": 0,
+        "operand_ids": [],
+        "unit": "",
+        "source_id": "s25",
+        "row_ids": [],
+        "column_ids": []
+      },
+      "result": {
+        "source_id": "s25",
+        "full_length": 206
+      }
+    },
+    {
+      "request": {
+        "tool": "read_source",
+        "document_version_id": "",
+        "query": "",
+        "page": 1,
+        "table_id": "",
+        "offset": 0,
+        "operand_ids": [],
+        "unit": "",
+        "source_id": "s26",
+        "row_ids": [],
+        "column_ids": []
+      },
+      "result": {
+        "source_id": "s26",
+        "full_length": 195
+      }
+    }
+  ],
+  "context_window": {
+    "reserved_source_characters": 18000,
+    "deferred_sources": [
+      {
+        "source_id": "s46",
+        "kind": "full_normative_clause",
+        "full_length": 2400
+      },
+      {
+        "source_id": "s23",
+        "kind": "literal_template",
+        "field": "parameter_candidates"
+      },
+      {
+        "source_id": "s22",
+        "kind": "literal_template",
+        "field": "parameter_candidates"
+      },
+      {
+        "source_id": "s17",
+        "kind": "literal_template",
+        "field": "parameter_candidates"
+      },
+      {
+        "source_id": "s16",
+        "kind": "literal_template",
+        "field": "parameter_candidates"
+      },
+      {
+        "source_id": "s15",
+        "kind": "literal_template",
+        "field": "parameter_candidates"
+      },
+      {
+        "source_id": "s14",
+        "kind": "literal_template",
+        "field": "parameter_candidates"
+      },
+      {
+        "source_id": "s13",
+        "kind": "literal_template",
+        "field": "parameter_candidates"
+      },
+      {
+        "source_id": "s12",
+        "kind": "literal_template",
+        "field": "parameter_candidates"
+      },
+      {
+        "source_id": "s11",
+        "kind": "literal_template",
+        "field": "parameter_candidates"
+      },
+      {
+        "source_id": "s10",
+        "kind": "literal_template",
+        "field": "parameter_candidates"
+      },
+      {
+        "source_id": "s9",
+        "kind": "literal_template",
+        "field": "parameter_candidates"
+      },
+      {
+        "source_id": "s8",
+        "kind": "literal_template",
+        "field": "parameter_candidates"
+      },
+      {
+        "source_id": "s7",
+        "kind": "literal_template",
+        "field": "parameter_candidates"
+      },
+      {
+        "source_id": "s6",
+        "kind": "literal_template",
+        "field": "parameter_candidates"
+      }
+    ],
+    "metadata_characters": 46204
+  },
+  "conclusion": "Relevant source exists in registry and was explicitly read, but clause body is not delivered to the model; needs_facts here is a pipeline block, not a VOR discrepancy."
+}

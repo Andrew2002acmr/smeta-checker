@@ -1,0 +1,117 @@
+{
+  "audit": "order490-addressed-37-followup-v30",
+  "created_at_utc": "2026-11-04T22:26:24.280730+00:00",
+  "scope": "Last bounded followup of the 7-to-8cm lead; source-only, not consolidated-edition validation",
+  "source": {
+    "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\official490-amendment.pdf",
+    "sha256": "39109e5721888ecf15c1b9539b83b9a9781782227098cedf88ff4cfc66d04f5a",
+    "bytes": 10962660,
+    "pages": 374,
+    "download": {
+      "url": "https://minstroyrf.gov.ru/upload/iblock/344/lwutu839abyqvyzs53tjylitotwjeq0b/%D0%9F%D1%80%D0%B8%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5%20%D0%BA%20%D0%BF%D1%80%D0%B8%D0%BA%D0%B0%D0%B7%D1%83%20%D0%9C%D0%B8%D0%BD%D1%81%D1%82%D1%80%D0%BE%D1%8F%20%D0%A0%D0%BE%D1%81%D1%81%D0%B8%D0%B8%20%D0%BE%D1%82%2014%20%D0%B0%D0%B2%D0%B3%D1%83%D1%81%D1%82%D0%B0%202025%20%D0%B3.%20%E2%84%96%20490%D0%BF%D1%80.pdf",
+      "budget_remaining_max_bytes": 60000000,
+      "head_status": 200,
+      "head_headers": {
+        "Server": "nginx",
+        "Date": "Wed, 04 Nov 2026 22:24:04 GMT",
+        "Content-Type": "application/pdf",
+        "Content-Length": "10962660",
+        "Connection": "close",
+        "Last-Modified": "Fri, 15 Aug 2025 07:15:53 GMT",
+        "ETag": "\"689edea9-a746e4\"",
+        "Strict-Transport-Security": "max-age=31536000;",
+        "Accept-Ranges": "bytes"
+      },
+      "download": "saved",
+      "bytes": 10962660,
+      "sha256": "39109e5721888ecf15c1b9539b83b9a9781782227098cedf88ff4cfc66d04f5a",
+      "saved": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\official490-amendment.pdf"
+    },
+    "discovery": {
+      "primary_index": "https://minstroyrf.gov.ru/trades/tsenoobrazovanie/izmeneniya-v-federalnuyu-smetno-normativnuyu-bazu-fsnb-2022-prikaz-minstroya-rossii-ot-30-dekabrya-2021-g-1046-pr-v-reda/",
+      "saved_index": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\official-later-amendments-index.html",
+      "index_sha256": "e930e4d5c5f5eedb86a69604b2459ccd07ef74b43d272d120eb6c6b378c5b826",
+      "literal_link_label": "Приложение к приказу Минстроя России от14августа2025г.№490/пр"
+    }
+  },
+  "checks": {
+    "native_pages_scanned": 374,
+    "native_empty_pages": 0,
+    "native_total_characters": 1339344,
+    "search": "Exact addressed clause IDs after whitespace removal on every page; native text is search assistance, not automatic quality verification",
+    "matches": {
+      "1.27.35": [],
+      "1.27.37": []
+    },
+    "visual_pages": [
+      1,
+      96,
+      115
+    ],
+    "visual_scope": "Identity page; collection27 entry startsSectionIII on96; next collection28 starts115. No paragraph1.27.37 amendment found in the bounded source."
+  },
+  "road_outline": {
+    "begin_page": 96,
+    "literal_begin": "1.17. В сборнике 27 «Автомобильные дороги»:",
+    "first_section": "1.17.1. Раздел III. «ГОСУДАРСТВЕННЫЕ ЭЛЕМЕНТНЫЕ СМЕТНЫЕ НОРМЫ НА СТРОИТЕЛЬНЫЕ РАБОТЫ»:",
+    "next_collection_page": 115,
+    "literal_end": "1.18. В сборнике 28 «Железные дороги»:"
+  },
+  "conclusion": {
+    "bridge_7_to_8_proved": false,
+    "known_primary_chain": [
+      "Original1046 official6aa has8cm in1.27.37.",
+      "Official catalogue378 source2d9d… has7cm.",
+      "747 source4414… does not alter37; it adds weighted-density definition in35.",
+      "69 sourceed354… explicitly replaces37 while retaining7cm and introducing the27-06-031 binder-spreading exception.",
+      "490 source39109… contains no addressed35/37 amendment."
+    ],
+    "risk_state": "Current later-edition threshold remains unresolved; a secondary2025 snippet printing8cm is not accepted as primary proof.",
+    "not_inferred": [
+      "No VORposition59 mismatch or confirmed-state removal.",
+      "No C from incomplete later chain.",
+      "No assertion that all later amendments were audited."
+    ]
+  },
+  "total_pdf_download_bytes": 47487365,
+  "max_download_bytes": 100000000,
+  "new_endpoint_attempts_after_primary490_found": 0,
+  "artifacts": [
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\order490-p1.png",
+      "sha256": "ae48f3077e6a327b02484454403395113ceeb717c1aa5de2af02776c13b69f73"
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\order490-p96.png",
+      "sha256": "99f61f5187c82767ce2dc51674091d4ebcd03291b0b8e152b562a26200ba6dc5"
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\order490-p115.png",
+      "sha256": "7e39ab34ab2277d3edd689c761621231b00e05e203fa1fcac16a567b9552ae27"
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\order490-p1-native.txt",
+      "sha256": "3aa7674be894ae6084e0c1272d15f98bb489191dbb6751e9d1350258beee7cc5"
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\order490-p96-native.txt",
+      "sha256": "e8d0a9de0cbc34c02cae00a7c3ad0d55009df0f0c6df08761480ddd9ddb38338"
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\order490-p115-native.txt",
+      "sha256": "7060f96a20895bf036fe99784b3d94b37534348c5d03cb8772e71e118ad00149"
+    },
+    {
+      "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\order102-edition-identity-v30\\order490-download-log.json",
+      "sha256": "75f6e6836f56459365b6bd873773e718830c7114cbbf2a56f116269befea3f68"
+    }
+  ],
+  "no_changes": [
+    "code",
+    "KB",
+    "releaseCURRENT",
+    "workingDB",
+    "VORstatuses"
+  ],
+  "model_calls": 0
+}

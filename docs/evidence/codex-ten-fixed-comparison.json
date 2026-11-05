@@ -1,0 +1,2071 @@
+{
+  "baseline_origin": "Historical before latest normative preparation; 2 confirmed / 1 possible_mismatch / 7 needs_facts",
+  "new_run_id": "12053bd7-5850-4ce0-b346-d8b9778d1958",
+  "new_states": {
+    "confirmed": 2,
+    "needs_facts": 8
+  },
+  "technical_failures": 0,
+  "baseline_requests": 52,
+  "codex_packets": 55,
+  "routerai_requests": 0,
+  "baseline_sum_phase_seconds": 777.845,
+  "new_sum_phase_seconds": 4113.943,
+  "new_wall_seconds": 1831.823,
+  "parallel_groups": [
+    [
+      0,
+      1,
+      2,
+      3
+    ],
+    [
+      4,
+      5,
+      6
+    ],
+    [
+      7,
+      8,
+      9
+    ]
+  ],
+  "confirmed_numeric_geometry_cards": {
+    "old": 17,
+    "new": 18
+  },
+  "nonconfirmed_positions_with_confirmed_numeric_geometry": {
+    "old": 7,
+    "new": 8
+  },
+  "largest_answer_characters": 7727,
+  "all_answers_within_original_30000_character_limit": true,
+  "rows": [
+    {
+      "index": 0,
+      "vor_row": 18,
+      "old_state": "confirmed",
+      "new_state": "confirmed",
+      "execution_state": "complete",
+      "review_id": "cc2a8d59-338d-49d0-8f9a-b5da2a4fd16e",
+      "old_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "12",
+          "found_value": "24",
+          "unit": "см",
+          "source_ids": [
+            "prepared:native:50"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "new_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "12",
+          "found_value": "24",
+          "unit": "см",
+          "source_ids": [
+            "prepared:native:50"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "items": [
+        {
+          "claim_ids": [
+            "quantity",
+            "unit"
+          ],
+          "state": "confirmed",
+          "explanation": "Нижнее основание ЩПС 0/31,5 типа IV — 24 см. Итоги одного материала справа и слева: 345,77+85,841=431,611 м2; округление даёт 431,61 м2. Текущая операция — первый технологический слой 12 см из 12+12 см, а не отдельные 24 см.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:feb8114d3c30a3c1318def97",
+            "agent:p89:cell:b10b80c2f6781706ffd1f953",
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "presence"
+          ],
+          "state": "confirmed",
+          "explanation": "Нижнее основание ЩПС 0/31,5 типа IV — 24 см. Итоги одного материала справа и слева: 345,77+85,841=431,611 м2; округление даёт 431,61 м2. Текущая операция — первый технологический слой 12 см из 12+12 см, а не отдельные 24 см.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:feb8114d3c30a3c1318def97",
+            "agent:p89:cell:b10b80c2f6781706ffd1f953",
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "geometry:comment:thickness:1"
+          ],
+          "state": "confirmed",
+          "explanation": "18 см — нормативный порог в комментарии, а не толщина проекта. Нижний слой ПД 24 см превышает порог; сумма технологических слоёв ВОР 12+12 см совпадает с ПД.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:feb8114d3c30a3c1318def97",
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f"
+          ]
+        },
+        {
+          "claim_ids": [
+            "basis:comment:consumption:2"
+          ],
+          "state": "confirmed",
+          "explanation": "Пункт 1.27.18 прямо предписывает нижний слой основания более 18 см нормировать в два слоя по 27-04-003-06 с поправкой каждого слоя по 27-04-003-08. Для проектных 24 см разбиение 12+12 см отвечает правилу.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n8:full:f6aa24a5e4b561e8f9f6"
+          ]
+        },
+        {
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "state": "confirmed",
+          "explanation": "Выбрана одна база 27-04-003-06 (ГЭСН 27 ФСНБ-2022 · 27-04-003-06, стр. 25), измеритель 1000 м2. Для операции 12 см из базы 15 см исключаются три шага по 1 см по 27-04-003-08. Пункт 1.27.18 разрешает этот выбор для нижнего основания ЩПС 24 см.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:feb8114d3c30a3c1318def97",
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n8:full:f6aa24a5e4b561e8f9f6"
+          ]
+        },
+        {
+          "claim_ids": [
+            "method"
+          ],
+          "state": "confirmed",
+          "explanation": "Применимая к проектному нижнему основанию 27-04-003-06 включает распределение смеси, планировку, увлажнение и стадии уплотнения; активные ресурсы — бульдозер и гладкие вибрационные катки.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n2:full:b8da6338a3f7352e8ce4:resources:25"
+          ]
+        },
+        {
+          "claim_ids": [
+            "attribute:comment:separate_notes"
+          ],
+          "state": "confirmed",
+          "explanation": "Ресурс применимой 27-04-003-06: «Бульдозеры, мощность 79 кВт (108 л.с.); маш.-ч: 1,21». Механизированное устройство проектного основания подтверждено; буквальное повторение машины в ПД не обязательно.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n2:full:b8da6338a3f7352e8ce4:resources:25"
+          ]
+        },
+        {
+          "claim_ids": [
+            "method:comment:equipment:1"
+          ],
+          "state": "confirmed",
+          "explanation": "HAMM HD 130 — Wirtgen Technology Winter 2002 (factory publication; archived copy), стр. 26 и HAMM HD 130 — Wirtgen Xibao official HTML (GENERATED WEB CAPTURE, NOT factory PDF), стр. 1 устанавливают vibration и tandem roller для HAMM HD 130. Норма для данного основания предусматривает уплотнение гладкими вибрационными катками. С учётом пп. 5, 7, 22 Методики функция и класс совместимы со способом; пригодность физического экземпляра и замена всех ресурсов не утверждаются.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n2:full:b8da6338a3f7352e8ce4:resources:25",
+            "methodology:clause-9f014ab86a6f9e35269d7425100d46dd",
+            "methodology:clause-33f8d2772aed19d29783274b50f80a4b",
+            "methodology:clause-d0664afac286bb9b46b121b08905b38e",
+            "manufacturer:clause-04af5e1dc99b7940705cd826fab75578",
+            "manufacturer:clause-6ab91ebb53b7c129416987317f14f75b"
+          ]
+        },
+        {
+          "claim_ids": [
+            "basis:comment:consumption:2",
+            "attribute:comment:separate_notes",
+            "geometry:comment:thickness:1"
+          ],
+          "state": "confirmed",
+          "explanation": "ПД: 24 см. Условие источника: «При толщине нижнего слоя основания или покрытия более 18 см его нормировать в два слоя». Условие выполнено; два технологических слоя ВОР 12 + 12 = 24 см соответствуют проектной толщине. Мощность бульдозера отдельно подтверждена ресурсом выбранной нормы: «91.01.01-035 Бульдозеры, мощность 79 кВт (108 л.с.); маш.-ч: 1,21».",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "n0:full:e9edb1674b64f0b15177",
+            "n2:full:b8da6338a3f7352e8ce4:resources:25"
+          ]
+        },
+        {
+          "claim_ids": [
+            "quantity",
+            "unit"
+          ],
+          "state": "confirmed",
+          "explanation": "Количество 431.611 м2 подтверждено буквальными источниками ПД; значение ВОР сопоставлено с учётом единиц и точности записи. Измеритель выбранной нормы проверен по нормативному источнику.",
+          "project_source_ids": [
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "normative_source_ids": [
+            "n2:full:b8da6338a3f7352e8ce4"
+          ]
+        }
+      ],
+      "gaps": [],
+      "sources_sha256": "e6ce8adeb616325ac4277f2729096ba1016ead28d639f48350773f93a62d104e",
+      "summary": "Площадь и конструкция нижнего основания подтверждены: 431,611 м2, в ВОР округлено до 431,61 м2; 24 см разделены на 12+12 см. Технически применимы 27-04-003-06 и поправка 27-04-003-08 (−3). Редакция на дату проекта отдельно не подтверждена.",
+      "requests": 5
+    },
+    {
+      "index": 1,
+      "vor_row": 19,
+      "old_state": "possible_mismatch",
+      "new_state": "needs_facts",
+      "execution_state": "complete",
+      "review_id": "7c113d83-650c-4b80-bdd3-11fbcc617e3b",
+      "old_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647",
+            "parent-0:geometry:d0f24d9b301f5b5f25ce4afb"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "12",
+          "found_value": "24",
+          "unit": "см",
+          "source_ids": [
+            "prepared:native:50",
+            "parent-0:geometry:ed34b72b2d377e64759de465"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "new_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "parent-0:agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "12",
+          "found_value": "24",
+          "unit": "см",
+          "source_ids": [
+            "parent-0:prepared:native:50"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "items": [
+        {
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "state": "confirmed",
+          "explanation": "Пункт 1.27.18 предписывает нижнее основание более 18 см нормировать в два слоя по 27-04-003-06. База 15 см корректируется до операции 12 см исключением трёх шагов по 1 см по 27-04-003-08; измеритель выбранной базы — 1000 м2.",
+          "project_source_ids": [
+            "parent-0:prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "n0:full:e9edb1674b64f0b15177",
+            "parent-0:n2:full:b8da6338a3f7352e8ce4",
+            "n10:full:f6aa24a5e4b561e8f9f6"
+          ]
+        },
+        {
+          "claim_ids": [
+            "workbook:formula"
+          ],
+          "state": "confirmed",
+          "explanation": "Арифметика формулы ВОР проверена программно: результат совпадает с указанным объёмом. Физические основания расхода и единицы проверяются отдельно.",
+          "project_source_ids": [
+            "parent-0:prepared:native:50",
+            "agent:p89:cell:feb8114d3c30a3c1318def97",
+            "agent:p89:cell:b10b80c2f6781706ffd1f953",
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "derived:rate"
+          ],
+          "state": "needs_facts",
+          "explanation": "Ресурс 02.2.04.03 нормы — «м3: П», п.1.27.18 требует расход по проекту. Величина и условия запаса1,26 независимо не установлены. Найденные нормы других работ не подтверждают его. Проектный поиск обрезан; отсутствие основания в полном ПД не доказано.",
+          "project_source_ids": [
+            "parent-0:prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "n0:full:e9edb1674b64f0b15177",
+            "parent-0:n2:full:b8da6338a3f7352e8ce4:resources:25"
+          ]
+        },
+        {
+          "claim_ids": [
+            "attribute:comment:condition"
+          ],
+          "state": "needs_facts",
+          "explanation": "ГОСТ Р 70458-2022, K90 и М1 буквально совпадают с ПД; таблица А.1 рекомендует их для оснований. Комментарий дополнительно содержит запас 1,26, независимое основание которого не подтверждено. Подтверждённая геометрия от этого не меняется.",
+          "project_source_ids": [
+            "parent-0:prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "agent:n:clause-2e85e90dbb5342211ef4215e02fb5650:full:9402820714550dc3d972"
+          ]
+        },
+        {
+          "claim_ids": [
+            "attribute:name:designation:25"
+          ],
+          "state": "needs_facts",
+          "explanation": "ГОСТ 32703 определяет М800 как марку щебня по дробимости. П.5.5 ГОСТ70458 рассматривает пластичность готовой смеси, но буквенные марки таблицы и исключения утрачены. М800 не доказывает автоматически М1/K90; нужна читаемая связь требований М1 с характеристиками готовой смеси.",
+          "project_source_ids": [
+            "parent-0:prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "agent:n:clause-39c5f4e41a2757bed2c34ea72f9918bb:full:745db92482e1e4bea425",
+            "agent:n:clause-7bd4928846af6e588bc57d39a3307dcb:full:976767db9877c293ecc6",
+            "agent:n:clause-fc960c951651e9d8625979280c6b4c2c:full:b72ea96c419a6db8b978"
+          ]
+        },
+        {
+          "claim_ids": [
+            "derived:parent",
+            "quantity"
+          ],
+          "state": "confirmed",
+          "explanation": "Площадь и проектная толщина взяты из подтверждённого основания работы №1. Отдельная строка расчётного материала в ПД не требуется. Формула, коэффициенты и характеристики материала проверяются отдельно.",
+          "project_source_ids": [
+            "parent-0:agent:sum:ea3f8bc61fa62ef5f0b6f647",
+            "parent-0:prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "parent-0:collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "parent-0:n2:full:b8da6338a3f7352e8ce4",
+            "parent-0:n8:full:f6aa24a5e4b561e8f9f6"
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "id": "factor:1:1.26",
+          "state": "needs_facts",
+          "declared_value": "1.26",
+          "found_value": null,
+          "unit": "",
+          "reason": "Не найден нормативный источник коэффициента и условий его применения."
+        }
+      ],
+      "sources_sha256": "58c8212c879e9a6e38509e05b778b5a008074d34fbff7d2f8aa4afe643a12985",
+      "summary": "Коэффициент формулы 1.26 · позиция №2: Не найден нормативный источник коэффициента и условий его применения.",
+      "requests": 8
+    },
+    {
+      "index": 2,
+      "vor_row": 20,
+      "old_state": "confirmed",
+      "new_state": "confirmed",
+      "execution_state": "complete",
+      "review_id": "25e22a12-1fe6-413d-8add-5b52f90d5479",
+      "old_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "12",
+          "found_value": "24",
+          "unit": "см",
+          "source_ids": [
+            "prepared:native:50"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "new_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "12",
+          "found_value": "24",
+          "unit": "см",
+          "source_ids": [
+            "prepared:native:50"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "items": [
+        {
+          "claim_ids": [
+            "quantity",
+            "unit"
+          ],
+          "state": "confirmed",
+          "explanation": "Нижнее основание ЩПС 0/31,5 типа IV — 24 см. Итоги того же материала справа и слева: 345,77+85,841=431,611 м2; округление даёт 431,61 м2. Текущая операция — второй технологический слой 12 см из 12+12 см, а не отдельные 24 см.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:feb8114d3c30a3c1318def97",
+            "agent:p89:cell:b10b80c2f6781706ffd1f953",
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "presence"
+          ],
+          "state": "confirmed",
+          "explanation": "Нижнее основание ЩПС 0/31,5 типа IV — 24 см. Итоги того же материала справа и слева: 345,77+85,841=431,611 м2; округление даёт 431,61 м2. Текущая операция — второй технологический слой 12 см из 12+12 см, а не отдельные 24 см.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:feb8114d3c30a3c1318def97",
+            "agent:p89:cell:b10b80c2f6781706ffd1f953",
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "geometry:comment:thickness:1"
+          ],
+          "state": "confirmed",
+          "explanation": "18 см — нормативный порог в комментарии, а не толщина проекта. Нижний слой ПД 24 см превышает порог; сумма технологических слоёв ВОР 12+12 см совпадает с ПД.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:feb8114d3c30a3c1318def97",
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f"
+          ]
+        },
+        {
+          "claim_ids": [
+            "basis:comment:consumption:2"
+          ],
+          "state": "confirmed",
+          "explanation": "Пункт 1.27.18 прямо предписывает нижний слой основания более 18 см нормировать в два слоя по 27-04-003-06 с поправкой каждого слоя по 27-04-003-08. Для проектных 24 см разбиение 12+12 см отвечает правилу.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n8:full:f6aa24a5e4b561e8f9f6"
+          ]
+        },
+        {
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "state": "confirmed",
+          "explanation": "Выбрана одна база 27-04-003-06 (ГЭСН 27 ФСНБ-2022 · 27-04-003-06, стр. 25), измеритель 1000 м2. Для операции 12 см из базы 15 см исключаются три шага по 1 см по 27-04-003-08. Пункт 1.27.18 разрешает этот выбор для нижнего основания ЩПС 24 см.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:feb8114d3c30a3c1318def97",
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n8:full:f6aa24a5e4b561e8f9f6"
+          ]
+        },
+        {
+          "claim_ids": [
+            "method"
+          ],
+          "state": "confirmed",
+          "explanation": "Применимая к проектному нижнему основанию 27-04-003-06 включает распределение смеси, планировку, увлажнение и стадии уплотнения; активные ресурсы — бульдозер и гладкие вибрационные катки.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n2:full:b8da6338a3f7352e8ce4:resources:25"
+          ]
+        },
+        {
+          "claim_ids": [
+            "attribute:comment:separate_notes"
+          ],
+          "state": "confirmed",
+          "explanation": "Ресурс применимой 27-04-003-06: «Бульдозеры, мощность 79 кВт (108 л.с.); маш.-ч: 1,21». Механизированное устройство проектного основания подтверждено; буквальное повторение машины в ПД не обязательно.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n2:full:b8da6338a3f7352e8ce4:resources:25"
+          ]
+        },
+        {
+          "claim_ids": [
+            "method:comment:equipment:1"
+          ],
+          "state": "confirmed",
+          "explanation": "HAMM HD 130 — Wirtgen Technology Winter 2002 (factory publication; archived copy), стр. 26 и HAMM HD 130 — Wirtgen Xibao official HTML (GENERATED WEB CAPTURE, NOT factory PDF), стр. 1 устанавливают vibration и tandem roller для HAMM HD 130. Норма для данного основания предусматривает уплотнение гладкими вибрационными катками. С учётом пп. 5, 7, 22 Методики функция и класс совместимы со способом; пригодность физического экземпляра и замена всех ресурсов не утверждаются.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n2:full:b8da6338a3f7352e8ce4:resources:25",
+            "methodology:clause-9f014ab86a6f9e35269d7425100d46dd",
+            "methodology:clause-33f8d2772aed19d29783274b50f80a4b",
+            "methodology:clause-d0664afac286bb9b46b121b08905b38e",
+            "manufacturer:clause-04af5e1dc99b7940705cd826fab75578",
+            "manufacturer:clause-6ab91ebb53b7c129416987317f14f75b"
+          ]
+        },
+        {
+          "claim_ids": [
+            "basis:comment:consumption:2",
+            "attribute:comment:separate_notes",
+            "geometry:comment:thickness:1"
+          ],
+          "state": "confirmed",
+          "explanation": "ПД: 24 см. Условие источника: «При толщине нижнего слоя основания или покрытия более 18 см его нормировать в два слоя». Условие выполнено; два технологических слоя ВОР 12 + 12 = 24 см соответствуют проектной толщине. Мощность бульдозера отдельно подтверждена ресурсом выбранной нормы: «91.01.01-035 Бульдозеры, мощность 79 кВт (108 л.с.); маш.-ч: 1,21».",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "n0:full:e9edb1674b64f0b15177",
+            "n2:full:b8da6338a3f7352e8ce4:resources:25"
+          ]
+        },
+        {
+          "claim_ids": [
+            "quantity",
+            "unit"
+          ],
+          "state": "confirmed",
+          "explanation": "Количество 431.611 м2 подтверждено буквальными источниками ПД; значение ВОР сопоставлено с учётом единиц и точности записи. Измеритель выбранной нормы проверен по нормативному источнику.",
+          "project_source_ids": [
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "normative_source_ids": [
+            "n2:full:b8da6338a3f7352e8ce4"
+          ]
+        }
+      ],
+      "gaps": [],
+      "sources_sha256": "2cedf7a0e9c92a8e6e2c5c2862a968154d0ffd07e88012f864576b32c67adce8",
+      "summary": "Площадь и конструкция нижнего основания подтверждены: 431,611 м2, в ВОР округлено до 431,61 м2; 24 см разделены на 12+12 см. Технически применимы 27-04-003-06 и поправка 27-04-003-08 (−3). Редакция на дату проекта отдельно не подтверждена.",
+      "requests": 3
+    },
+    {
+      "index": 3,
+      "vor_row": 21,
+      "old_state": "needs_facts",
+      "new_state": "needs_facts",
+      "execution_state": "complete",
+      "review_id": "1aff4771-604b-447f-9d73-78b75b677f2a",
+      "old_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647",
+            "parent-2:geometry:d0f24d9b301f5b5f25ce4afb"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "12",
+          "found_value": "24",
+          "unit": "см",
+          "source_ids": [
+            "shared:0:ba3c51bd126e628568cfc143",
+            "parent-2:geometry:ed34b72b2d377e64759de465"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "new_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "parent-2:agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "12",
+          "found_value": "24",
+          "unit": "см",
+          "source_ids": [
+            "parent-2:prepared:native:50"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "items": [
+        {
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "state": "confirmed",
+          "explanation": "Пункт 1.27.18 назначает нижнему основанию ЩПС более 18 см два слоя по 27-04-003-06. Из базы 15 см до операции 12 см исключаются три шага по 1 см по 27-04-003-08. Измеритель базы — 1000 м2. Расход смеси принимается по проекту.",
+          "project_source_ids": [
+            "parent-2:prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "n0:full:e9edb1674b64f0b15177",
+            "parent-2:n2:full:b8da6338a3f7352e8ce4",
+            "n10:full:f6aa24a5e4b561e8f9f6"
+          ]
+        },
+        {
+          "claim_ids": [
+            "workbook:formula"
+          ],
+          "state": "confirmed",
+          "explanation": "Арифметика формулы ВОР проверена программно: результат совпадает с указанным объёмом. Физические основания расхода и единицы проверяются отдельно.",
+          "project_source_ids": [
+            "parent-2:prepared:native:50",
+            "agent:p89:cell:feb8114d3c30a3c1318def97",
+            "agent:p89:cell:b10b80c2f6781706ffd1f953",
+            "agent:sum:ea3f8bc61fa62ef5f0b6f647"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "derived:rate"
+          ],
+          "state": "needs_facts",
+          "explanation": "Ресурс 02.2.04.03 применимой нормы — «м3: П», п. 1.27.18 требует расход по проекту. Величина и условия запаса 1,26 независимо не установлены. Новый проектный кандидат ГЭСН 27 ФСНБ-2022 · page-2-offset-0, стр. 2 относится к другим конструкциям и запаса не подтверждает; выдача поиска не доказывает его отсутствия в ПД.",
+          "project_source_ids": [
+            "parent-2:prepared:native:50",
+            "agent:p76:8000"
+          ],
+          "normative_source_ids": [
+            "n0:full:e9edb1674b64f0b15177",
+            "parent-2:n2:full:b8da6338a3f7352e8ce4:resources:25"
+          ]
+        },
+        {
+          "claim_ids": [
+            "attribute:comment:condition"
+          ],
+          "state": "needs_facts",
+          "explanation": "ГОСТ Р 70458-2022, K90 и М1 буквально совпадают с конструкцией ПД. Условие о запасе 1,26 остаётся неподтверждённым независимым основанием. Читаемое определение М1 и связь с характеристиками данной готовой смеси также требуют уточнения; доказанного несовместимого значения нет.",
+          "project_source_ids": [
+            "parent-2:prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "agent:n:clause-2e85e90dbb5342211ef4215e02fb5650:full:9402820714550dc3d972",
+            "n0:full:e9edb1674b64f0b15177"
+          ]
+        },
+        {
+          "claim_ids": [
+            "attribute:name:designation:25"
+          ],
+          "state": "needs_facts",
+          "explanation": "ГОСТ 32703 прямо определяет М800 как марку щебня по дробимости. П. 5.5 ГОСТ Р 70458 различает пластичность готовой смеси, однако буквенные марки в таблице и исключении утрачены. Эквивалентность М800 и М1 не следует; нужна читаемая связь требований М1 с характеристиками готовой смеси.",
+          "project_source_ids": [
+            "parent-2:prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "agent:n:clause-39c5f4e41a2757bed2c34ea72f9918bb:full:745db92482e1e4bea425",
+            "agent:n:clause-7bd4928846af6e588bc57d39a3307dcb:full:976767db9877c293ecc6",
+            "agent:n:clause-fc960c951651e9d8625979280c6b4c2c:full:b72ea96c419a6db8b978"
+          ]
+        },
+        {
+          "claim_ids": [
+            "derived:parent",
+            "quantity"
+          ],
+          "state": "confirmed",
+          "explanation": "Площадь и проектная толщина взяты из подтверждённого основания работы №3. Отдельная строка расчётного материала в ПД не требуется. Формула, коэффициенты и характеристики материала проверяются отдельно.",
+          "project_source_ids": [
+            "parent-2:agent:sum:ea3f8bc61fa62ef5f0b6f647",
+            "parent-2:prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "parent-2:collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "parent-2:n2:full:b8da6338a3f7352e8ce4",
+            "parent-2:n8:full:f6aa24a5e4b561e8f9f6"
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "id": "factor:3:1.26",
+          "state": "needs_facts",
+          "declared_value": "1.26",
+          "found_value": null,
+          "unit": "",
+          "reason": "Не найден нормативный источник коэффициента и условий его применения."
+        }
+      ],
+      "sources_sha256": "d7bcf60fcbb6ea74f912d1fb2b12ee593df26f8d20a68bedb1e124d50bb3606d",
+      "summary": "Коэффициент формулы 1.26 · позиция №4: Не найден нормативный источник коэффициента и условий его применения.",
+      "requests": 5
+    },
+    {
+      "index": 4,
+      "vor_row": 22,
+      "old_state": "needs_facts",
+      "new_state": "needs_facts",
+      "execution_state": "complete",
+      "review_id": "d795fd17-2ed3-4f1b-ab08-f07e512e8a08",
+      "old_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "10",
+          "found_value": "20",
+          "unit": "см",
+          "source_ids": [
+            "prepared:native:50"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "new_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "10",
+          "found_value": "20",
+          "unit": "см",
+          "source_ids": [
+            "prepared:native:50"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "items": [
+        {
+          "claim_ids": [
+            "quantity",
+            "unit"
+          ],
+          "state": "confirmed",
+          "explanation": "Тип IV задаёт среднее основание ЩПС 0/63. Итоговые площади ровиков уширения справа 345,77 и слева 85,841 м2 дают 431,611 м2, после округления 431,61 м2 ВОР. Две операции относятся к одной площади одной конструкции.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "presence"
+          ],
+          "state": "confirmed",
+          "explanation": "Тип IV задаёт среднее основание ЩПС 0/63. Итоговые площади ровиков уширения справа 345,77 и слева 85,841 м2 дают 431,611 м2, после округления 431,61 м2 ВОР. Две операции относятся к одной площади одной конструкции.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "geometry:comment:thickness:1"
+          ],
+          "state": "confirmed",
+          "explanation": "Средний слой типа IV в ПД имеет h=20 см; операции ВОР 10+10 см составляют эту толщину. 18 см в комментарии — порог из п. 1.27.18, а не проектная толщина. Геометрическая связь подтверждена независимо от выбора нормативной ветви.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": [
+            "agent:n:clause-cba74cc0f0892c873bb54fb2b86df298:full:e9edb1674b64f0b15177"
+          ]
+        },
+        {
+          "claim_ids": [
+            "basis:comment:consumption:2"
+          ],
+          "state": "needs_facts",
+          "explanation": "Пункт 1.27.18 содержит отдельные ветви для однослойного, нижнего и верхнего основания. ПД называет слой средним. Не установлено, к какой ветви он относится; одного превышения 18 см и разбиения 10+10 недостаточно для подтверждения нормативного выбора.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "agent:n:clause-cba74cc0f0892c873bb54fb2b86df298:full:e9edb1674b64f0b15177"
+          ]
+        },
+        {
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "state": "needs_facts",
+          "explanation": "Для кандидата 27-04-003-06 (15 см, 1000 м2) до операции 10 см явно выбрана поправка -5 шагов по 1 см по 27-04-003-08. Однако п. 1.27.18 (ГЭСН 27 ФСНБ-2022 · 1.27.18, стр. 2) не относит средний слой ПД к конкретной ветви. Дополнительно прочитанные -02 и -03 этого отношения также не устанавливают. Нужна инженерная классификация слоя. Принадлежность конструктивного слоя ПД к ветви условия техчасти не установлена; нормативное основание требует уточнения.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "agent:n:clause-cba74cc0f0892c873bb54fb2b86df298:full:e9edb1674b64f0b15177",
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n8:full:f6aa24a5e4b561e8f9f6",
+            "agent:n:norm-fb1586e404976d07eaf7dae2d4b5f885:full:bf285b4ee54452845bc1",
+            "agent:n:norm-de621dd47960f24b3018ae83926205a6:full:d885992aa40dff19db27"
+          ]
+        },
+        {
+          "claim_ids": [
+            "method"
+          ],
+          "state": "needs_facts",
+          "explanation": "В 27-04-003-06 есть распределение, планировка и уплотнение; активные ресурсы — бульдозер и виброкатки. Для среднего основания типа IV требуется подтвердить применимую ветвь п. 1.27.18, прежде чем окончательно связать этот состав с текущей операцией.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "agent:n:clause-cba74cc0f0892c873bb54fb2b86df298:full:e9edb1674b64f0b15177",
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n2:full:b8da6338a3f7352e8ce4:resources:25"
+          ]
+        },
+        {
+          "claim_ids": [
+            "attribute:comment:separate_notes"
+          ],
+          "state": "needs_facts",
+          "explanation": "Ресурс 91.01.01-035 нормы 27-04-003-06 прямо указывает бульдозер 79 кВт, 1,21 маш.-ч. Это найденное основание, но его применимость к среднему конструктивному слою требует установленной ветви п. 1.27.18.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "agent:n:clause-cba74cc0f0892c873bb54fb2b86df298:full:e9edb1674b64f0b15177",
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n2:full:b8da6338a3f7352e8ce4:resources:25"
+          ]
+        },
+        {
+          "claim_ids": [
+            "method:comment:equipment:1"
+          ],
+          "state": "needs_facts",
+          "explanation": "HAMM HD 130 — Wirtgen Technology Winter 2002 (factory publication; archived copy), стр. 26 и HAMM HD 130 — Wirtgen Xibao official HTML (GENERATED WEB CAPTURE, NOT factory PDF), стр. 1 подтверждают вибрацию и класс tandem roller модели HD 130; 27-04-003-06 содержит виброкатки. Открыта связь выбранной нормы со средним основанием типа IV по ветви п. 1.27.18. Общая Методика не устраняет это специальное условие.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n2:full:b8da6338a3f7352e8ce4:resources:25",
+            "manufacturer:clause-04af5e1dc99b7940705cd826fab75578",
+            "manufacturer:clause-6ab91ebb53b7c129416987317f14f75b",
+            "agent:n:clause-cba74cc0f0892c873bb54fb2b86df298:full:e9edb1674b64f0b15177",
+            "methodology:clause-33f8d2772aed19d29783274b50f80a4b"
+          ]
+        },
+        {
+          "claim_ids": [
+            "related:5:rate"
+          ],
+          "state": "needs_facts",
+          "explanation": "Ресурс 02.2.04.03 имеет м3: П; п. 1.27.18 требует расход по проекту. Формула 431,61×0,1×1,26=54,38286 м3 арифметически верна, но независимое основание 1,26 для данной смеси и условий не передано. Это не отменяет подтверждённую геометрию работы.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": [
+            "n2:full:b8da6338a3f7352e8ce4:resources:25",
+            "agent:n:clause-cba74cc0f0892c873bb54fb2b86df298:full:e9edb1674b64f0b15177"
+          ]
+        },
+        {
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "state": "needs_facts",
+          "explanation": "ПД: «Средний слой основания — щебёночно-песчаная смесь для оснований фр. 0/63 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=20 см». Принадлежность этого конструктивного слоя к отдельной ветви процитированного условия не установлена; совпадение толщины не доказывает применимость. Условие: «1.27.18. Затраты на устройство оснований и покрытий из гравийной смеси с добавлением щебня, а также\nщебеночно-песчаных определяются по табл. 27-04-003, расход материалов принимать по проекту.\n  При толщине однослойного основания или покрытия более 18 см его нормировать в два слоя по нормам 27-04-\n003-06 и 27-04-003-07 с изменением толщины ±1 см для каждого слоя отдельно по норме 27-04-003-08.\n  При толщине нижнего слоя основания или покрытия более 18 см его нормировать в два слоя по норме 27-04-003-\n06 с изменением толщины ±1 см для каждого слоя отдельно по норме 27-04-003-08.\n  При толщине верхнего слоя основания или покрытия более 18 см его нормировать в два слоя по норме 27-04-003-\n07 с изменением толщины ±1 см для каждого слоя отдельно по норме 27-04-003-08.». Это не замечание к ВОР.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "n0:full:e9edb1674b64f0b15177",
+            "n2:full:b8da6338a3f7352e8ce4"
+          ]
+        },
+        {
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "state": "needs_facts",
+          "explanation": "ПД: «Средний слой основания — щебёночно-песчаная смесь для оснований фр. 0/63 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=20 см». Принадлежность этого конструктивного слоя к отдельной ветви процитированного условия не установлена; совпадение толщины не доказывает применимость. Условие: «1.27.18. Затраты на устройство оснований и покрытий из гравийной смеси с добавлением щебня, а также\nщебеночно-песчаных определяются по табл. 27-04-003, расход материалов принимать по проекту.\n  При толщине однослойного основания или покрытия более 18 см его нормировать в два слоя по нормам 27-04-\n003-06 и 27-04-003-07 с изменением толщины ±1 см для каждого слоя отдельно по норме 27-04-003-08.\n  При толщине нижнего слоя основания или покрытия более 18 см его нормировать в два слоя по норме 27-04-003-\n06 с изменением толщины ±1 см для каждого слоя отдельно по норме 27-04-003-08.\n  При толщине верхнего слоя основания или покрытия более 18 см его нормировать в два слоя по норме 27-04-003-\n07 с изменением толщины ±1 см для каждого слоя отдельно по норме 27-04-003-08.». Это не замечание к ВОР.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "agent:n:clause-cba74cc0f0892c873bb54fb2b86df298:full:e9edb1674b64f0b15177",
+            "n2:full:b8da6338a3f7352e8ce4"
+          ]
+        },
+        {
+          "claim_ids": [
+            "quantity"
+          ],
+          "state": "confirmed",
+          "explanation": "Количество 431.611 м2 подтверждено буквальными источниками ПД; значение ВОР сопоставлено с учётом единиц и точности записи.",
+          "project_source_ids": [
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "gaps": [],
+      "sources_sha256": "7323feb4ba5ccedf1d017d2ceadb23703a9a9780005ef19c8d58d8fe5e6e9772",
+      "summary": "Геометрия подтверждена: среднее основание ЩПС 0/63 типа IV, 20 см, площадь 431,611 м2 (431,61 м2 после округления), операции 10+10 см. Для нормативного выбора не установлена ветвь п. 1.27.18 именно для среднего конструктивного слоя. Это неполнота основания, не ошибка ВОР. Расход дочерней смеси также требует основания 1,26. Применимость редакции на дату проекта не подтверждена.",
+      "requests": 6
+    },
+    {
+      "index": 5,
+      "vor_row": 23,
+      "old_state": "needs_facts",
+      "new_state": "needs_facts",
+      "execution_state": "complete",
+      "review_id": "9cdf0694-cbf8-41a4-b5a9-9e8e09816087",
+      "old_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:b34f49141e2cfb15bc8ae814",
+            "parent-4:geometry:87c03160386a4932f7d4c5ee"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "10",
+          "found_value": "20",
+          "unit": "см",
+          "source_ids": [
+            "shared:4:ba3c51bd126e628568cfc143",
+            "parent-4:geometry:ed34b72b2d377e64759de465"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "new_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "parent-4:geometry:87c03160386a4932f7d4c5ee"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "10",
+          "found_value": "20",
+          "unit": "см",
+          "source_ids": [
+            "parent-4:geometry:ed34b72b2d377e64759de465"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "items": [
+        {
+          "claim_ids": [
+            "derived:parent"
+          ],
+          "state": "confirmed",
+          "explanation": "Исходные количество, единица и толщина родительской работы подтверждены по ПД. Применимость нормы, расход и свойства материала проверяются отдельно.",
+          "project_source_ids": [
+            "parent-4:geometry:87c03160386a4932f7d4c5ee",
+            "parent-4:geometry:ed34b72b2d377e64759de465"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "attribute:name:designation:25"
+          ],
+          "state": "needs_facts",
+          "explanation": "ПД текущих ровиков задаёт К90 и М1. Прочитанные ГОСТ Р 70458-2022 · page-6-offset-0, стр. 6 (гранулометрическая таблица) и ГОСТ Р 70458-2022 · 5.5, стр. 7 (пластичность) не доказывают, что М800 обеспечивает эти требования. Нужны определение свойства М800 и основание совместимости с готовой смесью К90/М1; противоречия одного свойства не установлено. Нормативное основание получено непроверенным OCR; требуется сверка с оригиналом.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "n22:full:9402820714550dc3d972",
+            "n23:full:bc422e21acfadcd85bcc",
+            "n24:full:976767db9877c293ecc6"
+          ]
+        },
+        {
+          "claim_ids": [
+            "attribute:comment:condition"
+          ],
+          "state": "needs_facts",
+          "explanation": "ГОСТ Р 70458-2022, К90 и М1 буквально совпадают с требованиями среднего основания типа IV; приложение А допускает 0/63, К90, М1 для оснований. Однако весь комментарий включает 1,26: независимое основание этого запаса на уплотнение не установлено.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "n22:full:9402820714550dc3d972"
+          ]
+        },
+        {
+          "claim_ids": [
+            "derived:rate"
+          ],
+          "state": "needs_facts",
+          "explanation": "Ресурс 02.2.04.03 имеет м3: П, п. 1.27.18 требует расход по проекту. ПД, стр. 50 относится к грунту рабочего слоя и степени уплотнения 0,98; это другое свойство и материал, не запас ЩПС 1,26. Независимое основание 1,26 для данной смеси и условий не установлено.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p45:0"
+          ],
+          "normative_source_ids": [
+            "n2:full:b8da6338a3f7352e8ce4:resources:25",
+            "n0:full:e9edb1674b64f0b15177"
+          ]
+        },
+        {
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "state": "needs_facts",
+          "explanation": "Для кандидата 27-04-003-06 (15 см, 1000 м2) до операции 10 см передана поправка -5 шагов по 1 см по 27-04-003-08. Однако п. 1.27.18 не относит средний конструктивный слой ПД к одной из своих ветвей. Уточнение нормативной принадлежности слоя остаётся необходимым. Принадлежность конструктивного слоя ПД к ветви условия техчасти не установлена; нормативное основание требует уточнения.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "n0:full:e9edb1674b64f0b15177",
+            "n2:full:b8da6338a3f7352e8ce4",
+            "n10:full:f6aa24a5e4b561e8f9f6"
+          ]
+        },
+        {
+          "claim_ids": [
+            "workbook:formula"
+          ],
+          "state": "confirmed",
+          "explanation": "Арифметика формулы ВОР проверена программно: результат совпадает с указанным объёмом. Физические основания расхода и единицы проверяются отдельно.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "quantity"
+          ],
+          "state": "needs_facts",
+          "explanation": "54,38286 м3 воспроизводится из площади и принятой толщины операции 0,1 м при 1,26. Готовый объём не обязан иметь отдельную строку ПД. Для полного подтверждения объёма поставляемой смеси требуется независимое основание коэффициента 1,26.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923"
+          ],
+          "normative_source_ids": [
+            "n2:full:b8da6338a3f7352e8ce4:resources:25",
+            "n0:full:e9edb1674b64f0b15177"
+          ]
+        },
+        {
+          "claim_ids": [
+            "quantity"
+          ],
+          "state": "confirmed",
+          "explanation": "Количество подтверждено источниками ПД для работы №5. Технология работы, нормативная применимость и расход материала проверяются отдельно.",
+          "project_source_ids": [
+            "parent-4:geometry:87c03160386a4932f7d4c5ee"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "geometry:thickness"
+          ],
+          "state": "confirmed",
+          "explanation": "Толщина подтверждена источниками ПД для работы №5. Технология работы, нормативная применимость и расход материала проверяются отдельно.",
+          "project_source_ids": [
+            "parent-4:geometry:ed34b72b2d377e64759de465"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "state": "needs_facts",
+          "explanation": "ПД: «Средний слой основания — щебёночно-песчаная смесь для оснований фр. 0/63 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=20 см». Принадлежность этого конструктивного слоя к отдельной ветви процитированного условия не установлена; совпадение толщины не доказывает применимость. Условие: «1.27.18. Затраты на устройство оснований и покрытий из гравийной смеси с добавлением щебня, а также\nщебеночно-песчаных определяются по табл. 27-04-003, расход материалов принимать по проекту.\n  При толщине однослойного основания или покрытия более 18 см его нормировать в два слоя по нормам 27-04-\n003-06 и 27-04-003-07 с изменением толщины ±1 см для каждого слоя отдельно по норме 27-04-003-08.\n  При толщине нижнего слоя основания или покрытия более 18 см его нормировать в два слоя по норме 27-04-003-\n06 с изменением толщины ±1 см для каждого слоя отдельно по норме 27-04-003-08.\n  При толщине верхнего слоя основания или покрытия более 18 см его нормировать в два слоя по норме 27-04-003-\n07 с изменением толщины ±1 см для каждого слоя отдельно по норме 27-04-003-08.». Это не замечание к ВОР.",
+          "project_source_ids": [
+            "parent-4:geometry:ed34b72b2d377e64759de465"
+          ],
+          "normative_source_ids": [
+            "n0:full:e9edb1674b64f0b15177",
+            "n2:full:b8da6338a3f7352e8ce4"
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "id": "factor:5:1.26",
+          "state": "needs_facts",
+          "declared_value": "1.26",
+          "found_value": null,
+          "unit": "",
+          "reason": "Не найден нормативный источник коэффициента и условий его применения."
+        }
+      ],
+      "sources_sha256": "59b164a06a0f477248aff7630922468fddd0c5a17098f7ab9c428f17c8968fda",
+      "summary": "Коэффициент формулы 1.26 · позиция №6: Не найден нормативный источник коэффициента и условий его применения.",
+      "requests": 6
+    },
+    {
+      "index": 6,
+      "vor_row": 24,
+      "old_state": "needs_facts",
+      "new_state": "needs_facts",
+      "execution_state": "complete",
+      "review_id": "3bf7f287-098f-432a-9269-4cf457ec7a78",
+      "old_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "10",
+          "found_value": "20",
+          "unit": "см",
+          "source_ids": [
+            "shared:4:ba3c51bd126e628568cfc143"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "new_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "10",
+          "found_value": "20",
+          "unit": "см",
+          "source_ids": [
+            "prepared:native:50"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "items": [
+        {
+          "claim_ids": [
+            "quantity",
+            "unit"
+          ],
+          "state": "confirmed",
+          "explanation": "Тип IV задаёт ЩПС 0/63 среднего основания. Итоги ровиков справа 345,77 и слева 85,841 м2 дают 431,611 м2, или 431,61 м2 после округления. Операции ВОР 10+10 см относятся к одной конструкции, поэтому равная площадь не доказывает двойной учёт.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "presence"
+          ],
+          "state": "confirmed",
+          "explanation": "Тип IV задаёт ЩПС 0/63 среднего основания. Итоги ровиков справа 345,77 и слева 85,841 м2 дают 431,611 м2, или 431,61 м2 после округления. Операции ВОР 10+10 см относятся к одной конструкции, поэтому равная площадь не доказывает двойной учёт.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "geometry:comment:thickness:1"
+          ],
+          "state": "confirmed",
+          "explanation": "ПД: средний слой типа IV h=20 см; две технологические операции ВОР по 10 см составляют те же 20 см. Число 18 см в комментарии является порогом п. 1.27.18, а не проектной толщиной. Геометрическая связь подтверждена отдельно от выбора нормативной ветви.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f"
+          ]
+        },
+        {
+          "claim_ids": [
+            "basis:comment:consumption:2"
+          ],
+          "state": "needs_facts",
+          "explanation": "Пункт 1.27.18 различает однослойное, нижнее и верхнее основание. ПД называет слой средним. Подготовленный текст чертежа77 искажён и не устанавливает отношение этого слоя к ветви нормы. Нужна инженерная классификация среднего слоя; превышение 18 см само её не заменяет.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p77:0",
+            "agent:p77:3500"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f"
+          ]
+        },
+        {
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "state": "needs_facts",
+          "explanation": "Для 27-04-003-07 (15 см, 1000 м2) до операции 10 см передана поправка -5 шагов по 1 см по 27-04-003-08. Выбор ветви п. 1.27.18 для среднего слоя остаётся неустановленным: искажённый текст чертежа не даёт связи; найденная 27-06-041 относится к асфальтогранулобетону, не к текущей ЩПС.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "n6:full:ffae8cd5bcdc388a194b",
+            "n8:full:f6aa24a5e4b561e8f9f6"
+          ]
+        },
+        {
+          "claim_ids": [
+            "method"
+          ],
+          "state": "needs_facts",
+          "explanation": "27-04-003-07 содержит распределение, планировку, увлажнение и уплотнение; активные ресурсы включают бульдозер и виброкатки. Для окончательного подтверждения этого способа текущей операции нужна принадлежность среднего слоя типа IV нормативной ветви п. 1.27.18.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "n6:full:ffae8cd5bcdc388a194b",
+            "n6:full:ffae8cd5bcdc388a194b:resources:25"
+          ]
+        },
+        {
+          "claim_ids": [
+            "attribute:comment:separate_notes"
+          ],
+          "state": "needs_facts",
+          "explanation": "В ресурсах 27-04-003-07 найден активный ресурс 91.01.01-035: бульдозеры 79 кВт, 1,21 маш.-ч. Для связи этого основания с текущей второй операцией среднего конструктивного слоя остаётся установить применимую ветвь п. 1.27.18.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "n6:full:ffae8cd5bcdc388a194b",
+            "n6:full:ffae8cd5bcdc388a194b:resources:25"
+          ]
+        },
+        {
+          "claim_ids": [
+            "method:comment:equipment:1"
+          ],
+          "state": "needs_facts",
+          "explanation": "HAMM HD 130 — Wirtgen Technology Winter 2002 (factory publication; archived copy), стр. 26 подтверждает vibration HD 130, HAMM HD 130 — Wirtgen Xibao official HTML (GENERATED WEB CAPTURE, NOT factory PDF), стр. 1 называет его tandem roller; в 27-04-003-07 предусмотрены вибрационные катки. Класс установлен, но совместимость способа с текущей конструкцией требует выбора нормативной ветви. Пункты 5, 7, 22 Методики не устраняют специальные условия сборника.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "n6:full:ffae8cd5bcdc388a194b",
+            "n6:full:ffae8cd5bcdc388a194b:resources:25",
+            "manufacturer:clause-04af5e1dc99b7940705cd826fab75578",
+            "manufacturer:clause-6ab91ebb53b7c129416987317f14f75b",
+            "collection:clause-937642b7db3d930c4f0c28731d58828f",
+            "methodology:clause-9f014ab86a6f9e35269d7425100d46dd",
+            "methodology:clause-33f8d2772aed19d29783274b50f80a4b",
+            "methodology:clause-d0664afac286bb9b46b121b08905b38e"
+          ]
+        },
+        {
+          "claim_ids": [
+            "related:7:rate"
+          ],
+          "state": "needs_facts",
+          "explanation": "В ресурсах 27-04-003-07 строка «02.2.04.03 Смесь песчано-гравийная, щебеночно-песчаная и т.п.; м3: П», а п. 1.27.18 требует расход по проекту. Арифметика 431,61×0,1×1,26=54,38286 м3 верна, но независимое основание 1,26 для этой смеси и условий не передано.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": [
+            "n6:full:ffae8cd5bcdc388a194b:resources:25",
+            "collection:clause-937642b7db3d930c4f0c28731d58828f"
+          ]
+        },
+        {
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "state": "needs_facts",
+          "explanation": "Выбранная норма 27-04-003-07 задана для толщины 15.00 см, а операция ВОР — 10.00 см. Применимость не подтверждена без проверенной поправки толщины и числа её шагов. Это вопрос нормативного основания, а не доказанная ошибка ВОР.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "n6:full:ffae8cd5bcdc388a194b"
+          ]
+        },
+        {
+          "claim_ids": [
+            "quantity"
+          ],
+          "state": "confirmed",
+          "explanation": "Количество 431.611 м2 подтверждено буквальными источниками ПД; значение ВОР сопоставлено с учётом единиц и точности записи.",
+          "project_source_ids": [
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "gaps": [],
+      "sources_sha256": "8157bc5eca514a874a2327f7b2dde41ce54b96e4cea1f0684023573fa0a698df",
+      "summary": "Геометрия второй операции среднего основания подтверждена: ЩПС 0/63 типа IV, полная толщина 20 см, разбиение ВОР 10+10 см, площадь 431,611 м2. Для выбора нормы по п. 1.27.18 нужна принадлежность среднего конструктивного слоя к одной из его ветвей. Расход дочернего материала требует основания 1,26. Ошибка ВОР не доказана. Применимость редакции на дату проекта не подтверждена.",
+      "requests": 6
+    },
+    {
+      "index": 7,
+      "vor_row": 25,
+      "old_state": "needs_facts",
+      "new_state": "needs_facts",
+      "execution_state": "complete",
+      "review_id": "2fb34fdd-6da6-4ba7-b3c8-4188a315ee09",
+      "old_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:b34f49141e2cfb15bc8ae814",
+            "parent-6:geometry:87c03160386a4932f7d4c5ee"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "10",
+          "found_value": "20",
+          "unit": "см",
+          "source_ids": [
+            "shared:4:ba3c51bd126e628568cfc143",
+            "parent-6:geometry:2e6c03f3b8150f2012153da5"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "new_geometry": [
+        {
+          "id": "quantity",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "parent-6:geometry:87c03160386a4932f7d4c5ee"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        },
+        {
+          "id": "thickness",
+          "state": "confirmed",
+          "declared_value": "10",
+          "found_value": "20",
+          "unit": "см",
+          "source_ids": [
+            "parent-6:geometry:ed34b72b2d377e64759de465"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "items": [
+        {
+          "claim_ids": [
+            "derived:parent"
+          ],
+          "state": "confirmed",
+          "explanation": "Тип IV: средний слой ЩПС 0/63 толщиной 20 см. Итоги ровиков справа 345,77 и слева 85,841 м2 дают 431,611 м2 (ВОР 431,61). Операции 10+10 см составляют полную толщину. П.1.27.18 допускает послойное нормирование ЩПС; родительская работа и геометрия связаны с той же конструкцией.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": [
+            "n0:full:e9edb1674b64f0b15177"
+          ]
+        },
+        {
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "state": "confirmed",
+          "explanation": "ГЭСН 27 п.1.27.18: ЩПС нормируется по табл.27-04-003; при толщине более 18 см — два слоя. Для второй операции 10 см база 27-04-003-07 (15 см) корректируется пятью отрицательными поправками 27-04-003-08. Измеритель — 1000 м2.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "n0:full:e9edb1674b64f0b15177",
+            "n6:full:ffae8cd5bcdc388a194b",
+            "n10:full:f6aa24a5e4b561e8f9f6"
+          ]
+        },
+        {
+          "claim_ids": [
+            "attribute:name:designation:25"
+          ],
+          "state": "needs_facts",
+          "explanation": "ГОСТ п.5.9 отсылает дробимость к ГОСТ32703. Упоминание М800 в пп.5.5/5.8 с визуальными транскрипциями связывает определённые породы с Пл1 и В1; это не эквивалентность М1/К90. Нужны происхождение и характеристики выбранной смеси, выполняющие весь набор требований ПД. Несовместимость не доказана.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "agent:n:clause-5103e9cb2614aa24fa92d72e5edffcfd:full:739626b8182ce9db77c4",
+            "agent:n:clause-fc960c951651e9d8625979280c6b4c2c:full:b72ea96c419a6db8b978",
+            "agent:n:clause-4601e9b2c8d8b004db5e11b1aea67ccd:full:130be5953899f658188c"
+          ]
+        },
+        {
+          "claim_ids": [
+            "attribute:comment:condition"
+          ],
+          "state": "needs_facts",
+          "explanation": "ГОСТ Р70458, К90 и М1 совпадают с типом IV. Для1,26 найден СП78 п.10.2: ориентировочно1,25–1,3 для указанных смесей/щебня. Это независимая опора диапазона, но не точное подтверждение1,26 для фактической смеси; для него предусмотрены пробная укатка или определение в ходе работ.",
+          "project_source_ids": [
+            "prepared:native:50"
+          ],
+          "normative_source_ids": [
+            "agent:n:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000"
+          ]
+        },
+        {
+          "claim_ids": [
+            "derived:rate"
+          ],
+          "state": "needs_facts",
+          "explanation": "Ресурс02.2.04.03 «Смесь песчано-гравийная, щебеночно-песчаная и т.п.; м3: П» требует проектный расход. СП78 п.10.2 даёт ориентир1,25–1,3:1,26 в пределах. Точный фактический запас определяется пробной укаткой/в ходе работ; требуется связь условий нормы с выбранной смесью и принятым1,26.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": [
+            "n0:full:e9edb1674b64f0b15177",
+            "n6:full:ffae8cd5bcdc388a194b:resources:25",
+            "agent:n:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000"
+          ]
+        },
+        {
+          "claim_ids": [
+            "workbook:formula"
+          ],
+          "state": "confirmed",
+          "explanation": "Арифметика формулы ВОР проверена программно: результат совпадает с указанным объёмом. Физические основания расхода и единицы проверяются отдельно.",
+          "project_source_ids": [
+            "prepared:native:50",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "quantity"
+          ],
+          "state": "confirmed",
+          "explanation": "Количество подтверждено источниками ПД для работы №7. Технология работы, нормативная применимость и расход материала проверяются отдельно.",
+          "project_source_ids": [
+            "parent-6:geometry:87c03160386a4932f7d4c5ee"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "geometry:thickness"
+          ],
+          "state": "confirmed",
+          "explanation": "Толщина подтверждена источниками ПД для работы №7. Технология работы, нормативная применимость и расход материала проверяются отдельно.",
+          "project_source_ids": [
+            "parent-6:geometry:ed34b72b2d377e64759de465"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "gaps": [
+        {
+          "id": "factor:7:1.26",
+          "state": "needs_facts",
+          "declared_value": "1.26",
+          "found_value": null,
+          "unit": "",
+          "reason": "Не найден нормативный источник коэффициента и условий его применения."
+        }
+      ],
+      "sources_sha256": "1e951a707ae0ffa2752ce4fe0b5fb391d2ed2b2e15217f1a9b6296d74e723866",
+      "summary": "Коэффициент формулы 1.26 · позиция №8: Не найден нормативный источник коэффициента и условий его применения.",
+      "requests": 6
+    },
+    {
+      "index": 8,
+      "vor_row": 26,
+      "old_state": "needs_facts",
+      "new_state": "needs_facts",
+      "execution_state": "complete",
+      "review_id": "697bd207-69a2-4dfb-9365-0192b4de5b25",
+      "old_geometry": [
+        {
+          "id": "quantity",
+          "state": "needs_facts",
+          "declared_value": "0.345288",
+          "found_value": null,
+          "unit": "т",
+          "source_ids": null,
+          "reason": "Масса рассчитывается из площади и расхода; площадь ПД не является готовой массой. Для расхода в л/м² дополнительно нужна подтверждённая плотность."
+        },
+        {
+          "id": "input:area",
+          "state": "needs_facts",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:4ce1255120f68be609a5ed9d"
+          ],
+          "reason": "Принадлежность числа той же конструкции, слою и участку не подтверждена; сравнение не выполнено."
+        }
+      ],
+      "new_geometry": [
+        {
+          "id": "quantity",
+          "state": "needs_facts",
+          "declared_value": "0.345288",
+          "found_value": null,
+          "unit": "т",
+          "source_ids": null,
+          "reason": "Масса рассчитывается из площади и расхода; площадь ПД не является готовой массой. Для расхода в л/м² дополнительно нужна подтверждённая плотность."
+        },
+        {
+          "id": "input:area",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "items": [
+        {
+          "claim_ids": [
+            "input:area"
+          ],
+          "state": "confirmed",
+          "explanation": "Тип IV задаёт средний слой ЩПС 0/63 толщиной 20 см. Итоги именно этих столбцов ровиков справа и слева: 345,77+85,841=431,611 м2. Для ВОР площадь округлена до 431,61 м2; столбцы ЩПС 0/31,5 и газона не использованы.",
+          "project_source_ids": [
+            "shared:7:ba3c51bd126e628568cfc143",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "presence"
+          ],
+          "state": "needs_facts",
+          "explanation": "ПД задаёт средний слой ЩПС0/63 под асфальтобетоном. СП78 п.12.3.2 требует обработку поверхности нижнего слоя из монолитных материалов; монолитность этой ЩПС не установлена. Нужны проектное назначение розлива либо другое применимое обязательное условие. Поиск не доказывает отсутствия работы.",
+          "project_source_ids": [
+            "shared:7:ba3c51bd126e628568cfc143"
+          ],
+          "normative_source_ids": [
+            "collection:clause-cac713d7266679f491be8841590554b1",
+            "agent:n:clause-1c39a51b171d8467a2eefcbaec8a0b7e:full:1e3c34fb89ea9e3f560d"
+          ]
+        },
+        {
+          "claim_ids": [
+            "method"
+          ],
+          "state": "confirmed",
+          "explanation": "Для подгрунтовки поверхности среднего слоя перед вышележащим асфальтобетоном выбранный способ соответствует 27-06-035-01: розлив битумной эмульсии автогудронатором. Это подтверждает способ нормирования; необходимость самой операции и её расход проверяются отдельно.",
+          "project_source_ids": [
+            "shared:7:ba3c51bd126e628568cfc143"
+          ],
+          "normative_source_ids": [
+            "n0:full:d5e433b4e51862f73f29",
+            "n0:full:d5e433b4e51862f73f29:resources:60"
+          ]
+        },
+        {
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "state": "confirmed",
+          "explanation": "27-06-035-01 описывает розлив эмульсии автогудронатором; измеритель — т. П.1.27.37 предусматривает отдельное нормирование необходимого розлива по этой таблице с проектным расходом. Конструкция типа IV содержит соответствующий интерфейс ЩПС/асфальтобетон; проектный расход остаётся открытым.",
+          "project_source_ids": [
+            "shared:7:ba3c51bd126e628568cfc143"
+          ],
+          "normative_source_ids": [
+            "n0:full:d5e433b4e51862f73f29",
+            "collection:clause-cac713d7266679f491be8841590554b1"
+          ]
+        },
+        {
+          "claim_ids": [
+            "basis:comment:consumption:1"
+          ],
+          "state": "needs_facts",
+          "explanation": "В СП78 п.12.3.2 найден диапазон0,6–0,9 л/м2 для эмульсии по основанию;0,8 входит в него. Но условие обработки нижнего слоя из монолитных материалов не доказано для неукреплённой ЩПС0/63. П.11.5.2 относится к обработке смеси, а не поверхностной подгрунтовке. Нужна проектная привязка расхода.",
+          "project_source_ids": [
+            "shared:7:ba3c51bd126e628568cfc143"
+          ],
+          "normative_source_ids": [
+            "collection:clause-cac713d7266679f491be8841590554b1",
+            "agent:n:clause-1c39a51b171d8467a2eefcbaec8a0b7e:full:1e3c34fb89ea9e3f560d",
+            "agent:n:clause-c8a59ce8afc2d2a13be87adee8747785:full:35dc49b32a2fe7791917"
+          ]
+        },
+        {
+          "claim_ids": [
+            "quantity",
+            "unit"
+          ],
+          "state": "needs_facts",
+          "explanation": "431,61 м2 ×0,8 л/м2 /1000 =0,345288 м3. Чтобы подтвердить 0,345288 т, нужна плотность эмульсии или проектный массовый расход. Принимать 1 т/м3 без источника нельзя. Норма измеряется в тоннах, но не устанавливает плотность.",
+          "project_source_ids": [
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": [
+            "n0:full:d5e433b4e51862f73f29"
+          ]
+        },
+        {
+          "claim_ids": [
+            "quantity:consumption"
+          ],
+          "state": "needs_facts",
+          "explanation": "Площадь подтверждена. СП78 п.12.3.2 содержит расход, но применимость его условия к ЩПС не доказана; ГОСТ58952.1 в прочитанных разделах задаёт марки и требования, а не плотность. Для0,345288 т нужны применимый расход и плотность либо готовая проектная масса.",
+          "project_source_ids": [
+            "shared:7:ba3c51bd126e628568cfc143",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": [
+            "agent:n:clause-1c39a51b171d8467a2eefcbaec8a0b7e:full:1e3c34fb89ea9e3f560d",
+            "agent:n:clause-48b8ba6ad8b8068a3ac052b0e20d74a1:full:ae3085c0e7b0e6f2a977"
+          ]
+        },
+        {
+          "claim_ids": [
+            "related:9:rate"
+          ],
+          "state": "confirmed",
+          "explanation": "В ресурсах той же нормы 27-06-035-01 на измеритель 1 т: «01.2.03.07-0023 Эмульсия битумно-дорожная; т: 1,03». Это подтверждает нормативный расход 1,03 т/т для дочерней эмульсии. Исходная масса розлива требует отдельного подтверждения; округление до 0,345 в формуле не меняет ресурс нормы.",
+          "project_source_ids": [
+            "shared:7:ba3c51bd126e628568cfc143"
+          ],
+          "normative_source_ids": [
+            "n0:full:d5e433b4e51862f73f29",
+            "n0:full:d5e433b4e51862f73f29:resources:60"
+          ]
+        },
+        {
+          "claim_ids": [
+            "workbook:formula"
+          ],
+          "state": "confirmed",
+          "explanation": "Арифметика формулы ВОР проверена программно: результат совпадает с указанным объёмом. Физические основания расхода и единицы проверяются отдельно.",
+          "project_source_ids": [
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "gaps": [
+        {
+          "id": "quantity",
+          "state": "needs_facts",
+          "declared_value": "0.345288",
+          "found_value": null,
+          "unit": "т",
+          "reason": "Масса рассчитывается из площади и расхода; площадь ПД не является готовой массой. Для расхода в л/м² дополнительно нужна подтверждённая плотность."
+        },
+        {
+          "id": "factor:8:431.61",
+          "state": "needs_facts",
+          "declared_value": "431.61",
+          "found_value": null,
+          "unit": "м2",
+          "reason": "Это площадь в расчёте расхода; готовую массу отдельной строкой ПД искать не требуется. Однозначная связь с площадью другой работы пока не установлена."
+        },
+        {
+          "id": "factor:8:0.8",
+          "state": "needs_facts",
+          "declared_value": "0.8",
+          "found_value": null,
+          "unit": "л/м2",
+          "reason": "Расход прочитан из примечания ВОР и подставлен в формулу. Это заданное значение; отдельно проверяются его применимость и единицы результата."
+        },
+        {
+          "id": "factor:8:1000",
+          "state": "needs_facts",
+          "declared_value": "1000",
+          "found_value": null,
+          "unit": "",
+          "reason": "При расходе в л/м² площадь × расход / 1000 даёт м³. Для получения тонн нужна плотность эмульсии в т/м³; значение 1 автоматически не принимается."
+        }
+      ],
+      "sources_sha256": "f8386ef3cd4698e9603a4381c2357a117cc09940e32101963c3b0b80be592bc8",
+      "summary": "Количество по ПД: Масса рассчитывается из площади и расхода; площадь ПД не является готовой массой. Для расхода в л/м² дополнительно нужна подтверждённая плотность. Исходная площадь расчёта: Это площадь в расчёте расхода; готовую массу отдельной строкой ПД искать не требуется. Однозначная связь с площадью другой работы пока не установлена. Расход из примечания ВОР: Расход прочитан из примечания ВОР и подставлен в формулу. Это заданное значение; отдельно проверяются его применимость и единицы результата. Перевод литров и масса: При расходе в л/м² площадь × расход / 1000 даёт м³. Для получения тонн нужна плотность эмульсии в т/м³; значение 1 автоматически не принимается.",
+      "requests": 5
+    },
+    {
+      "index": 9,
+      "vor_row": 27,
+      "old_state": "needs_facts",
+      "new_state": "needs_facts",
+      "execution_state": "complete",
+      "review_id": "88de994b-3e72-4beb-a1a5-c098d299ea0b",
+      "old_geometry": [
+        {
+          "id": "quantity",
+          "state": "needs_facts",
+          "declared_value": "0.345288",
+          "found_value": null,
+          "unit": "т",
+          "source_ids": null,
+          "reason": "Масса рассчитывается из площади и расхода; площадь ПД не является готовой массой. Для расхода в л/м² дополнительно нужна подтверждённая плотность."
+        },
+        {
+          "id": "input:area",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:4ce1255120f68be609a5ed9d"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "new_geometry": [
+        {
+          "id": "quantity",
+          "state": "needs_facts",
+          "declared_value": "0.345288",
+          "found_value": null,
+          "unit": "т",
+          "source_ids": null,
+          "reason": "Масса рассчитывается из площади и расхода; площадь ПД не является готовой массой. Для расхода в л/м² дополнительно нужна подтверждённая плотность."
+        },
+        {
+          "id": "input:area",
+          "state": "confirmed",
+          "declared_value": "431.61",
+          "found_value": "431.611",
+          "unit": "м2",
+          "source_ids": [
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "reason": "Число и цитата проверены, единицы приведены; значения совпадают."
+        }
+      ],
+      "items": [
+        {
+          "claim_ids": [
+            "input:area"
+          ],
+          "state": "confirmed",
+          "explanation": "Конструкция типа IV задаёт средний слой ЩПС 0/63 h=20 см. В соответствующих итогах ровиков справа и слева 345,77+85,841=431,611 м2. Это площадь основания родительского расхода, а не масса эмульсии.",
+          "project_source_ids": [
+            "shared:4:ba3c51bd126e628568cfc143",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "claim_ids": [
+            "derived:parent"
+          ],
+          "state": "needs_facts",
+          "explanation": "Площадь относится к среднему слою ЩПС0/63. Проектный расход0,8 л/м2 и плотность эмульсии не установлены:431,61×0,8/1000 даёт0,345288 м3, не тонны без пересчёта. Дополнительный поиск и прочитанный OCR чертежа массы/плотности не подтвердили;1 т/м3 автоматически не принимается.",
+          "project_source_ids": [
+            "shared:4:ba3c51bd126e628568cfc143",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": [
+            "n0:full:d5e433b4e51862f73f29",
+            "collection:clause-cac713d7266679f491be8841590554b1"
+          ]
+        },
+        {
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "state": "confirmed",
+          "explanation": "Норма родительской подгрунтовки 27-06-035-01 предусматривает розлив битумной эмульсии автогудронатором и измеритель т. ГОСТ Р 58952.1-2020, приложение А, относит ЭБДК Б к подгрунтовке. Это соответствует назначению материала на интерфейсе среднего слоя ЩПС и вышележащего асфальтобетона типа IV.",
+          "project_source_ids": [
+            "shared:4:ba3c51bd126e628568cfc143"
+          ],
+          "normative_source_ids": [
+            "n0:full:d5e433b4e51862f73f29",
+            "n0:full:d5e433b4e51862f73f29:resources:60",
+            "n5:full:c6790fe15d15c2936576:part:450"
+          ]
+        },
+        {
+          "claim_ids": [
+            "basis:comment:consumption:1"
+          ],
+          "state": "confirmed",
+          "explanation": "Независимое основание найдено в ресурсах применимой 27-06-035-01: на измеритель т строка «01.2.03.07-0023 Эмульсия битумно-дорожная; т: 1,03». ЭБДК Б применяется для подгрунтовки по таблице А.1 ГОСТ. Следовательно, 1,03 соответствует отношению расхода эмульсии к массе работы.",
+          "project_source_ids": [
+            "shared:4:ba3c51bd126e628568cfc143"
+          ],
+          "normative_source_ids": [
+            "n0:full:d5e433b4e51862f73f29",
+            "n0:full:d5e433b4e51862f73f29:resources:60",
+            "n5:full:c6790fe15d15c2936576:part:450"
+          ]
+        },
+        {
+          "claim_ids": [
+            "derived:rate"
+          ],
+          "state": "confirmed",
+          "explanation": "В той же норме 27-06-035-01 ресурс 01.2.03.07-0023 «Эмульсия битумно-дорожная; т: 1,03» задан на измеритель 1 т работы. Материал ЭБДК Б относится к подгрунтовке по ГОСТ. Нормативный расход 1,03 т/т подтверждён отдельно от непроверенной исходной массы родителя.",
+          "project_source_ids": [
+            "shared:4:ba3c51bd126e628568cfc143"
+          ],
+          "normative_source_ids": [
+            "n0:full:d5e433b4e51862f73f29",
+            "n0:full:d5e433b4e51862f73f29:resources:60",
+            "n5:full:c6790fe15d15c2936576:part:450"
+          ]
+        },
+        {
+          "claim_ids": [
+            "workbook:formula"
+          ],
+          "state": "confirmed",
+          "explanation": "Арифметика формулы ВОР проверена программно: результат совпадает с указанным объёмом. Физические основания расхода и единицы проверяются отдельно.",
+          "project_source_ids": [
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": [
+            "n0:full:d5e433b4e51862f73f29:resources:60"
+          ]
+        },
+        {
+          "claim_ids": [
+            "quantity",
+            "unit"
+          ],
+          "state": "needs_facts",
+          "explanation": "0,35535 т получается из округлённой базы0,345 и нормативного отношения1,03 т/т. Но база в тоннах не доказана: необходима плотность эмульсии, проектный массовый расход либо готовая масса этой подгрунтовки. Площадь431,611 м2 не является готовой массой материала.",
+          "project_source_ids": [
+            "shared:4:ba3c51bd126e628568cfc143",
+            "agent:p89:cell:010bb17b1046da81eb0de5f5",
+            "agent:p89:cell:3cc5fb717912a739229d9923",
+            "agent:sum:b34f49141e2cfb15bc8ae814"
+          ],
+          "normative_source_ids": [
+            "n0:full:d5e433b4e51862f73f29",
+            "n0:full:d5e433b4e51862f73f29:resources:60"
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "id": "quantity",
+          "state": "needs_facts",
+          "declared_value": "0.345288",
+          "found_value": null,
+          "unit": "т",
+          "reason": "Масса рассчитывается из площади и расхода; площадь ПД не является готовой массой. Для расхода в л/м² дополнительно нужна подтверждённая плотность."
+        }
+      ],
+      "sources_sha256": "120b542dc44abdceb05e5c363690c7108771a26a9c9050ea22798f20f80c40ff",
+      "summary": "Количество родительской работы по ПД: Масса рассчитывается из площади и расхода; площадь ПД не является готовой массой. Для расхода в л/м² дополнительно нужна подтверждённая плотность.",
+      "requests": 5
+    }
+  ],
+  "baseline_preserved": true,
+  "active_normative_pointer_unchanged": true,
+  "caveats": [
+    "Codex subagents are not on-device offline inference.",
+    "Current pipeline, inactive corpus v4 and strict coefficient policy differ from historical baseline.",
+    "Wall time includes file orchestration; parallel scheduling and unavailable token usage preclude a pure cost/speed ranking."
+  ]
+}

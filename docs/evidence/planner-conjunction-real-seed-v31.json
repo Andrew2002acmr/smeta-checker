@@ -1,0 +1,158 @@
+{
+  "kind": "actual_saved_seed47_conjunctive_planner_replay_v31",
+  "source": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\local-seed-one-v29\\new-47-locally-validated.json",
+  "source_sha256": "b8999d5a1f83b319d2808828590329348e8532f3f05574b64fdefef94625dc41",
+  "frozen_planner_commit": "435fddb",
+  "frozen_planner_sha256": "ad89d5bd9cb36144c89ba3df6f9a5cd89f70bd177c15592cbc8d4dc0d269e85a",
+  "old_keys": [
+    "claim:quantity",
+    "claim:unit",
+    "card:quantity",
+    "card:factor:47:2"
+  ],
+  "new_keys": [
+    "claim:basis:comment:consumption:1",
+    "claim:normative:applicability",
+    "claim:quantity",
+    "claim:quantity:consumption",
+    "claim:unit",
+    "card:quantity",
+    "card:factor:47:2"
+  ],
+  "newly_scheduled": [
+    {
+      "key": "claim:basis:comment:consumption:1",
+      "family": "consumption_basis",
+      "state": "candidate_requires_validation",
+      "action": "validate_candidate",
+      "dependency_position": null,
+      "source_ids": [
+        "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0",
+        "recovered:3f350f6b6bcc7b11b48be5d1:resources:21",
+        "shared:45:0628f9f5f348768fcf58b0e4"
+      ],
+      "unreadable_source_ids": [],
+      "model_delivery": {
+        "version": 1,
+        "context_stage": null,
+        "source_states": {
+          "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0": "not_measured",
+          "recovered:3f350f6b6bcc7b11b48be5d1:resources:21": "not_measured",
+          "shared:45:0628f9f5f348768fcf58b0e4": "not_measured"
+        },
+        "next_offset_by_source": {},
+        "comprehension_established": false,
+        "absence_established": false
+      },
+      "read_requests": [],
+      "proposal_count": 0,
+      "reason": "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы.",
+      "retry_fingerprint": "7fef59b7a3ce6593da573884f36d6436a5394530aaa5bbdd9841f79bfdb93bf5",
+      "verification": {
+        "version": "verification-relations-v4",
+        "family": "calculation_basis",
+        "relation": "operands_units_and_derivation",
+        "property": "consumption",
+        "source_routes": [
+          "workbook",
+          "project",
+          "normative_or_explicit_estimator_basis"
+        ],
+        "project_literal_required": false,
+        "required": true,
+        "automatic_confirmation": false,
+        "missing_project_literal_is_mismatch": false
+      }
+    },
+    {
+      "key": "claim:normative:applicability",
+      "family": "norm_selection",
+      "state": "candidate_requires_validation",
+      "action": "validate_candidate",
+      "dependency_position": null,
+      "source_ids": [
+        "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0",
+        "recovered:3f350f6b6bcc7b11b48be5d1:resources:21",
+        "shared:45:0628f9f5f348768fcf58b0e4"
+      ],
+      "unreadable_source_ids": [],
+      "model_delivery": {
+        "version": 1,
+        "context_stage": null,
+        "source_states": {
+          "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0": "not_measured",
+          "recovered:3f350f6b6bcc7b11b48be5d1:resources:21": "not_measured",
+          "shared:45:0628f9f5f348768fcf58b0e4": "not_measured"
+        },
+        "next_offset_by_source": {},
+        "comprehension_established": false,
+        "absence_established": false
+      },
+      "read_requests": [],
+      "proposal_count": 0,
+      "reason": "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы.",
+      "retry_fingerprint": "90cbe7599e816cbd0226693d1038e2fb34641c255002c9a5bb1d0e3d8e08f4a4",
+      "verification": {
+        "version": "verification-relations-v4",
+        "family": "normative_condition",
+        "relation": "condition_applies_to_project_facts",
+        "property": "",
+        "source_routes": [
+          "project",
+          "normative"
+        ],
+        "project_literal_required": false,
+        "required": true,
+        "automatic_confirmation": false,
+        "missing_project_literal_is_mismatch": false
+      }
+    },
+    {
+      "key": "claim:quantity:consumption",
+      "family": "consumption_basis",
+      "state": "candidate_requires_validation",
+      "action": "validate_candidate",
+      "dependency_position": null,
+      "source_ids": [
+        "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0",
+        "recovered:3f350f6b6bcc7b11b48be5d1:resources:21",
+        "shared:45:0628f9f5f348768fcf58b0e4"
+      ],
+      "unreadable_source_ids": [],
+      "model_delivery": {
+        "version": 1,
+        "context_stage": null,
+        "source_states": {
+          "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0": "not_measured",
+          "recovered:3f350f6b6bcc7b11b48be5d1:resources:21": "not_measured",
+          "shared:45:0628f9f5f348768fcf58b0e4": "not_measured"
+        },
+        "next_offset_by_source": {},
+        "comprehension_established": false,
+        "absence_established": false
+      },
+      "read_requests": [],
+      "proposal_count": 0,
+      "reason": "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы.",
+      "retry_fingerprint": "92347618d3f0deb12dbf89ac2c66041959f517d643dd4219786150016ef4cc93",
+      "verification": {
+        "version": "verification-relations-v4",
+        "family": "unclassified",
+        "relation": "resolve_claim_meaning",
+        "property": "",
+        "source_routes": [
+          "project",
+          "normative"
+        ],
+        "project_literal_required": false,
+        "required": true,
+        "automatic_confirmation": false,
+        "missing_project_literal_is_mismatch": false
+      }
+    }
+  ],
+  "semantic_status_unchanged": "needs_facts",
+  "raw_unchanged": true,
+  "model_calls": 0,
+  "postgres_writes": 0
+}

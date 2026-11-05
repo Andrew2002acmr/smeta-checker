@@ -1,0 +1,2153 @@
+{
+  "version": "scoped-v24-comparison-v1",
+  "date": "2026-11-04",
+  "cohort": [
+    5,
+    7,
+    46,
+    50,
+    52,
+    54,
+    56,
+    16,
+    33,
+    37
+  ],
+  "fresh_run": {
+    "run_id": "2a67526a-8b35-4a34-aa28-9af54ca2482d",
+    "counts": {
+      "confirmed": 4,
+      "needs_facts": 6
+    },
+    "model_requests": 24,
+    "elapsed_seconds": 1452.173,
+    "routerai_requests": 0,
+    "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\new-pilot-summary.json",
+    "sha256": "411aa27aa5130fd6f15bb5cbe5a79a76c98f0c9efeaa50c59e6eb7a9ed0a7d42"
+  },
+  "local_final_run": {
+    "run_id": "5c8f1401-26c4-4a3c-a659-18b792e3b0c6",
+    "counts": {
+      "confirmed": 9,
+      "needs_facts": 1,
+      "possible_mismatch": 0
+    },
+    "model_requests": 0,
+    "elapsed_seconds": 42.175,
+    "routerai_requests": 0,
+    "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\local-scoped-ten-v24-final\\summary.json",
+    "sha256": "44e12bc07bdfd9d3acf8f6cd2589998f618b2bce83edb319894ae486acca37b1"
+  },
+  "rows": [
+    {
+      "index": 5,
+      "excel_sheet": "Дорожная одежда",
+      "excel_row": 23,
+      "work_name": "Щебеночно-песчаная смесь М800 типа 0/63 мм",
+      "unit": "м3",
+      "vor_quantity": "54.38286",
+      "prior_latest_available": {
+        "index": 5,
+        "created_at": "2026-11-04 14:42:42.105787+00:00",
+        "state": "needs_facts",
+        "review_id": "af4077e5-b83f-4f97-98c4-75c819138f14",
+        "phase": "completed_position_in_stopped_pilot",
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v23\\new-5-stopped-final.json",
+        "sha256": "64f4f3360735794835caecc6edde33d4fc37a864823883b1e02aa840108be7c0"
+      },
+      "prior_history": [
+        {
+          "index": 5,
+          "created_at": "2026-11-03 08:00:07.288550+00:00",
+          "state": "needs_facts",
+          "review_id": "20ad6924-5295-401f-b884-a32667dc7d35",
+          "phase": "archived_baseline_review",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\baseline-all-reviews.json"
+        },
+        {
+          "index": 5,
+          "created_at": "2026-11-03 08:01:08.737193+00:00",
+          "state": "needs_facts",
+          "review_id": "3a10546f-d27f-47e9-9b75-79f65b58acac",
+          "phase": "archived_baseline_review",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\baseline-all-reviews.json"
+        },
+        {
+          "index": 5,
+          "created_at": "2026-11-04 13:50:12.618344+00:00",
+          "state": "needs_facts",
+          "review_id": "994bc32b-5de9-402c-a7f2-79b007c70261",
+          "phase": "completed_position_in_stopped_pilot",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v22\\new-5-stopped-final.json",
+          "sha256": "188927a550c4a09b60347b353cde546fb536e18b1313f33c4c659e65022f81c8"
+        },
+        {
+          "index": 5,
+          "created_at": "2026-11-04 14:42:42.105787+00:00",
+          "state": "needs_facts",
+          "review_id": "af4077e5-b83f-4f97-98c4-75c819138f14",
+          "phase": "completed_position_in_stopped_pilot",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v23\\new-5-stopped-final.json",
+          "sha256": "64f4f3360735794835caecc6edde33d4fc37a864823883b1e02aa840108be7c0"
+        }
+      ],
+      "fresh": {
+        "state": "confirmed",
+        "review_id": "bac9c23a-95ab-486d-aa99-178956256a3c",
+        "model_requests": 2,
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\new-5-final.json",
+        "sha256": "1f504d710256d01354e5ded42413216e70ca67e28b0467385bd3e4972170a57f"
+      },
+      "local_final": {
+        "index": 5,
+        "before": "confirmed",
+        "after": "confirmed",
+        "original_review_id": "bac9c23a-95ab-486d-aa99-178956256a3c",
+        "review_id": "3867a0d2-0adc-4dd8-b8b0-f2d06d305166",
+        "required_gaps": [],
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\local-scoped-ten-v24-final\\new-5-locally-validated.json",
+        "sha256": "9fb47324cb2cc46e7ac2cc639978beded77e38e10607d095ee7ea6684a65d890"
+      },
+      "reason_and_correctness": "Сохранено C: ЩПС0/63 типаIV ровиков уширения; 345,77+85,841 м² согласуются с431,61 м² после округления, полная толщина20см и заявленный разнос10+10см; 431,61×0,10×1,26=54,38286м³. М800 не подменяет K90/M1. Исправлена последовательность NPCanchor/binder, исключено устаревание fingerprint.",
+      "source_anchors": [
+        {
+          "id": "shared:5:e3e64664b92d416aa76e3a5b",
+          "kind": "project",
+          "page": 50,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "b64e49d9b52d193195c32fb8d9f3c294f69ecfc2e067cfed493dbf1eab70a620"
+        },
+        {
+          "id": "agent:p89:cell:010bb17b1046da81eb0de5f5",
+          "kind": "project",
+          "page": 89,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "d36c4f9464e915eabc27364adb3a12aa953fe0d5902d605800a15c66c0c3c387"
+        },
+        {
+          "id": "agent:p89:cell:3cc5fb717912a739229d9923",
+          "kind": "project",
+          "page": 89,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "1f545b123580a66f36b857b3837485ad61baac2142d1c6f7073972b374d6c1b2"
+        },
+        {
+          "id": "agent:sum:b34f49141e2cfb15bc8ae814",
+          "kind": "project",
+          "page": 89,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "28e8a9e73cc3790a24529d661252b02c64ebf13bbff5152e8417eeef66fb5e01"
+        },
+        {
+          "id": "methodology:loss15:clause-14059d01376a45dc224bd0ba465a39ae",
+          "kind": "normative",
+          "page": 8,
+          "label": "Приказ Минстроя России от 16.01.2020 № 15/пр. Методика потерь и отходов · п. 22",
+          "version_id": null,
+          "text_sha256": "43523bac3cf2952ba1a4e5402f3dbb0ec2fc885f523d3590e1d69e4cd639845a"
+        },
+        {
+          "id": "methodology:loss15:clause-e23c9bd4f1c7786b11acd88c07b3405f",
+          "kind": "normative",
+          "page": 8,
+          "label": "Приказ Минстроя России от 16.01.2020 № 15/пр. Методика потерь и отходов · п. 23",
+          "version_id": null,
+          "text_sha256": "c5dd30e15e4aeb7d3f07c5ceb6a6a9682e28e7f4cc13e5c37e119a27bf8c8545"
+        },
+        {
+          "id": "material:clause-a730950c434eab35fdcc763f04b739ae:full:fd33233813b6f1c7182d",
+          "kind": "normative",
+          "page": 4,
+          "label": "ГОСТ Р 70458-2022 · 5.2",
+          "version_id": null,
+          "text_sha256": "fd33233813b6f1c7182d53766cde4e0a6f9a7decfb353d951bc18b5996091e3a"
+        },
+        {
+          "id": "material:clause-4601e9b2c8d8b004db5e11b1aea67ccd:full:34935ae59e06370c1c70",
+          "kind": "normative",
+          "page": 7,
+          "label": "ГОСТ Р 70458-2022 · 5.9",
+          "version_id": null,
+          "text_sha256": "34935ae59e06370c1c708e2e06d01ca58db9e484f8ea302e1540e9a386791c8c"
+        },
+        {
+          "id": "material:clause-a5baabc63abbecf0a62fcc7672f16796:full:c06b6087967fa79efdba",
+          "kind": "normative",
+          "page": 7,
+          "label": "ГОСТ 32703-2014 · 5.6",
+          "version_id": null,
+          "text_sha256": "c06b6087967fa79efdbaca1022cd991747167ed73febfdd8e2c2471539f8e7a8"
+        },
+        {
+          "id": "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000",
+          "kind": "normative",
+          "page": 32,
+          "label": "СП 78.13330.2012 с изменениями1-3 · 10.2",
+          "version_id": null,
+          "text_sha256": "8ab73088fa423b79f00089f29613d34ec27146d088ab3901b049dd422e2ab1f6"
+        },
+        {
+          "id": "parent-4:geometry:212a9cdbab4a21414f8bfa9c",
+          "kind": "project",
+          "page": 50,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "b64e49d9b52d193195c32fb8d9f3c294f69ecfc2e067cfed493dbf1eab70a620"
+        },
+        {
+          "id": "parent-4:geometry:87c03160386a4932f7d4c5ee",
+          "kind": "project",
+          "page": 89,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "28e8a9e73cc3790a24529d661252b02c64ebf13bbff5152e8417eeef66fb5e01"
+        }
+      ],
+      "proofs": []
+    },
+    {
+      "index": 7,
+      "excel_sheet": "Дорожная одежда",
+      "excel_row": 25,
+      "work_name": "Щебеночно-песчаная смесь М800 типа 0/63 мм",
+      "unit": "м3",
+      "vor_quantity": "54.38286",
+      "prior_latest_available": {
+        "index": 7,
+        "created_at": "2026-11-04 14:45:38.765115+00:00",
+        "state": "needs_facts",
+        "review_id": "be9807a9-c00a-4dcb-b450-b7e302a15ea7",
+        "phase": "completed_position_in_stopped_pilot",
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v23\\new-7-stopped-final.json",
+        "sha256": "ad7c75ade276e302c79f670e61ef3c2b6e96cf6840fd582e3f779b261619495c"
+      },
+      "prior_history": [
+        {
+          "index": 7,
+          "created_at": "2026-11-03 08:03:18.552134+00:00",
+          "state": "needs_facts",
+          "review_id": "26f38bc7-37bd-46e5-abc6-51b845352642",
+          "phase": "archived_baseline_review",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\baseline-all-reviews.json"
+        },
+        {
+          "index": 7,
+          "created_at": "2026-11-03 08:03:59.415971+00:00",
+          "state": "needs_facts",
+          "review_id": "bd1bb38d-f32f-4158-8b23-8ce802283c23",
+          "phase": "archived_baseline_review",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\baseline-all-reviews.json"
+        },
+        {
+          "index": 7,
+          "created_at": "2026-11-04 13:53:19.313940+00:00",
+          "state": "needs_facts",
+          "review_id": "1964f072-a410-429a-816d-f9ec0126041c",
+          "phase": "completed_position_in_stopped_pilot",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v22\\new-7-stopped-final.json",
+          "sha256": "ef9415af3232603ace422464c67228785eb3c29f1c827b0232879b25a9f0edda"
+        },
+        {
+          "index": 7,
+          "created_at": "2026-11-04 14:45:38.765115+00:00",
+          "state": "needs_facts",
+          "review_id": "be9807a9-c00a-4dcb-b450-b7e302a15ea7",
+          "phase": "completed_position_in_stopped_pilot",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v23\\new-7-stopped-final.json",
+          "sha256": "ad7c75ade276e302c79f670e61ef3c2b6e96cf6840fd582e3f779b261619495c"
+        }
+      ],
+      "fresh": {
+        "state": "confirmed",
+        "review_id": "048df435-66cc-4b27-9052-ee49302bc4fe",
+        "model_requests": 1,
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\new-7-final.json",
+        "sha256": "bc608bfd28345051b6542718d1ece7ceace8e80246913ea1d2e135168363d3a6"
+      },
+      "local_final": {
+        "index": 7,
+        "before": "confirmed",
+        "after": "confirmed",
+        "original_review_id": "048df435-66cc-4b27-9052-ee49302bc4fe",
+        "review_id": "097190aa-78e9-4344-a30d-b9965f5092ea",
+        "required_gaps": [],
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\local-scoped-ten-v24-final\\new-7-locally-validated.json",
+        "sha256": "3eab820e7a59bdeb31a6580bff49efa26b7072efe5a9a220679e45c967a845c6"
+      },
+      "reason_and_correctness": "Сохранено C для второй заявленной10см части той же20см конструкции типаIV; та же площадь431,61м² и54,38286м³ с1,26. C не означает отдельного измеренного проектного объёма каждой части. Исправлена последовательность NPCanchor/binder.",
+      "source_anchors": [
+        {
+          "id": "shared:7:1caf7fa2157fbc157501564c",
+          "kind": "project",
+          "page": 50,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "b64e49d9b52d193195c32fb8d9f3c294f69ecfc2e067cfed493dbf1eab70a620"
+        },
+        {
+          "id": "agent:p89:cell:010bb17b1046da81eb0de5f5",
+          "kind": "project",
+          "page": 89,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "d36c4f9464e915eabc27364adb3a12aa953fe0d5902d605800a15c66c0c3c387"
+        },
+        {
+          "id": "agent:p89:cell:3cc5fb717912a739229d9923",
+          "kind": "project",
+          "page": 89,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "1f545b123580a66f36b857b3837485ad61baac2142d1c6f7073972b374d6c1b2"
+        },
+        {
+          "id": "agent:sum:b34f49141e2cfb15bc8ae814",
+          "kind": "project",
+          "page": 89,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "28e8a9e73cc3790a24529d661252b02c64ebf13bbff5152e8417eeef66fb5e01"
+        },
+        {
+          "id": "methodology:loss15:clause-14059d01376a45dc224bd0ba465a39ae",
+          "kind": "normative",
+          "page": 8,
+          "label": "Приказ Минстроя России от 16.01.2020 № 15/пр. Методика потерь и отходов · п. 22",
+          "version_id": null,
+          "text_sha256": "43523bac3cf2952ba1a4e5402f3dbb0ec2fc885f523d3590e1d69e4cd639845a"
+        },
+        {
+          "id": "methodology:loss15:clause-e23c9bd4f1c7786b11acd88c07b3405f",
+          "kind": "normative",
+          "page": 8,
+          "label": "Приказ Минстроя России от 16.01.2020 № 15/пр. Методика потерь и отходов · п. 23",
+          "version_id": null,
+          "text_sha256": "c5dd30e15e4aeb7d3f07c5ceb6a6a9682e28e7f4cc13e5c37e119a27bf8c8545"
+        },
+        {
+          "id": "material:clause-a730950c434eab35fdcc763f04b739ae:full:fd33233813b6f1c7182d",
+          "kind": "normative",
+          "page": 4,
+          "label": "ГОСТ Р 70458-2022 · 5.2",
+          "version_id": null,
+          "text_sha256": "fd33233813b6f1c7182d53766cde4e0a6f9a7decfb353d951bc18b5996091e3a"
+        },
+        {
+          "id": "material:clause-4601e9b2c8d8b004db5e11b1aea67ccd:full:34935ae59e06370c1c70",
+          "kind": "normative",
+          "page": 7,
+          "label": "ГОСТ Р 70458-2022 · 5.9",
+          "version_id": null,
+          "text_sha256": "34935ae59e06370c1c708e2e06d01ca58db9e484f8ea302e1540e9a386791c8c"
+        },
+        {
+          "id": "material:clause-a5baabc63abbecf0a62fcc7672f16796:full:c06b6087967fa79efdba",
+          "kind": "normative",
+          "page": 7,
+          "label": "ГОСТ 32703-2014 · 5.6",
+          "version_id": null,
+          "text_sha256": "c06b6087967fa79efdbaca1022cd991747167ed73febfdd8e2c2471539f8e7a8"
+        },
+        {
+          "id": "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000",
+          "kind": "normative",
+          "page": 32,
+          "label": "СП 78.13330.2012 с изменениями1-3 · 10.2",
+          "version_id": null,
+          "text_sha256": "8ab73088fa423b79f00089f29613d34ec27146d088ab3901b049dd422e2ab1f6"
+        },
+        {
+          "id": "parent-6:geometry:9e992cfee76f597b2b6ec876",
+          "kind": "project",
+          "page": 50,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "b64e49d9b52d193195c32fb8d9f3c294f69ecfc2e067cfed493dbf1eab70a620"
+        },
+        {
+          "id": "parent-6:geometry:87c03160386a4932f7d4c5ee",
+          "kind": "project",
+          "page": 89,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "28e8a9e73cc3790a24529d661252b02c64ebf13bbff5152e8417eeef66fb5e01"
+        }
+      ],
+      "proofs": []
+    },
+    {
+      "index": 46,
+      "excel_sheet": "Дорожная одежда",
+      "excel_row": 67,
+      "work_name": "Растительная земля",
+      "unit": "м3",
+      "vor_quantity": "386.2",
+      "prior_latest_available": {
+        "index": 46,
+        "created_at": "2026-11-04 14:41:57.856992+00:00",
+        "state": "needs_facts",
+        "review_id": "c7a75f70-b96a-40f3-b729-2b6f4c236b3b",
+        "phase": "completed_position_in_stopped_pilot",
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v23\\new-46-stopped-final.json",
+        "sha256": "013cfb465676e84ab3b1ac2f68dda92577cb372442cc4b0f8a53ce5af78ac108"
+      },
+      "prior_history": [
+        {
+          "index": 46,
+          "created_at": "2026-11-04 10:52:14.545074+00:00",
+          "state": "needs_facts",
+          "review_id": "8f6984ea-490b-4791-a284-782d9f73b37f",
+          "phase": "saved_final_position_review",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\transfer-linked-ten-v17\\new-46-final.json",
+          "sha256": "0f0fa594b3c3a29e3487acc8eefa3876860891012b715c7eaf18933d28a4f81e"
+        },
+        {
+          "index": 46,
+          "created_at": "2026-11-04 12:40:45.622530+00:00",
+          "state": "needs_facts",
+          "review_id": "2059ff03-0593-42ae-850b-427104d07220",
+          "phase": "saved_final_position_review",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\transfer-eight-v20\\new-46-final.json",
+          "sha256": "ad8161d443c556da2f6c91a2858e095ae328a6568a8f5e5941a30c37bf977a02"
+        },
+        {
+          "index": 46,
+          "created_at": "2026-11-04 13:48:23.016141+00:00",
+          "state": "confirmed",
+          "review_id": "d7641d1d-d62e-4870-84e7-26ca707fc8ef",
+          "phase": "completed_position_in_stopped_pilot",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v22\\new-46-stopped-final.json",
+          "sha256": "4596fbb284e642c34579c89c03b5137698e63848c60c37cf5fd06bb1940f371f"
+        },
+        {
+          "index": 46,
+          "created_at": "2026-11-04 14:41:57.856992+00:00",
+          "state": "needs_facts",
+          "review_id": "c7a75f70-b96a-40f3-b729-2b6f4c236b3b",
+          "phase": "completed_position_in_stopped_pilot",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v23\\new-46-stopped-final.json",
+          "sha256": "013cfb465676e84ab3b1ac2f68dda92577cb372442cc4b0f8a53ce5af78ac108"
+        }
+      ],
+      "fresh": {
+        "state": "confirmed",
+        "review_id": "551213ce-f21d-492d-ad96-b34376fbda33",
+        "model_requests": 1,
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\new-46-final.json",
+        "sha256": "4c3ea45095862e080cb6095088a85e60f9ef1180b586ded240ed30ae2c633a4b"
+      },
+      "local_final": {
+        "index": 46,
+        "before": "confirmed",
+        "after": "confirmed",
+        "original_review_id": "551213ce-f21d-492d-ad96-b34376fbda33",
+        "review_id": "1da7e181-4bef-4908-a7c6-1fcc7a28eb9f",
+        "required_gaps": [],
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\local-scoped-ten-v24-final\\new-46-locally-validated.json",
+        "sha256": "0fd5c3ba491bef050bb612b62ae3e571c87318c1174e86a45fd3f1d15bd56fc9"
+      },
+      "reason_and_correctness": "Прямой проектный почвенно-растительный слой газонов улицы:1931м²×0,20м=386,2м³, совпадает с итогом ведомости; поправок и планового разноса нет.",
+      "source_anchors": [
+        {
+          "id": "shared:46:5f7766fa1906a738d57e1d76",
+          "kind": "project",
+          "page": 91,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "68ccdf6200d0d5fa15f3473380853dd4388ebff62044e53436bbf2224bbda3b5"
+        },
+        {
+          "id": "agent:p91:cell:152ed67c6ccaaf5ef2e6f862",
+          "kind": "project",
+          "page": 91,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "869446434c7b2673bf2d61c7321484daf72fbbba5afa76778c3a0aaf250c489a"
+        },
+        {
+          "id": "methodology:clause-3651e9d5ed4782554872a0caaf9b3135",
+          "kind": "normative",
+          "page": 5,
+          "label": "Приказ Минстроя России от 14.07.2022 № 571/пр. Методика применения сметных норм · п. 12",
+          "version_id": null,
+          "text_sha256": "7b27a0faa8b5207d240a489cc9912c76cb031815865a1946201075e403a3f320"
+        },
+        {
+          "id": "methodology:loss15:clause-14059d01376a45dc224bd0ba465a39ae",
+          "kind": "normative",
+          "page": 8,
+          "label": "Приказ Минстроя России от 16.01.2020 № 15/пр. Методика потерь и отходов · п. 22",
+          "version_id": null,
+          "text_sha256": "43523bac3cf2952ba1a4e5402f3dbb0ec2fc885f523d3590e1d69e4cd639845a"
+        },
+        {
+          "id": "methodology:loss15:clause-e23c9bd4f1c7786b11acd88c07b3405f",
+          "kind": "normative",
+          "page": 8,
+          "label": "Приказ Минстроя России от 16.01.2020 № 15/пр. Методика потерь и отходов · п. 23",
+          "version_id": null,
+          "text_sha256": "c5dd30e15e4aeb7d3f07c5ceb6a6a9682e28e7f4cc13e5c37e119a27bf8c8545"
+        }
+      ],
+      "proofs": []
+    },
+    {
+      "index": 50,
+      "excel_sheet": "Дорожная одежда",
+      "excel_row": 72,
+      "work_name": "Щебеночно-песчаная смесь М800 типа 0/31,5 мм",
+      "unit": "м3",
+      "vor_quantity": "133.35840000000002",
+      "prior_latest_available": {
+        "index": 50,
+        "created_at": "2026-11-04 14:46:59.930664+00:00",
+        "state": "needs_facts",
+        "review_id": "af0badbf-85c1-4d55-8b49-72a6d05a1628",
+        "phase": "completed_position_in_stopped_pilot",
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v23\\new-50-stopped-final.json",
+        "sha256": "5660d38084a1b30981fc0ad6839e4c066ff01969166b55c60fedaef8b0aa3ead"
+      },
+      "prior_history": [
+        {
+          "index": 50,
+          "created_at": "2026-11-04 13:50:34.835511+00:00",
+          "state": "needs_facts",
+          "review_id": "2dbeca32-ee35-4043-9ced-a479b8082ce2",
+          "phase": "completed_position_in_stopped_pilot",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v22\\new-50-stopped-final.json",
+          "sha256": "6074e66ff9a99ddc45d5bf6ef72c6af78d4d017069bf8d9a89998f0b149468b9"
+        },
+        {
+          "index": 50,
+          "created_at": "2026-11-04 14:46:59.930664+00:00",
+          "state": "needs_facts",
+          "review_id": "af0badbf-85c1-4d55-8b49-72a6d05a1628",
+          "phase": "completed_position_in_stopped_pilot",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v23\\new-50-stopped-final.json",
+          "sha256": "5660d38084a1b30981fc0ad6839e4c066ff01969166b55c60fedaef8b0aa3ead"
+        }
+      ],
+      "fresh": {
+        "state": "needs_facts",
+        "review_id": "923a776f-2a76-434a-a305-c5842a46103b",
+        "model_requests": 3,
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\new-50-final.json",
+        "sha256": "737b2a1a0a4d467a5c553c1ca99b2b12f92b5b72b7eee980ca1a557eb8788e97"
+      },
+      "local_final": {
+        "index": 50,
+        "before": "needs_facts",
+        "after": "confirmed",
+        "original_review_id": "923a776f-2a76-434a-a305-c5842a46103b",
+        "review_id": "b2e6addd-81f6-4919-a1e7-27f101e823af",
+        "required_gaps": [],
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\local-scoped-ten-v24-final\\new-50-locally-validated.json",
+        "sha256": "3fa61ed6a067d684927b721c2b049fa9fd7d4b9d22b7c98549f04dc8a1036e74"
+      },
+      "reason_and_correctness": "Плановая потребность ЩПС0/31,5 съездов:105,84×1,26=133,3584м³. Полная пара50/52:105,84+107,67=213,51м³ ПД; единые спецификация/единица/коэффициент, полная группа и источники проверены.",
+      "source_anchors": [
+        {
+          "id": "shared:50:b191bfbde3601bcb40bafc9c",
+          "kind": "project",
+          "page": 50,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "b64e49d9b52d193195c32fb8d9f3c294f69ecfc2e067cfed493dbf1eab70a620"
+        },
+        {
+          "id": "material:clause-a730950c434eab35fdcc763f04b739ae:full:fd33233813b6f1c7182d",
+          "kind": "normative",
+          "page": 4,
+          "label": "ГОСТ Р 70458-2022 · 5.2",
+          "version_id": null,
+          "text_sha256": "fd33233813b6f1c7182d53766cde4e0a6f9a7decfb353d951bc18b5996091e3a"
+        },
+        {
+          "id": "material:clause-4601e9b2c8d8b004db5e11b1aea67ccd:full:34935ae59e06370c1c70",
+          "kind": "normative",
+          "page": 7,
+          "label": "ГОСТ Р 70458-2022 · 5.9",
+          "version_id": null,
+          "text_sha256": "34935ae59e06370c1c708e2e06d01ca58db9e484f8ea302e1540e9a386791c8c"
+        },
+        {
+          "id": "material:clause-a5baabc63abbecf0a62fcc7672f16796:full:c06b6087967fa79efdba",
+          "kind": "normative",
+          "page": 7,
+          "label": "ГОСТ 32703-2014 · 5.6",
+          "version_id": null,
+          "text_sha256": "c06b6087967fa79efdbaca1022cd991747167ed73febfdd8e2c2471539f8e7a8"
+        },
+        {
+          "id": "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000",
+          "kind": "normative",
+          "page": 32,
+          "label": "СП 78.13330.2012 с изменениями1-3 · 10.2",
+          "version_id": null,
+          "text_sha256": "8ab73088fa423b79f00089f29613d34ec27146d088ab3901b049dd422e2ab1f6"
+        },
+        {
+          "id": "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+          "kind": "project",
+          "page": 90,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "af21014b0639814986d1c26f00b2873a8bfb35641c4b93e84ec68b8bf672d43d"
+        }
+      ],
+      "proofs": [
+        {
+          "kind": "planned_material_allocation_v1",
+          "sha256": "ef6006dfd9c6c7ddeb1c1edf5949497c4337375c9d9d7dd6ecee61be16a61381",
+          "operands": [
+            {
+              "unit": "м3",
+              "binding": {
+                "basis": "nearest_preceding_work_in_explicit_material_block",
+                "sheet": "Дорожная одежда",
+                "sections": [
+                  {
+                    "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                    "address": "A70"
+                  }
+                ],
+                "work_row": 71,
+                "header_row": 15,
+                "work_index": 49,
+                "material_row": 72,
+                "material_index": 50,
+                "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+              },
+              "formula": "(105,84)*1,26",
+              "work_row": 71,
+              "work_index": 49,
+              "coefficient": "1.26",
+              "material_row": 72,
+              "material_index": 50,
+              "declared_volume": "105.84",
+              "calculated_material_volume": "133.3584"
+            },
+            {
+              "unit": "м3",
+              "binding": {
+                "basis": "nearest_preceding_work_in_explicit_material_block",
+                "sheet": "Дорожная одежда",
+                "sections": [
+                  {
+                    "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                    "address": "A70"
+                  }
+                ],
+                "work_row": 73,
+                "header_row": 15,
+                "work_index": 51,
+                "material_row": 74,
+                "material_index": 52,
+                "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+              },
+              "formula": "107,67*1,26",
+              "work_row": 73,
+              "work_index": 51,
+              "coefficient": "1.26",
+              "material_row": 74,
+              "material_index": 52,
+              "declared_volume": "107.67",
+              "calculated_material_volume": "135.6642"
+            }
+          ],
+          "project_basis": {
+            "volume": {
+              "unit": "м3",
+              "quote": "Единица физического столбца: м3\nВсего:\n213,51",
+              "value": "213.51",
+              "operation": "direct",
+              "parameter": "quantity",
+              "source_id": "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+              "conditions": [],
+              "scope_quote": "Основание | Щебеночно-песчаная смесь типа 0/31,5 мм М800 | h=0,22м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n213,51",
+              "scope_state": "verified",
+              "scope_relation": "technological_part",
+              "operand_source_ids": []
+            },
+            "construction": {
+              "unit": "см",
+              "quote": "h=22 см",
+              "value": "22",
+              "operation": "direct",
+              "parameter": "thickness",
+              "source_id": "shared:50:b191bfbde3601bcb40bafc9c",
+              "conditions": [],
+              "scope_quote": "Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см",
+              "scope_state": "verified",
+              "scope_relation": "technological_part",
+              "operand_source_ids": []
+            }
+          },
+          "root_source_ids": [
+            "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+            "shared:50:b191bfbde3601bcb40bafc9c"
+          ],
+          "stage_areas_verified": false,
+          "coefficient_applicability_verified": false,
+          "individual_project_volumes_verified": false
+        }
+      ]
+    },
+    {
+      "index": 52,
+      "excel_sheet": "Дорожная одежда",
+      "excel_row": 74,
+      "work_name": "Щебеночно-песчаная смесь М800 типа 0/31,5 мм",
+      "unit": "м3",
+      "vor_quantity": "135.6642",
+      "prior_latest_available": {
+        "index": 52,
+        "created_at": "2026-11-04 14:51:49.189600+00:00",
+        "state": "needs_facts",
+        "review_id": "147749a2-b98e-4e09-b9cd-e40ef7d0f9a4",
+        "phase": "completed_position_in_stopped_pilot",
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v23\\new-52-stopped-final.json",
+        "sha256": "26a7ee8f11a79700b32637f5304e919c2a448b5fb84e3b793da61f4d1c88ae72"
+      },
+      "prior_history": [
+        {
+          "index": 52,
+          "created_at": "2026-11-04 13:54:10.718814+00:00",
+          "state": "needs_facts",
+          "review_id": "6ea78adb-11bc-4330-b168-3e396e4cd4fb",
+          "phase": "completed_position_in_stopped_pilot",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v22\\new-52-stopped-final.json",
+          "sha256": "ef134ada97872a853df00d317edc0370531ec229f6d3468ab64c7c8c1908c763"
+        },
+        {
+          "index": 52,
+          "created_at": "2026-11-04 14:51:49.189600+00:00",
+          "state": "needs_facts",
+          "review_id": "147749a2-b98e-4e09-b9cd-e40ef7d0f9a4",
+          "phase": "completed_position_in_stopped_pilot",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v23\\new-52-stopped-final.json",
+          "sha256": "26a7ee8f11a79700b32637f5304e919c2a448b5fb84e3b793da61f4d1c88ae72"
+        }
+      ],
+      "fresh": {
+        "state": "needs_facts",
+        "review_id": "71e90725-bb20-43cc-aacb-46c774136386",
+        "model_requests": 3,
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\new-52-final.json",
+        "sha256": "a0d50b7ba438cb6af54bf8d591b6a006a20bb1b313165903674f84acc04428c9"
+      },
+      "local_final": {
+        "index": 52,
+        "before": "needs_facts",
+        "after": "confirmed",
+        "original_review_id": "71e90725-bb20-43cc-aacb-46c774136386",
+        "review_id": "cffbd3c9-0c00-4692-aca6-56b7751647cc",
+        "required_gaps": [],
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\local-scoped-ten-v24-final\\new-52-locally-validated.json",
+        "sha256": "8b6e6fa385de8df9922375e8790999e2a1afeba05e247583f191452549dea10c"
+      },
+      "reason_and_correctness": "Плановая потребность той же ЩПС0/31,5:107,67×1,26=135,6642м³; баланс пары50/52 с213,51м³ ПД. Исправлен маршрут binder: высота родительской части не является операндом этого материала.",
+      "source_anchors": [
+        {
+          "id": "shared:52:ca83e2bc46b2962cce43999f",
+          "kind": "project",
+          "page": 50,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "b64e49d9b52d193195c32fb8d9f3c294f69ecfc2e067cfed493dbf1eab70a620"
+        },
+        {
+          "id": "material:clause-a730950c434eab35fdcc763f04b739ae:full:fd33233813b6f1c7182d",
+          "kind": "normative",
+          "page": 4,
+          "label": "ГОСТ Р 70458-2022 · 5.2",
+          "version_id": null,
+          "text_sha256": "fd33233813b6f1c7182d53766cde4e0a6f9a7decfb353d951bc18b5996091e3a"
+        },
+        {
+          "id": "material:clause-4601e9b2c8d8b004db5e11b1aea67ccd:full:34935ae59e06370c1c70",
+          "kind": "normative",
+          "page": 7,
+          "label": "ГОСТ Р 70458-2022 · 5.9",
+          "version_id": null,
+          "text_sha256": "34935ae59e06370c1c708e2e06d01ca58db9e484f8ea302e1540e9a386791c8c"
+        },
+        {
+          "id": "material:clause-a5baabc63abbecf0a62fcc7672f16796:full:c06b6087967fa79efdba",
+          "kind": "normative",
+          "page": 7,
+          "label": "ГОСТ 32703-2014 · 5.6",
+          "version_id": null,
+          "text_sha256": "c06b6087967fa79efdbaca1022cd991747167ed73febfdd8e2c2471539f8e7a8"
+        },
+        {
+          "id": "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000",
+          "kind": "normative",
+          "page": 32,
+          "label": "СП 78.13330.2012 с изменениями1-3 · 10.2",
+          "version_id": null,
+          "text_sha256": "8ab73088fa423b79f00089f29613d34ec27146d088ab3901b049dd422e2ab1f6"
+        },
+        {
+          "id": "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+          "kind": "project",
+          "page": 90,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "af21014b0639814986d1c26f00b2873a8bfb35641c4b93e84ec68b8bf672d43d"
+        }
+      ],
+      "proofs": [
+        {
+          "kind": "planned_material_allocation_v1",
+          "sha256": "006bb2a9143e4a39a6411ee78e7e34ced405ece3ac2655de0b2713269e833c5e",
+          "operands": [
+            {
+              "unit": "м3",
+              "binding": {
+                "basis": "nearest_preceding_work_in_explicit_material_block",
+                "sheet": "Дорожная одежда",
+                "sections": [
+                  {
+                    "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                    "address": "A70"
+                  }
+                ],
+                "work_row": 71,
+                "header_row": 15,
+                "work_index": 49,
+                "material_row": 72,
+                "material_index": 50,
+                "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+              },
+              "formula": "(105,84)*1,26",
+              "work_row": 71,
+              "work_index": 49,
+              "coefficient": "1.26",
+              "material_row": 72,
+              "material_index": 50,
+              "declared_volume": "105.84",
+              "calculated_material_volume": "133.3584"
+            },
+            {
+              "unit": "м3",
+              "binding": {
+                "basis": "nearest_preceding_work_in_explicit_material_block",
+                "sheet": "Дорожная одежда",
+                "sections": [
+                  {
+                    "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                    "address": "A70"
+                  }
+                ],
+                "work_row": 73,
+                "header_row": 15,
+                "work_index": 51,
+                "material_row": 74,
+                "material_index": 52,
+                "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+              },
+              "formula": "107,67*1,26",
+              "work_row": 73,
+              "work_index": 51,
+              "coefficient": "1.26",
+              "material_row": 74,
+              "material_index": 52,
+              "declared_volume": "107.67",
+              "calculated_material_volume": "135.6642"
+            }
+          ],
+          "project_basis": {
+            "volume": {
+              "unit": "м3",
+              "quote": "Единица физического столбца: м3\nВсего:\n213,51",
+              "value": "213.51",
+              "operation": "direct",
+              "parameter": "quantity",
+              "source_id": "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+              "conditions": [],
+              "scope_quote": "Основание | Щебеночно-песчаная смесь типа 0/31,5 мм М800 | h=0,22м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n213,51",
+              "scope_state": "verified",
+              "scope_relation": "technological_part",
+              "operand_source_ids": []
+            },
+            "construction": {
+              "unit": "см",
+              "quote": "h=22 см",
+              "value": "22",
+              "operation": "direct",
+              "parameter": "thickness",
+              "source_id": "shared:52:ca83e2bc46b2962cce43999f",
+              "conditions": [],
+              "scope_quote": "Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см",
+              "scope_state": "verified",
+              "scope_relation": "technological_part",
+              "operand_source_ids": []
+            }
+          },
+          "root_source_ids": [
+            "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+            "shared:52:ca83e2bc46b2962cce43999f"
+          ],
+          "stage_areas_verified": false,
+          "coefficient_applicability_verified": false,
+          "individual_project_volumes_verified": false
+        }
+      ]
+    },
+    {
+      "index": 54,
+      "excel_sheet": "Дорожная одежда",
+      "excel_row": 76,
+      "work_name": "Щебеночно-песчаная смесь М800 типа 0/63 мм",
+      "unit": "м3",
+      "vor_quantity": "114.8742",
+      "prior_latest_available": {
+        "index": 54,
+        "created_at": "2026-11-04 13:57:16.869438+00:00",
+        "state": "needs_facts",
+        "review_id": "799a1a49-b325-4ffc-9311-f0499d55b884",
+        "phase": "completed_position_in_stopped_pilot",
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v22\\new-54-stopped-final.json",
+        "sha256": "7afebf2060d8940e93ccd9753b0e4ac4eb9d45ffefe45d267a6702c61ba042b6"
+      },
+      "prior_history": [
+        {
+          "index": 54,
+          "created_at": "2026-11-04 13:57:16.869438+00:00",
+          "state": "needs_facts",
+          "review_id": "799a1a49-b325-4ffc-9311-f0499d55b884",
+          "phase": "completed_position_in_stopped_pilot",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v22\\new-54-stopped-final.json",
+          "sha256": "7afebf2060d8940e93ccd9753b0e4ac4eb9d45ffefe45d267a6702c61ba042b6"
+        }
+      ],
+      "fresh": {
+        "state": "needs_facts",
+        "review_id": "62c3429b-5199-47b9-8111-a50396a5c578",
+        "model_requests": 3,
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\new-54-final.json",
+        "sha256": "33e36cf3898637818fcff48681b7895d306c61ad322fbe6ab37b39699ba2d45c"
+      },
+      "local_final": {
+        "index": 54,
+        "before": "needs_facts",
+        "after": "confirmed",
+        "original_review_id": "62c3429b-5199-47b9-8111-a50396a5c578",
+        "review_id": "92b5360b-9f2e-47f8-ad60-0a440971a391",
+        "required_gaps": [],
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\local-scoped-ten-v24-final\\new-54-locally-validated.json",
+        "sha256": "c68815d15d8dd36670410e6d1b90aa96a14754df509b89b1be5781c28b96474b"
+      },
+      "reason_and_correctness": "Плановая потребность ЩПС0/63 съездов:91,17×1,26=114,8742м³. Полная пара54/56:91,17+97,57=188,74м³ ПД; источники полной конструкции20см и области ведомости проверены.",
+      "source_anchors": [
+        {
+          "id": "shared:54:1407988ac59c4006733fb93f",
+          "kind": "project",
+          "page": 50,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "b64e49d9b52d193195c32fb8d9f3c294f69ecfc2e067cfed493dbf1eab70a620"
+        },
+        {
+          "id": "material:clause-a730950c434eab35fdcc763f04b739ae:full:fd33233813b6f1c7182d",
+          "kind": "normative",
+          "page": 4,
+          "label": "ГОСТ Р 70458-2022 · 5.2",
+          "version_id": null,
+          "text_sha256": "fd33233813b6f1c7182d53766cde4e0a6f9a7decfb353d951bc18b5996091e3a"
+        },
+        {
+          "id": "material:clause-4601e9b2c8d8b004db5e11b1aea67ccd:full:34935ae59e06370c1c70",
+          "kind": "normative",
+          "page": 7,
+          "label": "ГОСТ Р 70458-2022 · 5.9",
+          "version_id": null,
+          "text_sha256": "34935ae59e06370c1c708e2e06d01ca58db9e484f8ea302e1540e9a386791c8c"
+        },
+        {
+          "id": "material:clause-a5baabc63abbecf0a62fcc7672f16796:full:c06b6087967fa79efdba",
+          "kind": "normative",
+          "page": 7,
+          "label": "ГОСТ 32703-2014 · 5.6",
+          "version_id": null,
+          "text_sha256": "c06b6087967fa79efdbaca1022cd991747167ed73febfdd8e2c2471539f8e7a8"
+        },
+        {
+          "id": "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000",
+          "kind": "normative",
+          "page": 32,
+          "label": "СП 78.13330.2012 с изменениями1-3 · 10.2",
+          "version_id": null,
+          "text_sha256": "8ab73088fa423b79f00089f29613d34ec27146d088ab3901b049dd422e2ab1f6"
+        },
+        {
+          "id": "agent:p90:cell:8ac4da5095820fee014ce195",
+          "kind": "project",
+          "page": 90,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "1a1c2e283734f650d526f1820cb6a157f94095383d8a28388cffc22580840873"
+        }
+      ],
+      "proofs": [
+        {
+          "kind": "planned_material_allocation_v1",
+          "sha256": "7df42324bfa1d90cf5077fc8696de35aff0d3bc3db8a35f05287385eed71645a",
+          "operands": [
+            {
+              "unit": "м3",
+              "binding": {
+                "basis": "nearest_preceding_work_in_explicit_material_block",
+                "sheet": "Дорожная одежда",
+                "sections": [
+                  {
+                    "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                    "address": "A70"
+                  }
+                ],
+                "work_row": 75,
+                "header_row": 15,
+                "work_index": 53,
+                "material_row": 76,
+                "material_index": 54,
+                "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+              },
+              "formula": "91,17*1,26",
+              "work_row": 75,
+              "work_index": 53,
+              "coefficient": "1.26",
+              "material_row": 76,
+              "material_index": 54,
+              "declared_volume": "91.17",
+              "calculated_material_volume": "114.8742"
+            },
+            {
+              "unit": "м3",
+              "binding": {
+                "basis": "nearest_preceding_work_in_explicit_material_block",
+                "sheet": "Дорожная одежда",
+                "sections": [
+                  {
+                    "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                    "address": "A70"
+                  }
+                ],
+                "work_row": 77,
+                "header_row": 15,
+                "work_index": 55,
+                "material_row": 78,
+                "material_index": 56,
+                "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+              },
+              "formula": "97,57*1,26",
+              "work_row": 77,
+              "work_index": 55,
+              "coefficient": "1.26",
+              "material_row": 78,
+              "material_index": 56,
+              "declared_volume": "97.57",
+              "calculated_material_volume": "122.9382"
+            }
+          ],
+          "project_basis": {
+            "volume": {
+              "unit": "м3",
+              "quote": "Единица физического столбца: м3\nВсего:\n188,74",
+              "value": "188.74",
+              "operation": "direct",
+              "parameter": "quantity",
+              "source_id": "agent:p90:cell:8ac4da5095820fee014ce195",
+              "conditions": [],
+              "scope_quote": "Основание | Щебеночно-песчаная смесь типа 0/63 мм М800 | h=0,20м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n188,74",
+              "scope_state": "verified",
+              "scope_relation": "technological_part",
+              "operand_source_ids": []
+            },
+            "construction": {
+              "unit": "см",
+              "quote": "h=20 см",
+              "value": "20",
+              "operation": "direct",
+              "parameter": "thickness",
+              "source_id": "shared:54:1407988ac59c4006733fb93f",
+              "conditions": [],
+              "scope_quote": "Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см",
+              "scope_state": "verified",
+              "scope_relation": "technological_part",
+              "operand_source_ids": []
+            }
+          },
+          "root_source_ids": [
+            "agent:p90:cell:8ac4da5095820fee014ce195",
+            "shared:54:1407988ac59c4006733fb93f"
+          ],
+          "stage_areas_verified": false,
+          "coefficient_applicability_verified": false,
+          "individual_project_volumes_verified": false
+        }
+      ]
+    },
+    {
+      "index": 56,
+      "excel_sheet": "Дорожная одежда",
+      "excel_row": 78,
+      "work_name": "Щебеночно-песчаная смесь М800 типа 0/63 мм",
+      "unit": "м3",
+      "vor_quantity": "122.9382",
+      "prior_latest_available": {
+        "index": 56,
+        "created_at": "2026-11-04 14:00:17.043459+00:00",
+        "state": "needs_facts",
+        "review_id": "6058dd36-0a00-4092-9454-3167e603e0ab",
+        "phase": "completed_position_in_stopped_pilot",
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v22\\new-56-stopped-final.json",
+        "sha256": "23b9243ea1c5741c31b2f2329c938d091df36e77fa280142124322ef6d21b17b"
+      },
+      "prior_history": [
+        {
+          "index": 56,
+          "created_at": "2026-11-04 14:00:17.043459+00:00",
+          "state": "needs_facts",
+          "review_id": "6058dd36-0a00-4092-9454-3167e603e0ab",
+          "phase": "completed_position_in_stopped_pilot",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\materials-ten-v22\\new-56-stopped-final.json",
+          "sha256": "23b9243ea1c5741c31b2f2329c938d091df36e77fa280142124322ef6d21b17b"
+        }
+      ],
+      "fresh": {
+        "state": "needs_facts",
+        "review_id": "c47dc562-0aec-4002-861c-d22f8a492e62",
+        "model_requests": 3,
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\new-56-final.json",
+        "sha256": "eb6d9ed4c828e45ab552b07adf8464985e1ef08b0774abce00e9f3f0887d72d3"
+      },
+      "local_final": {
+        "index": 56,
+        "before": "needs_facts",
+        "after": "confirmed",
+        "original_review_id": "c47dc562-0aec-4002-861c-d22f8a492e62",
+        "review_id": "db2f2ad4-485b-4227-9396-2ff552eab83a",
+        "required_gaps": [],
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\local-scoped-ten-v24-final\\new-56-locally-validated.json",
+        "sha256": "304bb4ad2e243b7ff97a7d3f803fedbfb289aaa4e63f0bb3cee81e1cd6f27c8c"
+      },
+      "reason_and_correctness": "Плановая потребность той же ЩПС0/63:97,57×1,26=122,9382м³; баланс пары54/56 с188,74м³ ПД. Исправлено искусственное требование толщины отдельной родительской части.",
+      "source_anchors": [
+        {
+          "id": "n0:full:e9edb1674b64f0b15177",
+          "kind": "normative",
+          "page": 2,
+          "label": "ГЭСН 27 ФСНБ-2022 · 1.27.18",
+          "version_id": null,
+          "text_sha256": "e9edb1674b64f0b1517705b776abcddc8114c1d1b29d40cf730c95e0ea8fbec4"
+        },
+        {
+          "id": "shared:56:1407988ac59c4006733fb93f",
+          "kind": "project",
+          "page": 50,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "b64e49d9b52d193195c32fb8d9f3c294f69ecfc2e067cfed493dbf1eab70a620"
+        },
+        {
+          "id": "material:clause-a730950c434eab35fdcc763f04b739ae:full:fd33233813b6f1c7182d",
+          "kind": "normative",
+          "page": 4,
+          "label": "ГОСТ Р 70458-2022 · 5.2",
+          "version_id": null,
+          "text_sha256": "fd33233813b6f1c7182d53766cde4e0a6f9a7decfb353d951bc18b5996091e3a"
+        },
+        {
+          "id": "material:clause-4601e9b2c8d8b004db5e11b1aea67ccd:full:34935ae59e06370c1c70",
+          "kind": "normative",
+          "page": 7,
+          "label": "ГОСТ Р 70458-2022 · 5.9",
+          "version_id": null,
+          "text_sha256": "34935ae59e06370c1c708e2e06d01ca58db9e484f8ea302e1540e9a386791c8c"
+        },
+        {
+          "id": "material:clause-a5baabc63abbecf0a62fcc7672f16796:full:c06b6087967fa79efdba",
+          "kind": "normative",
+          "page": 7,
+          "label": "ГОСТ 32703-2014 · 5.6",
+          "version_id": null,
+          "text_sha256": "c06b6087967fa79efdbaca1022cd991747167ed73febfdd8e2c2471539f8e7a8"
+        },
+        {
+          "id": "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000",
+          "kind": "normative",
+          "page": 32,
+          "label": "СП 78.13330.2012 с изменениями1-3 · 10.2",
+          "version_id": null,
+          "text_sha256": "8ab73088fa423b79f00089f29613d34ec27146d088ab3901b049dd422e2ab1f6"
+        },
+        {
+          "id": "agent:p90:cell:8ac4da5095820fee014ce195",
+          "kind": "project",
+          "page": 90,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "1a1c2e283734f650d526f1820cb6a157f94095383d8a28388cffc22580840873"
+        }
+      ],
+      "proofs": [
+        {
+          "kind": "planned_material_allocation_v1",
+          "sha256": "04d2a8a3ae436ca38f7bef4af0fd20f6e85d1f5c23232bd711d399547a1ab842",
+          "operands": [
+            {
+              "unit": "м3",
+              "binding": {
+                "basis": "nearest_preceding_work_in_explicit_material_block",
+                "sheet": "Дорожная одежда",
+                "sections": [
+                  {
+                    "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                    "address": "A70"
+                  }
+                ],
+                "work_row": 75,
+                "header_row": 15,
+                "work_index": 53,
+                "material_row": 76,
+                "material_index": 54,
+                "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+              },
+              "formula": "91,17*1,26",
+              "work_row": 75,
+              "work_index": 53,
+              "coefficient": "1.26",
+              "material_row": 76,
+              "material_index": 54,
+              "declared_volume": "91.17",
+              "calculated_material_volume": "114.8742"
+            },
+            {
+              "unit": "м3",
+              "binding": {
+                "basis": "nearest_preceding_work_in_explicit_material_block",
+                "sheet": "Дорожная одежда",
+                "sections": [
+                  {
+                    "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                    "address": "A70"
+                  }
+                ],
+                "work_row": 77,
+                "header_row": 15,
+                "work_index": 55,
+                "material_row": 78,
+                "material_index": 56,
+                "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+              },
+              "formula": "97,57*1,26",
+              "work_row": 77,
+              "work_index": 55,
+              "coefficient": "1.26",
+              "material_row": 78,
+              "material_index": 56,
+              "declared_volume": "97.57",
+              "calculated_material_volume": "122.9382"
+            }
+          ],
+          "project_basis": {
+            "volume": {
+              "unit": "м3",
+              "quote": "Единица физического столбца: м3\nВсего:\n188,74",
+              "value": "188.74",
+              "operation": "direct",
+              "parameter": "quantity",
+              "source_id": "agent:p90:cell:8ac4da5095820fee014ce195",
+              "conditions": [],
+              "scope_quote": "Основание | Щебеночно-песчаная смесь типа 0/63 мм М800 | h=0,20м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n188,74",
+              "scope_state": "verified",
+              "scope_relation": "technological_part",
+              "operand_source_ids": []
+            },
+            "construction": {
+              "unit": "см",
+              "quote": "h=20 см",
+              "value": "20",
+              "operation": "direct",
+              "parameter": "thickness",
+              "source_id": "shared:56:1407988ac59c4006733fb93f",
+              "conditions": [],
+              "scope_quote": "Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см",
+              "scope_state": "verified",
+              "scope_relation": "technological_part",
+              "operand_source_ids": []
+            }
+          },
+          "root_source_ids": [
+            "agent:p90:cell:8ac4da5095820fee014ce195",
+            "shared:56:1407988ac59c4006733fb93f"
+          ],
+          "stage_areas_verified": false,
+          "coefficient_applicability_verified": false,
+          "individual_project_volumes_verified": false
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "excel_sheet": "Дорожная одежда",
+      "excel_row": 34,
+      "work_name": "Устройство выравнивающего слоя из асфальтобетонной смеси асфальтоукладчиком 3 типоразмера, hmin = 8 см",
+      "unit": "м2",
+      "vor_quantity": "5303.0",
+      "prior_latest_available": null,
+      "prior_history": [],
+      "fresh": {
+        "state": "needs_facts",
+        "review_id": "7d76e255-16b1-468b-9da7-5ef30e5d7fd6",
+        "model_requests": 3,
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\new-16-final.json",
+        "sha256": "f9742e1307f8d9e465fd58d74c9a93912012770ee5d2dec3ba8a8257942684c4"
+      },
+      "local_final": {
+        "index": 16,
+        "before": "needs_facts",
+        "after": "needs_facts",
+        "original_review_id": "7d76e255-16b1-468b-9da7-5ef30e5d7fd6",
+        "review_id": "de040e4a-3bec-4f3e-a893-9843cba86530",
+        "required_gaps": [
+          {
+            "topic": "Наличие и площадь",
+            "claims": [
+              "quantity",
+              "unit"
+            ],
+            "state": "needs_facts",
+            "reason": "Выравнивающий слой А22Нт на БНД 70/100 задан ПД. Итоги одной таблицы слева и справа для h=0,08 м: 2582,95+2719,86=5302,81 м2. Значение ВОР 5303 м2 соответствует округлению до целого; точный проектный итог сохранён без подгонки. Числовое основание не прошло проверку цитаты, OCR, единицы или конструкции; расхождение не доказано."
+          },
+          {
+            "topic": "Условия нормы по толщине",
+            "claims": [
+              "normative:applicability"
+            ],
+            "state": "needs_facts",
+            "reason": "База 27-06-031-01 имеет 4 см, поправка 27-06-032-01 добавляет по 0,5 см: до 8 см нужны 8 шагов. Но ПД задаёт hmin=8 см; п.1.27.37 требует два слоя при толщине более 8 см. Нужны проектные границы фактических толщин и схема нормирования зон превышения, если они есть. Ширина технологического прохода для выбранной нормы не подтверждена проектным основанием."
+          },
+          {
+            "topic": "Проверка условия выбора нормативного основания",
+            "claims": [
+              "normative:applicability"
+            ],
+            "state": "needs_facts",
+            "reason": "В определении выбранной нормы 27-06-031-01 прямо ограничена ширина укладки. Для своей конструкции не подтверждена ширина технологического прохода по проекту или отдельному закреплённому экспертному основанию. Ширина дороги/полосы движения и максимальная ширина машины этого не доказывают. Сохраните подтверждённые количества; применимость нормы требует уточнения. Это не доказанная ошибка ВОР. Условие: «Таблица ГЭСН 27-06-031 Устройство покрытия из горячих асфальтобетонных смесей\nасфальтоукладчиками третьего и четвертого типоразмеров\nИзмеритель: 1000 м2\nУстройство покрытия из горячих асфальтобетонных смесей асфальтоукладчиками:\n27-06-031-01 третьего типоразмера, ширина укладки до 6 м, толщина слоя 4 см\n»."
+          },
+          {
+            "card": "quantity",
+            "state": "possible_mismatch",
+            "reason": "Значение в источнике отличается от значения ВОР после приведения единиц."
+          }
+        ],
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\local-scoped-ten-v24-final\\new-16-locally-validated.json",
+        "sha256": "751e66ffd3b8543b00afab372a19a257518f22a9f25e83d7fcb95806a9def00a"
+      },
+      "reason_and_correctness": "N сохранено: ПД задаёт hmin=8см, а не максимальные8см; для превышений п.1.27.37 требует иной схемы слоёв/нормирования. Фактические границы толщин не установлены. Ширина технологического прохода имеется как отдельный expertfact в registry, но raw её не цитировал; маршрут остаётся незакрыт. 2582,95+2719,86=5302,81м² против5303м² ВОР: округление до целого правдоподобно, однако quantitycard блокируется проверкой точного значения; это не доказанная ошибка ВОР.",
+      "source_anchors": [
+        {
+          "id": "n2:full:362f7443a0655c4daf68",
+          "kind": "normative",
+          "page": 58,
+          "label": "ГЭСН 27 ФСНБ-2022 · 27-06-031-01",
+          "version_id": null,
+          "text_sha256": "362f7443a0655c4daf68217976a418a8650a52ce736dc68d647d41d67b33d95c"
+        },
+        {
+          "id": "n2:full:362f7443a0655c4daf68:resources:58",
+          "kind": "normative",
+          "page": 58,
+          "label": "ГЭСН 27 ФСНБ-2022 · 27-06-031-01 · ресурсы",
+          "version_id": null,
+          "text_sha256": "94106f986a97c962b45df588a98d852d070355611c7c38b46598e3b20ec367d9"
+        },
+        {
+          "id": "n7:full:3e85787285197a4c7334",
+          "kind": "normative",
+          "page": 58,
+          "label": "ГЭСН 27 ФСНБ-2022 · 27-06-032-01",
+          "version_id": null,
+          "text_sha256": "3e85787285197a4c7334c565539ae734c2d2fe2c1f69a8a38f9dadae9b8db5a1"
+        },
+        {
+          "id": "expert:laying-width:2cf6462ec449ba88f7107632efd6529f",
+          "kind": "project",
+          "page": null,
+          "label": "Экспертное основание способа укладки",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "fed6b5a6a47f4c4e194d1fb5a3c982a26be50a0abe2a78c7452e069050d04fdb"
+        },
+        {
+          "id": "agent:p49:0",
+          "kind": "project",
+          "page": 49,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "ef928a0f707b384f92b66d8c39672b0c11d78c5aef32b234de4c328ba3d2e48e"
+        },
+        {
+          "id": "agent:p89:cell:0da667e40c331f6f98f09afc",
+          "kind": "project",
+          "page": 89,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "08ce1cbae03c11d102be23e0c8764fcebba35d3de4ccf97f8025cfee2f20eea1"
+        },
+        {
+          "id": "agent:p89:cell:a552e5e94d83c97752519d76",
+          "kind": "project",
+          "page": 89,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "94a0cacd9dc9152e1592d3fcc6c2e95b3fcd3cfefdf26117fd900af2c100f350"
+        },
+        {
+          "id": "collection:clause-d7fb04d617811bd6b4ffa2e8e065774e",
+          "kind": "normative",
+          "page": 3,
+          "label": "ГЭСН 27 ФСНБ-2022 · page-3-offset-0",
+          "version_id": null,
+          "text_sha256": "34ba24df79735511e48e15461faf4c718547657df9c0b6a5619b1f26424e3426"
+        },
+        {
+          "id": "agent:sum:c6bd523f51488450a809113a",
+          "kind": "project",
+          "page": 89,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "05297e538292d131f16a981807f83e0d4f4ec04b8e3692fdcda61b3d57b5bc6f"
+        }
+      ],
+      "proofs": []
+    },
+    {
+      "index": 33,
+      "excel_sheet": "Дорожная одежда",
+      "excel_row": 52,
+      "work_name": "Устройство слоя основания, h =20см бульдозером мощностью двигателя 79 кВт с уплотнением.",
+      "unit": "м2",
+      "vor_quantity": "2843.0",
+      "prior_latest_available": {
+        "index": 33,
+        "created_at": "2026-11-04 12:38:24.855745+00:00",
+        "state": "needs_facts",
+        "review_id": "08b5759d-304d-4aad-b340-a6fdbf3ef1f4",
+        "phase": "saved_final_position_review",
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\transfer-eight-v20\\new-33-final.json",
+        "sha256": "53a9f04649f5cddd0ad55d7bbb969b75ea236d89af3eab96f61a887f93ebc568"
+      },
+      "prior_history": [
+        {
+          "index": 33,
+          "created_at": "2026-11-04 10:34:51.095718+00:00",
+          "state": "needs_facts",
+          "review_id": "55cdf58b-1ee1-4861-8467-8bf02bc24b1b",
+          "phase": "saved_final_position_review",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\transfer-linked-ten-v17\\new-33-final.json",
+          "sha256": "072860deea913e6a2e7bfed9560a2ad24a59353ed68c278334e0e2703549307c"
+        },
+        {
+          "index": 33,
+          "created_at": "2026-11-04 12:38:24.855745+00:00",
+          "state": "needs_facts",
+          "review_id": "08b5759d-304d-4aad-b340-a6fdbf3ef1f4",
+          "phase": "saved_final_position_review",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\transfer-eight-v20\\new-33-final.json",
+          "sha256": "53a9f04649f5cddd0ad55d7bbb969b75ea236d89af3eab96f61a887f93ebc568"
+        }
+      ],
+      "fresh": {
+        "state": "needs_facts",
+        "review_id": "818c1a75-5f15-4f20-aa55-67d23d1f7b8a",
+        "model_requests": 3,
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\new-33-final.json",
+        "sha256": "3252687516d4c6a982a5bd9e240868af7cf3efc9579c5b75ee13acd50193377f"
+      },
+      "local_final": {
+        "index": 33,
+        "before": "needs_facts",
+        "after": "confirmed",
+        "original_review_id": "818c1a75-5f15-4f20-aa55-67d23d1f7b8a",
+        "review_id": "62dedd9c-ed0b-4b3f-9542-6d3f59ee5c2f",
+        "required_gaps": [],
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\local-scoped-ten-v24-final\\new-33-locally-validated.json",
+        "sha256": "bfd17837cce535f01f0beb6d2b340a665755a50b4fda0c7542796e04ea2e12de"
+      },
+      "reason_and_correctness": "C только для сметного применения: полный nativeПД50 TypeV задаёт одно основание20см под асфальтом5см; нижняя ведомостьПД90 даёт2843м²/568,60м³. П.1.27.18 прямо направляет на06+07 и08 для каждой:15−5+15−5=20см. Nativeфрагмент получен CPUread; равенство0/31,5=C4/C6 и два физических10см слоя не утверждаются.",
+      "source_anchors": [
+        {
+          "id": "agent:p90:header:fcc4a9879b3700e83c2e7a1d",
+          "kind": "project",
+          "page": 90,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "8b42eb321c52d03ce92e6a68c20f7333a4c6916fd2e55f149a575e3018fbc2ab"
+        },
+        {
+          "id": "agent:p90:cell:4ff4904a7a13528693fb4a89",
+          "kind": "project",
+          "page": 90,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "a26f9b8f210872ac5848510946be87ea6fc2c3682fcb029a4479dd0d87917052"
+        },
+        {
+          "id": "manufacturer:clause-04af5e1dc99b7940705cd826fab75578",
+          "kind": "normative",
+          "page": 26,
+          "label": "HAMM HD 130 — Wirtgen Technology Winter 2002 (factory publication; archived copy)",
+          "version_id": null,
+          "text_sha256": "fdb211d599b3bcba6b28fcf9f5e15927839d18905fba2b35020999ff66e10afe"
+        },
+        {
+          "id": "manufacturer:clause-6ab91ebb53b7c129416987317f14f75b",
+          "kind": "normative",
+          "page": 1,
+          "label": "HAMM HD 130 — Wirtgen Xibao official HTML (GENERATED WEB CAPTURE, NOT factory PDF)",
+          "version_id": null,
+          "text_sha256": "21a040f994ca843f304433abe5cd84e7a8f27ec6da7a1ddfefe3632b5ecc5896"
+        },
+        {
+          "id": "collection:clause-937642b7db3d930c4f0c28731d58828f",
+          "kind": "normative",
+          "page": 2,
+          "label": "ГЭСН 27 ФСНБ-2022 · page-2-offset-0",
+          "version_id": null,
+          "text_sha256": "6a2b23c36326c1431abc553b078bb1dbc2fc9171871549c4e04d9a15d102d697"
+        },
+        {
+          "id": "agent:n:norm-e66ab9327f20d1a1f80bfce37052ac53:full:b8da6338a3f7352e8ce4",
+          "kind": "normative",
+          "page": 25,
+          "label": "ГЭСН 27 ФСНБ-2022 · 27-04-003-06",
+          "version_id": null,
+          "text_sha256": "b8da6338a3f7352e8ce4e1a686d103f665103ef9e850b0885d942675f7c1e63b"
+        },
+        {
+          "id": "agent:n:norm-e66ab9327f20d1a1f80bfce37052ac53:full:b8da6338a3f7352e8ce4:resources:25",
+          "kind": "normative",
+          "page": 25,
+          "label": "ГЭСН 27 ФСНБ-2022 · 27-04-003-06 · ресурсы",
+          "version_id": null,
+          "text_sha256": "675f23f21a99a3cd60f9ed60b90912bd80e36b29b830db2897572e886483d2ac"
+        },
+        {
+          "id": "agent:n:norm-9fa5ca83c85fa83a9f10a6d1a1669939:full:ffae8cd5bcdc388a194b",
+          "kind": "normative",
+          "page": 25,
+          "label": "ГЭСН 27 ФСНБ-2022 · 27-04-003-07",
+          "version_id": null,
+          "text_sha256": "ffae8cd5bcdc388a194b4d6e7704accf59e278d1835a02cc1ef17247adc6bec1"
+        },
+        {
+          "id": "agent:n:norm-4d14b2a5de32cf6abd1e893c46585551:full:f6aa24a5e4b561e8f9f6",
+          "kind": "normative",
+          "page": 25,
+          "label": "ГЭСН 27 ФСНБ-2022 · 27-04-003-08",
+          "version_id": null,
+          "text_sha256": "f6aa24a5e4b561e8f9f669a882b52661849a6cfe349ca34f0f6b79fb8033831a"
+        }
+      ],
+      "proofs": [
+        {
+          "kind": "single_base_price_application_v1",
+          "sha256": "fcf099ecd94185f77c36be326cd59122748a05ca47a306de29485e6ef445ef91",
+          "courses": [
+            {
+              "base_m": "0.15",
+              "step_m": "0.01",
+              "measure": {
+                "value": "1000",
+                "dimension": "area"
+              },
+              "base_code": "27-04-003-06",
+              "base_quote": "27-04-003-06 непрерывной гранулометрии С-4 и С-6, двухслойных нижний слой толщиной 15 см",
+              "effective_m": "0.10",
+              "signed_steps": -5,
+              "base_source_id": "agent:n:norm-e66ab9327f20d1a1f80bfce37052ac53:full:b8da6338a3f7352e8ce4",
+              "adjustment_code": "27-04-003-08",
+              "adjustment_quote": "27-04-003-08 На каждый 1 см изменения толщины слоя добавлять или исключать к нормам с 27-04-003-05 по 27-04-003-07",
+              "adjustment_source_id": "agent:n:norm-4d14b2a5de32cf6abd1e893c46585551:full:f6aa24a5e4b561e8f9f6"
+            },
+            {
+              "base_m": "0.15",
+              "step_m": "0.01",
+              "measure": {
+                "value": "1000",
+                "dimension": "area"
+              },
+              "base_code": "27-04-003-07",
+              "base_quote": "27-04-003-07 непрерывной гранулометрии С-4 и С-6, двухслойных верхний слой толщиной 15 см",
+              "effective_m": "0.10",
+              "signed_steps": -5,
+              "base_source_id": "agent:n:norm-9fa5ca83c85fa83a9f10a6d1a1669939:full:ffae8cd5bcdc388a194b",
+              "adjustment_code": "27-04-003-08",
+              "adjustment_quote": "27-04-003-08 На каждый 1 см изменения толщины слоя добавлять или исключать к нормам с 27-04-003-05 по 27-04-003-07",
+              "adjustment_source_id": "agent:n:norm-4d14b2a5de32cf6abd1e893c46585551:full:f6aa24a5e4b561e8f9f6"
+            }
+          ],
+          "total_m": "0.20",
+          "root_source_ids": [
+            "agent:n:norm-4d14b2a5de32cf6abd1e893c46585551:full:f6aa24a5e4b561e8f9f6",
+            "agent:n:norm-9fa5ca83c85fa83a9f10a6d1a1669939:full:ffae8cd5bcdc388a194b",
+            "agent:n:norm-e66ab9327f20d1a1f80bfce37052ac53:full:b8da6338a3f7352e8ce4",
+            "agent:p50:0",
+            "agent:p90:cell:4ff4904a7a13528693fb4a89",
+            "agent:p90:header:fcc4a9879b3700e83c2e7a1d",
+            "collection:clause-937642b7db3d930c4f0c28731d58828f"
+          ],
+          "source_fingerprints": {
+            "agent:p50:0": "1407988ac59c4006733fb93f61e30e14f06f42552ebb1e431a96a1fb0239004d",
+            "agent:p90:cell:4ff4904a7a13528693fb4a89": "f75c43613f5ef4028110b9f734503ff6467455188f9f7e10d23ebb64ae5fec22",
+            "agent:p90:header:fcc4a9879b3700e83c2e7a1d": "5df4004fcf789e29b3057c98a6402bedf1545f7d7b3ea72743d5a1b13361b7dc",
+            "collection:clause-937642b7db3d930c4f0c28731d58828f": "df739ffb578d6fbe605f1c656e95a307ccaaca14df880f99d42e8d8bea15387f",
+            "agent:n:norm-4d14b2a5de32cf6abd1e893c46585551:full:f6aa24a5e4b561e8f9f6": "acc5fb1a1c0a825e1e9fd8ee0df2a654c1d369b023501806f6a1735da2c1679e",
+            "agent:n:norm-9fa5ca83c85fa83a9f10a6d1a1669939:full:ffae8cd5bcdc388a194b": "c099122cd3f606e5f5534a5222679b1d97184ae6521e748f9a5186a616a9fb11",
+            "agent:n:norm-e66ab9327f20d1a1f80bfce37052ac53:full:b8da6338a3f7352e8ce4": "76f98fe1748af72541d37132fe73b774b0d3707453b61f7d35d789e02cf85390"
+          },
+          "physical_layer_count": 1,
+          "price_application_only": true
+        }
+      ]
+    },
+    {
+      "index": 37,
+      "excel_sheet": "Дорожная одежда",
+      "excel_row": 57,
+      "work_name": "Устройство покрытия из асфальтобетонной смеси, асфальтоукладчиком 1 типоразмера, h = 5 см",
+      "unit": "м2",
+      "vor_quantity": "2843.0",
+      "prior_latest_available": {
+        "index": 37,
+        "created_at": "2026-11-04 10:00:47.724882+00:00",
+        "state": "confirmed",
+        "review_id": "59d249b3-b95d-47d5-a80c-6308049114cd",
+        "phase": "saved_final_position_review",
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\source-three-v16\\new-37-final.json",
+        "sha256": "7ae7d4c8d63ece9cc7d6a322df8bfcb703c22eef68ece9f1a95a2365130bb2c1"
+      },
+      "prior_history": [
+        {
+          "index": 37,
+          "created_at": "2026-11-04 09:39:00.376905+00:00",
+          "state": "needs_facts",
+          "review_id": "27f6ae60-365a-4ef9-b913-3561b6450a88",
+          "phase": "saved_final_position_review",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\linked-ten-v15\\new-37-final.json",
+          "sha256": "34890419442d3dc175a1adbb3824af70a7a0eac99dfef408165e62a14f8aa884"
+        },
+        {
+          "index": 37,
+          "created_at": "2026-11-04 10:00:47.724882+00:00",
+          "state": "confirmed",
+          "review_id": "59d249b3-b95d-47d5-a80c-6308049114cd",
+          "phase": "saved_final_position_review",
+          "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\source-three-v16\\new-37-final.json",
+          "sha256": "7ae7d4c8d63ece9cc7d6a322df8bfcb703c22eef68ece9f1a95a2365130bb2c1"
+        }
+      ],
+      "fresh": {
+        "state": "confirmed",
+        "review_id": "a6830b57-3ed9-481a-a11a-b9d232637cd0",
+        "model_requests": 2,
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\scoped-ten-v24\\new-37-final.json",
+        "sha256": "167a1fa66532f833c74c3f794be20dbdd1ecf8f8cd7335361f03a25aea14e1e0"
+      },
+      "local_final": {
+        "index": 37,
+        "before": "confirmed",
+        "after": "confirmed",
+        "original_review_id": "a6830b57-3ed9-481a-a11a-b9d232637cd0",
+        "review_id": "07b5f68a-6c79-4c1b-8a02-a80197d06c58",
+        "required_gaps": [],
+        "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\local-scoped-ten-v24-final\\new-37-locally-validated.json",
+        "sha256": "9d1586f6b4c89f01effe1125c7d7443a54d5f2254ae0ba3978f6701effcb53b2"
+      },
+      "reason_and_correctness": "Сохранено C: покрытиеА5Вл тротуаров/технических тротуаров/лестничных маршей2843м²,5см.27-07-006-01(4см)+два шага27-07-006-02 по0,5см; первый типоразмер прямо назван нормой.",
+      "source_anchors": [
+        {
+          "id": "n2:full:2ba3852aa430b7d77cba",
+          "kind": "normative",
+          "page": 80,
+          "label": "ГЭСН 27 ФСНБ-2022 · 27-07-006-01",
+          "version_id": null,
+          "text_sha256": "2ba3852aa430b7d77cba7e068ffbbe7e961dbd6dc656e1a29ecab519a6048f75"
+        },
+        {
+          "id": "n2:full:2ba3852aa430b7d77cba:resources:80",
+          "kind": "normative",
+          "page": 80,
+          "label": "ГЭСН 27 ФСНБ-2022 · 27-07-006-01 · ресурсы",
+          "version_id": null,
+          "text_sha256": "3c920499f840f37c78b271b040b02fd6ab104e07b401cb6b5d5f41db89d9928f"
+        },
+        {
+          "id": "n4:full:d6889f5626d7e57bba7e",
+          "kind": "normative",
+          "page": 80,
+          "label": "ГЭСН 27 ФСНБ-2022 · 27-07-006-02",
+          "version_id": null,
+          "text_sha256": "d6889f5626d7e57bba7e5c6251541797ceb3da395c8b7315219b90d13b83191e"
+        },
+        {
+          "id": "agent:p50:0",
+          "kind": "project",
+          "page": 50,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "b64e49d9b52d193195c32fb8d9f3c294f69ecfc2e067cfed493dbf1eab70a620"
+        },
+        {
+          "id": "agent:p90:header:499057d9e65194980291abad",
+          "kind": "project",
+          "page": 90,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "963c86a4389277496f974b8b6b61872a0392bbcb845276737085d29a24e6bd1a"
+        },
+        {
+          "id": "agent:p90:cell:85b43938740346e810ddba36",
+          "kind": "project",
+          "page": 90,
+          "label": "006_26_раздел пд №3.1.pdf",
+          "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+          "text_sha256": "faee33db48f6fc8783f9f7dc0687bc015773aaa0508ddaa13028a5ed6fdb6db1"
+        },
+        {
+          "id": "methodology:clause-9f014ab86a6f9e35269d7425100d46dd",
+          "kind": "normative",
+          "page": 3,
+          "label": "Приказ Минстроя России от 14.07.2022 № 571/пр. Методика применения сметных норм · п. 5",
+          "version_id": null,
+          "text_sha256": "1e68c4ad8f058f14671d61b8e24d58bb5200a4ed874b409f099f2f8adc985e2e"
+        },
+        {
+          "id": "methodology:clause-33f8d2772aed19d29783274b50f80a4b",
+          "kind": "normative",
+          "page": 3,
+          "label": "Приказ Минстроя России от 14.07.2022 № 571/пр. Методика применения сметных норм · п. 7",
+          "version_id": null,
+          "text_sha256": "7933a764ffaac74b62c1edf567ca55869a8e66383b76108d671e71a2fec5cddd"
+        },
+        {
+          "id": "methodology:clause-d0664afac286bb9b46b121b08905b38e",
+          "kind": "normative",
+          "page": 7,
+          "label": "Приказ Минстроя России от 14.07.2022 № 571/пр. Методика применения сметных норм · п. 22",
+          "version_id": null,
+          "text_sha256": "8feb5db524ae26de90af4180740fa463916e7e23d92cc16f805624b38f37a1b7"
+        }
+      ],
+      "proofs": []
+    }
+  ],
+  "projection_publication": [
+    {
+      "id": "5c8f1401-26c4-4a3c-a659-18b792e3b0c6:5",
+      "position_index": 5,
+      "number": "",
+      "name": "Щебеночно-песчаная смесь М800 типа 0/63 мм",
+      "unit": "м3",
+      "declared_quantity": "54.38286",
+      "found_quantity": null,
+      "found_unit": null,
+      "formula": "431,61*0,1*1,26",
+      "sheet": "Дорожная одежда",
+      "source_row": 23,
+      "cells": {
+        "B23": "Щебеночно-песчаная смесь М800 типа 0/63 мм",
+        "C23": "м3",
+        "D23": "54.38286",
+        "E23": "431,61*0,1*1,26",
+        "I23": "ГОСТ Р 70458-2022 категория К90, марка М1\nКупл-1,26",
+        "K23": "Материал"
+      },
+      "audit_status": "Неполная проверка",
+      "report_status": "ОК",
+      "queue": "ok",
+      "matching_report_status": "Требуется ручная проверка",
+      "related_work": {
+        "index": 4,
+        "number": "5",
+        "name": "Устройство среднего слоя основания из ЩПС , h = 10см \n(двухслойного основания - слой1) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+        "row": 22,
+        "sheet": "Дорожная одежда",
+        "expression": "=431.61*0.1*1.26"
+      },
+      "problem": "Основание работы подтверждено по ПД и нормативам. Сметный коэффициент проверен по применимому диапазону.",
+      "action": "006_26_раздел пд №3.1.pdf: стр. 50",
+      "work_found": true,
+      "volume_confirmed": false,
+      "unit_confirmed": false,
+      "comment_confirmed": false,
+      "details": "Основание работы подтверждено по ПД и нормативам. Сметный коэффициент проверен по применимому диапазону."
+    },
+    {
+      "id": "5c8f1401-26c4-4a3c-a659-18b792e3b0c6:7",
+      "position_index": 7,
+      "number": "",
+      "name": "Щебеночно-песчаная смесь М800 типа 0/63 мм",
+      "unit": "м3",
+      "declared_quantity": "54.38286",
+      "found_quantity": null,
+      "found_unit": null,
+      "formula": "431,61*0,1*1,26",
+      "sheet": "Дорожная одежда",
+      "source_row": 25,
+      "cells": {
+        "B25": "Щебеночно-песчаная смесь М800 типа 0/63 мм",
+        "C25": "м3",
+        "D25": "54.38286",
+        "E25": "431,61*0,1*1,26",
+        "I25": "ГОСТ Р 70458-2022 категория К90, марка М1\nКупл-1,26",
+        "K25": "Материал"
+      },
+      "audit_status": "Неполная проверка",
+      "report_status": "ОК",
+      "queue": "ok",
+      "matching_report_status": "Требуется ручная проверка",
+      "related_work": {
+        "index": 6,
+        "number": "7",
+        "name": "Устройство среднего слоя основания из ЩПС , h = 10см \n(двухслойного основания - слой2) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+        "row": 24,
+        "sheet": "Дорожная одежда",
+        "expression": "=431.61*0.1*1.26"
+      },
+      "problem": "Основание работы подтверждено по ПД и нормативам. Сметный коэффициент проверен по применимому диапазону.",
+      "action": "006_26_раздел пд №3.1.pdf: стр. 50",
+      "work_found": true,
+      "volume_confirmed": false,
+      "unit_confirmed": false,
+      "comment_confirmed": false,
+      "details": "Основание работы подтверждено по ПД и нормативам. Сметный коэффициент проверен по применимому диапазону."
+    },
+    {
+      "id": "5c8f1401-26c4-4a3c-a659-18b792e3b0c6:16",
+      "position_index": 16,
+      "number": "",
+      "name": "Устройство выравнивающего слоя из асфальтобетонной смеси асфальтоукладчиком 3 типоразмера, hmin = 8 см",
+      "unit": "м2",
+      "declared_quantity": "5303.0",
+      "found_quantity": null,
+      "found_unit": null,
+      "formula": "",
+      "sheet": "Дорожная одежда",
+      "source_row": 34,
+      "cells": {
+        "B34": "Устройство выравнивающего слоя из асфальтобетонной смеси асфальтоукладчиком 3 типоразмера, hmin = 8 см",
+        "C34": "м2",
+        "D34": "5303.0",
+        "I34": "Укладка а/укладчиком Vögele SUPER 1600 3 типоразмера",
+        "K34": "Работа"
+      },
+      "audit_status": "Неполная проверка",
+      "report_status": "Требуется ручная проверка",
+      "queue": "review",
+      "matching_report_status": "Требуется ручная проверка",
+      "related_work": null,
+      "problem": "Количество по ПД: Значение в источнике отличается от значения ВОР после приведения единиц.",
+      "action": "006_26_раздел пд №3.1.pdf: Место не установлено",
+      "work_found": false,
+      "volume_confirmed": false,
+      "unit_confirmed": false,
+      "comment_confirmed": false,
+      "details": "Количество по ПД: Значение в источнике отличается от значения ВОР после приведения единиц."
+    },
+    {
+      "id": "5c8f1401-26c4-4a3c-a659-18b792e3b0c6:33",
+      "position_index": 33,
+      "number": "",
+      "name": "Устройство слоя основания, h =20см бульдозером мощностью двигателя 79 кВт с уплотнением.",
+      "unit": "м2",
+      "declared_quantity": "2843.0",
+      "found_quantity": "2843.00",
+      "found_unit": "м2",
+      "formula": "",
+      "sheet": "Дорожная одежда",
+      "source_row": 52,
+      "cells": {
+        "B52": "Устройство слоя основания, h =20см бульдозером мощностью двигателя 79 кВт с уплотнением.",
+        "C52": "м2",
+        "D52": "2843.0",
+        "I52": "Устройство основания производится бульдозером мощностью 79 кВт\nУплотнение основания производится тандемным виброкатком Hamm HD130.",
+        "K52": "Работа"
+      },
+      "audit_status": "Неполная проверка",
+      "report_status": "ОК",
+      "queue": "ok",
+      "matching_report_status": "Требуется ручная проверка",
+      "related_work": null,
+      "problem": "Основание работы подтверждено по ПД и нормативам. ПД подтверждает основание ЩПС 0/31,5 толщиной 20 см и площадью 2843 м2. Пункт 1.27.18 прямо назначает для такого основания свыше 18 см двухслойное нормирование 27-04-003-06/07 с поправкой 08; принят расчёт 10+10 см. Бульдозер 79 кВт и класс тандемного виброкатка обоснованы отдельно. Это не подтверждает расход дочернего материала или пригодность конкретного экземпляра; полнота редакций отдельно не проверена.",
+      "action": "006_26_раздел пд №3.1.pdf: Место не установлено",
+      "work_found": false,
+      "volume_confirmed": true,
+      "unit_confirmed": true,
+      "comment_confirmed": false,
+      "details": "Основание работы подтверждено по ПД и нормативам. ПД подтверждает основание ЩПС 0/31,5 толщиной 20 см и площадью 2843 м2. Пункт 1.27.18 прямо назначает для такого основания свыше 18 см двухслойное нормирование 27-04-003-06/07 с поправкой 08; принят расчёт 10+10 см. Бульдозер 79 кВт и класс тандемного виброкатка обоснованы отдельно. Это не подтверждает расход дочернего материала или пригодность конкретного экземпляра; полнота редакций отдельно не проверена."
+    },
+    {
+      "id": "5c8f1401-26c4-4a3c-a659-18b792e3b0c6:37",
+      "position_index": 37,
+      "number": "",
+      "name": "Устройство покрытия из асфальтобетонной смеси, асфальтоукладчиком 1 типоразмера, h = 5 см",
+      "unit": "м2",
+      "declared_quantity": "2843.0",
+      "found_quantity": "2843.00",
+      "found_unit": "м2",
+      "formula": "",
+      "sheet": "Дорожная одежда",
+      "source_row": 57,
+      "cells": {
+        "B57": "Устройство покрытия из асфальтобетонной смеси, асфальтоукладчиком 1 типоразмера, h = 5 см",
+        "C57": "м2",
+        "D57": "2843.0",
+        "I57": "Укладка а/укладчиком Vögele SUPER 1600 1 типоразмера",
+        "K57": "Работа"
+      },
+      "audit_status": "Неполная проверка",
+      "report_status": "ОК",
+      "queue": "ok",
+      "matching_report_status": "Требуется ручная проверка",
+      "related_work": null,
+      "problem": "Основание работы подтверждено по ПД и нормативам. ПД подтверждает покрытие А5Вл толщиной 5 см и площадью 2843 м2 на тротуарах, технических тротуарах и лестничных маршах улицы. Норма 27-07-006-01 прямо задаёт первый типоразмер; для 5 см применяется +2 поправки 27-07-006-02. Подтверждается сметный способ и класс машины, без удостоверения конкретного экземпляра. Расход дочерней смеси требует отдельной проверки; полнота редакций не подтверждена.",
+      "action": "006_26_раздел пд №3.1.pdf: стр. 50",
+      "work_found": true,
+      "volume_confirmed": true,
+      "unit_confirmed": true,
+      "comment_confirmed": false,
+      "details": "Основание работы подтверждено по ПД и нормативам. ПД подтверждает покрытие А5Вл толщиной 5 см и площадью 2843 м2 на тротуарах, технических тротуарах и лестничных маршах улицы. Норма 27-07-006-01 прямо задаёт первый типоразмер; для 5 см применяется +2 поправки 27-07-006-02. Подтверждается сметный способ и класс машины, без удостоверения конкретного экземпляра. Расход дочерней смеси требует отдельной проверки; полнота редакций не подтверждена."
+    },
+    {
+      "id": "5c8f1401-26c4-4a3c-a659-18b792e3b0c6:46",
+      "position_index": 46,
+      "number": "",
+      "name": "Растительная земля",
+      "unit": "м3",
+      "declared_quantity": "386.2",
+      "found_quantity": "386.2",
+      "found_unit": "м3",
+      "formula": "1931*20/100",
+      "sheet": "Дорожная одежда",
+      "source_row": 67,
+      "cells": {
+        "B67": "Растительная земля",
+        "C67": "м3",
+        "D67": "386.2",
+        "E67": "1931*20/100",
+        "I67": "Расход 20м3/100м2",
+        "K67": "Материал"
+      },
+      "audit_status": "Неполная проверка",
+      "report_status": "ОК",
+      "queue": "ok",
+      "matching_report_status": "Требуется ручная проверка",
+      "related_work": null,
+      "problem": "Основание работы подтверждено по ПД и нормативам. Подтверждён проектный физический объём растительной земли для газонов улицы: 386,2 м3 и расчёт 1931×0,20. Полный сметный расход с потерями этим не удостоверяется; актуальность всех редакций отдельно не подтверждена.",
+      "action": "006_26_раздел пд №3.1.pdf: стр. 38",
+      "work_found": true,
+      "volume_confirmed": true,
+      "unit_confirmed": true,
+      "comment_confirmed": false,
+      "details": "Основание работы подтверждено по ПД и нормативам. Подтверждён проектный физический объём растительной земли для газонов улицы: 386,2 м3 и расчёт 1931×0,20. Полный сметный расход с потерями этим не удостоверяется; актуальность всех редакций отдельно не подтверждена."
+    },
+    {
+      "id": "5c8f1401-26c4-4a3c-a659-18b792e3b0c6:50",
+      "position_index": 50,
+      "number": "",
+      "name": "Щебеночно-песчаная смесь М800 типа 0/31,5 мм",
+      "unit": "м3",
+      "declared_quantity": "133.35840000000002",
+      "found_quantity": null,
+      "found_unit": null,
+      "formula": "(105,84)*1,26",
+      "sheet": "Дорожная одежда",
+      "source_row": 72,
+      "cells": {
+        "B72": "Щебеночно-песчаная смесь М800 типа 0/31,5 мм",
+        "C72": "м3",
+        "D72": "133.35840000000002",
+        "E72": "(105,84)*1,26",
+        "I72": "ГОСТ Р 70458-2022 категория К90, марка М1\nКупл-1,26",
+        "K72": "Материал"
+      },
+      "audit_status": "Ошибка",
+      "report_status": "ОК",
+      "queue": "ok",
+      "matching_report_status": "Требуется ручная проверка",
+      "related_work": {
+        "index": 49,
+        "number": "50",
+        "name": "Устройство нижнего слоя основания из ЩПС, h = 11 см (двухслойного основания - слой1) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+        "row": 71,
+        "sheet": "Дорожная одежда",
+        "expression": "=(105.84)*1.26"
+      },
+      "problem": "Основание работы подтверждено по ПД и нормативам. Формула(105,84)×1,26 пересчитана:133,3584. Хвост133,35840000000002 является представлением того же результата. Не хватает достоверных ссылок для этого аспекта проверки: нужна сверка.",
+      "action": "006_26_раздел пд №3.1.pdf: стр. 50, 89, 90",
+      "work_found": true,
+      "volume_confirmed": false,
+      "unit_confirmed": false,
+      "comment_confirmed": false,
+      "details": "Основание работы подтверждено по ПД и нормативам. Формула(105,84)×1,26 пересчитана:133,3584. Хвост133,35840000000002 является представлением того же результата. Не хватает достоверных ссылок для этого аспекта проверки: нужна сверка."
+    },
+    {
+      "id": "5c8f1401-26c4-4a3c-a659-18b792e3b0c6:52",
+      "position_index": 52,
+      "number": "",
+      "name": "Щебеночно-песчаная смесь М800 типа 0/31,5 мм",
+      "unit": "м3",
+      "declared_quantity": "135.6642",
+      "found_quantity": null,
+      "found_unit": null,
+      "formula": "107,67*1,26",
+      "sheet": "Дорожная одежда",
+      "source_row": 74,
+      "cells": {
+        "B74": "Щебеночно-песчаная смесь М800 типа 0/31,5 мм",
+        "C74": "м3",
+        "D74": "135.6642",
+        "E74": "107,67*1,26",
+        "I74": "ГОСТ Р 70458-2022 категория К90, марка М1\nКупл-1,26",
+        "K74": "Материал"
+      },
+      "audit_status": "Ошибка",
+      "report_status": "ОК",
+      "queue": "ok",
+      "matching_report_status": "Требуется ручная проверка",
+      "related_work": {
+        "index": 51,
+        "number": "52",
+        "name": "Устройство нижнего слоя основания из ЩПС , h = 11 см (двухслойного основания - слой2) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+        "row": 73,
+        "sheet": "Дорожная одежда",
+        "expression": "=107.67*1.26"
+      },
+      "problem": "Основание работы подтверждено по ПД и нормативам. 107,67×1,26=135,6642; расчетное и заявленное значения совпадают. Не хватает достоверных ссылок для этого аспекта проверки: нужна сверка.",
+      "action": "006_26_раздел пд №3.1.pdf: стр. 50, 89, 90",
+      "work_found": true,
+      "volume_confirmed": false,
+      "unit_confirmed": false,
+      "comment_confirmed": false,
+      "details": "Основание работы подтверждено по ПД и нормативам. 107,67×1,26=135,6642; расчетное и заявленное значения совпадают. Не хватает достоверных ссылок для этого аспекта проверки: нужна сверка."
+    },
+    {
+      "id": "5c8f1401-26c4-4a3c-a659-18b792e3b0c6:54",
+      "position_index": 54,
+      "number": "",
+      "name": "Щебеночно-песчаная смесь М800 типа 0/63 мм",
+      "unit": "м3",
+      "declared_quantity": "114.8742",
+      "found_quantity": null,
+      "found_unit": null,
+      "formula": "91,17*1,26",
+      "sheet": "Дорожная одежда",
+      "source_row": 76,
+      "cells": {
+        "B76": "Щебеночно-песчаная смесь М800 типа 0/63 мм",
+        "C76": "м3",
+        "D76": "114.8742",
+        "E76": "91,17*1,26",
+        "I76": "ГОСТ Р 70458-2022 категория К90, марка М1\nКупл-1,26",
+        "K76": "Материал"
+      },
+      "audit_status": "Ошибка",
+      "report_status": "ОК",
+      "queue": "ok",
+      "matching_report_status": "Требуется ручная проверка",
+      "related_work": {
+        "index": 53,
+        "number": "54",
+        "name": "Устройство верхнего слоя основания из ЩПС , h = 10см \n(двухслойного основания - слой1) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+        "row": 75,
+        "sheet": "Дорожная одежда",
+        "expression": "=91.17*1.26"
+      },
+      "problem": "Основание работы подтверждено по ПД и нормативам. 91,17×1,26=114,8742; заявленное значение совпадает с пересчетом. Не хватает достоверных ссылок для этого аспекта проверки: нужна сверка.",
+      "action": "006_26_раздел пд №3.1.pdf: стр. 50, 89, 90",
+      "work_found": true,
+      "volume_confirmed": false,
+      "unit_confirmed": false,
+      "comment_confirmed": false,
+      "details": "Основание работы подтверждено по ПД и нормативам. 91,17×1,26=114,8742; заявленное значение совпадает с пересчетом. Не хватает достоверных ссылок для этого аспекта проверки: нужна сверка."
+    },
+    {
+      "id": "5c8f1401-26c4-4a3c-a659-18b792e3b0c6:56",
+      "position_index": 56,
+      "number": "",
+      "name": "Щебеночно-песчаная смесь М800 типа 0/63 мм",
+      "unit": "м3",
+      "declared_quantity": "122.9382",
+      "found_quantity": null,
+      "found_unit": null,
+      "formula": "97,57*1,26",
+      "sheet": "Дорожная одежда",
+      "source_row": 78,
+      "cells": {
+        "B78": "Щебеночно-песчаная смесь М800 типа 0/63 мм",
+        "C78": "м3",
+        "D78": "122.9382",
+        "E78": "97,57*1,26",
+        "I78": "ГОСТ Р 70458-2022 категория К90, марка М1\nКупл-1,26",
+        "K78": "Материал"
+      },
+      "audit_status": "Ошибка",
+      "report_status": "ОК",
+      "queue": "ok",
+      "matching_report_status": "Требуется ручная проверка",
+      "related_work": {
+        "index": 55,
+        "number": "56",
+        "name": "Устройство верхнего слоя основания из ЩПС , h = 10см \n(двухслойного основания - слой2) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+        "row": 77,
+        "sheet": "Дорожная одежда",
+        "expression": "=97.57*1.26"
+      },
+      "problem": "Основание работы подтверждено по ПД и нормативам. 97,57×1,26=122,9382; заявленное количество и результат формулы совпадают. Не хватает достоверных ссылок для этого аспекта проверки: нужна сверка.",
+      "action": "006_26_раздел пд №3.1.pdf: стр. 50, 89",
+      "work_found": true,
+      "volume_confirmed": false,
+      "unit_confirmed": false,
+      "comment_confirmed": false,
+      "details": "Основание работы подтверждено по ПД и нормативам. 97,57×1,26=122,9382; заявленное количество и результат формулы совпадают. Не хватает достоверных ссылок для этого аспекта проверки: нужна сверка."
+    }
+  ],
+  "postgresql_verification": {
+    "kind": "isolated_postgresql_final_projection_tests",
+    "tests": 53,
+    "passed": 53,
+    "failed": 0,
+    "model_requests": 0,
+    "routerai_requests": 0,
+    "database": "smeta_test_v24_projection",
+    "working_database_untouched": true,
+    "pilot_database_untouched": true,
+    "elapsed_seconds": "125.685",
+    "code_manifest_sha256": "950b564eaffac2369cd8168c2e7bd70030ba9b1c004e2e387d878466d3ef4961",
+    "checks": [
+      "material literal proof parity",
+      "single base price raw proposal conflict retained",
+      "source/parameter/site/norm/measure mutations rejected",
+      "full/batch/API publication parity"
+    ],
+    "path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\postgresql-projection-verification-v24-final.json",
+    "sha256": "dfcc637e01f0c16d9e1d93211e05625ac521bd6879106d154683108b70357962"
+  },
+  "validation_limits": [
+    "53 PostgreSQL tests passed on frozen pre-final-ordering code. Final difference is NPC ordering; root reports25 focused ordering tests PASS and old-order regression fails. Do not describe53 as run against identical final code.",
+    "Old first10 baseline2C1P7N/52calls has a different cohort and older normative preparation; aggregate uplift/speed comparison invalid.",
+    "Local9C1N is deterministic replay with corrected proof/projection and one actualnative33 retrieval, not another fresh model pilot.",
+    "Materials50/52/54/56 certify planned homogeneous allocation only: individual_project_volumes_verified=False, stage_areas_verified=False; coefficient applicability is checked separately from allocation proof.",
+    "33 certifies work pricing only, not two physical project layers or0/31.5=C4/C6.",
+    "16 remains N; roundingblock and uncited expertwidth are delivery/guard limits alongside realhmin/method gap; no proven VOR mismatch.",
+    "Prior completed-position evidence inside stopped pilots is explicitly labelled; missing prior for16 is not fabricated.",
+    "No103/model/RouterAI calls were made for this report; production, raw, v8 and CURRENT not modified."
+  ]
+}

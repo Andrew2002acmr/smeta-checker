@@ -1,0 +1,351 @@
+{
+  "index": 47,
+  "source_path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\goal80-20261104\\seed-one-v27\\new-47-final.json",
+  "source_sha256": "3a6a1f85deef9867b5d55085a79703d404afcea00021665e682c2018b06ace17",
+  "full_positions_path": "D:\\codexProjects\\KemDorFondProject\\kdfp-fact-pipeline\\backend\\.audit_cache\\pilot-20261103\\baseline-run.json",
+  "full_positions_sha256": "54b80be6b4d22123726c28aeb78e94b76366e26dc7811874e07a3535d9899e09",
+  "preliminary_reproducer": {
+    "saved_quantity_state": "needs_facts",
+    "saved_rate_state": "needs_facts",
+    "formal_parent": null,
+    "navigation_owner": {
+      "row": 66,
+      "kind": "vor_material_ownership",
+      "name": "Устройство газонов с планировкой площади, с внесением растительной земли h = 0,20 м и засевом смесью из многолетних трав (механизировано)",
+      "index": 45,
+      "sheet": "Дорожная одежда",
+      "state": "ownership_only",
+      "number": "46",
+      "expression": "=1931*2/100",
+      "provenance": {
+        "basis": "nearest_preceding_work_in_explicit_material_block",
+        "sheet": "Дорожная одежда",
+        "sections": [
+          {
+            "text": "Раздел 3. Устройство газонов.",
+            "address": "A65"
+          }
+        ],
+        "work_row": 66,
+        "header_row": 15,
+        "work_index": 45,
+        "material_row": 68,
+        "material_index": 47,
+        "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+      },
+      "formula_present": true,
+      "conversion_verified": false
+    },
+    "own_unit": "кг",
+    "pure_multiplication_supported": false,
+    "failure_class": "Own areal input, division in bounded dimensional recipe, unknown broad material family; legacy same-dimension multiplier proof cannot establish it."
+  },
+  "post_numeric_cards": [
+    {
+      "id": "quantity",
+      "label": "Количество по ПД",
+      "role": "project_value",
+      "row": 68,
+      "declared_value": "38.62",
+      "unit": "кг",
+      "state": "needs_facts",
+      "reason": "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы."
+    },
+    {
+      "id": "input:area",
+      "label": "Площадь-основание расчёта",
+      "role": "project_value",
+      "row": 68,
+      "declared_value": "1931",
+      "unit": "м2",
+      "state": "confirmed",
+      "reason": "Число и цитата проверены, единицы приведены; значения совпадают.",
+      "expression": "=1931*2/100",
+      "found_value": "1931",
+      "found_unit": "м2",
+      "source_ids": [
+        "shared:45:0628f9f5f348768fcf58b0e4"
+      ],
+      "quote": "Единица физического столбца: м2\nВсего: | 807,68\n1931",
+      "source_anchors": [
+        {
+          "source_id": "shared:45:0628f9f5f348768fcf58b0e4",
+          "quote": "Единица физического столбца: м2\nВсего: | 807,68\n1931",
+          "rects": [
+            [
+              0.4675196443663917,
+              0.4124476378794411,
+              0.7262233677519055,
+              0.4283730279775597
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calculation:47",
+      "label": "Арифметика позиции №48",
+      "role": "calculation",
+      "row": 68,
+      "declared_value": "38.62",
+      "unit": "кг",
+      "state": "confirmed",
+      "reason": "Формула пересчитана программно по сохранённым значениям ячеек.",
+      "expression": "=1931*2/100",
+      "found_value": "38.62"
+    },
+    {
+      "id": "factor:47:1931",
+      "label": "Исходная площадь расчёта",
+      "role": "project_value",
+      "row": 68,
+      "declared_value": "1931",
+      "unit": "м2",
+      "state": "confirmed",
+      "reason": "Площадь этого операнда повторно подтверждена буквальными источниками карточки input:area для текущей позиции. Применимость расхода и зависимый результат проверяются отдельно.",
+      "quote": "Единица физического столбца: м2\nВсего: | 807,68\n1931",
+      "found_value": "1931",
+      "found_unit": "м2",
+      "source_ids": [
+        "shared:45:0628f9f5f348768fcf58b0e4"
+      ],
+      "source_anchors": [
+        {
+          "source_id": "shared:45:0628f9f5f348768fcf58b0e4",
+          "quote": "Единица физического столбца: м2\nВсего: | 807,68\n1931",
+          "rects": [
+            [
+              0.4675196443663917,
+              0.4124476378794411,
+              0.7262233677519055,
+              0.4283730279775597
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "factor:47:2",
+      "label": "Исходное число формулы 2 · позиция №48",
+      "role": "project_value",
+      "row": 68,
+      "declared_value": "2",
+      "unit": "",
+      "state": "needs_facts",
+      "reason": "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы."
+    },
+    {
+      "id": "factor:47:100",
+      "label": "Масштаб расхода и перевод единиц",
+      "role": "calculation",
+      "row": 68,
+      "declared_value": "100",
+      "unit": "",
+      "state": "confirmed",
+      "reason": "Размерный расход кг/100м2 и делитель 100 согласованы с единицей кг. Основание площади и применимость расхода проверяются отдельно.",
+      "quote": "Расход 2кг/100м2"
+    },
+    {
+      "id": "unit_scale:agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0",
+      "label": "Масштаб измерителя нормы",
+      "role": "unit_scale",
+      "row": 68,
+      "declared_value": "1931",
+      "unit": "м2",
+      "state": "confirmed",
+      "reason": "Площадь-основание формулы приведена к буквальному площадному измерителю нормы. Собственное количество материала, расход и применимость нормы проверяются отдельно.",
+      "found_value": "1",
+      "found_unit": "га",
+      "source_ids": [
+        "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0"
+      ],
+      "quote": "Измеритель: га",
+      "source_anchors": [
+        {
+          "source_id": "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0",
+          "quote": "Измеритель: га",
+          "rects": []
+        }
+      ],
+      "quantity_role": "calculation_input"
+    }
+  ],
+  "changes": [
+    {
+      "id": "quantity",
+      "before": "needs_facts",
+      "after": "needs_facts",
+      "found_value": null,
+      "found_unit": null
+    },
+    {
+      "id": "factor:47:2",
+      "before": "needs_facts",
+      "after": "needs_facts",
+      "found_value": null,
+      "found_unit": null
+    }
+  ],
+  "required_numeric_gaps": [
+    {
+      "id": "quantity",
+      "label": "Количество по ПД",
+      "role": "project_value",
+      "row": 68,
+      "declared_value": "38.62",
+      "unit": "кг",
+      "state": "needs_facts",
+      "reason": "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы."
+    },
+    {
+      "id": "factor:47:2",
+      "label": "Исходное число формулы 2 · позиция №48",
+      "role": "project_value",
+      "row": 68,
+      "declared_value": "2",
+      "unit": "",
+      "state": "needs_facts",
+      "reason": "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы."
+    }
+  ],
+  "resource_rate_proof": null,
+  "resource_scope_gaps": [
+    "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы."
+  ],
+  "existing_consumption_claims_with_required_N": [
+    "basis:comment:consumption:1",
+    "quantity:consumption"
+  ],
+  "server_required_applicability_findings": [
+    {
+      "topic": "Область применения размерного расхода ресурса",
+      "state": "needs_facts",
+      "required": true,
+      "claim_ids": [
+        "normative:applicability",
+        "basis:comment:consumption:1",
+        "quantity:consumption"
+      ],
+      "explanation": "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы.",
+      "project_source_ids": [
+        "shared:45:0628f9f5f348768fcf58b0e4"
+      ],
+      "normative_source_ids": [
+        "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0",
+        "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0:resources:21"
+      ]
+    }
+  ],
+  "idempotent_second_enrich": true,
+  "replay_integrity_supported": true,
+  "semantic_items_before": [
+    {
+      "state": "confirmed",
+      "topic": "Область расхода семян",
+      "required": true,
+      "claim_ids": [
+        "normative:applicability"
+      ],
+      "explanation": "ВОР заявляет механизированный посев агрегатом СЗМ Ника-4. Veles Agro СЗМ Ника-4 — exact model and mechanical seeder class (GENERATED WEB CAPTURE, NOT factory PDF) · szm-nika4-cyrillic-model-identity, стр. 1 подтверждает точное имя механической сеялки; Veles Agro SZM NIKA 4 — grass row-seeding function (GENERATED WEB CAPTURE, NOT factory PDF) · szm-nika4-grass-row-seeding, стр. 1 — рядный посев трав. Это основание обычного посева семян, а не гидропосева; пригодность конкретного экземпляра и расценка работы отсюда не следуют.",
+      "project_source_ids": [
+        "shared:45:f9697f57755acf507a3a6d6c"
+      ],
+      "normative_source_ids": [
+        "agent:n:clause-47b822c1e54f8d5deaf7468687535c19:full:e39185374e3eaba0ae10",
+        "agent:n:clause-35b32210504cbe8b80c307e22c0ee3e0:full:8ad16eb49e36f848c934",
+        "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0",
+        "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0:resources:21"
+      ]
+    },
+    {
+      "state": "confirmed",
+      "topic": "Специальное условие двойного высева",
+      "required": true,
+      "claim_ids": [
+        "normative:applicability"
+      ],
+      "explanation": "Пункт 1.47.5 требует двойной высев для загущенных краевых посевов взамен одерновки дорожек, площадок и цветников. Проверяется полный газон с плодородным слоем и посевом многолетних трав, а не такая краевая замена; само наличие края не вводит удвоение.",
+      "project_source_ids": [
+        "shared:45:0628f9f5f348768fcf58b0e4",
+        "shared:45:f9697f57755acf507a3a6d6c"
+      ],
+      "normative_source_ids": [
+        "agent:n:clause-de27ffdc48e8543f851c5a1ad4e8cfc6:full:846b22654755fe006da8"
+      ]
+    }
+  ],
+  "semantic_items_after": [
+    {
+      "state": "confirmed",
+      "topic": "Область расхода семян",
+      "required": true,
+      "claim_ids": [
+        "normative:applicability"
+      ],
+      "explanation": "ВОР заявляет механизированный посев агрегатом СЗМ Ника-4. Veles Agro СЗМ Ника-4 — exact model and mechanical seeder class (GENERATED WEB CAPTURE, NOT factory PDF) · szm-nika4-cyrillic-model-identity, стр. 1 подтверждает точное имя механической сеялки; Veles Agro SZM NIKA 4 — grass row-seeding function (GENERATED WEB CAPTURE, NOT factory PDF) · szm-nika4-grass-row-seeding, стр. 1 — рядный посев трав. Это основание обычного посева семян, а не гидропосева; пригодность конкретного экземпляра и расценка работы отсюда не следуют.",
+      "project_source_ids": [
+        "shared:45:f9697f57755acf507a3a6d6c"
+      ],
+      "normative_source_ids": [
+        "agent:n:clause-47b822c1e54f8d5deaf7468687535c19:full:e39185374e3eaba0ae10",
+        "agent:n:clause-35b32210504cbe8b80c307e22c0ee3e0:full:8ad16eb49e36f848c934",
+        "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0",
+        "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0:resources:21"
+      ]
+    },
+    {
+      "state": "confirmed",
+      "topic": "Специальное условие двойного высева",
+      "required": true,
+      "claim_ids": [
+        "normative:applicability"
+      ],
+      "explanation": "Пункт 1.47.5 требует двойной высев для загущенных краевых посевов взамен одерновки дорожек, площадок и цветников. Проверяется полный газон с плодородным слоем и посевом многолетних трав, а не такая краевая замена; само наличие края не вводит удвоение.",
+      "project_source_ids": [
+        "shared:45:0628f9f5f348768fcf58b0e4",
+        "shared:45:f9697f57755acf507a3a6d6c"
+      ],
+      "normative_source_ids": [
+        "agent:n:clause-de27ffdc48e8543f851c5a1ad4e8cfc6:full:846b22654755fe006da8"
+      ]
+    },
+    {
+      "topic": "Область применения размерного расхода ресурса",
+      "state": "needs_facts",
+      "required": true,
+      "claim_ids": [
+        "normative:applicability",
+        "basis:comment:consumption:1",
+        "quantity:consumption"
+      ],
+      "explanation": "Буквальное определение нормы ограничено категорией газона «лугов…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. Одинаковый расход и подтверждение класса машины не расширяют область нормы.",
+      "project_source_ids": [
+        "shared:45:0628f9f5f348768fcf58b0e4"
+      ],
+      "normative_source_ids": [
+        "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0",
+        "agent:n:norm-3a1248f5f9514859973a957a665c1445:full:45a69deff610fef6c7f0:resources:21"
+      ]
+    }
+  ],
+  "semantic_warning": "Numeric replay only. Existing model applicability statements are not independently endorsed. Tractor-meadow versus ordinary/mechanized scope remains under independent semantic challenge; equal rates do not resolve it. Actual47 keeps quantity/rate N with explicit missing lawn category; this report does not authorize counting position47 as confirmed.",
+  "code_sha256": {
+    "normative_resource_consumption.py": "b9657e50f74671b1b075decb38a3e3b7ccc997b18a33e5daa3018c5ea42b0ce5",
+    "normative_workbook_rate.py": "5d43809b77eb4ecf6cfd9b1ba36a589f5ac6dde7bd0cd42b19d4331a65bb240e",
+    "normative_lawn_soil_scope.py": "e73f0233436b42fb40a3268d416fe97803d5cb21903b09cc27f1255a4b2bf364",
+    "tests/test_areal_resource_consumption.py": "d944c1669531bda34eba2bad9daa7f7b2a34d5a5253e484a80ad21092c9b476a"
+  },
+  "checks": {
+    "pytest": "198 passed: areal resource + legacy resource + workbook rate + lawn-soil scope",
+    "ruff": "passed",
+    "pyright": "0 errors; explicit backend venv pythonpath"
+  },
+  "integration_risks": [
+    "Selective DB projection must retain raw normative_resource_consumption_candidates for certified areal resource proofs; missing events fail closed. No reconstruction of original candidates from certified proof.",
+    "Semantic scope and all independent model property/quantity unknowns remain separate; numeric proof does not widen any norm applicability."
+  ],
+  "saved_raw_unchanged": true,
+  "production_db_writes": 0,
+  "model_calls": 0,
+  "network_calls": 0
+}

@@ -1,0 +1,56 @@
+{
+  "kind": "checkpoint_v30",
+  "recorded_utc": "2026-11-04T22:27:50.518141+00:00",
+  "artifact_archive": {
+    "file": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\checkpoint-20261105-v30\\pipeline-artifacts-v30.zip",
+    "bytes": 162375182,
+    "sha256": "4a949992754baa427de0392fcbd46b381207b58b067a8565ec5ede59ffb3b8a7",
+    "files": 329,
+    "crc_verified": true,
+    "scope": "v30 audit sources/replays, official edition PDFs/HTML/renderings, inactive v10 database/pin. Git bundle supplies code; prior checkpoints and original historical blob store are still required."
+  },
+  "normative_release": {
+    "database": "releases/road-resource-continuation-20261105-v10/knowledge.sqlite",
+    "sha256": "3740d58f5252c3b79c7e3a337b24fa51152fca7b5c0f41f157e30f60791a00d3",
+    "release_id": "road-resource-continuation-20261105-v10",
+    "profile": "roads"
+  },
+  "dump_file": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\checkpoint-20261105-v30\\smeta-pilot-unchanged-v29.dump",
+  "dump_bytes": 211379105,
+  "dump_sha256": "19b9c0f22f742d6f8d43186128a1b884ec3dd42faca8875fff7dff597620ae83",
+  "dump_reused_from": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\checkpoint-20261105-v29\\smeta-pilot-final.dump",
+  "fresh_dump_or_restore_claimed": false,
+  "same_bytes_full_restore_evidence": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\checkpoint-20261105-v30\\reused-dump-full-restore-verification-v29.json",
+  "prior_full_restore_runs": 54,
+  "prior_full_restore_reviews": 1824,
+  "current_isolated_database_observation": {
+    "runs": 54,
+    "reviews": 1824,
+    "database": "smeta_pilot",
+    "container": "kdfp-codex-pipeline-db",
+    "writes_during_v30": 0
+  },
+  "confirmed_against_frozen_sources": 20,
+  "new_confirmed": 0,
+  "current_edition_revalidation_complete": false,
+  "known_edition_sensitive_review": [
+    59
+  ],
+  "goal80_complete": false,
+  "active_current_unchanged": true,
+  "working_postgresql_untouched": true,
+  "model_calls_v30": 0,
+  "routerai_calls": 0,
+  "full_103_dispatched": false,
+  "old_checkpoints_preserved": true,
+  "quota_current_remaining_unknown": true,
+  "early_checkpoint_push_user_authorized": true,
+  "validated_source_archive": {
+    "file": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\checkpoint-20261105-v30\\validated-source-v30.zip",
+    "sha256": "e0f4309456d60e59f59f35b3f8da4bbc87caa71b29b9bc89d0ac869dbf5580c6",
+    "bytes": 54218,
+    "files": 10,
+    "crc_verified": true,
+    "purpose": "Exact checked worktree bytes of changed backend code/tests/fixtures, including text line endings; complete code history is supplied separately by the Git bundle."
+  }
+}

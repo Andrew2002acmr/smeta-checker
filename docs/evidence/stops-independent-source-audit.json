@@ -1,0 +1,296 @@
+{
+  "source_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+  "source_path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\blobs\\e4\\81\\e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+  "physical_page_count": 99,
+  "method": {
+    "skill": "pdf:pdf",
+    "reading_order": "Original PDF pages and scoped facts first; VOR comparison after extraction.",
+    "render": "Poppler pdftoppm; plans74/75 scale-to5000, structure76 scale-to5500 with direct raster crops, table41 scale-to5000, schedules86–99 scale-to1600, focused86/92 scale-to2500.",
+    "verification": "Manual visual inspection via view_image; native text used only to locate sections, not to restore corrupted drawing text.",
+    "quote_policy": "Manual readings preserve wording and numbers; line breaks and typographic spacing normalized. No OCR guess used as a fact."
+  },
+  "independent_readings": [
+    {
+      "id": "stops_count",
+      "physical_page": 41,
+      "printed_page": "40",
+      "heading": "Таблица 12.1 – Перечень основных технико-экономических показателей",
+      "readings": [
+        "21 | Автобусных остановок, шт. | 2"
+      ],
+      "unit": "шт.",
+      "scope": "Table continuation; below heading «Автомобильная дорога на очистные сооружения». No stopping-site names, layer geometry or pavement structure stated in this row.",
+      "png": "stops-p41-independent.png"
+    },
+    {
+      "id": "coverage_plans",
+      "physical_pages": [
+        74,
+        75
+      ],
+      "drawing": "006/26-ТКР1-7",
+      "title": "План покрытий М 1:500",
+      "sheets": [
+        "1 из 2",
+        "2 из 2"
+      ],
+      "readings": [
+        "конструкция тип I",
+        "конструкция тип II",
+        "конструкция тип III",
+        "конструкция тип IV",
+        "конструкция тип V",
+        "проектируемый автопавильон"
+      ],
+      "scope": "74: first sheet plan; 75: second sheet plan. The listed legend entries are not a boarding-platform area or layer thickness. Sheet75 has a simpler legend with «тротуары» and typeI–IV.",
+      "pngs": [
+        "stops-p74-independent.png",
+        "stops-p75-independent.png"
+      ],
+      "limits": [
+        "No explicitly named bus-stop pavement or boarding-platform construction header identified on these plan sheets.",
+        "No area inferred by scaling the drawing. No unrelated dimensions summed to obtain a VOR quantity."
+      ]
+    },
+    {
+      "id": "typeIII",
+      "physical_page": 76,
+      "drawing": "006/26-ТКР1-8",
+      "title": "Типы конструкций дорожной одежды",
+      "heading": "Конструкция дорожной одежды съездов. Тип III – проезжая часть",
+      "literal_lines": [
+        "Двухслойное покрытие –",
+        "асфальтобетон А 16 Вл на БНД 70/100, h=6 см",
+        "асфальтобетон А 22 Нн на БНД 70/100, h=8 см",
+        "Верхний слой основания – щебёночно-песчаная смесь тип 0/63 при максимальном размере зёрен 63мм, h=20 см",
+        "Нижний слой основания – щебёночно-песчаная смесь тип 0/31,5 при максимальном размере зёрен 31,5мм, h=22 см"
+      ],
+      "scope": "Exit road pavement, explicitly «съездов», not a bus-stop structure.",
+      "png": "stops-p76-typeIII-independent.png"
+    },
+    {
+      "id": "typeIV",
+      "physical_page": 76,
+      "drawing": "006/26-ТКР1-8",
+      "heading": "Конструкция дорожной одежды на участках усиления с ровиком уширения. Тип IV – проезжая часть",
+      "literal_lines": [
+        "Двухслойное покрытие – щебёночно-мастичный асфальтобетон ЩМА-16 на ПБВ60, h=5 см",
+        "асфальтобетон А22Нт на БНД 70/100, h=7 см",
+        "Верхний слой основания – асфальтобетон А32От на БНД 70/100, h=10 см",
+        "Средний слой основания – Щебёночно-песчаная смесь тип 0/63 при максимальном размере зёрен 63мм заклинки, h=20 см",
+        "Нижний слой основания – щебёночно-песчаная смесь тип 0/31,5 при максимальном размере зёрен 31,5мм, h=24 см"
+      ],
+      "scope": "Strengthening with widening trench, not an explicitly labelled bus stop. 12+12 and 10+10 construction sublayers are not drawn or specified here.",
+      "png": "stops-p76-typeIV-independent.png"
+    },
+    {
+      "id": "sidewalks",
+      "physical_page": 76,
+      "drawing": "006/26-ТКР1-8",
+      "readings": [
+        {
+          "heading": "Конструкция дорожной одежды проезжей части по ул. Автозаводская с техническим тротуаром. Тип II – технический тротуар",
+          "layers": [
+            "Покрытие – асфальтобетон А5Вл на БНД 70/100, h=5см",
+            "Основание – щебёночно-песчаная смесь тип 0/31,5, при максимальном размере зерен 31,5мм, h=20см"
+          ]
+        },
+        {
+          "heading": "Конструкция дорожной одежды пешеходных тротуаров шириной 3,25м. Тип V – тротуар",
+          "layers": [
+            "Покрытие – асфальтобетон А5Вл на БНД 70/100, h=5см",
+            "Основание – щебёночно-песчаная смесь тип 0/31,5, при максимальном размере зерен 31,5мм, h=20см"
+          ]
+        }
+      ],
+      "png": "stops-p76-independent.png",
+      "scope": "Technical/pedestrian sidewalks; no literal boarding-platform binding or 148m² on this structure sheet."
+    },
+    {
+      "id": "stop_earthworks",
+      "physical_page": 86,
+      "drawing": "006/26-ТКР1-В.1-1",
+      "heading": "Ведомость объемов земляных работ. Автобусные остановки",
+      "columns": [
+        "ПК+",
+        "Расстояние,м",
+        "грунт [обозначение группы не подтверждено] с перемещением в насыпь, м³",
+        "Планировка верха зем. полотна"
+      ],
+      "readings": [
+        "Всего: | [пусто] | 29 | 38"
+      ],
+      "png": "stops-p86-independent.png",
+      "limits": [
+        "The compact soil-group designation is not transcribed as a verified fact; only the unambiguous earthwork purpose, m³ and total29 are used.",
+        "No unit printed in the planning column of this bottom table; 38 is retained without adding м².",
+        "No individual station, width, area or structure layer provided. 29m³ is earthwork, not a pavement-base resource quantity."
+      ]
+    },
+    {
+      "id": "stop_curbs",
+      "physical_page": 92,
+      "drawing": "006/26-ТКР1-В.4",
+      "heading": "Ведомость работ по устройству бортовых и газонных камней",
+      "scope_header": "Автобусные остановки",
+      "column": "Бортовой камень БР 100.30.18, м",
+      "readings": [
+        {
+          "station": "ПК 2+50,80 – ПК 4+20,29",
+          "value": "108",
+          "unit": "м"
+        },
+        {
+          "station": "ПК 4+20,29 – ПК 5+59,80",
+          "value": "53",
+          "unit": "м"
+        },
+        {
+          "station": "Всего:",
+          "value": "161",
+          "unit": "м"
+        }
+      ],
+      "png": "stops-p92-independent.png",
+      "limits": [
+        "These are curb lengths within station intervals, not stop-platform pavement areas or base widths. No area derived from 108 or 53."
+      ]
+    }
+  ],
+  "inspected_scope": {
+    "native_text_search": "All99 physical pages searched for останов/посадоч/конструкц for navigation.",
+    "visually_inspected_pages": [
+      41,
+      74,
+      75,
+      76,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99
+    ],
+    "schedule_inventory": {
+      "86": "Earthworks, exits, stop earthworks",
+      "87": "Sidewalk/stair and lawn earthworks",
+      "88": "Street pavement/widening quantities, sheet1",
+      "89": "Street pavement/widening quantities, sheet2",
+      "90": "Exit pavement and street sidewalks/stairs",
+      "91": "Lawns",
+      "92": "Curbs including stops",
+      "93-96": "Roadbed-top parameters",
+      "97-99": "Levelling and milling"
+    },
+    "limits": [
+      "Other drawing pages were not exhaustively visually audited for unidentified details.",
+      "No categorical assertion that another revision/document cannot contain the missing stop structures."
+    ]
+  },
+  "vor_comparison": [
+    {
+      "index": 76,
+      "vor_name": "Устройство нижнего слоя основания из ЩПС, h = 12 см (двухслойного основания - слой1) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+      "vor_quantity": "90.19",
+      "vor_unit": "м2",
+      "vor_section": [
+        {
+          "text": "Раздел 4. Устройство автобусных остановок",
+          "address": "A98"
+        }
+      ],
+      "status": "missing_scoped_project_basis",
+      "reason": "24cm occurs for lower base of typeIV, but no bus-stop binding, 12+12 split or the two VOR areas was found."
+    },
+    {
+      "index": 78,
+      "vor_name": "Устройство нижнего слоя основания из ЩПС , h = 12 см (двухслойного основания - слой2) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+      "vor_quantity": "96.57",
+      "vor_unit": "м2",
+      "vor_section": [
+        {
+          "text": "Раздел 4. Устройство автобусных остановок",
+          "address": "A98"
+        }
+      ],
+      "status": "missing_scoped_project_basis",
+      "reason": "24cm occurs for lower base of typeIV, but no bus-stop binding, 12+12 split or the two VOR areas was found."
+    },
+    {
+      "index": 80,
+      "vor_name": "Устройство среднего слоя основания из ЩПС , h = 10см \n(двухслойного основания - слой1) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+      "vor_quantity": "101.89",
+      "vor_unit": "м2",
+      "vor_section": [
+        {
+          "text": "Раздел 4. Устройство автобусных остановок",
+          "address": "A98"
+        }
+      ],
+      "status": "missing_scoped_project_basis",
+      "reason": "20cm occurs for middle base of typeIV, but no bus-stop binding, 10+10 split or the two VOR areas was found."
+    },
+    {
+      "index": 82,
+      "vor_name": "Устройство среднего слоя основания из ЩПС , h = 10см \n(двухслойного основания - слой2) бульдозером мощностью двигателя 79 кВт с уплотнением.",
+      "vor_quantity": "126.53",
+      "vor_unit": "м2",
+      "vor_section": [
+        {
+          "text": "Раздел 4. Устройство автобусных остановок",
+          "address": "A98"
+        }
+      ],
+      "status": "missing_scoped_project_basis",
+      "reason": "20cm occurs for middle base of typeIV, but no bus-stop binding, 10+10 split or the two VOR areas was found."
+    },
+    {
+      "index": 96,
+      "vor_name": "Устройство слоя основания, h =20см бульдозером мощностью двигателя 79 кВт с уплотнением.",
+      "vor_quantity": "148.0",
+      "vor_unit": "м2",
+      "vor_section": [
+        {
+          "text": "Раздел 4. Устройство автобусных остановок",
+          "address": "A98"
+        }
+      ],
+      "status": "missing_scoped_project_basis",
+      "reason": "20cm base and 5cm asphalt appear for technical/pedestrian sidewalks; no boarding-platform binding or 148m² was found."
+    },
+    {
+      "index": 100,
+      "vor_name": "Устройство покрытия из асфальтобетонной смеси, асфальтоукладчиком 1 типоразмера, h = 5 см",
+      "vor_quantity": "148.0",
+      "vor_unit": "м2",
+      "vor_section": [
+        {
+          "text": "Раздел 4. Устройство автобусных остановок",
+          "address": "A98"
+        }
+      ],
+      "status": "missing_scoped_project_basis",
+      "reason": "20cm base and 5cm asphalt appear for technical/pedestrian sidewalks; no boarding-platform binding or 148m² was found."
+    }
+  ],
+  "findings": [
+    "The supplied original is a99-page revision whose physical74–75 are cover plans, not structure-header sheets. Physical41 contains a count row, not a two-stop geometric description.",
+    "The explicit layer detail is on physical76; its scopes are street, exits, widening trench, technical and pedestrian sidewalks, and tramway. No explicitly named stop/boarding-platform pavement structure was found there.",
+    "Original schedule does confirm stop presence and curb intervals but does not supply the requested base-sublayer areas or boarding-platform148m².",
+    "This is a source/scope gap for the requested six work quantities; no evidence supports replacing the missing facts with numerically similar rows for another construction."
+  ],
+  "limits": [
+    "No production changes. No RouterAI, network, model pilots or103 run.",
+    "No quantities selected by VOR coincidence, no area inferred from an unlabelled curb line, no splitting thickness into construction layers treated as a project quote.",
+    "This audit establishes missing verified scope within the inspected original; it does not prove all six VOR quantities wrong.",
+    "Prepared/OCR source revision and physical page mapping should be checked independently before adding any corpus patch."
+  ]
+}

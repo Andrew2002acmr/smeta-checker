@@ -1,0 +1,3174 @@
+{
+  "task": "Independent primary-source recheck of four fresh v24 results and allocation certificates",
+  "method": "Read-only immutable raw/saved review; original PDFs visually revisited with Poppler/view_image; Decimal recalculation, proof/source fingerprint validation, live rebuild. No model calls or production/raw/DB mutation.",
+  "reviewer_limit": "This agent authored endpoint answers and implementation earlier: independent recheck against originals, not another independent reviewer/person.",
+  "run_id": "2a67526a-8b35-4a34-aa28-9af54ca2482d",
+  "sources": [
+    {
+      "name": "PD",
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\blobs\\e4\\81\\e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+      "source_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+      "physical_pages": [
+        50,
+        90
+      ],
+      "visual_png_sha256": {
+        "cohort-v23-p50-independent.png": "92dc1ef0a164fbbfdf46265395f06e5a8f248a9a05fe0e386f41c1da4f8cd3f1",
+        "cohort-v23-p90-independent.png": "20d36766bc0813b64e20df5f031820b3c47cea1b6c3e42556b3c950f7a6fa0a7"
+      }
+    },
+    {
+      "name": "ГЭСН27",
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\knowledge\\road-norms\\blobs\\6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5.pdf",
+      "source_sha256": "6aa5203d913dd5eb1538a4c23577e90d8ce95fa741547058429c31d74f9cb8a5",
+      "physical_pages": [
+        2
+      ],
+      "visual_png_sha256": {
+        "curb-gesn-p2-independent.png": "d2d61bc99402c8f4e6d4c3e372935e63e3aa5be53e6f4bdeb5d0172015f9e55c"
+      }
+    },
+    {
+      "name": "СП78",
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\knowledge\\road-norms\\blobs\\00d837c15bec55db1040996117b875e57ee03e22b6ffb82ec0191ad45f167fc3.pdf",
+      "source_sha256": "00d837c15bec55db1040996117b875e57ee03e22b6ffb82ec0191ad45f167fc3",
+      "physical_pages": [
+        32
+      ],
+      "visual_png_sha256": {
+        "allocation-sp78-p32-independent.png": "0e6b564e9b79ecab0334d66a34c137cbfae7bf5145264312083c716ad5935578"
+      }
+    },
+    {
+      "name": "ГОСТ70458",
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\knowledge\\road-norms\\blobs\\eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748.pdf",
+      "source_sha256": "eb17404f2f825a1761019f28103318c3659de9ad2469ab512c48b59debd6f748",
+      "physical_pages": [
+        4,
+        7
+      ],
+      "visual_png_sha256": {
+        "allocation-v24-audit-70458-p4.png": "5a8cbbefb872105d63357f29dc424798d32e56d642114b404bcfe519440317b1",
+        "allocation-v24-audit-70458-p7.png": "f5eb246c18dec6014284044f30ff8d4d3b03d9a6b80a7d397d0f08f9cdecfb5b"
+      }
+    },
+    {
+      "name": "ГОСТ32703",
+      "path": "D:\\codexProjects\\KemDorFondProject\\fact-pipeline-inputs\\knowledge\\road-norms\\blobs\\e5d2d930f56e990f784e45cf0f29481485f6191b800838f7e8f2faaa940603da.pdf",
+      "source_sha256": "e5d2d930f56e990f784e45cf0f29481485f6191b800838f7e8f2faaa940603da",
+      "physical_pages": [
+        6,
+        7
+      ],
+      "visual_png_sha256": {
+        "allocation-v24-audit-32703-p6.png": "64e763bc397163bcba2616a0e3220834bf91a9be75b793f897513b6bb66d2fc7",
+        "allocation-v24-audit-32703-p7.png": "a2a817cebd11606e60c56566b32543facac04ca9fc6a838f0310ce31e1c10304"
+      }
+    }
+  ],
+  "primary_readings": [
+    {
+      "source": "PD",
+      "physical_page": 50,
+      "scope_quote": "Тип III – Конструкция дорожных одежд съездов",
+      "quotes": [
+        "Верхний слой основания — Щебеночно-песчаная смесь для оснований фр. 0/63 по ГОСТ Р 70458-2022, категории К90, марке М1, h=20 см",
+        "Нижний слой основания — Щебеночно-песчаная смесь для оснований фр. 0/31,5 по ГОСТ Р 70458-2022, категории К90, марке М1, h=22 см"
+      ]
+    },
+    {
+      "source": "PD",
+      "physical_page": 90,
+      "caption": "Ведомость работ по устройству дорожной одежды",
+      "body_labels": [
+        "Съезд №1",
+        "ул. Пролетарская",
+        "Съезд №2",
+        "Съезд №3",
+        "Съезд №4",
+        "Съезд №5",
+        "Съезд №6",
+        "Съезд №7",
+        "Съезд №8"
+      ],
+      "columns": [
+        {
+          "material": "Щебеночно-песчаная смесь типа 0/63 мм М800",
+          "thickness": "h=0,20м",
+          "unit": "Объем, м³",
+          "total": "188,74"
+        },
+        {
+          "material": "Щебеночно-песчаная смесь типа 0/31,5 мм М800",
+          "thickness": "h=0,22м",
+          "unit": "Объем, м³",
+          "total": "213,51"
+        }
+      ],
+      "limit": "No caption Съезды: scope derives from complete literal body and physical table binding."
+    },
+    {
+      "source": "ГЭСН27",
+      "physical_page": 2,
+      "label": "1.27.18",
+      "quote": "Затраты на устройство оснований и покрытий из гравийной смеси с добавлением щебня, а также щебеночно-песчаных определяются по табл. 27-04-003, расход материалов принимать по проекту.",
+      "limit": "Two-layer normalization of >18cm is separate from project material total; no exact stage allocations printed."
+    },
+    {
+      "source": "СП78",
+      "physical_page": 32,
+      "label": "10.2",
+      "quote": "Объем каменного материала в насыпном виде следует определять с учетом коэффициента запаса на уплотнение.",
+      "range_reading": "Для песчано-гравийных (щебеночных) смесей и щебня фракций 31,5 - 63 и 63 - 90 мм марки по дробимости 800 и более коэффициент запаса материала на уплотнение следует ориентировочно принимать 1,25 - 1,3",
+      "limit": "Trial rolling/in-production determination applies to actual coefficient, not a claim proved by indicative1.26."
+    },
+    {
+      "source": "ГОСТ70458",
+      "physical_page": 4,
+      "label": "5.2",
+      "quote": "Готовые смеси в зависимости от гранулометрического состава делят на категории и марки."
+    },
+    {
+      "source": "ГОСТ70458",
+      "physical_page": 7,
+      "label": "5.9",
+      "quote": "Щебень (гравий), входящий в состав готовых смесей, по дробимости, морозостойкости и устойчивости структуры против распадов должен соответствовать требованиям ГОСТ 32703."
+    },
+    {
+      "source": "ГОСТ32703",
+      "physical_pages": [
+        6,
+        7
+      ],
+      "label": "5.6; tables5/6",
+      "reading": "М800 is component crushing grade; table5 loss Св.13до15%, table6 sedimentary water-saturated Св.15до18%. No rock origin or measured future batch inferred."
+    }
+  ],
+  "results": [
+    {
+      "index": 50,
+      "review_id": "923a776f-2a76-434a-a305-c5842a46103b",
+      "saved_review_state": "needs_facts",
+      "raw_answer_sha256": "499856521f933ec9ad97da6e1d2e6b28a7fb385716e33526f7bfb72f84067f5e",
+      "saved_result_sha256": "737b2a1a0a4d467a5c553c1ca99b2b12f92b5b72b7eee980ca1a557eb8788e97",
+      "raw_model_items": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:25"
+          ],
+          "topic": "М800 и проектные свойства",
+          "state": "confirmed",
+          "explanation": "В проверенном столбце той же ведомости прямо М800. По5.2ГОСТ70458 К90/М1 характеризуют гранулометрию;5.9 отсылает дробимость компонента кГОСТ32703, где5.6 определяетМ800. Это разные сохраняемые свойства, не эквивалентные марки.",
+          "project_source_ids": [
+            "s25",
+            "s60"
+          ],
+          "normative_source_ids": [
+            "s56",
+            "s57",
+            "s58"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:comment:condition"
+          ],
+          "topic": "Спецификация и Купл",
+          "state": "confirmed",
+          "explanation": "ТипIII съездов задаёт0/31,5,ГОСТ70458,К90,М1. Заявленный Купл1,26 входит в ориентировочный диапазон1,25–1,3 СП78п10.2 для смеси. Фактическое измерение уплотнения и потери не утверждаются.",
+          "project_source_ids": [
+            "s25",
+            "s60"
+          ],
+          "normative_source_ids": [
+            "s59"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "derived:parent"
+          ],
+          "topic": "Основание планового распределения",
+          "state": "confirmed",
+          "explanation": "Полный ряд ведомости охватывает съезды№1–8/ул.Пролетарская; столбец0/31,5 h22см даёт213,51м3. В связанных строках50/52 одинаковые спецификация,м3,Купл;105,84+107,67=213,51. Общий ресурс сохранён, повторного полного объема в паре нет. Части не названы физическими объемами ПД.",
+          "project_source_ids": [
+            "s25",
+            "s60"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "derived:rate"
+          ],
+          "topic": "Коэффициент и арифметика",
+          "state": "confirmed",
+          "explanation": "105,84×1,26=133,3584м3. Назначение1,26 — запас на уплотнение смеси; допустимый сметный диапазон СП78п10.2 соблюден. Не требуется выдавать его за точное нормативное или измеренное на стройке число.",
+          "project_source_ids": [
+            "s25",
+            "s60"
+          ],
+          "normative_source_ids": [
+            "s59"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "topic": "Материал и собственное количество",
+          "state": "confirmed",
+          "explanation": "Для собственной плановой потребности есть проектная конструкция0/31,5 К90/М1,М800,полный объем и сбалансированный разнос между двумя операциями; поправка1,26 имеет основание. Расчет не использует расход рабочей нормы. Метод машины родителя, физические части и общий расход с потерями этим не подтверждаются.",
+          "project_source_ids": [
+            "s25",
+            "s60"
+          ],
+          "normative_source_ids": [
+            "s56",
+            "s57",
+            "s58",
+            "s59"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "quantity",
+            "unit",
+            "presence"
+          ],
+          "topic": "Проектная основа и расчетный результат",
+          "state": "confirmed",
+          "explanation": "ПД содержит нужный материал и полный объем213,51м3 в столбце нижнего22см основания. Собственный результат133,3584м3 — рассчитанная плановая доля после1,26; отдельной буквальной строки такого результата вПД не заявлено. Площади работ не удостоверяются.",
+          "project_source_ids": [
+            "s25",
+            "s60"
+          ],
+          "normative_source_ids": [
+            "s59"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "workbook:formula"
+          ],
+          "topic": "Арифметика ВОР",
+          "state": "confirmed",
+          "explanation": "Формула(105,84)×1,26 пересчитана:133,3584. Хвост133,35840000000002 является представлением того же результата.",
+          "project_source_ids": [
+            "s60"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "saved_unresolved_items": [
+        {
+          "state": "needs_facts",
+          "topic": "Подтверждённый параметр родительской работы: толщина",
+          "required": true,
+          "claim_ids": [
+            "geometry:thickness"
+          ],
+          "explanation": "Толщина подтверждена источниками ПД для работы №50. Технология работы, нормативная применимость и расход материала проверяются отдельно. Числовое основание не прошло проверку цитаты, OCR, единицы или конструкции; расхождение не доказано.",
+          "project_source_ids": [
+            "parent-49:geometry:cfed5615015905eae61b99b0"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "numeric_cards": [
+        {
+          "id": "quantity",
+          "row": 72,
+          "role": "calculation",
+          "unit": "м3",
+          "label": "Расчётное количество распределённого материала",
+          "quote": "Основание | Щебеночно-песчаная смесь типа 0/31,5 мм М800 | h=0,22м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n213,51",
+          "state": "confirmed",
+          "reason": "Результат расчёта заявленного распределения полного проектного объёма; часть не является буквальным числом ПД. Площади и физические толщины отдельных рабочих операций этим не подтверждаются. Коэффициент проверяется отдельно.",
+          "found_unit": "м3",
+          "source_ids": [
+            "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+            "parent-49:geometry:cfed5615015905eae61b99b0"
+          ],
+          "found_value": "133.3584",
+          "proof_limits": {
+            "stage_areas_verified": false,
+            "normative_rate_verified": false,
+            "stage_thicknesses_verified": false,
+            "coefficient_applicability_verified": false,
+            "individual_project_volumes_verified": false
+          },
+          "project_total": "213.51",
+          "quantity_role": "allocated_output",
+          "declared_value": "133.35840000000002",
+          "source_anchors": [
+            {
+              "quote": "Основание | Щебеночно-песчаная смесь типа 0/31,5 мм М800 | h=0,22м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n213,51",
+              "rects": [
+                [
+                  0.522409142494571,
+                  0.5035651099995437,
+                  0.5972278146219653,
+                  0.525336524831603
+                ]
+              ],
+              "source_id": "agent:p90:cell:ec7409d407f6ce1c8d7b5b83"
+            },
+            {
+              "quote": "Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см",
+              "rects": [],
+              "source_id": "parent-49:geometry:cfed5615015905eae61b99b0"
+            }
+          ]
+        },
+        {
+          "id": "calculation:50",
+          "row": 72,
+          "role": "calculation",
+          "unit": "м3",
+          "label": "Арифметика позиции №51",
+          "state": "confirmed",
+          "reason": "Формула пересчитана программно по сохранённым значениям ячеек.",
+          "expression": "=(105.84)*1.26",
+          "found_value": "133.3584",
+          "declared_value": "133.35840000000002"
+        },
+        {
+          "id": "factor:50:105.84",
+          "row": 72,
+          "role": "calculation_declared_allocation",
+          "unit": "м3",
+          "label": "Заявленный объём распределения",
+          "quote": "Основание | Щебеночно-песчаная смесь типа 0/31,5 мм М800 | h=0,22м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n213,51",
+          "state": "confirmed",
+          "reason": "Плановая часть полного объёма ПД; сумма частей и структурная полнота пересобраны по исходным данным. Это не измеренный объём отдельного физического слоя и не проектная площадь работы.",
+          "found_unit": "м3",
+          "source_ids": [
+            "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+            "parent-49:geometry:cfed5615015905eae61b99b0"
+          ],
+          "found_value": "105.84",
+          "proof_limits": {
+            "stage_areas_verified": false,
+            "normative_rate_verified": false,
+            "stage_thicknesses_verified": false,
+            "coefficient_applicability_verified": false,
+            "individual_project_volumes_verified": false
+          },
+          "project_total": "213.51",
+          "declared_value": "105.84",
+          "source_anchors": [
+            {
+              "quote": "Основание | Щебеночно-песчаная смесь типа 0/31,5 мм М800 | h=0,22м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n213,51",
+              "rects": [
+                [
+                  0.522409142494571,
+                  0.5035651099995437,
+                  0.5972278146219653,
+                  0.525336524831603
+                ]
+              ],
+              "source_id": "agent:p90:cell:ec7409d407f6ce1c8d7b5b83"
+            },
+            {
+              "quote": "Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см",
+              "rects": [],
+              "source_id": "parent-49:geometry:cfed5615015905eae61b99b0"
+            }
+          ]
+        },
+        {
+          "id": "factor:50:1.26",
+          "row": 72,
+          "role": "coefficient",
+          "unit": "",
+          "label": "Коэффициент формулы 1.26 · позиция №51",
+          "quote": "10.2 Объем каменного материала в насыпном виде следует определять с учетом коэффициента запаса на\nуплотнение. Для песчано-гравийных (щебеночных) смесей и щебня фракций 31,5 - 63 и 63 - 90 мм марки по\nдробимости 800 и более коэффициент запаса материала на уплотнение следует ориентировочно принимать 1,25\n- 1,3, а для щебня марок по дробимости ниже 800  - 1,3  - 1,5. Коэффициент запаса шлака на уплотнение в\nзависимости от его плотности следует ориентировочно принимать 1,3 - 1,5.\n\n    Для определения фактического коэффициента запаса на уплотнение и необходимого числа проходов катков\nдля достижения требуемой плотности слоя следует проводить пробную  укатку. Допускается определение\nфактического коэффициента относительного уплотнения в ходе производства работ.\n(в ред. Изменения N 2, утв. Приказом Минстроя России от 19.10.2021 N 762/пр)",
+          "state": "confirmed",
+          "reason": "Сметное значение из примечания входит в применимый ориентировочный диапазон СП78 п.10.2: 1.25–1.3. Фактический коэффициент на стройке не утверждается.",
+          "source_ids": [
+            "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000"
+          ],
+          "declared_value": "1.26",
+          "source_anchors": [
+            {
+              "quote": "10.2 Объем каменного материала в насыпном виде следует определять с учетом коэффициента запаса на\nуплотнение. Для песчано-гравийных (щебеночных) смесей и щебня фракций 31,5 - 63 и 63 - 90 мм марки по\nдробимости 800 и более коэффициент запаса материала на уплотнение следует ориентировочно принимать 1,25\n- 1,3, а для щебня марок по дробимости ниже 800  - 1,3  - 1,5. Коэффициент запаса шлака на уплотнение в\nзависимости от его плотности следует ориентировочно принимать 1,3 - 1,5.\n\n    Для определения фактического коэффициента запаса на уплотнение и необходимого числа проходов катков\nдля достижения требуемой плотности слоя следует проводить пробную  укатку. Допускается определение\nфактического коэффициента относительного уплотнения в ходе производства работ.\n(в ред. Изменения N 2, утв. Приказом Минстроя России от 19.10.2021 N 762/пр)",
+              "rects": [],
+              "source_id": "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000"
+            }
+          ]
+        }
+      ],
+      "proof": {
+        "kind": "planned_material_allocation_v1",
+        "unit": "м3",
+        "state": "verified_planned_allocation",
+        "sha256": "dbfafc2616eda511aada15075432cd3335b09cf93e2414a048103564496af94d",
+        "operands": [
+          {
+            "unit": "м3",
+            "binding": {
+              "basis": "nearest_preceding_work_in_explicit_material_block",
+              "sheet": "Дорожная одежда",
+              "sections": [
+                {
+                  "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                  "address": "A70"
+                }
+              ],
+              "work_row": 71,
+              "header_row": 15,
+              "work_index": 49,
+              "material_row": 72,
+              "material_index": 50,
+              "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+            },
+            "formula": "(105,84)*1,26",
+            "work_row": 71,
+            "work_index": 49,
+            "coefficient": "1.26",
+            "material_row": 72,
+            "material_index": 50,
+            "declared_volume": "105.84",
+            "calculated_material_volume": "133.3584"
+          },
+          {
+            "unit": "м3",
+            "binding": {
+              "basis": "nearest_preceding_work_in_explicit_material_block",
+              "sheet": "Дорожная одежда",
+              "sections": [
+                {
+                  "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                  "address": "A70"
+                }
+              ],
+              "work_row": 73,
+              "header_row": 15,
+              "work_index": 51,
+              "material_row": 74,
+              "material_index": 52,
+              "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+            },
+            "formula": "107,67*1,26",
+            "work_row": 73,
+            "work_index": 51,
+            "coefficient": "1.26",
+            "material_row": 74,
+            "material_index": 52,
+            "declared_volume": "107.67",
+            "calculated_material_volume": "135.6642"
+          }
+        ],
+        "scope_rows": [
+          {
+            "row": 71,
+            "index": 49
+          },
+          {
+            "row": 72,
+            "index": 50
+          },
+          {
+            "row": 73,
+            "index": 51
+          },
+          {
+            "row": 74,
+            "index": 52
+          },
+          {
+            "row": 75,
+            "index": 53
+          },
+          {
+            "row": 76,
+            "index": 54
+          },
+          {
+            "row": 77,
+            "index": 55
+          },
+          {
+            "row": 78,
+            "index": 56
+          },
+          {
+            "row": 79,
+            "index": 57
+          },
+          {
+            "row": 80,
+            "index": 58
+          },
+          {
+            "row": 81,
+            "index": 59
+          },
+          {
+            "row": 82,
+            "index": 60
+          },
+          {
+            "row": 83,
+            "index": 61
+          },
+          {
+            "row": 84,
+            "index": 62
+          },
+          {
+            "row": 85,
+            "index": 63
+          },
+          {
+            "row": 86,
+            "index": 64
+          },
+          {
+            "row": 87,
+            "index": 65
+          },
+          {
+            "row": 88,
+            "index": 66
+          },
+          {
+            "row": 89,
+            "index": 67
+          },
+          {
+            "row": 90,
+            "index": 68
+          },
+          {
+            "row": 91,
+            "index": 69
+          },
+          {
+            "row": 92,
+            "index": 70
+          },
+          {
+            "row": 93,
+            "index": 71
+          },
+          {
+            "row": 94,
+            "index": 72
+          },
+          {
+            "row": 95,
+            "index": 73
+          },
+          {
+            "row": 96,
+            "index": 74
+          },
+          {
+            "row": 97,
+            "index": 75
+          }
+        ],
+        "work_indices": [
+          49,
+          51
+        ],
+        "project_basis": {
+          "volume": {
+            "unit": "м3",
+            "quote": "Единица физического столбца: м3\nВсего:\n213,51",
+            "value": "213.51",
+            "operation": "direct",
+            "parameter": "quantity",
+            "source_id": "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+            "conditions": [],
+            "scope_quote": "Основание | Щебеночно-песчаная смесь типа 0/31,5 мм М800 | h=0,22м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n213,51",
+            "scope_state": "verified",
+            "scope_relation": "technological_part",
+            "operand_source_ids": []
+          },
+          "construction": {
+            "unit": "см",
+            "quote": "h=22 см",
+            "value": "22",
+            "operation": "direct",
+            "parameter": "thickness",
+            "source_id": "parent-49:geometry:cfed5615015905eae61b99b0",
+            "conditions": [],
+            "scope_quote": "Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см",
+            "scope_state": "verified",
+            "scope_relation": "technological_part",
+            "operand_source_ids": []
+          }
+        },
+        "quantity_role": "planned_homogeneous_material_allocation",
+        "source_sha256": {
+          "agent:p90:cell:ec7409d407f6ce1c8d7b5b83": "656e0a244913adbfb8888fdd2b840ca75b7126b93e49d7c7d26d78ebabb4494f",
+          "parent-49:geometry:cfed5615015905eae61b99b0": "4ee84860566789fd0e553a915c3c1d0d66ac7011b3dd9e80d8ec15ef0ba9b1e0"
+        },
+        "position_index": 50,
+        "project_volume": "213.51",
+        "source_anchors": [
+          {
+            "quote": "Основание | Щебеночно-песчаная смесь типа 0/31,5 мм М800 | h=0,22м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n213,51",
+            "rects": [
+              [
+                0.522409142494571,
+                0.5035651099995437,
+                0.5972278146219653,
+                0.525336524831603
+              ]
+            ],
+            "source_id": "agent:p90:cell:ec7409d407f6ce1c8d7b5b83"
+          },
+          {
+            "quote": "Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см",
+            "rects": [],
+            "source_id": "parent-49:geometry:cfed5615015905eae61b99b0"
+          }
+        ],
+        "quantity_shared": false,
+        "root_source_ids": [
+          "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+          "parent-49:geometry:cfed5615015905eae61b99b0"
+        ],
+        "workbook_sha256": "bdce994137db67ae89072f5082ab51a3d77d08c152a2457059b33d32aef847b0",
+        "material_indices": [
+          50,
+          52
+        ],
+        "project_version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+        "declared_volume_sum": "213.51",
+        "table_scope_context": {
+          "caption": "Ведомость работ по устройству дорожной одежды",
+          "version": "independent_visual_row_labels_v1",
+          "total_row": 14,
+          "provenance": {
+            "origin": "ocr",
+            "quality": "usable",
+            "table_sha256": "ed2eaaf035a190dd81ef3e17b5eb3b1248216f74ca900a52b657ef50731ebcf9",
+            "render_sha256": "99d03119e9a9be42fb1fc6ce53b9046d97ebd880ce7ddaa57bf7bf3f0d592e61",
+            "review_sha256": [
+              "0a75aae6dd42f4ab1aa53c10a872d8a2f75530897020fb6f2fcb3bc4fa46858b",
+              "a18fa60d36cc06bd918c1271975370bf2983afca83c00f52654f562325edbdf8"
+            ],
+            "document_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+            "extraction_sha256": "092229c4218b7a9128d694e78ce4185c8e2485d6244378595dc3abe219d51104",
+            "row_labels_sha256": "51bc93674a84214c746c6a40d00d8aa5589c6d61e500592121f9b62406083149",
+            "actual_cells_sha256": "ed23a05f744d97d20eaa0766bc5c4a44dc03cc7aaf9eb11501c911c7991d4d58",
+            "header_cells_sha256": "f3dc7c3d721cd14c5c1719acf59084faaa6ff3b6ac0c97ec4e8bc6ac11c1317e"
+          },
+          "row_labels": [
+            {
+              "row": 5,
+              "bbox": [
+                397.39556884765625,
+                18.239999771118164,
+                410.11968994140625,
+                109.68000030517578
+              ],
+              "text": "Съезд №1",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell32",
+              "colspan": 2
+            },
+            {
+              "row": 6,
+              "bbox": [
+                384.6755676269531,
+                18.239999771118164,
+                397.39556884765625,
+                109.68000030517578
+              ],
+              "text": "ул. Пролетарская",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell46",
+              "colspan": 2
+            },
+            {
+              "row": 7,
+              "bbox": [
+                371.95556640625,
+                18.239999771118164,
+                384.6755676269531,
+                109.68000030517578
+              ],
+              "text": "Съезд №2",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell60",
+              "colspan": 2
+            },
+            {
+              "row": 8,
+              "bbox": [
+                359.21844482421875,
+                18.239999771118164,
+                371.95556640625,
+                109.68000030517578
+              ],
+              "text": "Съезд №3",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell74",
+              "colspan": 2
+            },
+            {
+              "row": 9,
+              "bbox": [
+                346.4212951660156,
+                18.239999771118164,
+                359.21844482421875,
+                109.68000030517578
+              ],
+              "text": "Съезд №4",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell88",
+              "colspan": 2
+            },
+            {
+              "row": 10,
+              "bbox": [
+                333.6755676269531,
+                18.239999771118164,
+                346.4212951660156,
+                109.68000030517578
+              ],
+              "text": "Съезд №5",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell102",
+              "colspan": 2
+            },
+            {
+              "row": 11,
+              "bbox": [
+                320.95556640625,
+                18.239999771118164,
+                333.6755676269531,
+                109.68000030517578
+              ],
+              "text": "Съезд №6",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell116",
+              "colspan": 2
+            },
+            {
+              "row": 12,
+              "bbox": [
+                308.2355651855469,
+                18.239999771118164,
+                320.95556640625,
+                109.68000030517578
+              ],
+              "text": "Съезд № 7",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell130",
+              "colspan": 2
+            },
+            {
+              "row": 13,
+              "bbox": [
+                295.51556396484375,
+                18.239999771118164,
+                308.2355651855469,
+                109.68000030517578
+              ],
+              "text": "Съезд №8",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell144",
+              "colspan": 2
+            }
+          ],
+          "total_cell": {
+            "row": 14,
+            "bbox": [
+              282.5555725097656,
+              439.8109130859375,
+              295.51556396484375,
+              502.79998779296875
+            ],
+            "text": "213,51",
+            "column": 9,
+            "cell_id": "ruled-cf73d43063cffeaf:cell166",
+            "colspan": 1
+          },
+          "header_cells": [
+            {
+              "row": 1,
+              "bbox": [
+                488.95556640625,
+                292.0799865722656,
+                501.6755676269531,
+                502.79998779296875
+              ],
+              "text": "Основание",
+              "column": 6,
+              "cell_id": "ruled-cf73d43063cffeaf:cell3",
+              "colspan": 4
+            },
+            {
+              "row": 2,
+              "bbox": [
+                448.39556884765625,
+                394.1907653808594,
+                488.95556640625,
+                502.79998779296875
+              ],
+              "text": "Щебеночно-песчаная смесь типа 0/31,5 мм М800",
+              "column": 8,
+              "cell_id": "ruled-cf73d43063cffeaf:cell9",
+              "colspan": 2
+            },
+            {
+              "row": 3,
+              "bbox": [
+                435.6755676269531,
+                394.1907653808594,
+                448.39556884765625,
+                502.79998779296875
+              ],
+              "text": "h=0,22м",
+              "column": 8,
+              "cell_id": "ruled-cf73d43063cffeaf:cell15",
+              "colspan": 2
+            },
+            {
+              "row": 4,
+              "bbox": [
+                410.11968994140625,
+                439.8109130859375,
+                435.6755676269531,
+                502.79998779296875
+              ],
+              "text": "Объем, м³",
+              "column": 9,
+              "cell_id": "ruled-cf73d43063cffeaf:cell27",
+              "colspan": 1
+            }
+          ],
+          "body_first_row": 5,
+          "source_binding": {
+            "row": 14,
+            "page": 90,
+            "column": 9,
+            "cell_id": "ruled-cf73d43063cffeaf:cell166",
+            "table_id": "ruled-cf73d43063cffeaf",
+            "source_id": "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+            "header_ids": [
+              "ruled-cf73d43063cffeaf:cell3",
+              "ruled-cf73d43063cffeaf:cell9",
+              "ruled-cf73d43063cffeaf:cell15",
+              "ruled-cf73d43063cffeaf:cell27"
+            ],
+            "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+          }
+        },
+        "stage_areas_verified": false,
+        "source_document_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+        "normative_rate_verified": false,
+        "expected_value_used_for_selection": false,
+        "coefficient_applicability_verified": false,
+        "individual_project_volumes_verified": false
+      },
+      "checks": {
+        "proof_digest_valid": true,
+        "root_source_fingerprints_valid": true,
+        "live_rebuild_valid": true,
+        "full_vor_inventory_positions": 103,
+        "sum_before_coefficient": "213.51",
+        "all_formula_products_equal": true
+      },
+      "classification": {
+        "specification": "confirmed_as_declared_project_specification",
+        "coefficient": "confirmed_as_indicative_planned_allowance_only",
+        "quantity": "confirmed_as_conserved_planned_allocation_only",
+        "arithmetic": "confirmed",
+        "normative_applicability": "confirmed_only_for_own_planned_material_basis",
+        "measured_individual_volume": "needs_facts_not_claimed",
+        "operation_area_thickness": "needs_facts_not_certified",
+        "actual_site_compaction": "needs_facts_not_claimed",
+        "gross_losses": "needs_facts_not_claimed"
+      }
+    },
+    {
+      "index": 52,
+      "review_id": "71e90725-bb20-43cc-aacb-46c774136386",
+      "saved_review_state": "needs_facts",
+      "raw_answer_sha256": "f278633994790a2b109c9919803cc6d80a4aae89c44ecc40cbebc97593ae5b86",
+      "saved_result_sha256": "a0d50b7ba438cb6af54bf8d591b6a006a20bb1b313165903674f84acc04428c9",
+      "raw_model_items": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:25"
+          ],
+          "topic": "Проектная марка и смысл свойств",
+          "state": "confirmed",
+          "explanation": "Столбец0/31,5 h22см указываетМ800. ГОСТ70458п5.2 относитК90/М1 к гранулометрии готовой смеси;п5.9 связывает дробимость компонента сГОСТ32703п5.6. М800 не заменяетК90/М1; заявленная спецификация сохраняет их.",
+          "project_source_ids": [
+            "s60",
+            "s25"
+          ],
+          "normative_source_ids": [
+            "s56",
+            "s57",
+            "s58"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:comment:condition"
+          ],
+          "topic": "Условия спецификации и коэффициента",
+          "state": "confirmed",
+          "explanation": "Нативное описание типаIII съездов прямо задает0/31,5 поГОСТ70458,К90/М1. Купл1,26 — сметный запас, входящий в диапазон1,25–1,3 СП78п10.2 для смеси; это не измеренный фактический коэффициент.",
+          "project_source_ids": [
+            "s25",
+            "s60"
+          ],
+          "normative_source_ids": [
+            "s59"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "derived:parent"
+          ],
+          "topic": "Плановый разнос общего объема",
+          "state": "confirmed",
+          "explanation": "s60 связывает итог213,51м3 с полными строками съездов№1–8/ул.Пролетарская и столбцом0/31,5 h22см. Однородные строки50/52 имеют одинаковые единицы,свойства иКупл;105,84+107,67=213,51. В паре полный объем не повторяется. Физические объемы частей и площади работ не устанавливаются.",
+          "project_source_ids": [
+            "s25",
+            "s60"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "derived:rate"
+          ],
+          "topic": "Сметная поправка и расчет",
+          "state": "confirmed",
+          "explanation": "107,67×1,26=135,6642м3. Явно заданный запас на уплотнение смеси находится в применимом ориентировочном диапазоне СП78п10.2. Потери или их отсутствие этим коэффициентом не удостоверяются.",
+          "project_source_ids": [
+            "s25",
+            "s60"
+          ],
+          "normative_source_ids": [
+            "s59"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "topic": "Собственный предмет материала",
+          "state": "confirmed",
+          "explanation": "Проектные0/31,5,К90,М1,М800 связаны с нужным нижним основанием; полный объем и сбалансированный плановый разнос обеспечивают основание потребности с проверенной поправкой. Расход рабочей нормы не использован. Метод родителя и полный сметный расход с потерями имеют иной предмет.",
+          "project_source_ids": [
+            "s25",
+            "s60"
+          ],
+          "normative_source_ids": [
+            "s56",
+            "s57",
+            "s58",
+            "s59"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "quantity",
+            "unit",
+            "presence"
+          ],
+          "topic": "Материал и единица планового результата",
+          "state": "confirmed",
+          "explanation": "В ПД подтвержден полный объем213,51м3 нужной смеси в нижнем22см основании съездов.135,6642м3 — расчетный плановый результат второй строки послеКупл, а не отдельная цифра ПД; единица остается объемом. Площадь904,8м2 не подставляется вместо количества материала.",
+          "project_source_ids": [
+            "s25",
+            "s60"
+          ],
+          "normative_source_ids": [
+            "s59"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "workbook:formula"
+          ],
+          "topic": "Пересчет формулы",
+          "state": "confirmed",
+          "explanation": "107,67×1,26=135,6642; расчетное и заявленное значения совпадают.",
+          "project_source_ids": [
+            "s60"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "saved_unresolved_items": [
+        {
+          "state": "needs_facts",
+          "topic": "Подтверждённый параметр родительской работы: толщина",
+          "required": true,
+          "claim_ids": [
+            "geometry:thickness"
+          ],
+          "explanation": "Толщина подтверждена источниками ПД для работы №52. Технология работы, нормативная применимость и расход материала проверяются отдельно. Числовое основание не прошло проверку цитаты, OCR, единицы или конструкции; расхождение не доказано.",
+          "project_source_ids": [
+            "parent-51:geometry:1e73970d3f6d0fd22dcd5deb"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "numeric_cards": [
+        {
+          "id": "quantity",
+          "row": 74,
+          "role": "calculation",
+          "unit": "м3",
+          "label": "Расчётное количество распределённого материала",
+          "quote": "Основание | Щебеночно-песчаная смесь типа 0/31,5 мм М800 | h=0,22м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n213,51",
+          "state": "confirmed",
+          "reason": "Результат расчёта заявленного распределения полного проектного объёма; часть не является буквальным числом ПД. Площади и физические толщины отдельных рабочих операций этим не подтверждаются. Коэффициент проверяется отдельно.",
+          "found_unit": "м3",
+          "source_ids": [
+            "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+            "parent-51:geometry:1e73970d3f6d0fd22dcd5deb"
+          ],
+          "found_value": "135.6642",
+          "proof_limits": {
+            "stage_areas_verified": false,
+            "normative_rate_verified": false,
+            "stage_thicknesses_verified": false,
+            "coefficient_applicability_verified": false,
+            "individual_project_volumes_verified": false
+          },
+          "project_total": "213.51",
+          "quantity_role": "allocated_output",
+          "declared_value": "135.6642",
+          "source_anchors": [
+            {
+              "quote": "Основание | Щебеночно-песчаная смесь типа 0/31,5 мм М800 | h=0,22м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n213,51",
+              "rects": [
+                [
+                  0.522409142494571,
+                  0.5035651099995437,
+                  0.5972278146219653,
+                  0.525336524831603
+                ]
+              ],
+              "source_id": "agent:p90:cell:ec7409d407f6ce1c8d7b5b83"
+            },
+            {
+              "quote": "Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см",
+              "rects": [],
+              "source_id": "parent-51:geometry:1e73970d3f6d0fd22dcd5deb"
+            }
+          ]
+        },
+        {
+          "id": "calculation:52",
+          "row": 74,
+          "role": "calculation",
+          "unit": "м3",
+          "label": "Арифметика позиции №53",
+          "state": "confirmed",
+          "reason": "Формула пересчитана программно по сохранённым значениям ячеек.",
+          "expression": "=107.67*1.26",
+          "found_value": "135.6642",
+          "declared_value": "135.6642"
+        },
+        {
+          "id": "factor:52:107.67",
+          "row": 74,
+          "role": "calculation_declared_allocation",
+          "unit": "м3",
+          "label": "Заявленный объём распределения",
+          "quote": "Основание | Щебеночно-песчаная смесь типа 0/31,5 мм М800 | h=0,22м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n213,51",
+          "state": "confirmed",
+          "reason": "Плановая часть полного объёма ПД; сумма частей и структурная полнота пересобраны по исходным данным. Это не измеренный объём отдельного физического слоя и не проектная площадь работы.",
+          "found_unit": "м3",
+          "source_ids": [
+            "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+            "parent-51:geometry:1e73970d3f6d0fd22dcd5deb"
+          ],
+          "found_value": "107.67",
+          "proof_limits": {
+            "stage_areas_verified": false,
+            "normative_rate_verified": false,
+            "stage_thicknesses_verified": false,
+            "coefficient_applicability_verified": false,
+            "individual_project_volumes_verified": false
+          },
+          "project_total": "213.51",
+          "declared_value": "107.67",
+          "source_anchors": [
+            {
+              "quote": "Основание | Щебеночно-песчаная смесь типа 0/31,5 мм М800 | h=0,22м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n213,51",
+              "rects": [
+                [
+                  0.522409142494571,
+                  0.5035651099995437,
+                  0.5972278146219653,
+                  0.525336524831603
+                ]
+              ],
+              "source_id": "agent:p90:cell:ec7409d407f6ce1c8d7b5b83"
+            },
+            {
+              "quote": "Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см",
+              "rects": [],
+              "source_id": "parent-51:geometry:1e73970d3f6d0fd22dcd5deb"
+            }
+          ]
+        },
+        {
+          "id": "factor:52:1.26",
+          "row": 74,
+          "role": "coefficient",
+          "unit": "",
+          "label": "Коэффициент формулы 1.26 · позиция №53",
+          "quote": "10.2 Объем каменного материала в насыпном виде следует определять с учетом коэффициента запаса на\nуплотнение. Для песчано-гравийных (щебеночных) смесей и щебня фракций 31,5 - 63 и 63 - 90 мм марки по\nдробимости 800 и более коэффициент запаса материала на уплотнение следует ориентировочно принимать 1,25\n- 1,3, а для щебня марок по дробимости ниже 800  - 1,3  - 1,5. Коэффициент запаса шлака на уплотнение в\nзависимости от его плотности следует ориентировочно принимать 1,3 - 1,5.\n\n    Для определения фактического коэффициента запаса на уплотнение и необходимого числа проходов катков\nдля достижения требуемой плотности слоя следует проводить пробную  укатку. Допускается определение\nфактического коэффициента относительного уплотнения в ходе производства работ.\n(в ред. Изменения N 2, утв. Приказом Минстроя России от 19.10.2021 N 762/пр)",
+          "state": "confirmed",
+          "reason": "Сметное значение из примечания входит в применимый ориентировочный диапазон СП78 п.10.2: 1.25–1.3. Фактический коэффициент на стройке не утверждается.",
+          "source_ids": [
+            "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000"
+          ],
+          "declared_value": "1.26",
+          "source_anchors": [
+            {
+              "quote": "10.2 Объем каменного материала в насыпном виде следует определять с учетом коэффициента запаса на\nуплотнение. Для песчано-гравийных (щебеночных) смесей и щебня фракций 31,5 - 63 и 63 - 90 мм марки по\nдробимости 800 и более коэффициент запаса материала на уплотнение следует ориентировочно принимать 1,25\n- 1,3, а для щебня марок по дробимости ниже 800  - 1,3  - 1,5. Коэффициент запаса шлака на уплотнение в\nзависимости от его плотности следует ориентировочно принимать 1,3 - 1,5.\n\n    Для определения фактического коэффициента запаса на уплотнение и необходимого числа проходов катков\nдля достижения требуемой плотности слоя следует проводить пробную  укатку. Допускается определение\nфактического коэффициента относительного уплотнения в ходе производства работ.\n(в ред. Изменения N 2, утв. Приказом Минстроя России от 19.10.2021 N 762/пр)",
+              "rects": [],
+              "source_id": "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000"
+            }
+          ]
+        }
+      ],
+      "proof": {
+        "kind": "planned_material_allocation_v1",
+        "unit": "м3",
+        "state": "verified_planned_allocation",
+        "sha256": "cb8ee6439a11311a4e958584994bf96902f301781e5d6f7a427cc09f1de13883",
+        "operands": [
+          {
+            "unit": "м3",
+            "binding": {
+              "basis": "nearest_preceding_work_in_explicit_material_block",
+              "sheet": "Дорожная одежда",
+              "sections": [
+                {
+                  "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                  "address": "A70"
+                }
+              ],
+              "work_row": 71,
+              "header_row": 15,
+              "work_index": 49,
+              "material_row": 72,
+              "material_index": 50,
+              "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+            },
+            "formula": "(105,84)*1,26",
+            "work_row": 71,
+            "work_index": 49,
+            "coefficient": "1.26",
+            "material_row": 72,
+            "material_index": 50,
+            "declared_volume": "105.84",
+            "calculated_material_volume": "133.3584"
+          },
+          {
+            "unit": "м3",
+            "binding": {
+              "basis": "nearest_preceding_work_in_explicit_material_block",
+              "sheet": "Дорожная одежда",
+              "sections": [
+                {
+                  "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                  "address": "A70"
+                }
+              ],
+              "work_row": 73,
+              "header_row": 15,
+              "work_index": 51,
+              "material_row": 74,
+              "material_index": 52,
+              "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+            },
+            "formula": "107,67*1,26",
+            "work_row": 73,
+            "work_index": 51,
+            "coefficient": "1.26",
+            "material_row": 74,
+            "material_index": 52,
+            "declared_volume": "107.67",
+            "calculated_material_volume": "135.6642"
+          }
+        ],
+        "scope_rows": [
+          {
+            "row": 71,
+            "index": 49
+          },
+          {
+            "row": 72,
+            "index": 50
+          },
+          {
+            "row": 73,
+            "index": 51
+          },
+          {
+            "row": 74,
+            "index": 52
+          },
+          {
+            "row": 75,
+            "index": 53
+          },
+          {
+            "row": 76,
+            "index": 54
+          },
+          {
+            "row": 77,
+            "index": 55
+          },
+          {
+            "row": 78,
+            "index": 56
+          },
+          {
+            "row": 79,
+            "index": 57
+          },
+          {
+            "row": 80,
+            "index": 58
+          },
+          {
+            "row": 81,
+            "index": 59
+          },
+          {
+            "row": 82,
+            "index": 60
+          },
+          {
+            "row": 83,
+            "index": 61
+          },
+          {
+            "row": 84,
+            "index": 62
+          },
+          {
+            "row": 85,
+            "index": 63
+          },
+          {
+            "row": 86,
+            "index": 64
+          },
+          {
+            "row": 87,
+            "index": 65
+          },
+          {
+            "row": 88,
+            "index": 66
+          },
+          {
+            "row": 89,
+            "index": 67
+          },
+          {
+            "row": 90,
+            "index": 68
+          },
+          {
+            "row": 91,
+            "index": 69
+          },
+          {
+            "row": 92,
+            "index": 70
+          },
+          {
+            "row": 93,
+            "index": 71
+          },
+          {
+            "row": 94,
+            "index": 72
+          },
+          {
+            "row": 95,
+            "index": 73
+          },
+          {
+            "row": 96,
+            "index": 74
+          },
+          {
+            "row": 97,
+            "index": 75
+          }
+        ],
+        "work_indices": [
+          49,
+          51
+        ],
+        "project_basis": {
+          "volume": {
+            "unit": "м3",
+            "quote": "Единица физического столбца: м3\nВсего:\n213,51",
+            "value": "213.51",
+            "operation": "direct",
+            "parameter": "quantity",
+            "source_id": "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+            "conditions": [],
+            "scope_quote": "Основание | Щебеночно-песчаная смесь типа 0/31,5 мм М800 | h=0,22м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n213,51",
+            "scope_state": "verified",
+            "scope_relation": "technological_part",
+            "operand_source_ids": []
+          },
+          "construction": {
+            "unit": "см",
+            "quote": "h=22 см",
+            "value": "22",
+            "operation": "direct",
+            "parameter": "thickness",
+            "source_id": "parent-51:geometry:1e73970d3f6d0fd22dcd5deb",
+            "conditions": [],
+            "scope_quote": "Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см",
+            "scope_state": "verified",
+            "scope_relation": "technological_part",
+            "operand_source_ids": []
+          }
+        },
+        "quantity_role": "planned_homogeneous_material_allocation",
+        "source_sha256": {
+          "agent:p90:cell:ec7409d407f6ce1c8d7b5b83": "656e0a244913adbfb8888fdd2b840ca75b7126b93e49d7c7d26d78ebabb4494f",
+          "parent-51:geometry:1e73970d3f6d0fd22dcd5deb": "8c9240677aac23bb907d8649cd016d39b1789d10aa88840831ecc1b6596ded38"
+        },
+        "position_index": 52,
+        "project_volume": "213.51",
+        "source_anchors": [
+          {
+            "quote": "Основание | Щебеночно-песчаная смесь типа 0/31,5 мм М800 | h=0,22м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n213,51",
+            "rects": [
+              [
+                0.522409142494571,
+                0.5035651099995437,
+                0.5972278146219653,
+                0.525336524831603
+              ]
+            ],
+            "source_id": "agent:p90:cell:ec7409d407f6ce1c8d7b5b83"
+          },
+          {
+            "quote": "Нижний слой основания — Щебёночно-песчаная смесь для оснований фр. 0/31,5 по\nГОСТ Р 70458-2022, категории K90, марке M1, h=22 см",
+            "rects": [],
+            "source_id": "parent-51:geometry:1e73970d3f6d0fd22dcd5deb"
+          }
+        ],
+        "quantity_shared": false,
+        "root_source_ids": [
+          "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+          "parent-51:geometry:1e73970d3f6d0fd22dcd5deb"
+        ],
+        "workbook_sha256": "bdce994137db67ae89072f5082ab51a3d77d08c152a2457059b33d32aef847b0",
+        "material_indices": [
+          50,
+          52
+        ],
+        "project_version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+        "declared_volume_sum": "213.51",
+        "table_scope_context": {
+          "caption": "Ведомость работ по устройству дорожной одежды",
+          "version": "independent_visual_row_labels_v1",
+          "total_row": 14,
+          "provenance": {
+            "origin": "ocr",
+            "quality": "usable",
+            "table_sha256": "ed2eaaf035a190dd81ef3e17b5eb3b1248216f74ca900a52b657ef50731ebcf9",
+            "render_sha256": "99d03119e9a9be42fb1fc6ce53b9046d97ebd880ce7ddaa57bf7bf3f0d592e61",
+            "review_sha256": [
+              "0a75aae6dd42f4ab1aa53c10a872d8a2f75530897020fb6f2fcb3bc4fa46858b",
+              "a18fa60d36cc06bd918c1271975370bf2983afca83c00f52654f562325edbdf8"
+            ],
+            "document_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+            "extraction_sha256": "092229c4218b7a9128d694e78ce4185c8e2485d6244378595dc3abe219d51104",
+            "row_labels_sha256": "51bc93674a84214c746c6a40d00d8aa5589c6d61e500592121f9b62406083149",
+            "actual_cells_sha256": "ed23a05f744d97d20eaa0766bc5c4a44dc03cc7aaf9eb11501c911c7991d4d58",
+            "header_cells_sha256": "f3dc7c3d721cd14c5c1719acf59084faaa6ff3b6ac0c97ec4e8bc6ac11c1317e"
+          },
+          "row_labels": [
+            {
+              "row": 5,
+              "bbox": [
+                397.39556884765625,
+                18.239999771118164,
+                410.11968994140625,
+                109.68000030517578
+              ],
+              "text": "Съезд №1",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell32",
+              "colspan": 2
+            },
+            {
+              "row": 6,
+              "bbox": [
+                384.6755676269531,
+                18.239999771118164,
+                397.39556884765625,
+                109.68000030517578
+              ],
+              "text": "ул. Пролетарская",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell46",
+              "colspan": 2
+            },
+            {
+              "row": 7,
+              "bbox": [
+                371.95556640625,
+                18.239999771118164,
+                384.6755676269531,
+                109.68000030517578
+              ],
+              "text": "Съезд №2",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell60",
+              "colspan": 2
+            },
+            {
+              "row": 8,
+              "bbox": [
+                359.21844482421875,
+                18.239999771118164,
+                371.95556640625,
+                109.68000030517578
+              ],
+              "text": "Съезд №3",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell74",
+              "colspan": 2
+            },
+            {
+              "row": 9,
+              "bbox": [
+                346.4212951660156,
+                18.239999771118164,
+                359.21844482421875,
+                109.68000030517578
+              ],
+              "text": "Съезд №4",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell88",
+              "colspan": 2
+            },
+            {
+              "row": 10,
+              "bbox": [
+                333.6755676269531,
+                18.239999771118164,
+                346.4212951660156,
+                109.68000030517578
+              ],
+              "text": "Съезд №5",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell102",
+              "colspan": 2
+            },
+            {
+              "row": 11,
+              "bbox": [
+                320.95556640625,
+                18.239999771118164,
+                333.6755676269531,
+                109.68000030517578
+              ],
+              "text": "Съезд №6",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell116",
+              "colspan": 2
+            },
+            {
+              "row": 12,
+              "bbox": [
+                308.2355651855469,
+                18.239999771118164,
+                320.95556640625,
+                109.68000030517578
+              ],
+              "text": "Съезд № 7",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell130",
+              "colspan": 2
+            },
+            {
+              "row": 13,
+              "bbox": [
+                295.51556396484375,
+                18.239999771118164,
+                308.2355651855469,
+                109.68000030517578
+              ],
+              "text": "Съезд №8",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell144",
+              "colspan": 2
+            }
+          ],
+          "total_cell": {
+            "row": 14,
+            "bbox": [
+              282.5555725097656,
+              439.8109130859375,
+              295.51556396484375,
+              502.79998779296875
+            ],
+            "text": "213,51",
+            "column": 9,
+            "cell_id": "ruled-cf73d43063cffeaf:cell166",
+            "colspan": 1
+          },
+          "header_cells": [
+            {
+              "row": 1,
+              "bbox": [
+                488.95556640625,
+                292.0799865722656,
+                501.6755676269531,
+                502.79998779296875
+              ],
+              "text": "Основание",
+              "column": 6,
+              "cell_id": "ruled-cf73d43063cffeaf:cell3",
+              "colspan": 4
+            },
+            {
+              "row": 2,
+              "bbox": [
+                448.39556884765625,
+                394.1907653808594,
+                488.95556640625,
+                502.79998779296875
+              ],
+              "text": "Щебеночно-песчаная смесь типа 0/31,5 мм М800",
+              "column": 8,
+              "cell_id": "ruled-cf73d43063cffeaf:cell9",
+              "colspan": 2
+            },
+            {
+              "row": 3,
+              "bbox": [
+                435.6755676269531,
+                394.1907653808594,
+                448.39556884765625,
+                502.79998779296875
+              ],
+              "text": "h=0,22м",
+              "column": 8,
+              "cell_id": "ruled-cf73d43063cffeaf:cell15",
+              "colspan": 2
+            },
+            {
+              "row": 4,
+              "bbox": [
+                410.11968994140625,
+                439.8109130859375,
+                435.6755676269531,
+                502.79998779296875
+              ],
+              "text": "Объем, м³",
+              "column": 9,
+              "cell_id": "ruled-cf73d43063cffeaf:cell27",
+              "colspan": 1
+            }
+          ],
+          "body_first_row": 5,
+          "source_binding": {
+            "row": 14,
+            "page": 90,
+            "column": 9,
+            "cell_id": "ruled-cf73d43063cffeaf:cell166",
+            "table_id": "ruled-cf73d43063cffeaf",
+            "source_id": "agent:p90:cell:ec7409d407f6ce1c8d7b5b83",
+            "header_ids": [
+              "ruled-cf73d43063cffeaf:cell3",
+              "ruled-cf73d43063cffeaf:cell9",
+              "ruled-cf73d43063cffeaf:cell15",
+              "ruled-cf73d43063cffeaf:cell27"
+            ],
+            "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+          }
+        },
+        "stage_areas_verified": false,
+        "source_document_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+        "normative_rate_verified": false,
+        "expected_value_used_for_selection": false,
+        "coefficient_applicability_verified": false,
+        "individual_project_volumes_verified": false
+      },
+      "checks": {
+        "proof_digest_valid": true,
+        "root_source_fingerprints_valid": true,
+        "live_rebuild_valid": true,
+        "full_vor_inventory_positions": 103,
+        "sum_before_coefficient": "213.51",
+        "all_formula_products_equal": true
+      },
+      "classification": {
+        "specification": "confirmed_as_declared_project_specification",
+        "coefficient": "confirmed_as_indicative_planned_allowance_only",
+        "quantity": "confirmed_as_conserved_planned_allocation_only",
+        "arithmetic": "confirmed",
+        "normative_applicability": "confirmed_only_for_own_planned_material_basis",
+        "measured_individual_volume": "needs_facts_not_claimed",
+        "operation_area_thickness": "needs_facts_not_certified",
+        "actual_site_compaction": "needs_facts_not_claimed",
+        "gross_losses": "needs_facts_not_claimed"
+      }
+    },
+    {
+      "index": 54,
+      "review_id": "62c3429b-5199-47b9-8111-a50396a5c578",
+      "saved_review_state": "needs_facts",
+      "raw_answer_sha256": "95351ef699fca1fb034cb32e70825a407a52645dc89024750f9878cdf0bcfb39",
+      "saved_result_sha256": "33e36cf3898637818fcff48681b7895d306c61ad322fbe6ab37b39699ba2d45c",
+      "raw_model_items": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:25"
+          ],
+          "topic": "М800 и проектная спецификация",
+          "state": "confirmed",
+          "explanation": "М800 прямо читается в проверенном столбце0/63 h20см. К90/М1 поГОСТ70458п5.2 характеризуют гранулометрию смеси; дробимость компонента по ссылке5.9 проверяетсяГОСТ32703п5.6. М800 не подменяет эти независимые характеристики.",
+          "project_source_ids": [
+            "s25",
+            "s53"
+          ],
+          "normative_source_ids": [
+            "s49",
+            "s50",
+            "s51"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:comment:condition"
+          ],
+          "topic": "Проектные требования и запас",
+          "state": "confirmed",
+          "explanation": "Нативная конструкция типаIII съездов задает верхнее основание0/63 поГОСТ70458 К90/М1 h20см. Купл1,26 относится к запасу на уплотнение и входит в диапазон1,25–1,3 СП78п10.2. Фактическая пробная укатка не заявляется.",
+          "project_source_ids": [
+            "s25",
+            "s53"
+          ],
+          "normative_source_ids": [
+            "s52"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "derived:parent"
+          ],
+          "topic": "Проектный объем и плановый разнос",
+          "state": "confirmed",
+          "explanation": "ВОР прямо связывает53/55 как два слоя по10см;54/56 — однородная смесь с одинаковымКупл. ПД типаIII задает полные20см,аs53 —188,74м3 в столбце0/63 с полными строками съездов.91,17+97,57=188,74: подтвержден плановый разнос целого,не физические объемы частей или площади.",
+          "project_source_ids": [
+            "s25",
+            "s53"
+          ],
+          "normative_source_ids": []
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "derived:rate"
+          ],
+          "topic": "Назначение поправки и расчет",
+          "state": "confirmed",
+          "explanation": "91,17×1,26=114,8742м3. Значение1,26 задано сметчиком какКупл и допускается ориентировочным диапазоном СП78п10.2 для смеси. Это перевод плановой потребности в насыпной объем; учет всех потерь или нулевые потери не утверждаются.",
+          "project_source_ids": [
+            "s25",
+            "s53"
+          ],
+          "normative_source_ids": [
+            "s52"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "topic": "Основание самостоятельного материала",
+          "state": "confirmed",
+          "explanation": "Установлены нужное верхнее основание,0/63,К90/М1,М800,полный проектный объем и сохранение его в плановой паре с допустимой поправкой. Количество не взято из расхода рабочей нормы. Ее машина/ветвь для родителя и физические объемы частей не удостоверяются этим выводом.",
+          "project_source_ids": [
+            "s25",
+            "s53"
+          ],
+          "normative_source_ids": [
+            "s49",
+            "s50",
+            "s51",
+            "s52"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "presence",
+            "quantity",
+            "unit"
+          ],
+          "topic": "Плановая потребность в м3",
+          "state": "confirmed",
+          "explanation": "Общий проектный объем188,74м3 подтвержден своим столбцом0/63 h20см. Материал данной строки составляет расчетные114,8742м3 после1,26 в однородной плановой паре. Результат не назван прямым числом ПД или физическим объемом отдельного10см слоя.",
+          "project_source_ids": [
+            "s25",
+            "s53"
+          ],
+          "normative_source_ids": [
+            "s52"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "workbook:formula"
+          ],
+          "topic": "Арифметическая проверка",
+          "state": "confirmed",
+          "explanation": "91,17×1,26=114,8742; заявленное значение совпадает с пересчетом.",
+          "project_source_ids": [
+            "s53"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "saved_unresolved_items": [
+        {
+          "state": "needs_facts",
+          "topic": "Подтверждённый параметр родительской работы: толщина",
+          "required": true,
+          "claim_ids": [
+            "geometry:thickness"
+          ],
+          "explanation": "Толщина подтверждена источниками ПД для работы №54. Технология работы, нормативная применимость и расход материала проверяются отдельно. Числовое основание не прошло проверку цитаты, OCR, единицы или конструкции; расхождение не доказано.",
+          "project_source_ids": [
+            "parent-53:geometry:15e3a1489c17148a9dc7c924"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "numeric_cards": [
+        {
+          "id": "quantity",
+          "row": 76,
+          "role": "calculation",
+          "unit": "м3",
+          "label": "Расчётное количество распределённого материала",
+          "quote": "Основание | Щебеночно-песчаная смесь типа 0/63 мм М800 | h=0,20м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n188,74",
+          "state": "confirmed",
+          "reason": "Результат расчёта заявленного распределения полного проектного объёма; часть не является буквальным числом ПД. Площади и физические толщины отдельных рабочих операций этим не подтверждаются. Коэффициент проверяется отдельно.",
+          "found_unit": "м3",
+          "source_ids": [
+            "agent:p90:cell:8ac4da5095820fee014ce195",
+            "parent-53:geometry:15e3a1489c17148a9dc7c924"
+          ],
+          "found_value": "114.8742",
+          "proof_limits": {
+            "stage_areas_verified": false,
+            "normative_rate_verified": false,
+            "stage_thicknesses_verified": false,
+            "coefficient_applicability_verified": false,
+            "individual_project_volumes_verified": false
+          },
+          "project_total": "188.74",
+          "quantity_role": "allocated_output",
+          "declared_value": "114.8742",
+          "source_anchors": [
+            {
+              "quote": "Основание | Щебеночно-песчаная смесь типа 0/63 мм М800 | h=0,20м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n188,74",
+              "rects": [
+                [
+                  0.40125313897349785,
+                  0.5035651099995437,
+                  0.46822135057311687,
+                  0.525336524831603
+                ]
+              ],
+              "source_id": "agent:p90:cell:8ac4da5095820fee014ce195"
+            },
+            {
+              "quote": "Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см",
+              "rects": [],
+              "source_id": "parent-53:geometry:15e3a1489c17148a9dc7c924"
+            }
+          ]
+        },
+        {
+          "id": "calculation:54",
+          "row": 76,
+          "role": "calculation",
+          "unit": "м3",
+          "label": "Арифметика позиции №55",
+          "state": "confirmed",
+          "reason": "Формула пересчитана программно по сохранённым значениям ячеек.",
+          "expression": "=91.17*1.26",
+          "found_value": "114.8742",
+          "declared_value": "114.8742"
+        },
+        {
+          "id": "factor:54:91.17",
+          "row": 76,
+          "role": "calculation_declared_allocation",
+          "unit": "м3",
+          "label": "Заявленный объём распределения",
+          "quote": "Основание | Щебеночно-песчаная смесь типа 0/63 мм М800 | h=0,20м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n188,74",
+          "state": "confirmed",
+          "reason": "Плановая часть полного объёма ПД; сумма частей и структурная полнота пересобраны по исходным данным. Это не измеренный объём отдельного физического слоя и не проектная площадь работы.",
+          "found_unit": "м3",
+          "source_ids": [
+            "agent:p90:cell:8ac4da5095820fee014ce195",
+            "parent-53:geometry:15e3a1489c17148a9dc7c924"
+          ],
+          "found_value": "91.17",
+          "proof_limits": {
+            "stage_areas_verified": false,
+            "normative_rate_verified": false,
+            "stage_thicknesses_verified": false,
+            "coefficient_applicability_verified": false,
+            "individual_project_volumes_verified": false
+          },
+          "project_total": "188.74",
+          "declared_value": "91.17",
+          "source_anchors": [
+            {
+              "quote": "Основание | Щебеночно-песчаная смесь типа 0/63 мм М800 | h=0,20м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n188,74",
+              "rects": [
+                [
+                  0.40125313897349785,
+                  0.5035651099995437,
+                  0.46822135057311687,
+                  0.525336524831603
+                ]
+              ],
+              "source_id": "agent:p90:cell:8ac4da5095820fee014ce195"
+            },
+            {
+              "quote": "Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см",
+              "rects": [],
+              "source_id": "parent-53:geometry:15e3a1489c17148a9dc7c924"
+            }
+          ]
+        },
+        {
+          "id": "factor:54:1.26",
+          "row": 76,
+          "role": "coefficient",
+          "unit": "",
+          "label": "Коэффициент формулы 1.26 · позиция №55",
+          "quote": "10.2 Объем каменного материала в насыпном виде следует определять с учетом коэффициента запаса на\nуплотнение. Для песчано-гравийных (щебеночных) смесей и щебня фракций 31,5 - 63 и 63 - 90 мм марки по\nдробимости 800 и более коэффициент запаса материала на уплотнение следует ориентировочно принимать 1,25\n- 1,3, а для щебня марок по дробимости ниже 800  - 1,3  - 1,5. Коэффициент запаса шлака на уплотнение в\nзависимости от его плотности следует ориентировочно принимать 1,3 - 1,5.\n\n    Для определения фактического коэффициента запаса на уплотнение и необходимого числа проходов катков\nдля достижения требуемой плотности слоя следует проводить пробную  укатку. Допускается определение\nфактического коэффициента относительного уплотнения в ходе производства работ.\n(в ред. Изменения N 2, утв. Приказом Минстроя России от 19.10.2021 N 762/пр)",
+          "state": "confirmed",
+          "reason": "Сметное значение из примечания входит в применимый ориентировочный диапазон СП78 п.10.2: 1.25–1.3. Фактический коэффициент на стройке не утверждается.",
+          "source_ids": [
+            "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000"
+          ],
+          "declared_value": "1.26",
+          "source_anchors": [
+            {
+              "quote": "10.2 Объем каменного материала в насыпном виде следует определять с учетом коэффициента запаса на\nуплотнение. Для песчано-гравийных (щебеночных) смесей и щебня фракций 31,5 - 63 и 63 - 90 мм марки по\nдробимости 800 и более коэффициент запаса материала на уплотнение следует ориентировочно принимать 1,25\n- 1,3, а для щебня марок по дробимости ниже 800  - 1,3  - 1,5. Коэффициент запаса шлака на уплотнение в\nзависимости от его плотности следует ориентировочно принимать 1,3 - 1,5.\n\n    Для определения фактического коэффициента запаса на уплотнение и необходимого числа проходов катков\nдля достижения требуемой плотности слоя следует проводить пробную  укатку. Допускается определение\nфактического коэффициента относительного уплотнения в ходе производства работ.\n(в ред. Изменения N 2, утв. Приказом Минстроя России от 19.10.2021 N 762/пр)",
+              "rects": [],
+              "source_id": "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000"
+            }
+          ]
+        }
+      ],
+      "proof": {
+        "kind": "planned_material_allocation_v1",
+        "unit": "м3",
+        "state": "verified_planned_allocation",
+        "sha256": "fbba563466ce2a03452b9c80f170bf36c1c9bfeed53bba94a06cfbad977ab64b",
+        "operands": [
+          {
+            "unit": "м3",
+            "binding": {
+              "basis": "nearest_preceding_work_in_explicit_material_block",
+              "sheet": "Дорожная одежда",
+              "sections": [
+                {
+                  "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                  "address": "A70"
+                }
+              ],
+              "work_row": 75,
+              "header_row": 15,
+              "work_index": 53,
+              "material_row": 76,
+              "material_index": 54,
+              "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+            },
+            "formula": "91,17*1,26",
+            "work_row": 75,
+            "work_index": 53,
+            "coefficient": "1.26",
+            "material_row": 76,
+            "material_index": 54,
+            "declared_volume": "91.17",
+            "calculated_material_volume": "114.8742"
+          },
+          {
+            "unit": "м3",
+            "binding": {
+              "basis": "nearest_preceding_work_in_explicit_material_block",
+              "sheet": "Дорожная одежда",
+              "sections": [
+                {
+                  "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                  "address": "A70"
+                }
+              ],
+              "work_row": 77,
+              "header_row": 15,
+              "work_index": 55,
+              "material_row": 78,
+              "material_index": 56,
+              "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+            },
+            "formula": "97,57*1,26",
+            "work_row": 77,
+            "work_index": 55,
+            "coefficient": "1.26",
+            "material_row": 78,
+            "material_index": 56,
+            "declared_volume": "97.57",
+            "calculated_material_volume": "122.9382"
+          }
+        ],
+        "scope_rows": [
+          {
+            "row": 71,
+            "index": 49
+          },
+          {
+            "row": 72,
+            "index": 50
+          },
+          {
+            "row": 73,
+            "index": 51
+          },
+          {
+            "row": 74,
+            "index": 52
+          },
+          {
+            "row": 75,
+            "index": 53
+          },
+          {
+            "row": 76,
+            "index": 54
+          },
+          {
+            "row": 77,
+            "index": 55
+          },
+          {
+            "row": 78,
+            "index": 56
+          },
+          {
+            "row": 79,
+            "index": 57
+          },
+          {
+            "row": 80,
+            "index": 58
+          },
+          {
+            "row": 81,
+            "index": 59
+          },
+          {
+            "row": 82,
+            "index": 60
+          },
+          {
+            "row": 83,
+            "index": 61
+          },
+          {
+            "row": 84,
+            "index": 62
+          },
+          {
+            "row": 85,
+            "index": 63
+          },
+          {
+            "row": 86,
+            "index": 64
+          },
+          {
+            "row": 87,
+            "index": 65
+          },
+          {
+            "row": 88,
+            "index": 66
+          },
+          {
+            "row": 89,
+            "index": 67
+          },
+          {
+            "row": 90,
+            "index": 68
+          },
+          {
+            "row": 91,
+            "index": 69
+          },
+          {
+            "row": 92,
+            "index": 70
+          },
+          {
+            "row": 93,
+            "index": 71
+          },
+          {
+            "row": 94,
+            "index": 72
+          },
+          {
+            "row": 95,
+            "index": 73
+          },
+          {
+            "row": 96,
+            "index": 74
+          },
+          {
+            "row": 97,
+            "index": 75
+          }
+        ],
+        "work_indices": [
+          53,
+          55
+        ],
+        "project_basis": {
+          "volume": {
+            "unit": "м3",
+            "quote": "Единица физического столбца: м3\nВсего:\n188,74",
+            "value": "188.74",
+            "operation": "direct",
+            "parameter": "quantity",
+            "source_id": "agent:p90:cell:8ac4da5095820fee014ce195",
+            "conditions": [],
+            "scope_quote": "Основание | Щебеночно-песчаная смесь типа 0/63 мм М800 | h=0,20м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n188,74",
+            "scope_state": "verified",
+            "scope_relation": "technological_part",
+            "operand_source_ids": []
+          },
+          "construction": {
+            "unit": "см",
+            "quote": "h=20 см",
+            "value": "20",
+            "operation": "direct",
+            "parameter": "thickness",
+            "source_id": "parent-53:geometry:15e3a1489c17148a9dc7c924",
+            "conditions": [],
+            "scope_quote": "Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см",
+            "scope_state": "verified",
+            "scope_relation": "technological_part",
+            "operand_source_ids": []
+          }
+        },
+        "quantity_role": "planned_homogeneous_material_allocation",
+        "source_sha256": {
+          "agent:p90:cell:8ac4da5095820fee014ce195": "97e3b97e8a1a9e4228926aa414687c3a24cf63822d4b86142b841beab0926e7b",
+          "parent-53:geometry:15e3a1489c17148a9dc7c924": "2b54b205b0e47800cb2059f964ef2a2def7c31b193acde8fe5d6c9601d1eb23c"
+        },
+        "position_index": 54,
+        "project_volume": "188.74",
+        "source_anchors": [
+          {
+            "quote": "Основание | Щебеночно-песчаная смесь типа 0/63 мм М800 | h=0,20м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n188,74",
+            "rects": [
+              [
+                0.40125313897349785,
+                0.5035651099995437,
+                0.46822135057311687,
+                0.525336524831603
+              ]
+            ],
+            "source_id": "agent:p90:cell:8ac4da5095820fee014ce195"
+          },
+          {
+            "quote": "Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см",
+            "rects": [],
+            "source_id": "parent-53:geometry:15e3a1489c17148a9dc7c924"
+          }
+        ],
+        "quantity_shared": false,
+        "root_source_ids": [
+          "agent:p90:cell:8ac4da5095820fee014ce195",
+          "parent-53:geometry:15e3a1489c17148a9dc7c924"
+        ],
+        "workbook_sha256": "bdce994137db67ae89072f5082ab51a3d77d08c152a2457059b33d32aef847b0",
+        "material_indices": [
+          54,
+          56
+        ],
+        "project_version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+        "declared_volume_sum": "188.74",
+        "table_scope_context": {
+          "caption": "Ведомость работ по устройству дорожной одежды",
+          "version": "independent_visual_row_labels_v1",
+          "total_row": 14,
+          "provenance": {
+            "origin": "ocr",
+            "quality": "usable",
+            "table_sha256": "ed2eaaf035a190dd81ef3e17b5eb3b1248216f74ca900a52b657ef50731ebcf9",
+            "render_sha256": "99d03119e9a9be42fb1fc6ce53b9046d97ebd880ce7ddaa57bf7bf3f0d592e61",
+            "review_sha256": [
+              "0a75aae6dd42f4ab1aa53c10a872d8a2f75530897020fb6f2fcb3bc4fa46858b",
+              "a18fa60d36cc06bd918c1271975370bf2983afca83c00f52654f562325edbdf8"
+            ],
+            "document_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+            "extraction_sha256": "092229c4218b7a9128d694e78ce4185c8e2485d6244378595dc3abe219d51104",
+            "row_labels_sha256": "51bc93674a84214c746c6a40d00d8aa5589c6d61e500592121f9b62406083149",
+            "actual_cells_sha256": "ed23a05f744d97d20eaa0766bc5c4a44dc03cc7aaf9eb11501c911c7991d4d58",
+            "header_cells_sha256": "9133dce3f55a09590a4fb438f52a796b53d24c180823df206829f6411681ad1b"
+          },
+          "row_labels": [
+            {
+              "row": 5,
+              "bbox": [
+                397.39556884765625,
+                18.239999771118164,
+                410.11968994140625,
+                109.68000030517578
+              ],
+              "text": "Съезд №1",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell32",
+              "colspan": 2
+            },
+            {
+              "row": 6,
+              "bbox": [
+                384.6755676269531,
+                18.239999771118164,
+                397.39556884765625,
+                109.68000030517578
+              ],
+              "text": "ул. Пролетарская",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell46",
+              "colspan": 2
+            },
+            {
+              "row": 7,
+              "bbox": [
+                371.95556640625,
+                18.239999771118164,
+                384.6755676269531,
+                109.68000030517578
+              ],
+              "text": "Съезд №2",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell60",
+              "colspan": 2
+            },
+            {
+              "row": 8,
+              "bbox": [
+                359.21844482421875,
+                18.239999771118164,
+                371.95556640625,
+                109.68000030517578
+              ],
+              "text": "Съезд №3",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell74",
+              "colspan": 2
+            },
+            {
+              "row": 9,
+              "bbox": [
+                346.4212951660156,
+                18.239999771118164,
+                359.21844482421875,
+                109.68000030517578
+              ],
+              "text": "Съезд №4",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell88",
+              "colspan": 2
+            },
+            {
+              "row": 10,
+              "bbox": [
+                333.6755676269531,
+                18.239999771118164,
+                346.4212951660156,
+                109.68000030517578
+              ],
+              "text": "Съезд №5",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell102",
+              "colspan": 2
+            },
+            {
+              "row": 11,
+              "bbox": [
+                320.95556640625,
+                18.239999771118164,
+                333.6755676269531,
+                109.68000030517578
+              ],
+              "text": "Съезд №6",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell116",
+              "colspan": 2
+            },
+            {
+              "row": 12,
+              "bbox": [
+                308.2355651855469,
+                18.239999771118164,
+                320.95556640625,
+                109.68000030517578
+              ],
+              "text": "Съезд № 7",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell130",
+              "colspan": 2
+            },
+            {
+              "row": 13,
+              "bbox": [
+                295.51556396484375,
+                18.239999771118164,
+                308.2355651855469,
+                109.68000030517578
+              ],
+              "text": "Съезд №8",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell144",
+              "colspan": 2
+            }
+          ],
+          "total_cell": {
+            "row": 14,
+            "bbox": [
+              282.5555725097656,
+              337.8109130859375,
+              295.51556396484375,
+              394.1907653808594
+            ],
+            "text": "188,74",
+            "column": 7,
+            "cell_id": "ruled-cf73d43063cffeaf:cell164",
+            "colspan": 1
+          },
+          "header_cells": [
+            {
+              "row": 1,
+              "bbox": [
+                488.95556640625,
+                292.0799865722656,
+                501.6755676269531,
+                502.79998779296875
+              ],
+              "text": "Основание",
+              "column": 6,
+              "cell_id": "ruled-cf73d43063cffeaf:cell3",
+              "colspan": 4
+            },
+            {
+              "row": 2,
+              "bbox": [
+                448.39556884765625,
+                292.0799865722656,
+                488.95556640625,
+                394.1907653808594
+              ],
+              "text": "Щебеночно-песчаная смесь типа 0/63 мм М800",
+              "column": 6,
+              "cell_id": "ruled-cf73d43063cffeaf:cell8",
+              "colspan": 2
+            },
+            {
+              "row": 3,
+              "bbox": [
+                435.6755676269531,
+                292.0799865722656,
+                448.39556884765625,
+                394.1907653808594
+              ],
+              "text": "h=0,20м",
+              "column": 6,
+              "cell_id": "ruled-cf73d43063cffeaf:cell14",
+              "colspan": 2
+            },
+            {
+              "row": 4,
+              "bbox": [
+                410.11968994140625,
+                337.8109130859375,
+                435.6755676269531,
+                394.1907653808594
+              ],
+              "text": "Объем, м³",
+              "column": 7,
+              "cell_id": "ruled-cf73d43063cffeaf:cell25",
+              "colspan": 1
+            }
+          ],
+          "body_first_row": 5,
+          "source_binding": {
+            "row": 14,
+            "page": 90,
+            "column": 7,
+            "cell_id": "ruled-cf73d43063cffeaf:cell164",
+            "table_id": "ruled-cf73d43063cffeaf",
+            "source_id": "agent:p90:cell:8ac4da5095820fee014ce195",
+            "header_ids": [
+              "ruled-cf73d43063cffeaf:cell3",
+              "ruled-cf73d43063cffeaf:cell8",
+              "ruled-cf73d43063cffeaf:cell14",
+              "ruled-cf73d43063cffeaf:cell25"
+            ],
+            "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+          }
+        },
+        "stage_areas_verified": false,
+        "source_document_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+        "normative_rate_verified": false,
+        "expected_value_used_for_selection": false,
+        "coefficient_applicability_verified": false,
+        "individual_project_volumes_verified": false
+      },
+      "checks": {
+        "proof_digest_valid": true,
+        "root_source_fingerprints_valid": true,
+        "live_rebuild_valid": true,
+        "full_vor_inventory_positions": 103,
+        "sum_before_coefficient": "188.74",
+        "all_formula_products_equal": true
+      },
+      "classification": {
+        "specification": "confirmed_as_declared_project_specification",
+        "coefficient": "confirmed_as_indicative_planned_allowance_only",
+        "quantity": "confirmed_as_conserved_planned_allocation_only",
+        "arithmetic": "confirmed",
+        "normative_applicability": "confirmed_only_for_own_planned_material_basis",
+        "measured_individual_volume": "needs_facts_not_claimed",
+        "operation_area_thickness": "needs_facts_not_certified",
+        "actual_site_compaction": "needs_facts_not_claimed",
+        "gross_losses": "needs_facts_not_claimed"
+      }
+    },
+    {
+      "index": 56,
+      "review_id": "c47dc562-0aec-4002-861c-d22f8a492e62",
+      "saved_review_state": "needs_facts",
+      "raw_answer_sha256": "3870b65feb5fe37cd70fa34f51687933624036f3ec2ecfddff26f33d95752944",
+      "saved_result_sha256": "eb6d9ed4c828e45ab552b07adf8464985e1ef08b0774abce00e9f3f0887d72d3",
+      "raw_model_items": [
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:name:designation:25"
+          ],
+          "topic": "М800 и независимые характеристики смеси",
+          "state": "confirmed",
+          "explanation": "М800 указан в проверенном столбце0/63 h20см. К90/М1 в нативной конструкции иГОСТ70458п5.2 относятся к гранулометрии; дробимость компонента по5.9 проверяетсяГОСТ32703п5.6. Сохраняются разные свойства; М800 не объявляется эквивалентомМ1.",
+          "project_source_ids": [
+            "s25",
+            "s53"
+          ],
+          "normative_source_ids": [
+            "s49",
+            "s50",
+            "s51"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "attribute:comment:condition"
+          ],
+          "topic": "ГОСТ,К90/М1 и запас на уплотнение",
+          "state": "confirmed",
+          "explanation": "Проект типаIII съездов задает0/63 поГОСТ70458 К90/М1 h20см. Купл1,26 принят сметчиком; СП78п10.2 для смеси допускает ориентировочно1,25–1,3. Фактическая величина на стройке и учет потерь не утверждаются.",
+          "project_source_ids": [
+            "s25",
+            "s53"
+          ],
+          "normative_source_ids": [
+            "s52"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "derived:parent"
+          ],
+          "topic": "Объем конструкции и плановая пара",
+          "state": "confirmed",
+          "explanation": "Полный объем188,74м3 в столбце0/63 h20см связан с телом ведомости съездов. ВОР явно задает53/55 как два слоя по10см и54/56 как одинаковые материалы сКупл1,26.91,17+97,57=188,74: плановая потребность сохранена без повторения целого; физический объем части и площадь не выводятся.",
+          "project_source_ids": [
+            "s25",
+            "s53"
+          ],
+          "normative_source_ids": [
+            "s0"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "derived:rate"
+          ],
+          "topic": "Расчет планового объема с поправкой",
+          "state": "confirmed",
+          "explanation": "97,57×1,26=122,9382м3.1,26 — запас на уплотнение смеси в применимом диапазоне СП78п10.2. Для сметного значения пробная укатка не требуется как его буквальное подтверждение; она относится к фактическому коэффициенту.",
+          "project_source_ids": [
+            "s25",
+            "s53"
+          ],
+          "normative_source_ids": [
+            "s52"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "normative:applicability"
+          ],
+          "topic": "Основание своей потребности материала",
+          "state": "confirmed",
+          "explanation": "Подтверждены спецификация своей конструкции,полный объем,сбалансированный плановый разнос иКупл.1.27.18 отделяет расход материала по проекту от нормирования операций. Проверяется собственный материал,а не машина/ветвь родительской нормы; полный расход с потерями и физические части не заявлены.",
+          "project_source_ids": [
+            "s25",
+            "s53"
+          ],
+          "normative_source_ids": [
+            "s0",
+            "s49",
+            "s50",
+            "s51",
+            "s52"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "presence",
+            "quantity",
+            "unit"
+          ],
+          "topic": "Расчетный результат и проектная основа",
+          "state": "confirmed",
+          "explanation": "ПД устанавливает полный объем188,74м3 верхнего20см основания0/63.122,9382м3 — расчетная плановая доля второй строки после запаса1,26; отдельная такая цифра ПД не требуется в этой рамке и не выдается за прямое измерение. Площадь982,64м2 не является количеством материала.",
+          "project_source_ids": [
+            "s25",
+            "s53"
+          ],
+          "normative_source_ids": [
+            "s52"
+          ]
+        },
+        {
+          "required": true,
+          "claim_ids": [
+            "workbook:formula"
+          ],
+          "topic": "Независимая арифметика",
+          "state": "confirmed",
+          "explanation": "97,57×1,26=122,9382; заявленное количество и результат формулы совпадают.",
+          "project_source_ids": [
+            "s53"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "saved_unresolved_items": [
+        {
+          "state": "needs_facts",
+          "topic": "Подтверждённый параметр родительской работы: толщина",
+          "required": true,
+          "claim_ids": [
+            "geometry:thickness"
+          ],
+          "explanation": "Толщина подтверждена источниками ПД для работы №56. Технология работы, нормативная применимость и расход материала проверяются отдельно. Числовое основание не прошло проверку цитаты, OCR, единицы или конструкции; расхождение не доказано.",
+          "project_source_ids": [
+            "parent-55:geometry:1afb9229fbe5800aab210d86"
+          ],
+          "normative_source_ids": []
+        }
+      ],
+      "numeric_cards": [
+        {
+          "id": "quantity",
+          "row": 78,
+          "role": "calculation",
+          "unit": "м3",
+          "label": "Расчётное количество распределённого материала",
+          "quote": "Основание | Щебеночно-песчаная смесь типа 0/63 мм М800 | h=0,20м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n188,74",
+          "state": "confirmed",
+          "reason": "Результат расчёта заявленного распределения полного проектного объёма; часть не является буквальным числом ПД. Площади и физические толщины отдельных рабочих операций этим не подтверждаются. Коэффициент проверяется отдельно.",
+          "found_unit": "м3",
+          "source_ids": [
+            "agent:p90:cell:8ac4da5095820fee014ce195",
+            "parent-55:geometry:1afb9229fbe5800aab210d86"
+          ],
+          "found_value": "122.9382",
+          "proof_limits": {
+            "stage_areas_verified": false,
+            "normative_rate_verified": false,
+            "stage_thicknesses_verified": false,
+            "coefficient_applicability_verified": false,
+            "individual_project_volumes_verified": false
+          },
+          "project_total": "188.74",
+          "quantity_role": "allocated_output",
+          "declared_value": "122.9382",
+          "source_anchors": [
+            {
+              "quote": "Основание | Щебеночно-песчаная смесь типа 0/63 мм М800 | h=0,20м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n188,74",
+              "rects": [
+                [
+                  0.40125313897349785,
+                  0.5035651099995437,
+                  0.46822135057311687,
+                  0.525336524831603
+                ]
+              ],
+              "source_id": "agent:p90:cell:8ac4da5095820fee014ce195"
+            },
+            {
+              "quote": "Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см",
+              "rects": [],
+              "source_id": "parent-55:geometry:1afb9229fbe5800aab210d86"
+            }
+          ]
+        },
+        {
+          "id": "calculation:56",
+          "row": 78,
+          "role": "calculation",
+          "unit": "м3",
+          "label": "Арифметика позиции №57",
+          "state": "confirmed",
+          "reason": "Формула пересчитана программно по сохранённым значениям ячеек.",
+          "expression": "=97.57*1.26",
+          "found_value": "122.9382",
+          "declared_value": "122.9382"
+        },
+        {
+          "id": "factor:56:97.57",
+          "row": 78,
+          "role": "calculation_declared_allocation",
+          "unit": "м3",
+          "label": "Заявленный объём распределения",
+          "quote": "Основание | Щебеночно-песчаная смесь типа 0/63 мм М800 | h=0,20м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n188,74",
+          "state": "confirmed",
+          "reason": "Плановая часть полного объёма ПД; сумма частей и структурная полнота пересобраны по исходным данным. Это не измеренный объём отдельного физического слоя и не проектная площадь работы.",
+          "found_unit": "м3",
+          "source_ids": [
+            "agent:p90:cell:8ac4da5095820fee014ce195",
+            "parent-55:geometry:1afb9229fbe5800aab210d86"
+          ],
+          "found_value": "97.57",
+          "proof_limits": {
+            "stage_areas_verified": false,
+            "normative_rate_verified": false,
+            "stage_thicknesses_verified": false,
+            "coefficient_applicability_verified": false,
+            "individual_project_volumes_verified": false
+          },
+          "project_total": "188.74",
+          "declared_value": "97.57",
+          "source_anchors": [
+            {
+              "quote": "Основание | Щебеночно-песчаная смесь типа 0/63 мм М800 | h=0,20м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n188,74",
+              "rects": [
+                [
+                  0.40125313897349785,
+                  0.5035651099995437,
+                  0.46822135057311687,
+                  0.525336524831603
+                ]
+              ],
+              "source_id": "agent:p90:cell:8ac4da5095820fee014ce195"
+            },
+            {
+              "quote": "Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см",
+              "rects": [],
+              "source_id": "parent-55:geometry:1afb9229fbe5800aab210d86"
+            }
+          ]
+        },
+        {
+          "id": "factor:56:1.26",
+          "row": 78,
+          "role": "coefficient",
+          "unit": "",
+          "label": "Коэффициент формулы 1.26 · позиция №57",
+          "quote": "10.2 Объем каменного материала в насыпном виде следует определять с учетом коэффициента запаса на\nуплотнение. Для песчано-гравийных (щебеночных) смесей и щебня фракций 31,5 - 63 и 63 - 90 мм марки по\nдробимости 800 и более коэффициент запаса материала на уплотнение следует ориентировочно принимать 1,25\n- 1,3, а для щебня марок по дробимости ниже 800  - 1,3  - 1,5. Коэффициент запаса шлака на уплотнение в\nзависимости от его плотности следует ориентировочно принимать 1,3 - 1,5.\n\n    Для определения фактического коэффициента запаса на уплотнение и необходимого числа проходов катков\nдля достижения требуемой плотности слоя следует проводить пробную  укатку. Допускается определение\nфактического коэффициента относительного уплотнения в ходе производства работ.\n(в ред. Изменения N 2, утв. Приказом Минстроя России от 19.10.2021 N 762/пр)",
+          "state": "confirmed",
+          "reason": "Сметное значение из примечания входит в применимый ориентировочный диапазон СП78 п.10.2: 1.25–1.3. Фактический коэффициент на стройке не утверждается.",
+          "source_ids": [
+            "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000"
+          ],
+          "declared_value": "1.26",
+          "source_anchors": [
+            {
+              "quote": "10.2 Объем каменного материала в насыпном виде следует определять с учетом коэффициента запаса на\nуплотнение. Для песчано-гравийных (щебеночных) смесей и щебня фракций 31,5 - 63 и 63 - 90 мм марки по\nдробимости 800 и более коэффициент запаса материала на уплотнение следует ориентировочно принимать 1,25\n- 1,3, а для щебня марок по дробимости ниже 800  - 1,3  - 1,5. Коэффициент запаса шлака на уплотнение в\nзависимости от его плотности следует ориентировочно принимать 1,3 - 1,5.\n\n    Для определения фактического коэффициента запаса на уплотнение и необходимого числа проходов катков\nдля достижения требуемой плотности слоя следует проводить пробную  укатку. Допускается определение\nфактического коэффициента относительного уплотнения в ходе производства работ.\n(в ред. Изменения N 2, утв. Приказом Минстроя России от 19.10.2021 N 762/пр)",
+              "rects": [],
+              "source_id": "coefficient:clause-c845312e740706ac7c157ab54b50d2f9:full:8ab73088fa423b79f000"
+            }
+          ]
+        }
+      ],
+      "proof": {
+        "kind": "planned_material_allocation_v1",
+        "unit": "м3",
+        "state": "verified_planned_allocation",
+        "sha256": "f1f7e23e113340326a3aa7e3cb6a005190aacb13bb027dc5637295d7dc06096a",
+        "operands": [
+          {
+            "unit": "м3",
+            "binding": {
+              "basis": "nearest_preceding_work_in_explicit_material_block",
+              "sheet": "Дорожная одежда",
+              "sections": [
+                {
+                  "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                  "address": "A70"
+                }
+              ],
+              "work_row": 75,
+              "header_row": 15,
+              "work_index": 53,
+              "material_row": 76,
+              "material_index": 54,
+              "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+            },
+            "formula": "91,17*1,26",
+            "work_row": 75,
+            "work_index": 53,
+            "coefficient": "1.26",
+            "material_row": 76,
+            "material_index": 54,
+            "declared_volume": "91.17",
+            "calculated_material_volume": "114.8742"
+          },
+          {
+            "unit": "м3",
+            "binding": {
+              "basis": "nearest_preceding_work_in_explicit_material_block",
+              "sheet": "Дорожная одежда",
+              "sections": [
+                {
+                  "text": "Раздел 4. Устройство дорожной одежды. Съезды",
+                  "address": "A70"
+                }
+              ],
+              "work_row": 77,
+              "header_row": 15,
+              "work_index": 55,
+              "material_row": 78,
+              "material_index": 56,
+              "document_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa"
+            },
+            "formula": "97,57*1,26",
+            "work_row": 77,
+            "work_index": 55,
+            "coefficient": "1.26",
+            "material_row": 78,
+            "material_index": 56,
+            "declared_volume": "97.57",
+            "calculated_material_volume": "122.9382"
+          }
+        ],
+        "scope_rows": [
+          {
+            "row": 71,
+            "index": 49
+          },
+          {
+            "row": 72,
+            "index": 50
+          },
+          {
+            "row": 73,
+            "index": 51
+          },
+          {
+            "row": 74,
+            "index": 52
+          },
+          {
+            "row": 75,
+            "index": 53
+          },
+          {
+            "row": 76,
+            "index": 54
+          },
+          {
+            "row": 77,
+            "index": 55
+          },
+          {
+            "row": 78,
+            "index": 56
+          },
+          {
+            "row": 79,
+            "index": 57
+          },
+          {
+            "row": 80,
+            "index": 58
+          },
+          {
+            "row": 81,
+            "index": 59
+          },
+          {
+            "row": 82,
+            "index": 60
+          },
+          {
+            "row": 83,
+            "index": 61
+          },
+          {
+            "row": 84,
+            "index": 62
+          },
+          {
+            "row": 85,
+            "index": 63
+          },
+          {
+            "row": 86,
+            "index": 64
+          },
+          {
+            "row": 87,
+            "index": 65
+          },
+          {
+            "row": 88,
+            "index": 66
+          },
+          {
+            "row": 89,
+            "index": 67
+          },
+          {
+            "row": 90,
+            "index": 68
+          },
+          {
+            "row": 91,
+            "index": 69
+          },
+          {
+            "row": 92,
+            "index": 70
+          },
+          {
+            "row": 93,
+            "index": 71
+          },
+          {
+            "row": 94,
+            "index": 72
+          },
+          {
+            "row": 95,
+            "index": 73
+          },
+          {
+            "row": 96,
+            "index": 74
+          },
+          {
+            "row": 97,
+            "index": 75
+          }
+        ],
+        "work_indices": [
+          53,
+          55
+        ],
+        "project_basis": {
+          "volume": {
+            "unit": "м3",
+            "quote": "Единица физического столбца: м3\nВсего:\n188,74",
+            "value": "188.74",
+            "operation": "direct",
+            "parameter": "quantity",
+            "source_id": "agent:p90:cell:8ac4da5095820fee014ce195",
+            "conditions": [],
+            "scope_quote": "Основание | Щебеночно-песчаная смесь типа 0/63 мм М800 | h=0,20м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n188,74",
+            "scope_state": "verified",
+            "scope_relation": "technological_part",
+            "operand_source_ids": []
+          },
+          "construction": {
+            "unit": "см",
+            "quote": "h=20 см",
+            "value": "20",
+            "operation": "direct",
+            "parameter": "thickness",
+            "source_id": "parent-55:geometry:1afb9229fbe5800aab210d86",
+            "conditions": [],
+            "scope_quote": "Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см",
+            "scope_state": "verified",
+            "scope_relation": "technological_part",
+            "operand_source_ids": []
+          }
+        },
+        "quantity_role": "planned_homogeneous_material_allocation",
+        "source_sha256": {
+          "agent:p90:cell:8ac4da5095820fee014ce195": "97e3b97e8a1a9e4228926aa414687c3a24cf63822d4b86142b841beab0926e7b",
+          "parent-55:geometry:1afb9229fbe5800aab210d86": "3188751b8f30a6bc4fdea810bd3559d1fb8ce3114f19702fdfc5c1d7080d7373"
+        },
+        "position_index": 56,
+        "project_volume": "188.74",
+        "source_anchors": [
+          {
+            "quote": "Основание | Щебеночно-песчаная смесь типа 0/63 мм М800 | h=0,20м | Объем, м³\nЕдиница физического столбца: м3\nВсего:\n188,74",
+            "rects": [
+              [
+                0.40125313897349785,
+                0.5035651099995437,
+                0.46822135057311687,
+                0.525336524831603
+              ]
+            ],
+            "source_id": "agent:p90:cell:8ac4da5095820fee014ce195"
+          },
+          {
+            "quote": "Верхний слой основания - Щебёночно-песчаная смесь для оснований\nфр. 0/63 по ГОСТ Р 70458-2022, категории K90, марке M1, h=20 см",
+            "rects": [],
+            "source_id": "parent-55:geometry:1afb9229fbe5800aab210d86"
+          }
+        ],
+        "quantity_shared": false,
+        "root_source_ids": [
+          "agent:p90:cell:8ac4da5095820fee014ce195",
+          "parent-55:geometry:1afb9229fbe5800aab210d86"
+        ],
+        "workbook_sha256": "bdce994137db67ae89072f5082ab51a3d77d08c152a2457059b33d32aef847b0",
+        "material_indices": [
+          54,
+          56
+        ],
+        "project_version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565",
+        "declared_volume_sum": "188.74",
+        "table_scope_context": {
+          "caption": "Ведомость работ по устройству дорожной одежды",
+          "version": "independent_visual_row_labels_v1",
+          "total_row": 14,
+          "provenance": {
+            "origin": "ocr",
+            "quality": "usable",
+            "table_sha256": "ed2eaaf035a190dd81ef3e17b5eb3b1248216f74ca900a52b657ef50731ebcf9",
+            "render_sha256": "99d03119e9a9be42fb1fc6ce53b9046d97ebd880ce7ddaa57bf7bf3f0d592e61",
+            "review_sha256": [
+              "0a75aae6dd42f4ab1aa53c10a872d8a2f75530897020fb6f2fcb3bc4fa46858b",
+              "a18fa60d36cc06bd918c1271975370bf2983afca83c00f52654f562325edbdf8"
+            ],
+            "document_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+            "extraction_sha256": "092229c4218b7a9128d694e78ce4185c8e2485d6244378595dc3abe219d51104",
+            "row_labels_sha256": "51bc93674a84214c746c6a40d00d8aa5589c6d61e500592121f9b62406083149",
+            "actual_cells_sha256": "ed23a05f744d97d20eaa0766bc5c4a44dc03cc7aaf9eb11501c911c7991d4d58",
+            "header_cells_sha256": "9133dce3f55a09590a4fb438f52a796b53d24c180823df206829f6411681ad1b"
+          },
+          "row_labels": [
+            {
+              "row": 5,
+              "bbox": [
+                397.39556884765625,
+                18.239999771118164,
+                410.11968994140625,
+                109.68000030517578
+              ],
+              "text": "Съезд №1",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell32",
+              "colspan": 2
+            },
+            {
+              "row": 6,
+              "bbox": [
+                384.6755676269531,
+                18.239999771118164,
+                397.39556884765625,
+                109.68000030517578
+              ],
+              "text": "ул. Пролетарская",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell46",
+              "colspan": 2
+            },
+            {
+              "row": 7,
+              "bbox": [
+                371.95556640625,
+                18.239999771118164,
+                384.6755676269531,
+                109.68000030517578
+              ],
+              "text": "Съезд №2",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell60",
+              "colspan": 2
+            },
+            {
+              "row": 8,
+              "bbox": [
+                359.21844482421875,
+                18.239999771118164,
+                371.95556640625,
+                109.68000030517578
+              ],
+              "text": "Съезд №3",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell74",
+              "colspan": 2
+            },
+            {
+              "row": 9,
+              "bbox": [
+                346.4212951660156,
+                18.239999771118164,
+                359.21844482421875,
+                109.68000030517578
+              ],
+              "text": "Съезд №4",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell88",
+              "colspan": 2
+            },
+            {
+              "row": 10,
+              "bbox": [
+                333.6755676269531,
+                18.239999771118164,
+                346.4212951660156,
+                109.68000030517578
+              ],
+              "text": "Съезд №5",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell102",
+              "colspan": 2
+            },
+            {
+              "row": 11,
+              "bbox": [
+                320.95556640625,
+                18.239999771118164,
+                333.6755676269531,
+                109.68000030517578
+              ],
+              "text": "Съезд №6",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell116",
+              "colspan": 2
+            },
+            {
+              "row": 12,
+              "bbox": [
+                308.2355651855469,
+                18.239999771118164,
+                320.95556640625,
+                109.68000030517578
+              ],
+              "text": "Съезд № 7",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell130",
+              "colspan": 2
+            },
+            {
+              "row": 13,
+              "bbox": [
+                295.51556396484375,
+                18.239999771118164,
+                308.2355651855469,
+                109.68000030517578
+              ],
+              "text": "Съезд №8",
+              "column": 0,
+              "cell_id": "ruled-cf73d43063cffeaf:cell144",
+              "colspan": 2
+            }
+          ],
+          "total_cell": {
+            "row": 14,
+            "bbox": [
+              282.5555725097656,
+              337.8109130859375,
+              295.51556396484375,
+              394.1907653808594
+            ],
+            "text": "188,74",
+            "column": 7,
+            "cell_id": "ruled-cf73d43063cffeaf:cell164",
+            "colspan": 1
+          },
+          "header_cells": [
+            {
+              "row": 1,
+              "bbox": [
+                488.95556640625,
+                292.0799865722656,
+                501.6755676269531,
+                502.79998779296875
+              ],
+              "text": "Основание",
+              "column": 6,
+              "cell_id": "ruled-cf73d43063cffeaf:cell3",
+              "colspan": 4
+            },
+            {
+              "row": 2,
+              "bbox": [
+                448.39556884765625,
+                292.0799865722656,
+                488.95556640625,
+                394.1907653808594
+              ],
+              "text": "Щебеночно-песчаная смесь типа 0/63 мм М800",
+              "column": 6,
+              "cell_id": "ruled-cf73d43063cffeaf:cell8",
+              "colspan": 2
+            },
+            {
+              "row": 3,
+              "bbox": [
+                435.6755676269531,
+                292.0799865722656,
+                448.39556884765625,
+                394.1907653808594
+              ],
+              "text": "h=0,20м",
+              "column": 6,
+              "cell_id": "ruled-cf73d43063cffeaf:cell14",
+              "colspan": 2
+            },
+            {
+              "row": 4,
+              "bbox": [
+                410.11968994140625,
+                337.8109130859375,
+                435.6755676269531,
+                394.1907653808594
+              ],
+              "text": "Объем, м³",
+              "column": 7,
+              "cell_id": "ruled-cf73d43063cffeaf:cell25",
+              "colspan": 1
+            }
+          ],
+          "body_first_row": 5,
+          "source_binding": {
+            "row": 14,
+            "page": 90,
+            "column": 7,
+            "cell_id": "ruled-cf73d43063cffeaf:cell164",
+            "table_id": "ruled-cf73d43063cffeaf",
+            "source_id": "agent:p90:cell:8ac4da5095820fee014ce195",
+            "header_ids": [
+              "ruled-cf73d43063cffeaf:cell3",
+              "ruled-cf73d43063cffeaf:cell8",
+              "ruled-cf73d43063cffeaf:cell14",
+              "ruled-cf73d43063cffeaf:cell25"
+            ],
+            "version_id": "df2c27e5-9908-4aae-a5d7-a654252a1565"
+          }
+        },
+        "stage_areas_verified": false,
+        "source_document_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+        "normative_rate_verified": false,
+        "expected_value_used_for_selection": false,
+        "coefficient_applicability_verified": false,
+        "individual_project_volumes_verified": false
+      },
+      "checks": {
+        "proof_digest_valid": true,
+        "root_source_fingerprints_valid": true,
+        "live_rebuild_valid": true,
+        "full_vor_inventory_positions": 103,
+        "sum_before_coefficient": "188.74",
+        "all_formula_products_equal": true
+      },
+      "classification": {
+        "specification": "confirmed_as_declared_project_specification",
+        "coefficient": "confirmed_as_indicative_planned_allowance_only",
+        "quantity": "confirmed_as_conserved_planned_allocation_only",
+        "arithmetic": "confirmed",
+        "normative_applicability": "confirmed_only_for_own_planned_material_basis",
+        "measured_individual_volume": "needs_facts_not_claimed",
+        "operation_area_thickness": "needs_facts_not_certified",
+        "actual_site_compaction": "needs_facts_not_claimed",
+        "gross_losses": "needs_facts_not_claimed"
+      }
+    }
+  ],
+  "conclusion": {
+    "all_four_supported_only_in_narrow_planned_scope": true,
+    "allowed_scope": "Project-compatible declared material and conserved planned quantity in each complete homogeneous two-operation VOR group; coefficient separately bounded as indicative planned allowance.",
+    "measured_partial_volume_promotion_detected": false,
+    "area_or_actual_compaction_or_gross_loss_promotion_detected": false,
+    "all_four_original_saved_states": "needs_facts",
+    "saved_state_reason": "Extra required server geometry:thickness item for parent remains N while allocated-output card correctly does not certify owner-stage thickness. Audit preserves these states and does not count them as fresh C."
+  },
+  "limits": [
+    "105.84/107.67/91.17/97.57 are declared VOR allocation inputs; none is a printed or measured individual PD stage volume.",
+    "Closed-group resource conservation does not validate work area, physical stage thickness, machinery or field suitability.",
+    "1.26 is an indicative planned compaction-stock allowance, not measured actual compaction or proof of all/zero losses. Full normative gross consumption requires other evidence.",
+    "M800 is directly printed in own PD90 headers. К90/М1 are independently retained project granulation requirements; normative link5.9→32703 establishes different property meaning, not equivalence. No future batch tests asserted.",
+    "Original lower-base rounded row volumes sum213.52 while printed total213.51, difference0.01m3. Allocation uses exact literal complete printed total213.51 without fitting tolerance; internal PD rounding difference preserved, no inferred stage redistribution.",
+    "Earlier semantic source audit used singular расход материала in a1.27.18 quote; visually revisited original reads plural расход материалов. This new audit records exact original wording.",
+    "ГОСТ32703 clause5.6 starts physical6 and continues with tables on physical7; saved source page7 is sufficient table anchor, header spans6/7.",
+    "No full edition consolidation at project date, global estimate-import deduplication, physical as-built quantities or gross losses certified."
+  ]
+}
