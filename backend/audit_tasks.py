@@ -740,7 +740,7 @@ def audit_position(
                 track_item["trace_id"] = position_trace.trace_id
                 track_item["trace_url"] = position_trace.url()
             finally:
-                trace_run.close()
+                trace_run.close(flush=False)
         versions = (
             pdf_versions
             if pdf_versions is not None
@@ -986,6 +986,11 @@ def finalize_run(
         )
         return {"run_id": str(run_id), "positions": len(positions), "metrics": summary}
     finally:
+        try:
+            from audit_tracing import flush_all_providers
+            flush_all_providers(timeout_millis=10000)
+        except Exception:
+            pass
         reset(token)
 
 

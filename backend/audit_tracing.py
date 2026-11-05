@@ -203,6 +203,15 @@ def _ensure_provider(endpoint, project, environment):
     return provider
 
 
+def flush_all_providers(timeout_millis=10000):
+    """Best-effort flush of every OTLP provider; never raises."""
+    for provider in list(_PROVIDERS.values()):
+        try:
+            provider.force_flush(timeout_millis=timeout_millis)
+        except Exception:
+            _logger.warning("Phoenix flush failed", exc_info=True)
+
+
 @contextmanager
 def span(name, *, client=None, trace_context=None, **kwargs):
     """Instrumentation failures must not swallow or replace audit failures."""
@@ -302,18 +311,20 @@ class TracingRun:
         self.positions.append(position)
         return position
 
-    def close(self):
+    def close(self, flush=True):
         for position in self.positions:
             if not position.finished:
                 position.finish({"status": "Технический сбой",
                                  "discrepancy_details": "Прогон прерван до завершения позиции"})
-        # Long-lived workers rely on the provider background exporter.
-        if not self.flush_on_close:
+        # Long-lived workers rely on the provider background exporter, and callers
+        # may also skip a flush per call. Best-effort flush with a short timeout:
+        # a hung collector must not stall audits.
+        if not flush or not self.flush_on_close:
             return
         try:
             provider = _PROVIDERS.get(self.endpoint.rstrip("/"))
             if provider is not None:
-                provider.force_flush()
+                provider.force_flush(timeout_millis=5000)
         except Exception:
             _logger.warning("Phoenix flush failed", exc_info=True)
 

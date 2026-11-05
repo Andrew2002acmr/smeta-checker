@@ -20,6 +20,7 @@ report_drawing.py
 # Local source documents and generated audit artifacts
 /base/
 /normative-handoff-20261030-092929/
+/.local-empty-kb/
 /ВР-1 ИГДИ/
 /tmp/
 /.audit_cache/
