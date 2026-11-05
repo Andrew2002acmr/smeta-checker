@@ -1,4 +1,4 @@
-.PHONY: help dev up down build logs ps backup restore verify test lint clean monitoring monitoring-down
+.PHONY: help dev up down build logs ps backup restore verify test lint clean monitoring monitoring-down observability observability-down
 
 help: ## показать команды
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -14,6 +14,12 @@ monitoring: ## поднять стек с Grafana/Prometheus/Loki
 
 monitoring-down: ## остановить мониторинг
 	docker compose -f compose.yaml -f compose.monitoring.yaml stop grafana prometheus loki promtail
+
+observability: ## поднять стек с мониторингом + GlitchTip + Phoenix
+	docker compose -f compose.yaml -f compose.monitoring.yaml -f compose.glitchtip.yaml -f compose.phoenix.yaml up -d
+
+observability-down: ## остановить observability-сервисы
+	docker compose -f compose.yaml -f compose.monitoring.yaml -f compose.glitchtip.yaml -f compose.phoenix.yaml stop grafana prometheus loki promtail glitchtip phoenix
 
 down: ## остановить стек
 	docker compose down
