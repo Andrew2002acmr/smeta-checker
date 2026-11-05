@@ -1,0 +1,31 @@
+groups:
+  - name: observability
+    rules:
+      - alert: GlitchTipDown
+        expr: probe_success{job="blackbox",instance="http://glitchtip:8000/_health/"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "GlitchTip недоступен"
+      - alert: GrafanaDown
+        expr: probe_success{job="blackbox",instance="http://grafana:3000/login"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Grafana недоступна"
+      - alert: PhoenixDown
+        expr: probe_success{job="blackbox",instance="http://phoenix:6006/"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Phoenix недоступен"
+      - alert: ExporterDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Экспортер/нода недоступна"

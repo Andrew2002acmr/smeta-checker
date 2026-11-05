@@ -115,18 +115,88 @@ LLM-провайдеру. Код поддерживает `AUDIT_TELEMETRY_REDAC
 ## Развёртывание observability на VPS
 
 Полный стек (Grafana/Prometheus/Loki + GlitchTip + Phoenix) можно поднять
-на отдельном VPS и подключать к нему каждое приложение:
+на отдельном VPS и подключать к нему каждое приложение.
+Автономный бандл — каталог `observability/` в корне репозитория:
+собственные postgres/redis, мониторинг, GlitchTip, Phoenix (SQLite на volume),
+Traefik-маршруты и скрипт provision GlitchTip.
 
-1. Скопируйте на VPS `compose.yaml`, `compose.monitoring.yaml`,
-   `compose.glitchtip.yaml`, `compose.phoenix.yaml`, каталог `monitoring/`
-   и заполните `.env`.
-2. Поставьте reverse proxy с TLS (Caddy/Traefik/nginx) перед UI:
-   Grafana (3000), Prometheus (9090), Loki (3100), GlitchTip (8000),
-   Phoenix (6006). Все `*_BIND` по умолчанию `127.0.0.1`: открывайте
-   наружу только через proxy, а не публикацией портов.
-3. Phoenix: добавьте auth на уровне proxy (basic auth, OIDC или VPN) —
-   у самого Phoenix встроенного логина может не быть.
-4. В каждом приложении укажите удалённые endpoints вместо локальных:
-   `GRAFANA_ROOT_URL`, `PHOENIX_COLLECTOR_ENDPOINT=https://<vps>/phoenix`,
-   `PHOENIX_PUBLIC_URL=https://<vps>/phoenix`, `GLITCHTIP_DSN` из UI GlitchTip.
-5. Ограничьте firewall: снаружи только 443 (и 22 для себя).
+Развёрнуто на `new_vps` (193.233.85.147, док `observability/`, `/root/smeta-observability`):
+
+| Сервис | URL | Доступ |
+|---|---|---|
+| Grafana | https://grafana.nikgretenok.online | логин `admin`, пароль в `.env` на сервере |
+| GlitchTip | https://glitchtip.nikgretenok.online | `admin@localhost`, пароль в `.env` на сервере; регистрация закрыта |
+| Phoenix UI | https://phoenix.nikgretenok.online | Traefik basic-auth `obs`, пароль в `.env` на сервере |
+| Phoenix OTLP | https://phoenix.nikgretenok.online/v1/traces | открыт (бэкенды не умеют basic-auth) |
+| Prometheus / Loki | только через Grafana proxy или `ssh -L` | порты наружу не выведены |
+
+Подключение приложения (значения в `.env` приложения):
+
+```bash
+GLITCHTIP_DSN=https://66d6ba5f42804c22b17296c0f2faf811@glitchtip.nikgretenok.online/1
+NUXT_PUBLIC_SENTRY_DSN=$GLITCHTIP_DSN
+PHOENIX_COLLECTOR_ENDPOINT=https://phoenix.nikgretenok.online
+PHOENIX_PROJECT_NAME=smeta-checker
+PHOENIX_PUBLIC_URL=https://phoenix.nikgretenok.online
+```
+
+CLI: `PHOENIX_BASE_URL=https://phoenix.nikgretenok.online npx @arizeai/phoenix-cli trace list`.
+MCP: у Phoenix v12 отдельного `/mcp` нет (GET возвращает SPA), у GlitchTip `/mcp`
+требует токен (`invalid_token` без него).
+
+### Доступ при блокировке публичного IP (RKN)
+
+Публичный IP VPS может быть недоступен из отдельных сетей. Всё, что собирается
+внутри VPS (Prometheus скрейпы, Loki, blackbox, Postgres/Redis exporters),
+от блока не зависит и продолжает работать. А вот ingest снаружи
+(OTLP из приложений, Sentry-envelopes, просмотр UI) по публичным доменам
+из забаненной сети не дойдёт — для этого есть tailnet-путь.
+
+На Traefik заведены HTTP-алиасы (роутеры `*-ts` в
+`observability/traefik/observability-tailnet.yml`, HTTP достаточно —
+шифрование даёт сам WireGuard):
+
+| Сервис | Tailnet URL |
+|---|---|
+| Grafana | http://grafana.1987817.tail3de041.ts.net |
+| GlitchTip UI + ingest | http://glitchtip.1987817.tail3de041.ts.net |
+| Phoenix UI | http://phoenix.1987817.tail3de041.ts.net (basic-auth `obs`) |
+| Phoenix OTLP | http://phoenix.1987817.tail3de041.ts.net/v1/traces (открыт) |
+
+Условия: устройство в tailnet (`tailscale up`), резолв алиасов —
+MagicDNS поддомены не отдаёт, поэтому на каждом клиенте нужна строка
+в `/etc/hosts` (или split-horizon в tailnet DNS):
+
+```text
+100.98.72.30 grafana.1987817.tail3de041.ts.net glitchtip.1987817.tail3de041.ts.net phoenix.1987817.tail3de041.ts.net
+```
+
+DSN/OTLP для приложений в забаненной сети — tailnet-варианты:
+
+```bash
+GLITCHTIP_DSN=http://66d6ba5f42804c22b17296c0f2faf811@glitchtip.1987817.tail3de041.ts.net/1
+PHOENIX_COLLECTOR_ENDPOINT=http://phoenix.1987817.tail3de041.ts.net
+PHOENIX_PUBLIC_URL=http://phoenix.1987817.tail3de041.ts.net
+```
+
+Проверено: OTLP-спан через tailnet-алиас долетел и виден в Phoenix
+(`smoke-tailnet-otlp`), все три UI отвечают (Grafana 302→login,
+GlitchTip 200, Phoenix 401 без auth). Tailscale node cert
+(`1987817.tail3de041.ts.net`, LE) лежит в
+`/etc/dokploy/traefik/dynamic/tscerts/` и подключён как defaultCertificate —
+понадобится, если решишь терминировать HTTPS на bare node name.
+
+Доступ к серверу: SSH только через Tailscale exit-node
+(`tailscale up`, `tailscale set --exit-node=100.98.72.30`),
+прямой SSH с обычной сети висит на баннере.
+
+Хост `new_vps` управляется Dokploy+Traefik: маршруты лежат в
+`/etc/dokploy/traefik/dynamic/observability.yml` (источник — `observability/traefik/`).
+Свободного места на диске мало (~6 ГБ): следить за ростом `phoenix.db`
+и retention Prometheus (15d) / Loki.
+
+Для нового хоста без Dokploy: скопируйте `observability/`, заполните `.env`,
+поставьте reverse proxy с TLS (Caddy/Traefik/nginx) перед Grafana (3000),
+GlitchTip (8000), Phoenix (6006). Phoenix: auth на уровне proxy (basic auth,
+OIDC или VPN) — у самого Phoenix встроенного логина нет. Ограничьте firewall:
+снаружи только 443 (и 22 для себя).

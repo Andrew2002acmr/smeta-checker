@@ -1,0 +1,200 @@
+# Standalone observability stack for a dedicated VPS (no app services).
+# Deploy: copy this directory to the server, fill .env, add Traefik
+# routes from traefik/observability.yml, then `docker compose up -d`.
+# Docs: docs/monitoring.md ("Развёртывание observability на VPS").
+name: observability
+
+networks:
+  obs:
+  dokploy-network:
+    external: true
+
+services:
+  obs-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    networks: [obs]
+    environment:
+      POSTGRES_USER: ${OBS_POSTGRES_USER:-obs}
+      POSTGRES_PASSWORD: ${OBS_POSTGRES_PASSWORD:?Set OBS_POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${OBS_POSTGRES_DB:-obs}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - obs-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-obs}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - log_min_duration_statement=1000
+
+  obs-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks: [obs]
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - obs-redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  obs-db-init:
+    image: postgres:16-alpine
+    restart: "no"
+    networks: [obs]
+    depends_on:
+      obs-db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${OBS_POSTGRES_PASSWORD:?Set OBS_POSTGRES_PASSWORD in .env}
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        until pg_isready -h obs-db -U "${OBS_POSTGRES_USER:-obs}" >/dev/null 2>&1; do sleep 2; done
+        psql -h obs-db -U "${OBS_POSTGRES_USER:-obs}" -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'glitchtip'" | grep -q 1 || \
+          psql -h obs-db -U "${OBS_POSTGRES_USER:-obs}" -d postgres -c "CREATE DATABASE glitchtip"
+
+  glitchtip:
+    image: glitchtip/glitchtip:6.2.6
+    container_name: obs-glitchtip
+    restart: unless-stopped
+    networks: [obs, dokploy-network]
+    depends_on:
+      obs-db:
+        condition: service_healthy
+      obs-redis:
+        condition: service_healthy
+      obs-db-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://${OBS_POSTGRES_USER:-obs}:${OBS_POSTGRES_PASSWORD:?Set OBS_POSTGRES_PASSWORD in .env}@obs-db:5432/glitchtip
+      VALKEY_URL: redis://obs-redis:6379/2
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?Set GLITCHTIP_SECRET_KEY in .env (any long random string)}
+      EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
+      DEFAULT_FROM_EMAIL: ${GLITCHTIP_DEFAULT_FROM_EMAIL:-glitchtip@localhost}
+      GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-https://glitchtip.nikgretenok.online}
+      ENABLE_USER_REGISTRATION: ${GLITCHTIP_ENABLE_USER_REGISTRATION:-true}
+      GLITCHTIP_ENABLE_MCP: "true"
+      GLITCHTIP_EMBED_WORKER: "true"
+      ALLOWED_HOSTS: "*"
+
+  phoenix:
+    image: arizephoenix/phoenix:12
+    container_name: obs-phoenix
+    restart: unless-stopped
+    networks: [obs, dokploy-network]
+    environment:
+      PHOENIX_WORKING_DIR: /phoenix
+      PHOENIX_PORT: 6006
+    volumes:
+      - phoenixdata:/phoenix
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    restart: unless-stopped
+    networks: [obs]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheusdata:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    restart: unless-stopped
+    networks: [obs]
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    command:
+      - --path.rootfs=/host
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    restart: unless-stopped
+    networks: [obs]
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    restart: unless-stopped
+    networks: [obs]
+    environment:
+      DATA_SOURCE_NAME: postgresql://${OBS_POSTGRES_USER:-obs}:${OBS_POSTGRES_PASSWORD:?Set OBS_POSTGRES_PASSWORD in .env}@obs-db:5432/glitchtip?sslmode=disable
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.62.0
+    restart: unless-stopped
+    networks: [obs]
+    environment:
+      REDIS_ADDR: redis://obs-redis:6379
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    restart: unless-stopped
+    networks: [obs]
+    volumes:
+      - ./monitoring/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+
+  loki:
+    image: grafana/loki:3.2.0
+    user: root
+    restart: unless-stopped
+    networks: [obs]
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - lokidata:/tmp/loki
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:3.2.0
+    restart: unless-stopped
+    networks: [obs]
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: obs-grafana
+    restart: unless-stopped
+    networks: [obs, dokploy-network]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://grafana.nikgretenok.online}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - grafanadata:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - loki
+
+volumes:
+  obs-pgdata:
+  obs-redisdata:
+  phoenixdata:
+  prometheusdata:
+  lokidata:
+  grafanadata:

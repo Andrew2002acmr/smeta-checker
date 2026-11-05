@@ -1,0 +1,32 @@
+# Grafana LDAP (Active Directory) configuration example.
+# Copy to monitoring/grafana/ldap.toml and fill real values.
+# Enable in compose.monitoring.yaml via GF_AUTH_LDAP_ENABLED=true.
+
+[[servers]]
+host = "ad.example.com"
+port = 636
+use_ssl = true
+start_tls = false
+ssl_skip_verify = false
+# root_ca_cert = "/etc/grafana/ad-ca.pem"
+
+bind_dn = "CN=smeta,CN=Users,DC=example,DC=com"
+bind_password = "change-me"
+
+search_filter = "(&(objectClass=user)(sAMAccountName=%s))"
+search_base_dns = ["DC=example,DC=com"]
+
+[servers.attributes]
+name = "displayName"
+surname = "sn"
+username = "sAMAccountName"
+member_of = "memberOf"
+email = "mail"
+
+[[servers.group_mappings]]
+group_dn = "CN=smeta-users,OU=Groups,DC=example,DC=com"
+org_role = "Admin"
+
+[[servers.group_mappings]]
+group_dn = "*"
+org_role = "Viewer"
