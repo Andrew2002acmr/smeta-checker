@@ -1,8 +1,5 @@
 """Issue 21: trace correlation, structured logs, redaction, upload limits, metrics."""
 
-import io
-import json
-import logging
 import os
 import sys
 import tempfile
@@ -18,16 +15,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from audit_models import AuditSettings
 from audit_observability import (
     RunMetrics,
-    bind,
-    current,
     estimate_cost,
-    get_logger,
-    reset,
-    restore,
-    scrub,
-    snapshot,
 )
-from audit_tracing import Observation, TracingRun, span
+from audit_tracing import Observation, span
 
 
 class RedactionTests(unittest.TestCase):
