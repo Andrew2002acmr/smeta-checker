@@ -32,6 +32,9 @@ importers:
       pdfjs-dist:
         specifier: 6.4.299
         version: 6.4.299
+      tailwindcss:
+        specifier: 4.3.3
+        version: 4.3.3
       vue:
         specifier: 3.5.44
         version: 3.5.44(typescript@5.9.3)
