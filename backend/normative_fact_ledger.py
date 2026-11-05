@@ -39,9 +39,15 @@ def build(position, result, positions, relation) -> dict[str, Any]:
         ]
         from normative_parent_basis import _anchored_card
         from normative_workbook_rate import quantity_contract
-        input_role=quantity_contract(owner) is not None and proposal.parameter=='quantity' and measured and measured[0]=='area' and any(
-            c['id']=='input:area' for c in cards)
-        card_id='input:area' if input_role else proposal.parameter
+
+        input_role = (
+            quantity_contract(owner) is not None
+            and proposal.parameter == "quantity"
+            and measured
+            and measured[0] == "area"
+            and any(c["id"] == "input:area" for c in cards)
+        )
+        card_id = "input:area" if input_role else proposal.parameter
 
         bound = literal and any(
             c.get("state") == "confirmed"
@@ -57,7 +63,9 @@ def build(position, result, positions, relation) -> dict[str, Any]:
             subject_state="verified" if bound else "unresolved",
             proposed_owner_position=owner.index,
             parameter=proposal.parameter,
-            quantity_role=('calculation_input' if input_role else 'output') if proposal.parameter=='quantity' else None,
+            quantity_role=("calculation_input" if input_role else "output")
+            if proposal.parameter == "quantity"
+            else None,
             dimension=measured[0] if measured else None,
             value=proposal.value,
             unit=proposal.unit,
@@ -120,36 +128,50 @@ def shared(context, record, positions, index, group):
     # Explicit prior runs may supply only rechecked project literals. Their
     # normative edition and verdicts never become evidence for this run.
     records = [record]
-    prior = record['config'].get('normative_fact_source_run_ids', [])
+    prior = record["config"].get("normative_fact_source_run_ids", [])
     if not isinstance(prior, list) or len(prior) > 3:
-        raise ValueError('Prior fact runs must be an explicit bounded list')
+        raise ValueError("Prior fact runs must be an explicit bounded list")
     from uuid import UUID
-    if prior and (not isinstance(record['config'].get('position_inputs'),list)
-            or not record['config']['position_inputs']):
-        raise ValueError('Prior fact runs require the complete position input bank')
+
+    if prior and (
+        not isinstance(record["config"].get("position_inputs"), list)
+        or not record["config"]["position_inputs"]
+    ):
+        raise ValueError("Prior fact runs require the complete position input bank")
     for run_id in dict.fromkeys(prior):
-        if str(run_id) == str(record['id']):
+        if str(run_id) == str(record["id"]):
             continue
         previous = context.repository.load_run(UUID(str(run_id)))
-        if (str(previous['project_id']) != str(record['project_id'])
-                or str(previous['vor_version_id']) != str(record['vor_version_id'])
-                or previous['config'].get('pdf_versions') != record['config'].get('pdf_versions')
-                or not isinstance(previous['config'].get('position_inputs'),list)
-                or not previous['config']['position_inputs']
-                or digest(previous['config']['position_inputs']) != digest(record['config']['position_inputs'])):
-            raise ValueError('Prior fact run project/VOR/PDF inputs differ')
+        if (
+            str(previous["project_id"]) != str(record["project_id"])
+            or str(previous["vor_version_id"]) != str(record["vor_version_id"])
+            or previous["config"].get("pdf_versions")
+            != record["config"].get("pdf_versions")
+            or not isinstance(previous["config"].get("position_inputs"), list)
+            or not previous["config"]["position_inputs"]
+            or digest(previous["config"]["position_inputs"])
+            != digest(record["config"]["position_inputs"])
+        ):
+            raise ValueError("Prior fact run project/VOR/PDF inputs differ")
         records.append(previous)
-    requests = ([(node,record) for node in group['positions'] if node['index']!=index]
-        + [(node,source_record) for source_record in records[1:]
-            for node in group['positions'] if node['index']==index]
-        + [(node,source_record) for source_record in records[1:]
-            for node in group['positions'] if node['index']!=index])
+    requests = (
+        [(node, record) for node in group["positions"] if node["index"] != index]
+        + [
+            (node, source_record)
+            for source_record in records[1:]
+            for node in group["positions"]
+            if node["index"] == index
+        ]
+        + [
+            (node, source_record)
+            for source_record in records[1:]
+            for node in group["positions"]
+            if node["index"] != index
+        ]
+    )
     for node, source_record in requests:
         donor = node["index"]
-        if (
-            node["scope_id"] != group["scope_id"]
-            or not group["scope_id"]
-        ):
+        if node["scope_id"] != group["scope_id"] or not group["scope_id"]:
             continue
         rows = context.repository.normative_reviews(source_record["id"], donor)
         row = next((r for r in rows if r["kind"] == "check"), None)
@@ -225,7 +247,7 @@ def shared(context, record, positions, index, group):
                         scope_id=node["scope_id"],
                         work=node["work"],
                         source_review_id=str(row["id"]),
-                        source_run_id=str(source_record['id']),
+                        source_run_id=str(source_record["id"]),
                         proposal=rewritten,
                         engineer_scope_for_current_position="unresolved",
                     )

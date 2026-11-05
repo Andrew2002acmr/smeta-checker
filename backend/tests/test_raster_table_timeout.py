@@ -20,8 +20,9 @@ def test_table_timeout_retries_same_image_once_with_larger_budget():
 
     with pymupdf.open() as doc:
         page = doc.new_page(width=100, height=100)
-        with patch("pdf_tables.subprocess.run", side_effect=extract), patch(
-            "pdf_ruled_recovery.recover_page", return_value={"tables": []}
+        with (
+            patch("pdf_tables.subprocess.run", side_effect=extract),
+            patch("pdf_ruled_recovery.recover_page", return_value={"tables": []}),
         ):
             assert raster_tables(page, timeout=10) == []
     assert [budget for _, budget in calls] == [10, 20]
@@ -31,9 +32,13 @@ def test_table_timeout_retries_same_image_once_with_larger_budget():
 def test_second_table_timeout_remains_an_explicit_failure():
     with pymupdf.open() as doc:
         page = doc.new_page(width=100, height=100)
-        with patch(
-            "pdf_tables.subprocess.run", side_effect=subprocess.TimeoutExpired("tables", 10)
-        ) as extract, pytest.raises(subprocess.TimeoutExpired):
+        with (
+            patch(
+                "pdf_tables.subprocess.run",
+                side_effect=subprocess.TimeoutExpired("tables", 10),
+            ) as extract,
+            pytest.raises(subprocess.TimeoutExpired),
+        ):
             raster_tables(page, timeout=10)
     assert extract.call_count == 2
 
@@ -41,8 +46,12 @@ def test_second_table_timeout_remains_an_explicit_failure():
 def test_non_timeout_extractor_failure_is_not_hidden_or_retried():
     with pymupdf.open() as doc:
         page = doc.new_page(width=100, height=100)
-        with patch(
-            "pdf_tables.subprocess.run", side_effect=subprocess.CalledProcessError(2, "tables")
-        ) as extract, pytest.raises(subprocess.CalledProcessError):
+        with (
+            patch(
+                "pdf_tables.subprocess.run",
+                side_effect=subprocess.CalledProcessError(2, "tables"),
+            ) as extract,
+            pytest.raises(subprocess.CalledProcessError),
+        ):
             raster_tables(page, timeout=10)
     assert extract.call_count == 1

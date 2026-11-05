@@ -15,9 +15,7 @@ def materials(tmp_path):
         db.execute(
             "UPDATE resources SET name='Семена газонных трав' WHERE id IN ('r83','r84')"
         )
-        db.execute(
-            "UPDATE resources SET name='Семена многолетних трав' WHERE id='r82'"
-        )
+        db.execute("UPDATE resources SET name='Семена многолетних трав' WHERE id='r82'")
     return Corpus(tmp_path)
 
 

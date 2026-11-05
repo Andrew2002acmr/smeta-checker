@@ -92,6 +92,7 @@ def _project_thickness(position,result,cards):
         project_family=_family(material_scope)
         if (proposal.get('parameter')!='thickness' or proposal.get('scope_state')!='verified'
                 or not source or source['kind']!='project'
+                or type(source.get('page')) is not int or source['page'] < 1
                 or not (_readable(source) or verified_header) or not source.get('version_id')
                 or not quoted(proposal['value'],proposal['quote'],scope)
                 or clean(scope) not in clean(source['text']) or not unit_quoted(proposal['unit'],proposal['quote'])
@@ -107,7 +108,7 @@ def _project_thickness(position,result,cards):
         candidates.append(dict(source_id=source['id'],value=candidate_value,role=role,
             single_layer=bool(re.search(r'\bоднослойн[а-яё]*\b',scope,re.I)),family=project_family,
             quote=proposal['quote'],scope_quote=scope))
-    if not candidates or len({(c['value'],c['role'],c['single_layer'],c['family']) for c in candidates})!=1:
+    if len(candidates)!=1:
         return None
     return next((c for c in candidates if c['value']==value and c['source_id'] in card.get('source_ids',[])),None)
 

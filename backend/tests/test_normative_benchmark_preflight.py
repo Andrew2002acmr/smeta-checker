@@ -40,10 +40,14 @@ def setup():
     )
     with pymupdf.open() as pdf:
         pdf.new_page()
-        raw=pdf.tobytes()
-    blob_store=SimpleNamespace(get=Mock(return_value=raw))
-    repo.load_version.return_value = SimpleNamespace(kind='pdf',sha256=hashlib.sha256(raw).hexdigest(),blob_key='raw.pdf')
-    expected=pdf_identity(blob_store,repo.load_version.return_value)['extraction_sha256']
+        raw = pdf.tobytes()
+    blob_store = SimpleNamespace(get=Mock(return_value=raw))
+    repo.load_version.return_value = SimpleNamespace(
+        kind="pdf", sha256=hashlib.sha256(raw).hexdigest(), blob_key="raw.pdf"
+    )
+    expected = pdf_identity(blob_store, repo.load_version.return_value)[
+        "extraction_sha256"
+    ]
     snapshot = SimpleNamespace(
         metadata=dict(pdf_sha256=expected, preparation_complete=True),
         pending_ocr=[],

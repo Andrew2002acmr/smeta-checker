@@ -1,4 +1,5 @@
 import hashlib
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -93,3 +94,39 @@ def test_corpus_uses_native_copy_but_preserves_release_identity_and_pdf_root(
     assert cached.root == before.root and cached.identity == before.identity
     assert cached.path != before.path and cached.counts == before.counts
     assert cached.entity("norm", "n000") == before.entity("norm", "n000")
+
+
+def test_default_current_pointer_sha_enables_verified_cache(tmp_path, monkeypatch):
+    from normative_corpus import Corpus
+    from test_normative_corpus_cache import database
+
+    original = tmp_path / "norms"
+    original.mkdir()
+    path = database(original)
+    sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    pointer = original / "CURRENT.json"
+    current = json.loads(pointer.read_text())
+    pointer.write_text(json.dumps({**current, "sha256": sha}))
+    cache = tmp_path / "native"
+    monkeypatch.setenv("NORMATIVE_SQLITE_CACHE_DIR", str(cache))
+    corpus = Corpus(original)
+    assert corpus.path.parent == cache and corpus.sha == sha
+    path.write_bytes(b"Changed database under unchanged CURRENT")
+    with pytest.raises(ValueError, match="Изменился"):
+        Corpus(original)
+
+
+def test_legacy_current_hashes_source_before_creating_native_cache(
+    tmp_path, monkeypatch
+):
+    from normative_corpus import Corpus
+    from test_normative_corpus_cache import database
+
+    original = tmp_path / "legacy"
+    original.mkdir()
+    path = database(original)
+    frozen = path.read_bytes()
+    monkeypatch.setenv("NORMATIVE_SQLITE_CACHE_DIR", str(tmp_path / "native"))
+    corpus = Corpus(original)
+    assert corpus.path != path and corpus.path.read_bytes() == frozen
+    assert corpus.sha == hashlib.sha256(frozen).hexdigest()

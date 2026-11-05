@@ -17,16 +17,21 @@ def test_titled_profile_timeout_is_deferred_without_erasing_the_error():
     assert index.errors == {0: "scan_table_failed:TimeoutExpired: 90 seconds"}
 
 
-@pytest.mark.parametrize("text", [
-    "Продольный профиль\nВедомость объемов работ\nНаименование Количество",
-    "Продольный профиль\nСпецификация материалов",
-    "Продольный профиль\nНаименование\nКоличество",
-    "Ведомость работ\nНаименование Количество 114 шт.",
-    "Неразборчивый скан\n123 456",
-])
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Продольный профиль\nВедомость объемов работ\nНаименование Количество",
+        "Продольный профиль\nСпецификация материалов",
+        "Продольный профиль\nНаименование\nКоличество",
+        "Ведомость работ\nНаименование Количество 114 шт.",
+        "Неразборчивый скан\n123 456",
+    ],
+)
 def test_mixed_quantity_tables_and_unknown_scans_remain_blocking(text):
     assert not deferred_drawing_errors(page(text))
 
 
 def test_drawing_title_does_not_hide_a_different_technical_failure():
-    assert not deferred_drawing_errors(page("Продольный профиль", "ocr_failed: file missing"))
+    assert not deferred_drawing_errors(
+        page("Продольный профиль", "ocr_failed: file missing")
+    )

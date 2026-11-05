@@ -75,17 +75,27 @@ def preserve_completed(continuation, failed):
     The previous verdict is preserved, never promoted. The failed attempt has
     its own execution state, telemetry and link; it is not a cacheable answer.
     """
-    previous=deepcopy(continuation['review']['payload']['position_check'])
-    if previous.get('execution_state')!='complete':
-        raise ValueError('Completed initial evidence required for follow-up recovery')
-    failure=dict(execution_state='technical_failure',original_review_id=str(continuation['review']['id']),
-        summary=failed['summary'],telemetry=deepcopy(failed['telemetry']),
-        coverage=deepcopy(failed.get('coverage') or {}))
-    previous.setdefault('coverage',{})['evidence_followup_failure']=failure
-    previous['telemetry']=deepcopy(failed['telemetry'])
-    previous.setdefault('evidence_trace',[]).append(dict(kind='evidence_followup_failure_v1',
-        original_review_id=failure['original_review_id'],execution_state='technical_failure',
-        previous_state=previous.get('state'),requests=failed['telemetry']['requests']))
+    previous = deepcopy(continuation["review"]["payload"]["position_check"])
+    if previous.get("execution_state") != "complete":
+        raise ValueError("Completed initial evidence required for follow-up recovery")
+    failure = dict(
+        execution_state="technical_failure",
+        original_review_id=str(continuation["review"]["id"]),
+        summary=failed["summary"],
+        telemetry=deepcopy(failed["telemetry"]),
+        coverage=deepcopy(failed.get("coverage") or {}),
+    )
+    previous.setdefault("coverage", {})["evidence_followup_failure"] = failure
+    previous["telemetry"] = deepcopy(failed["telemetry"])
+    previous.setdefault("evidence_trace", []).append(
+        dict(
+            kind="evidence_followup_failure_v1",
+            original_review_id=failure["original_review_id"],
+            execution_state="technical_failure",
+            previous_state=previous.get("state"),
+            requests=failed["telemetry"]["requests"],
+        )
+    )
     return previous
 
 
@@ -111,15 +121,21 @@ def resume_evidence(tools, continuation, record, position, kb):
     # must still refer to the exact same immutable content.
     current = {s["id"]: s for s in tools.sources}
     from normative_source_registry import rect_order_equivalent
-    if any(s["id"] in current and not rect_order_equivalent(current[s["id"]],s) for s in sources):
+
+    if any(
+        s["id"] in current and not rect_order_equivalent(current[s["id"]], s)
+        for s in sources
+    ):
         raise ValueError("Follow-up source ID collision")
     for source in sources:
-        existing=current.get(source['id'])
-        if existing is not None and existing!=source:
+        existing = current.get(source["id"])
+        if existing is not None and existing != source:
             # Retain the frozen bytes and citation hashes. Rectangle ordering
             # only affects painting; it is not a different numerical source.
-            tools.sources[tools.sources.index(existing)]=deepcopy(source)
-            tools.events.append(dict(kind='source_geometry_order_normalized',source_id=source['id']))
+            tools.sources[tools.sources.index(existing)] = deepcopy(source)
+            tools.events.append(
+                dict(kind="source_geometry_order_normalized", source_id=source["id"])
+            )
     candidates = [
         dict(proposal=deepcopy(p))
         for p in result.get("parameter_proposals", [])

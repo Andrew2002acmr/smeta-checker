@@ -22,7 +22,10 @@ def setup(data=None):
     data=deepcopy(data or fixture())
     table=data['table']
     tools=EvidenceTools.__new__(EvidenceTools)
-    tools.sources=deepcopy(data['sources'])
+    # Reacquire this fixture's physical cells from its own table snapshot.
+    # Negative cases mutate that snapshot before acquisition; retaining the old
+    # source registry would test an identity collision instead of scope guards.
+    tools.sources=[]
     # The frozen capture predates the explicit empty header-fact list. Keep
     # source identities strict when reacquiring the same physical cells today.
     for source in tools.sources:

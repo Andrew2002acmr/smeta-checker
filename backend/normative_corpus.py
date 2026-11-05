@@ -5,6 +5,7 @@ No extractor dependencies, network calls, implicit rates or writes to SQLite.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
 import unicodedata
@@ -92,7 +93,12 @@ class Corpus:
         if not self.path.is_relative_to(self.root):
             raise ValueError('Недопустимый путь выпуска базы')
         from normative_sqlite_cache import verified_database
-        self.path,self.sha = verified_database(self.path,expected_sha)
+        current_sha = pointer.get('sha256') if relative is None else None
+        self.path,self.sha = verified_database(self.path,expected_sha or current_sha)
+        if not (expected_sha or current_sha) and os.environ.get('NORMATIVE_SQLITE_CACHE_DIR','').strip():
+            # Legacy CURRENT has no digest. Pin its actual bytes first, then
+            # copy and reverify them; never infer a trusted hash from a name.
+            self.path,self.sha = verified_database(self.path,self.sha)
         if expected_sha and self.sha != expected_sha:
             raise ValueError('Изменился сохранённый выпуск базы знаний')
         with self.connect() as db:

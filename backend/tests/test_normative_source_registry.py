@@ -10,27 +10,34 @@ from normative_evidence_followup import preserve_completed
 
 
 def test_extended_normative_text_gets_new_identity_without_rewriting_old_proof():
-    old='A'*2800
-    full=old+' Additional condition'
-    sources=[dict(id='agent:n:x',text=old)]
-    handle=full_text_handle('agent:n:x',full)
-    merge(sources,[dict(id=handle,text=full)])
-    assert sources[0]['text']==old and len(sources)==2
-    assert handle==full_text_handle('agent:n:x',full)
-    assert handle!=full_text_handle('agent:n:x',old)
+    old = "A" * 2800
+    full = old + " Additional condition"
+    sources = [dict(id="agent:n:x", text=old)]
+    handle = full_text_handle("agent:n:x", full)
+    merge(sources, [dict(id=handle, text=full)])
+    assert sources[0]["text"] == old and len(sources) == 2
+    assert handle == full_text_handle("agent:n:x", full)
+    assert handle != full_text_handle("agent:n:x", old)
 
 
 def test_only_exact_rectangle_permutation_is_equivalent():
-    source=dict(id='sum',text='4 + 5 = 9',version_id='pdf',page=1,
-        rects=[[.2,.3,.4,.5],[.6,.3,.8,.5]])
-    other={**source,'rects':list(reversed(source['rects']))}
-    assert rect_order_equivalent(source,other)
-    sources=[deepcopy(source)]
-    merge(sources,[other])
-    assert sources==[source]
-    assert not rect_order_equivalent(source,{**other,'text':'4 + 6 = 10'})
-    assert not rect_order_equivalent(source,{**other,'version_id':'other'})
-    assert not rect_order_equivalent(source,{**other,'rects':[[.21,.3,.4,.5],source['rects'][1]]})
+    source = dict(
+        id="sum",
+        text="4 + 5 = 9",
+        version_id="pdf",
+        page=1,
+        rects=[[0.2, 0.3, 0.4, 0.5], [0.6, 0.3, 0.8, 0.5]],
+    )
+    other = {**source, "rects": list(reversed(source["rects"]))}
+    assert rect_order_equivalent(source, other)
+    sources = [deepcopy(source)]
+    merge(sources, [other])
+    assert sources == [source]
+    assert not rect_order_equivalent(source, {**other, "text": "4 + 6 = 10"})
+    assert not rect_order_equivalent(source, {**other, "version_id": "other"})
+    assert not rect_order_equivalent(
+        source, {**other, "rects": [[0.21, 0.3, 0.4, 0.5], source["rects"][1]]}
+    )
 
 
 def test_resumed_context_does_not_duplicate_same_normative_sources():
@@ -48,16 +55,24 @@ def test_same_handle_with_other_literal_source_is_rejected():
 
 
 def test_exact_aliases_do_not_merge_registry_or_allow_unbound_excerpt_equivalence():
-    source=dict(id='n',kind='normative',source_id='pdf-sha',page=3,label='Clause',origin='native',text='Full condition')
-    sources=[source,{**source,'id':'search:n'}]
-    before=deepcopy(sources)
-    assert same_normative_evidence(['n'],['search:n'],sources)
-    assert not same_normative_evidence(['missing'],['search:n'],sources)
-    assert not same_normative_evidence([],[],sources)
-    assert sources==before
-    for omitted in ('page','source_id','origin'):
-        stripped=[{k:v for k,v in s.items() if k!=omitted} for s in sources]
-        assert not same_normative_evidence(['n'],['search:n'],stripped)
+    source = dict(
+        id="n",
+        kind="normative",
+        source_id="pdf-sha",
+        page=3,
+        label="Clause",
+        origin="native",
+        text="Full condition",
+    )
+    sources = [source, {**source, "id": "search:n"}]
+    before = deepcopy(sources)
+    assert same_normative_evidence(["n"], ["search:n"], sources)
+    assert not same_normative_evidence(["missing"], ["search:n"], sources)
+    assert not same_normative_evidence([], [], sources)
+    assert sources == before
+    for omitted in ("page", "source_id", "origin"):
+        stripped = [{k: v for k, v in s.items() if k != omitted} for s in sources]
+        assert not same_normative_evidence(["n"], ["search:n"], stripped)
 
 
 def test_failed_additional_pass_preserves_verified_facts_without_promoting_verdict():

@@ -243,7 +243,7 @@ def answer_feedback(answer, sources, tools, *, owner_unit='', work_scope='', hei
     if role_contract and not role_contract.get('project_input'):
         role_contract=None  # Subject metadata must not introduce a numeric input role.
     answer.parameters = resolve_anchors(answer.parameters,sources,answer.items,
-        work_scope=work_scope,height_cm=height_cm,owner_unit=owner_unit,evidence_trace=tools.events,
+        work_scope=work_scope,height_cm=height_cm,owner_unit=owner_unit,evidence_trace=getattr(tools,'events',None),
         calculation_input_unit=role_contract['project_input']['unit'] if role_contract else '')
     # The model chooses direct versus summed scope. Feedback may reject a
     # partial reading, but must not replace it with a verified local decision.

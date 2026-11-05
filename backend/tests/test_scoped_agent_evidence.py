@@ -230,17 +230,37 @@ def test_resume_rejects_stale_pins_before_importing_sources():
 
 def test_resume_retains_frozen_source_when_only_overlay_order_changed():
     from normative_service import position_key
-    p=position()
-    source=dict(id='sum',kind='project',version_id='pdf',page=1,text='2 + 3 = 5',
-        rects=[[.1,.2,.3,.4],[.5,.2,.7,.4]])
-    data=dict(position_key=position_key(p),vor_version_id='vor',kb=dict(id='kb'),
-        position_check=dict(sources=[source],parameter_proposals=[]))
-    tools=SimpleNamespace(sources=[{**source,'rects':list(reversed(source['rects']))}],events=[],coverage={})
-    with patch('normative_fact_ledger.supply'):
-        resume_evidence(tools,dict(review=dict(id='r',payload=data),plan=dict(actions=[])),
-            dict(vor_version_id='vor',config=dict(pdf_versions={'x':'pdf'})),p,dict(id='kb'))
-    assert tools.sources==[source]
-    assert any(e['kind']=='source_geometry_order_normalized' for e in tools.events)
+
+    p = position()
+    source = dict(
+        id="sum",
+        kind="project",
+        version_id="pdf",
+        page=1,
+        text="2 + 3 = 5",
+        rects=[[0.1, 0.2, 0.3, 0.4], [0.5, 0.2, 0.7, 0.4]],
+    )
+    data = dict(
+        position_key=position_key(p),
+        vor_version_id="vor",
+        kb=dict(id="kb"),
+        position_check=dict(sources=[source], parameter_proposals=[]),
+    )
+    tools = SimpleNamespace(
+        sources=[{**source, "rects": list(reversed(source["rects"]))}],
+        events=[],
+        coverage={},
+    )
+    with patch("normative_fact_ledger.supply"):
+        resume_evidence(
+            tools,
+            dict(review=dict(id="r", payload=data), plan=dict(actions=[])),
+            dict(vor_version_id="vor", config=dict(pdf_versions={"x": "pdf"})),
+            p,
+            dict(id="kb"),
+        )
+    assert tools.sources == [source]
+    assert any(e["kind"] == "source_geometry_order_normalized" for e in tools.events)
 
 
 def test_background_parent_update_only_revalidates_saved_answer_without_llm():

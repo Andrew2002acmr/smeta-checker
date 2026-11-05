@@ -189,9 +189,13 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
     from normative_parent_basis import verified_geometry_dependency
     from normative_verdict import verified_allocation_dependency
     from audit_models import VorPosition
-    current_position = VorPosition.model_validate(position) if derived else None
-    geometry_dependency = derived and verified_geometry_dependency(review, current_position)
-    allocation_dependency = derived and verified_allocation_dependency(review, current_position)
+    from pydantic import ValidationError
+    try:
+        current_position = VorPosition.model_validate(position)
+    except ValidationError:
+        current_position = None  # A partial planning context cannot certify a dependency.
+    geometry_dependency = derived and current_position is not None and verified_geometry_dependency(review, current_position)
+    allocation_dependency = derived and current_position is not None and verified_allocation_dependency(review, current_position)
     confirmed = {claim for item in items if item.get('state') == 'confirmed'
         and source_supported(item) for claim in item.get('claim_ids', [])
         if claim != 'derived:parent' or item.get('normative_source_ids')
@@ -203,10 +207,10 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
         for claim in item.get('claim_ids', []))
     from normative_workbook_arithmetic import arithmetic_claims
     confirmed.update(arithmetic_claims(review))
-    if any(e.get('kind')=='named_coefficient_policy_v1' for e in review.get('evidence_trace',[])):
+    if current_position is not None and any(e.get('kind')=='named_coefficient_policy_v1' for e in review.get('evidence_trace',[])):
         from audit_models import VorPosition
         from normative_coefficient_policy import accepted_claims
-        confirmed.update(accepted_claims(VorPosition.model_validate(position),review))
+        confirmed.update(accepted_claims(current_position,review))
     if geometry_dependency or allocation_dependency:
         confirmed.add('derived:parent')
     if confirmed_comment_aggregate(matching, confirmed):

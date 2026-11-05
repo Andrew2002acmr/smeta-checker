@@ -22,13 +22,22 @@ def deferred_drawing_errors(index):
             text,
         )
         work_table = (
-            re.search(r"ведомост[ьи]\s+(?:объ[её]м|работ|материал)|спецификаци[яи]", text, re.I)
-            or re.search(r"наименовани", text, re.I) and re.search(r"количеств", text, re.I)
+            re.search(
+                r"ведомост[ьи]\s+(?:объ[её]м|работ|материал)|спецификаци[яи]",
+                text,
+                re.I,
+            )
+            or re.search(r"наименовани", text, re.I)
+            and re.search(r"количеств", text, re.I)
         )
         if drawing and not work_table:
             deferred[page] = dict(
-                page=page + 1, kind="drawing_analysis_pending", reason="table_timeout_on_titled_drawing",
-                title=drawing[0].strip(), technical_error=str(error),
-                absence_of_project_fact_not_proven=True, separate_visual_analysis_required=True,
+                page=page + 1,
+                kind="drawing_analysis_pending",
+                reason="table_timeout_on_titled_drawing",
+                title=drawing[0].strip(),
+                technical_error=str(error),
+                absence_of_project_fact_not_proven=True,
+                separate_visual_analysis_required=True,
             )
     return deferred

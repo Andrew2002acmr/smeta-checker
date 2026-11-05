@@ -150,6 +150,16 @@ def verified_column_unit(table, cell, proof):
         and (boundary is None or h['row']<boundary)),None)
     if header is None or proof.get('bbox')!=header['bbox'] or len(proof.get('variants',[]))!=2:
         return ''
+    # A clear contrary exponent in the current physical header invalidates an
+    # old crop proof; replay must not turn a volume column back into area.
+    declared={m.replace('m','м') for m in re.findall(
+        r'(?<![\w.,])[мm][23](?!\w)',_clean(header.get('text','')))}
+    if declared and declared!={proof.get('unit')}:
+        return ''
+    caption=_clean(header.get('text',''))
+    if (re.search(r'\bобъ[её]м',caption) and proof.get('unit')=='м2'
+            or re.search(r'\bплощад',caption) and proof.get('unit')=='м3'):
+        return ''
     votes=[header_unit(v['words']) for v in proof['variants']]
     crop=proof.get('unit_crop')
     if crop:
