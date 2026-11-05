@@ -903,7 +903,8 @@ def table_outline(table):
         columns=columns, total_rows=sorted({c['row'] for c in totals}), total_labels=totals)
 
 
-def run(ask, client, credentials, instructions, inputs, schema, trace, stats, tools, *, verify_answer=None):
+def run(ask, client, credentials, instructions, inputs, schema, trace, stats, tools, *,
+        verify_answer=None, evidence_timeout_seconds=120):
     """Three calls; one source-only repair for a newly exposed conditional error."""
     from normative_context import ModelProviderResponseError
     started = time.monotonic()
@@ -1054,7 +1055,7 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
                     item.explanation += ' Поиск связанных источников не завершён.'
             answer.requests = []
             return answer
-        if step >= MAX_ROUNDS-1 or time.monotonic()-started > 120:
+        if step >= MAX_ROUNDS-1 or time.monotonic()-started > evidence_timeout_seconds:
             raise TimeoutError('Evidence acquisition budget exhausted')
         history = []
         for request in requests:
