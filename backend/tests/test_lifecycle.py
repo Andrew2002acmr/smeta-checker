@@ -265,6 +265,13 @@ class LifecycleTests(unittest.TestCase):
                 new_document=True,
             )
             doc_id = vor["document_id"]
+            self.assertEqual(
+                client.get(f"/api/v1/projects/{project_id}/audits/count").json(),
+                {"count": 0},
+            )
+            self.assertIsNone(
+                client.get(f"/api/v1/documents/{doc_id}/detail").json()["run_freshness"]
+            )
             created = client.post(
                 "/api/v1/audits",
                 json={
@@ -275,6 +282,21 @@ class LifecycleTests(unittest.TestCase):
             )
             run_id = created.json()["run_id"]
             self._wait_for_run(client, run_id)
+            self.assertEqual(
+                client.get(f"/api/v1/projects/{project_id}/audits/count").json(),
+                {"count": 1},
+            )
+            initial = client.get(f"/api/v1/documents/{doc_id}/detail").json()
+            self.assertEqual(initial["run_freshness"], "current")
+            self.assertFalse(initial["vor_updated"])
+            self.assertFalse(initial["pd_updated"])
+            from unittest.mock import patch
+
+            with patch.object(app.state.context.repository, "run_progress_records", return_value=[]):
+                unavailable = client.get(f"/api/v1/documents/{doc_id}/detail")
+                self.assertEqual(unavailable.status_code, 200, unavailable.text)
+                self.assertIsNone(unavailable.json()["last_run"])
+                self.assertEqual(unavailable.json()["run_freshness"], "unavailable")
             before_rows = client.get(f"/api/v1/audits/{run_id}/rows").json()
             before_evidence = client.get(
                 f"/api/v1/audits/{run_id}/positions/0/workspace"
@@ -301,6 +323,20 @@ class LifecycleTests(unittest.TestCase):
             catalog = client.get(f"/api/v1/projects/{project_id}/catalog").json()
             vor_doc = next(d for d in catalog if d["id"] == doc_id)
             self.assertTrue(vor_doc["pd_updated"])
+            self.assertEqual(vor_doc["run_freshness"], "stale")
+            self.assertFalse(vor_doc["vor_updated"])
+            vor2 = self._upload(
+                client, "Проект", "vor", "vor.csv",
+                fixtures._fake_vor_bytes().replace(b";45;", b";46;"), "text/csv",
+                project_id=project_id, document_id=doc_id,
+            )
+            client.patch(
+                f"/api/v1/documents/{doc_id}",
+                json={"current_version_id": vor2["version_id"]},
+            ).raise_for_status()
+            changed_vor = client.get(f"/api/v1/documents/{doc_id}/detail").json()
+            self.assertTrue(changed_vor["vor_updated"])
+            self.assertEqual(changed_vor["run_freshness"], "stale")
             self.assertEqual(
                 client.get(f"/api/v1/audits/{run_id}/rows").json(), before_rows
             )
@@ -309,6 +345,22 @@ class LifecycleTests(unittest.TestCase):
                     "evidence"
                 ],
                 before_evidence,
+            )
+            from uuid import UUID
+
+            rerun = app.state.context.repository.create_run(
+                UUID(project_id), UUID(vor2["version_id"]),
+                {"pdf_versions": {"project.pdf": pdf2["version_id"]}},
+                pdf_pins={"project.pdf": UUID(pdf2["version_id"])},
+            )
+            fresh = client.get(f"/api/v1/documents/{doc_id}/detail").json()
+            self.assertEqual(fresh["last_run"]["run_id"], str(rerun.id))
+            self.assertEqual(fresh["run_freshness"], "current")
+            self.assertFalse(fresh["vor_updated"])
+            self.assertFalse(fresh["pd_updated"])
+            self.assertEqual(
+                client.get(f"/api/v1/projects/{project_id}/audits/count").json(),
+                {"count": 2},
             )
             # Archived PDF revisions pin the snapshot: delete stays 409.
             denied = client.delete(f"/api/v1/documents/{pdf['version_id']}/version")
@@ -322,6 +374,10 @@ class LifecycleTests(unittest.TestCase):
             client.patch(
                 f"/api/v1/documents/{pdf['document_id']}", json={"archived": True}
             )
+            self.assertEqual(
+                client.get(f"/api/v1/documents/{doc_id}/detail").json()["run_freshness"],
+                "unavailable",
+            )
             restored = client.patch(
                 f"/api/v1/projects/{project_id}", json={"archived": False}
             )
@@ -332,6 +388,45 @@ class LifecycleTests(unittest.TestCase):
                 f"/api/v1/projects/{project_id}/catalog?archived=true"
             ).json()
             self.assertIn(pdf["document_id"], [d["id"] for d in visible])
+
+    def test_run_count_is_unpaginated_and_unknown_snapshot_is_unavailable(self):
+        from uuid import UUID
+        from sqlalchemy.orm import Session
+        from storage_models import Run
+
+        with tempfile.TemporaryDirectory(prefix="smeta-lifecycle-") as tmp:
+            client, app = self._open_app(tmp)
+            project_id = self._project(client)
+            vor = self._upload(
+                client, "Проект", "vor", "vor.csv", fixtures._fake_vor_bytes(),
+                "text/csv", project_id=project_id, new_document=True,
+            )
+            repo = app.state.context.repository
+            run = repo.create_run(UUID(project_id), UUID(vor["version_id"]), {})
+            detail = client.get(f"/api/v1/documents/{vor['document_id']}/detail")
+            self.assertEqual(detail.status_code, 200, detail.text)
+            self.assertEqual(detail.json()["run_freshness"], "unavailable")
+            with Session(repo._engine) as session:
+                stored = session.get(Run, run.id)
+                stored.config = {"pdf_versions": {}}
+                session.add_all([
+                    Run(project_id=UUID(project_id), vor_version_id=UUID(vor["version_id"]),
+                        config={"pdf_versions": {}}, status="done")
+                    for _ in range(105)
+                ])
+                session.commit()
+            self.assertEqual(
+                client.get(f"/api/v1/documents/{vor['document_id']}/detail").json()["run_freshness"],
+                "current",
+            )
+            self.assertEqual(
+                client.get(f"/api/v1/projects/{project_id}/audits/count").json(),
+                {"count": 106},
+            )
+            self.assertEqual(
+                client.get(f"/api/v1/projects/{self._project(client, 'Другой')}/audits/count").json(),
+                {"count": 0},
+            )
 
     def test_database_rejects_cross_project_pins_and_current_version(self):
         from sqlalchemy import create_engine, text

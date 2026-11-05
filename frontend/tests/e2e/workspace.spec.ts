@@ -62,7 +62,9 @@ test('dashboard filters projects and opens the permanent project workspace', asy
     timeout: 30000,
   })
   await page.getByLabel('Поиск проектов').fill('стенд')
-  await expect(page.getByRole('table')).toContainText('Синтетический стенд · интеграция')
+  await expect(page.getByRole('list', { name: 'Список проектов' })).toContainText(
+    'Синтетический стенд · интеграция',
+  )
   await page.getByLabel('Поиск проектов').fill('нет-такого-проекта')
   await expect(page.getByText('ничего не найдено', { exact: false })).toBeVisible()
   await page.getByLabel('Поиск проектов').fill('')
@@ -156,11 +158,11 @@ test('saved audit opens exact input, actual PDF and survives reload', async ({ p
   await expect
     .poll(() => dialog.evaluate((element) => element.contains(document.activeElement)))
     .toBe(true)
-  await page.getByRole('button', { name: /Оглавление ПД/ }).click()
+  await page.getByRole('button', { name: 'Оглавление', exact: true }).click()
   await expect(page.getByRole('region', { name: 'Дерево разделов PDF' })).toBeVisible()
   await expect(page.locator('.sheet-scroll')).toContainText('Copper cable')
-  // Provenance cells map address -> value; the header shows the first source-row address.
-  await expect(page.locator('.excel-pane')).toContainText('A2')
+  // The position card shows parsed work fields rather than spreadsheet column letters.
+  await expect(page.locator('.excel-pane')).toContainText('Наименование')
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
   await expect(page.getByRole('button', { name: 'Открыть позицию', exact: true })).toBeFocused()

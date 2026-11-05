@@ -18,6 +18,7 @@ from workspace_models import (
     ProjectUpdate,
     RowsDTO,
     RunDTO,
+    RunCountDTO,
     StructureDTO,
     SummaryDTO,
     VersionDeletedDTO,
@@ -196,16 +197,18 @@ def workspace_router(get_context) -> APIRouter:
         last = dict(document.get("last_run") or {})
         if not last.get("run_id"):
             return document
+        enriched = dict(document)
         try:
             records = context.repository.run_progress_records(
                 run_id=_parse_uuid(str(last["run_id"]), field="run_id")
             )
+            if records:
+                enriched["last_run"] = run_progress(context, records[0])
+                return enriched
         except Exception:
-            return document
-        if not records:
-            return document
-        enriched = dict(document)
-        enriched["last_run"] = run_progress(context, records[0])
+            pass
+        enriched["last_run"] = None
+        enriched["run_freshness"] = "unavailable"
         return enriched
 
     @router.get(
@@ -313,6 +316,10 @@ def workspace_router(get_context) -> APIRouter:
         )
         return [run_progress(context, record) for record in runs]
 
+    @router.get("/api/v1/projects/{project_id}/audits/count", response_model=RunCountDTO)
+    def history_count(project_id: str, context=Depends(guarded)):
+        return {"count": context.repository.count_runs(project(context, project_id).id)}
+
     @router.get("/api/v1/audits/{run_id}/progress", response_model=RunDTO)
     def progress(run_id: str, context=Depends(guarded)):
         records = context.repository.run_progress_records(
@@ -408,14 +415,8 @@ def workspace_router(get_context) -> APIRouter:
     )
     def workspace(run_id: str, position_index: int, context=Depends(guarded)):
         record = available(context, run_id)
-        row = next(
-            (
-                r
-                for r in present_results(context, record)
-                if r.position_index == position_index
-            ),
-            None,
-        )
+        rows = {r.position_index: r for r in present_results(context, record, only=[position_index])}
+        row = rows.get(position_index)
         if row is None:
             if not any(p.index == position_index for p in inputs_for_run(context, record)):
                 raise ApiError(404, "position_not_found", "Позиция не найдена")
@@ -441,7 +442,7 @@ def workspace_router(get_context) -> APIRouter:
             position = locate_position(context, record, position_index)
         except KeyError as exc:
             raise ApiError(404, "position_not_found", "Позиция не найдена") from exc
-        if not any(r.position_index == position_index for r in present_results(context, record)):
+        if not present_results(context, record, only=[position_index]):
             raise ApiError(409, "position_not_ready", "Позиция ещё обрабатывается")
         return record, position
 

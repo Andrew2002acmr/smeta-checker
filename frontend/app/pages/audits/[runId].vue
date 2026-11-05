@@ -228,8 +228,8 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <div>
-    <WorkspaceHeader active="check" />
-    <main id="main-content" tabindex="-1" class="shell">
+    <WorkspaceHeader active="check" wide />
+    <main id="main-content" tabindex="-1" class="shell shell-wide">
       <nav v-if="summary" class="toolbar" aria-label="Проект и редакция ведомости">
         <UButton
           :to="`/projects/${summary.project.id}`"
@@ -454,8 +454,8 @@ onBeforeUnmount(() => {
             @update:page="setPage"
           />
         </div>
-        <details class="docs">
-          <summary>Исходные версии документов</summary>
+        <section class="docs" aria-label="Исходные версии документов">
+          <h2>Исходные версии документов</h2>
           <p v-for="doc in summary.documents" :key="doc.id">
             {{ doc.filename }} · версия {{ doc.number }} · {{ doc.sha256.slice(0, 12) }}
             <UButton
@@ -468,7 +468,7 @@ onBeforeUnmount(() => {
               >Скачать</UButton
             >
           </p>
-        </details>
+        </section>
       </template>
       <AuditWorkspace
         v-if="position !== null && summary"
@@ -611,16 +611,17 @@ onBeforeUnmount(() => {
 }
 .pagination {
   margin: 20px 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
 }
 .docs {
   margin-top: 8px;
   font-size: 14px;
 }
-.docs summary {
-  font-weight: 600;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
+.docs h2 {
+  font-size: 14px;
+  margin: 0;
 }
 .docs p {
   margin: 8px 0;

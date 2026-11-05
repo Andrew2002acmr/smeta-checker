@@ -331,6 +331,10 @@ export type DocumentDto = {
      */
     project_id: string;
     /**
+     * Run Freshness
+     */
+    run_freshness?: 'current' | 'stale' | 'unavailable' | null;
+    /**
      * Title
      */
     title: string;
@@ -338,6 +342,10 @@ export type DocumentDto = {
      * Versions
      */
     versions: Array<VersionDto>;
+    /**
+     * Vor Updated
+     */
+    vor_updated?: boolean;
 };
 
 /**
@@ -1220,6 +1228,10 @@ export type NormativeManagerDto = {
      */
     collections: Array<NormativeCatalogTypeDto>;
     /**
+     * Profile Errors
+     */
+    profile_errors: Array<NormativeProfileErrorDto>;
+    /**
      * Profiles
      */
     profiles: Array<NormativeCorpusAdminDto>;
@@ -1500,6 +1512,20 @@ export type NormativePositionCheckRequest = {
      * Question
      */
     question?: string;
+};
+
+/**
+ * NormativeProfileErrorDTO
+ */
+export type NormativeProfileErrorDto = {
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Profile
+     */
+    profile: 'electrical' | 'roads';
 };
 
 /**
@@ -1853,6 +1879,10 @@ export type NormativeSourceAdminDto = {
      * Role
      */
     role?: string;
+    /**
+     * Sha256
+     */
+    sha256?: string | null;
 };
 
 /**
@@ -2536,6 +2566,16 @@ export type RowsDto = {
      * Total
      */
     total: number;
+};
+
+/**
+ * RunCountDTO
+ */
+export type RunCountDto = {
+    /**
+     * Count
+     */
+    count: number;
 };
 
 /**
@@ -4880,6 +4920,36 @@ export type HistoryApiV1ProjectsProjectIdAuditsGetResponses = {
 };
 
 export type HistoryApiV1ProjectsProjectIdAuditsGetResponse = HistoryApiV1ProjectsProjectIdAuditsGetResponses[keyof HistoryApiV1ProjectsProjectIdAuditsGetResponses];
+
+export type HistoryCountApiV1ProjectsProjectIdAuditsCountGetData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/audits/count';
+};
+
+export type HistoryCountApiV1ProjectsProjectIdAuditsCountGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type HistoryCountApiV1ProjectsProjectIdAuditsCountGetError = HistoryCountApiV1ProjectsProjectIdAuditsCountGetErrors[keyof HistoryCountApiV1ProjectsProjectIdAuditsCountGetErrors];
+
+export type HistoryCountApiV1ProjectsProjectIdAuditsCountGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: RunCountDto;
+};
+
+export type HistoryCountApiV1ProjectsProjectIdAuditsCountGetResponse = HistoryCountApiV1ProjectsProjectIdAuditsCountGetResponses[keyof HistoryCountApiV1ProjectsProjectIdAuditsCountGetResponses];
 
 export type CatalogApiV1ProjectsProjectIdCatalogGetData = {
     body?: never;

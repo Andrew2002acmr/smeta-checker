@@ -15,15 +15,7 @@
 - Проверки: `pnpm --dir frontend run fmt:check`, `lint`, `typecheck`, `test:unit`, `api:check` (`PYTHON` — абсолютный путь к `backend/.venv/bin/python`), `build`.
 - E2E: отдельная БД `smeta_test_ui` + `backend/tests/workspace_server.py` (синтетический LLM-клиент, без квоты), затем `pnpm --dir frontend run test:e2e` с `FRONTEND_URL` и `E2E_FIXTURE_ROOT`. Детали — в `frontend/README.md`.
 - `app/generated/` и `openapi.json` — генерируемые, вручную не править. `public/pdfjs` собран из `pdfjs-dist@6.4.299`.
-- BFF-токен (`NUXT_BACKEND_TOKEN`) только в серверном окружении; секреты — только `.env`.
-
-## Дизайн (pen.dev)
-
-- Эталон дизайна — pen.dev-документ `untitled.pen` в каталоге `/Users/nikgretenok/.pencil/documents/47db7130-ca63-463a-bbd5-043c77cce694/`: фреймы `01 · История проверок`, `02 · Новая проверка (загрузка)`, `03 · Результаты аудита`, `04 · Сверка позиции` + переменные темы (light/dark).
-- Любое изменение UI в `frontend/` и любое изменение дизайна в pen.dev вносятся в оба места в рамках одной задачи: код ↔ канвас всегда синхронизированы.
-- Порядок при правке UI: сначала обнови фрейм в pen.dev через MCP `pencil` (`get_app_state` → `execute`/`browser`), затем внеси то же изменение в код, затем сверь скриншот кода с канвасом.
-- Порядок при правке дизайна в pen.dev: сразу перенеси в код теми же токенами из `frontend/app/assets/css/theme.css`, затем прогони проверки frontend.
-- Не читай `.pen`-файлы напрямую (зашифрованы) — только через MCP-инструменты `pencil`.
+- При разработке фронтенда НЕ поднимайте Docker-контейнер `workspace`. Вместо этого запускайте dev-сервер: `pnpm --dir frontend dev` (порт 3000). Dev-сервер обеспечивает HMR и мгновенный просмотр изменений. Docker-контейнер `workspace` используется только для финальной проверки сборки (`docker compose up -d --build workspace`).
 
 ## Браузер
 

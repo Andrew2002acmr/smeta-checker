@@ -402,6 +402,7 @@ class NormativeReleaseDTO(DTO):
 class NormativeSourceAdminDTO(DTO):
     id: str
     designation: str
+    sha256: str | None = None
     kind: str = ""
     role: str = ""
     pages: int
@@ -448,15 +449,25 @@ class NormativeCatalogTypeDTO(DTO):
     file_count: int
 
 
+class NormativeProfileErrorDTO(DTO):
+    profile: Literal["electrical", "roads"]
+    message: str
+
+
 class NormativeManagerDTO(DTO):
     profiles: list[NormativeCorpusAdminDTO]
     collections: list[NormativeCatalogTypeDTO]
+    profile_errors: list[NormativeProfileErrorDTO]
 
 class ProjectDTO(DTO):
     id: str
     name: str
     archived: bool = False
     created_at: datetime | None = None
+
+
+class RunCountDTO(DTO):
+    count: int
 
 
 class ProjectCreate(DTO):
@@ -530,6 +541,8 @@ class DocumentDTO(DTO):
     versions: list[VersionDTO]
     last_run: RunDTO | None = None
     pd_updated: bool = False
+    vor_updated: bool = False
+    run_freshness: Literal["current", "stale", "unavailable"] | None = None
 
 
 class DocumentPatch(DTO):
