@@ -1,0 +1,32 @@
+x-offline-model: &offline-model
+  AUDIT_LLM_API_KEY: ""
+  ANYMODEL_API_KEY: ""
+  ROUTERAI_API_KEY: ""
+  AUDIT_LLM_MODEL: ""
+  ANYMODEL_MODEL: ""
+  ROUTERAI_MODEL: ""
+  LANGFUSE_PUBLIC_KEY: ""
+  LANGFUSE_SECRET_KEY: ""
+  SENTRY_DSN: ""
+  AUDIT_LLM_BASE_URL: http://127.0.0.1:9/v1
+  ANYMODEL_BASE_URL: http://127.0.0.1:9/v1
+  ROUTERAI_BASE_URL: http://127.0.0.1:9/v1
+services:
+  api:
+    image: smeta-home-v31-backend:engineering-v27-20261106
+    environment: *offline-model
+  migrate:
+    image: smeta-home-v31-backend:engineering-v27-20261106
+    environment: *offline-model
+  worker-pdf:
+    image: smeta-home-v31-backend:engineering-v27-20261106
+    environment: *offline-model
+  worker-llm:
+    image: smeta-home-v31-backend:engineering-v27-20261106
+    environment: *offline-model
+  worker-normative:
+    image: smeta-home-v31-backend:engineering-v27-20261106
+    environment: *offline-model
+  task-relay:
+    image: smeta-home-v31-backend:engineering-v27-20261106
+    environment: *offline-model
