@@ -42,6 +42,14 @@ def test_literal_context_preserves_rows_and_caption_without_inferring_scope():
     assert table_scope_context(table,table['cells'][1],source['id'],'pdf',90) is None
 
 
+def test_legacy_cell_handle_keeps_its_same_pinned_physical_scope_readable():
+    _,_,source=scope_fixture()
+    legacy=cell_source_id('pdf',90,'table','table:v',envelope_version=0)
+    source['id']=legacy
+    source['table_scope_context']['source_binding']['source_id']=legacy
+    assert validated_table_scope_context(source)
+
+
 def test_packing_preserves_literal_scope_projection_and_aliases_its_exact_source():
     _,_,source=scope_fixture()
     source['text']='Объем, м³\nВсего:\n188,74'

@@ -51,6 +51,17 @@ def test_native_literal_does_not_require_an_ocr_verification_flag():
     assert len(candidates(tools))==1
 
 
+def test_saved_legacy_address_preserves_literal_candidate_without_changing_source():
+    tools,ids=toolkit(('25',))
+    source=tools.sources[0]
+    old=cell_source_id('pd-version',89,'t1','c2',envelope_version=0)
+    source['id']=old
+    tools.cells[old]=tools.cells.pop(ids[0])
+    before=deepcopy(source)
+    result=candidates(tools)
+    assert result[0]['proposal']['source_id']==old and source==before
+
+
 def test_sum_registry_produces_exact_unrounded_template_with_actual_operands():
     tools,ids=toolkit()
     computed=tools._sum(EvidenceRequest(tool='sum_cells',operand_ids=ids,unit='м2'))

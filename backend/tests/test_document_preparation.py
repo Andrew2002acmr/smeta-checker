@@ -131,6 +131,18 @@ def test_resume_does_not_repeat_pages_or_native_pass_and_queues_shared_corpus(bu
         assert prepare(p)["queued"] == [0, 1]
 
 
+def test_cell_budget_yields_with_snapshot_and_resumes_without_page_ocr(build):
+    p = build()
+    with patch('pdf_numeric_preparation.pending_numeric_pages', return_value=[0]):
+        assert prepare(p)['continue']
+    record = p.repo.load_run(p.run.id)
+    state = record['config']['prepared_documents']['project.pdf']
+    assert state['snapshot'] and len(state['pages']) == 3
+    assert not p.repo.list_position_jobs(p.run.id)
+    with patch.object(PDFTextSource, 'prepare_page', side_effect=AssertionError('Repeated whole-page OCR')):
+        assert prepare(p)['queued'] == [0, 1]
+
+
 def test_no_position_dispatched_until_all_selected_pdfs_are_complete(build):
     p = build(multiple=True)
     real = PDFTextSource.prepare_page
@@ -281,3 +293,23 @@ def test_llm_worker_refuses_partial_document_without_reopening_or_calling_model(
     assert result["status"] == "Технический сбой"
     assert result.get("requests", 0) == 0
     assert "подготовка ПД" in result["discrepancy_details"]
+
+
+def test_old_preparation_contract_gets_new_snapshot_without_rewriting_old_one(build,monkeypatch):
+    from copy import deepcopy
+    from audit_snapshot import store_snapshot
+    from document_preparation import VERSION
+    monkeypatch.setattr('analysis_replay.enabled',lambda context:False)
+    p=build(page_count=1)
+    prepare(p)
+    state=deepcopy(p.repo.load_run(p.run.id)['config']['prepared_documents']['project.pdf'])
+    index=load_snapshot(p.context.blob_store,state['snapshot'])
+    index.metadata['preparation_version']=VERSION-1
+    old_ref=store_snapshot(p.context.blob_store,index)
+    state.update(version=VERSION-1,snapshot=old_ref)
+    p.repo.update_run_config(p.run.id,{'prepared_documents':{'project.pdf':state}})
+    prepare(p)
+    current=p.repo.load_run(p.run.id)['config']['prepared_documents']['project.pdf']
+    assert current['version']==VERSION and current['snapshot']!=old_ref
+    assert load_snapshot(p.context.blob_store,current['snapshot']).metadata['preparation_version']==VERSION
+    assert load_snapshot(p.context.blob_store,old_ref).metadata['preparation_version']==VERSION-1

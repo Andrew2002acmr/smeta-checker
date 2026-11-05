@@ -47,8 +47,10 @@ def _physical(source_id, sources, cells):
             or not all(isinstance(x,(int,float)) and math.isfinite(x) for x in bbox)
             or not (0<=bbox[0]<bbox[2] and 0<=bbox[1]<bbox[3])):
         return None
-    namespace=hashlib.sha256(f"{source['version_id']}:{source['page']}:{entry['table_id']}:{cell['cell_id']}".encode()).hexdigest()[:24]
-    if source_id!=f"agent:p{source['page']}:cell:{namespace}":
+    from normative_source_addresses import cell_source_id
+    expected={cell_source_id(source['version_id'],source['page'],entry['table_id'],cell['cell_id'],
+        envelope_version=version)for version in (0,1)}
+    if source_id not in expected:
         return None
     text=source.get('text','')
     header=entry.get('header_text','')
@@ -120,6 +122,16 @@ def quantity_parameter_candidates(sources, cells, sums=(), *, limit=12, max_char
                 provenance=dict(kind='calculated_from_physical_cells',version_id=source['version_id'],
                     page=source['page'],operands=[o['provenance'] for o in operands])))
     for source in reversed(sources):
+        if source.get('id')not in lookup:
+            continue
+        from normative_paired_quantities import verified_components
+        for component in verified_components(source):
+            proposal=_proposal(source,component['value'],component['unit'],source['text'],source['text'])
+            if proposal:
+                candidates.append(dict(proposal=proposal,scope_verified=False,
+                    provenance=dict(kind='physical_row_pair',version_id=source['version_id'],page=source['page'],
+                        **{key:source['paired_measurement_context'][key]for key in
+                            ('table_id','row','unit_cell_id','value_cell_id')})))
         entry=physical.get(source.get('id'))
         if entry is None:
             continue
@@ -130,7 +142,7 @@ def quantity_parameter_candidates(sources, cells, sums=(), *, limit=12, max_char
     output=[]
     used=0
     for candidate in candidates:
-        key=candidate['proposal']['source_id']
+        key=tuple(candidate['proposal'][field]for field in ('source_id','value','unit'))
         size=len(json.dumps(candidate,ensure_ascii=False))
         if key in seen or len(output)>=limit or used+size>max_chars:
             continue

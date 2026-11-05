@@ -24,13 +24,33 @@ def recover_unit_headers(tables, words):
             if cell.get('role') != 'header' or cell.get('colspan',1) != 1:
                 continue
             x0,y0,x1,y1=cell['bbox']
-            inside=[w['text'] for w in words if w.get('conf',0)>=75
+            observations=[w for w in words if w.get('conf',0)>=75
                 and x0 <= (w['bbox'][0]+w['bbox'][2])/2 <= x1
                 and y0 <= (w['bbox'][1]+w['bbox'][3])/2 <= y1]
+            inside=[w['text'] for w in observations]
             label=unicodedata.normalize('NFKC',''.join(inside)).casefold().replace(' ','')
             match=re.fullmatch(r'[мm]([23])',label)
             if match:
-                cell['text'] += '\nЕдиница по Tesseract: м'+match[1]
+                cell['unit_observation'] = dict(version='page-unit-observation-v1',
+                    engine='tesseract', unit_candidate='м'+match[1],
+                    bbox=list(cell['bbox']), words=observations, verified=False)
+
+
+def strip_legacy_unit_notes(tables):
+    """Separate historical generated annotations from literal source text."""
+    changes = 0
+    for table in tables:
+        for cell in table['cells']:
+            if cell.get('role') != 'header':
+                continue
+            match = re.fullmatch(r'(.*?)\nЕдиница по Tesseract: (м[23])', cell['text'], re.S)
+            if not match:
+                continue
+            cell.setdefault('legacy_unit_annotation', dict(text=cell['text'],
+                unit_candidate=match[2], verified=False))
+            cell['text'] = match[1]
+            changes += 1
+    return changes
 
 
 def verify_numeric_cells(tables, words):
@@ -604,12 +624,21 @@ def raster_tables(page, *, rotation=0, timeout=90):
         image_path = Path(directory) / "page.png"
         result_path = Path(directory) / "tables.json"
         image.save(image_path)
-        subprocess.run(
-            [sys.executable, "-m", "pdf_tables", str(image_path), str(result_path)],
-            check=True,
-            capture_output=True,
-            timeout=timeout,
-        )
+        # A cold OCR/table model on a complex sheet can exceed the first
+        # budget. Retry once on that technical failure only, reusing the same
+        # rendered image. A second timeout remains an explicit page error.
+        for attempt, budget in enumerate((timeout, timeout * 2)):
+            try:
+                subprocess.run(
+                    [sys.executable, "-m", "pdf_tables", str(image_path), str(result_path)],
+                    check=True,
+                    capture_output=True,
+                    timeout=budget,
+                )
+                break
+            except subprocess.TimeoutExpired:
+                if attempt:
+                    raise
         tables = json.loads(result_path.read_text())
 
     def mapped(box):

@@ -7,7 +7,16 @@ from audit_core import PageTextIndex
 from audit_snapshot import load_json, load_snapshot, store_json, store_snapshot
 from audit_tracing import span
 
-VERSION = 2
+VERSION = 3
+
+
+def _yield_unfinished_cells(index):
+    from pdf_header_preparation import pending_header_pages
+    from pdf_numeric_preparation import pending_numeric_pages
+    from pdf_header_lines import pending_pages as pending_semantic_pages
+    if pending_header_pages(index) or pending_numeric_pages(index) or pending_semantic_pages(index):
+        from audit_tasks import PreparationYield
+        raise PreparationYield()
 
 
 def assemble_document(native, packed):
@@ -16,6 +25,14 @@ def assemble_document(native, packed):
     if [p["page"] for p in packed] != list(range(1, len(native["texts"]) + 1)):
         raise ValueError("Prepared document has missing or unordered pages")
     errors = {i: "; ".join(p["errors"]) for i, p in enumerate(packed) if p["errors"]}
+    incomplete_headers = {}
+    for i, page in enumerate(packed):
+        pending = {t['table_id']: list((t.get('header_verification') or {}).get('deferred_header_ids', []))
+            for t in page['tables'] if t.get('recovery') and
+            (not t.get('header_verification') or (t.get('header_verification') or {}).get('deferred_header_ids'))}
+        if pending:
+            incomplete_headers[str(i + 1)] = pending
+            errors[i] = '; '.join(filter(None, [errors.get(i), 'incomplete_header_observation']))
     texts = tuple(p["text"] for p in packed)
     return PageTextIndex(
         texts,
@@ -35,6 +52,7 @@ def assemble_document(native, packed):
             preparation_complete=True,
             preparation_state="complete_with_errors" if errors else "complete",
             failed_pages=[i + 1 for i in errors],
+            incomplete_table_headers=incomplete_headers,
             page_geometry={str(i): p["geometry"] for i, p in enumerate(packed)},
             table_errors={
                 str(i + 1): p["table_error"]
@@ -104,6 +122,21 @@ def prepare_documents(
             state = dict(version=VERSION, version_id=version, pages=[])
         if state.get("snapshot"):
             index = load_snapshot(context.blob_store, state["snapshot"])
+            from pdf_header_preparation import complete_saved_geometry, complete_saved_headers, complete_saved_numbers, complete_saved_semantics
+
+            def commit_headers(updated, name=name):
+                documents[name] = updated
+                context.repository.update_run_config(run_id, {'prepared_documents': documents})
+
+            state, index = complete_saved_geometry(context.blob_store, pdf_files[name], state, index,
+                checkpoint=checkpoint, commit=commit_headers)
+            state, index = complete_saved_headers(context.blob_store, pdf_files[name], state, index,
+                checkpoint=checkpoint, commit=commit_headers)
+            state, index = complete_saved_numbers(context.blob_store, pdf_files[name], state, index,
+                checkpoint=checkpoint, commit=commit_headers)
+            state, index = complete_saved_semantics(context.blob_store, pdf_files[name], state, index,
+                checkpoint=checkpoint, commit=commit_headers)
+            _yield_unfinished_cells(index)
             if (
                 index.pending_ocr
                 or index.metadata.get("preparation_version") != VERSION
@@ -130,6 +163,7 @@ def prepare_documents(
                     checkpoint=checkpoint if native is None else None,
                     native_state=native,
                     full_document=True,
+                    store_image=context.blob_store.put,
                 )
             ) as source:
                 source._checkpoint = None
@@ -195,6 +229,10 @@ def prepare_documents(
                 index = assemble_document(native, packed)
                 state["snapshot"] = store_snapshot(context.blob_store, index)
                 state["failed_pages"] = list(index.metadata["failed_pages"])
+                # Persist the partial observation before yielding; never turn a
+                # bounded cell pass into a failed run or dispatch agent work.
+                commit()
+                _yield_unfinished_cells(index)
                 if enabled(context):
                     state=store_prepared(context,prepared_identity(record,pdf_files[name],version),dict(state,pages=list(pages)))
                     pages=list(state['pages'])

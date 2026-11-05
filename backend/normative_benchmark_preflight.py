@@ -76,13 +76,16 @@ def inspect(context, matching_run_id, prepared_run_id, *, expected_count=103, in
             prepared_index=snapshot(corpora[version])
             identity=pdf_identity(context.blob_store,document)
             snapshot_hash=prepared_index.metadata.get('pdf_sha256')
+            from pdf_page_routing import deferred_drawing_errors
+            deferred=deferred_drawing_errors(prepared_index)
             if (document.kind!='pdf' or snapshot_hash not in identity.values()
                     or prepared_index.pending_ocr or not prepared_index.metadata.get('preparation_complete')
-                    or prepared_index.errors):
+                    or set(prepared_index.errors)-set(deferred)):
                 raise ValueError('Canonical prepared snapshot is incomplete or belongs to another PDF')
             documents[version]=dict(version_id=version,pdf_sha256=snapshot_hash,pdf_identity=identity,
                 snapshot=deepcopy(corpora[version]),pages=len(prepared_index.texts),
-                tables=sum(len(t) for t in prepared_index.tables or []))
+                tables=sum(len(t) for t in prepared_index.tables or []),
+                deferred_visual_pages=list(deferred.values()))
         frozen=snapshot(payload['snapshot'])
         if frozen.metadata.get('pdf_sha256')!=documents[version]['pdf_sha256']:
             raise ValueError('Frozen matching snapshot belongs to another PDF')

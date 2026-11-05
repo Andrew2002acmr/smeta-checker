@@ -11,12 +11,17 @@ import time
 import unicodedata
 from functools import lru_cache
 from statistics import median
+from typing import Any
 
 VERSION = 'cell-ocr-v1'
 NUMERIC_RECOVERY_VERSION = 'numeric-crop-recovery-v1'
+BODY_PREPARATION_VERSION = 'physical-body-numbers-v5'
+STRONG_CONSENSUS = 'cross-engine-strong-numeric-v1'
 
 
 def column_unit(table, cell):
+    if (cell.get('geometry_validation') or {}).get('requires_source_review'):
+        return ''
     proof = (table.get('column_units') or {}).get(str(cell['column'])) or {}
     from pdf_table_verification import VERSION as HEADER_VERSION, verified_column_unit
     if proof.get('version') == HEADER_VERSION:
@@ -27,7 +32,14 @@ def column_unit(table, cell):
             and proof.get('header_id') in cell.get('header_ids', [])
             and len(proof.get('variants', [])) == 2
             and all(literal_unit(v['words']) == proof['unit'] for v in proof['variants'])):
+        if table.get('origin') == 'ocr':
+            header = next((h for h in table['cells'] if h['cell_id'] == proof['header_id']), None)
+            expected = subcolumn_box(table, header, cell['column'], column_axis(table)) if header else None
+            if expected is None or proof.get('bbox') != expected:
+                return ''
         return proof['unit']
+    if table.get('origin') == 'ocr':
+        return ''  # Raw raster text never inherits native-PDF unit trust.
     units = set()
     for header in table['cells']:
         if header.get('cell_id') not in cell.get('header_ids', []) or header.get('colspan',1) != 1:
@@ -39,7 +51,7 @@ def column_unit(table, cell):
     return next(iter(units)) if len(units) == 1 else ''
 
 
-def clean_glyphs(image):
+def clean_glyphs(image, *, preserve_gray=False):
     """Remove only components connected to the crop edge (typically grid lines)."""
     import cv2
     import numpy as np
@@ -58,6 +70,11 @@ def clean_glyphs(image):
     if points is None:
         return None
     x,y,w,h = cv2.boundingRect(points)
+    if preserve_gray:
+        # Keep the original antialiasing of interior glyphs. The same mask
+        # removes border rules; no character or expected value is supplied.
+        keep=cv2.dilate(cleaned,np.ones((3,3),dtype=np.uint8))>0
+        return Image.fromarray(np.where(keep,gray,255).astype(np.uint8)[y:y+h,x:x+w])
     return Image.fromarray(255-cleaned[y:y+h,x:x+w])
 
 
@@ -142,12 +159,12 @@ def numeric_agreement(value, variants):
     return len(votes) >= 2
 
 
-def _numeric_disagreement(value, variants):
+def _numeric_disagreement(value, variants, *, confidence=75):
     from normative_parameters import number
     for variant in variants:
         words=variant.get('words',[])
         actual=number(''.join(w['text'] for w in words))
-        if actual is not None and actual!=number(value) and min((w.get('conf',0) for w in words),default=0)>=75:
+        if actual is not None and actual!=number(value) and min((w.get('conf',0) for w in words),default=0)>=confidence:
             return True
     return False
 
@@ -165,7 +182,7 @@ def _numeric_rapid_engine():
 
 
 def _rapid_numeric(image):
-    result=_numeric_rapid_engine()(image,use_det=False,use_cls=False,use_rec=True)
+    result: Any = _numeric_rapid_engine()(image,use_det=False,use_cls=False,use_rec=True)
     return [dict(text=str(text),confidence=float(confidence))
         for text,confidence in zip(result.txts if result.txts is not None else [],
             result.scores if result.scores is not None else [], strict=False)]
@@ -182,6 +199,9 @@ def recovered_numeric_value(cell, proof):
     value=number(rapid[0]['text'])
     if value is None:
         return None
+    if any(w.get('confidence', 0) >= .9 and number(w['text']) not in {None, value}
+            for attempt in proof.get('rapid_attempts', []) for w in attempt.get('words', [])):
+        return None
     original=number(cell.get('text',''))
     if original is not None and original!=value:
         return None  # A new OCR vote cannot silently rewrite an existing number.
@@ -189,6 +209,17 @@ def recovered_numeric_value(cell, proof):
             for w in cell.get('words',[])):
         return None
     variants=proof.get('variants',[])
+    if proof.get('consensus_policy') == STRONG_CONSENSUS:
+        # Strong independent-engine consensus may resolve only moderate scale
+        # disagreements. All observations stay in the proof; a >=90 conflict
+        # still blocks, including conflicts from earlier crop attempts.
+        if rapid[0].get('confidence', 0) < .99 or _numeric_disagreement(value,
+                [*proof.get('prior_variants', []), *variants], confidence=90):
+            return None
+        strong = {(v.get('height'), v.get('psm', 7)) for v in variants
+            if len(v.get('words', [])) == 1 and number(v['words'][0]['text']) == value
+            and v['words'][0].get('conf', 0) >= 95}
+        return str(value) if len(strong) >= 2 else None
     if _numeric_disagreement(value,proof.get('prior_variants',[])):
         return None
     # Two distinct numbers must not become one by concatenating OCR tokens.
@@ -206,7 +237,7 @@ def _recover_numeric(image, cell, proof, read, deadline):
     from copy import deepcopy
     from PIL import Image, ImageOps
     from ocr_engine import _to_png
-    recovery=dict(version=NUMERIC_RECOVERY_VERSION,bbox=list(cell['bbox']),
+    recovery: dict[str, Any] = dict(version=NUMERIC_RECOVERY_VERSION,bbox=list(cell['bbox']),
         image_sha256=proof['image_sha256'],dpi=proof['dpi'],rotation=proof['rotation'],
         prior_text=cell['text'],prior_words=deepcopy(cell.get('words',[])),
         prior_variants=deepcopy((cell.get('raw_numeric_refinement') or {}).get('variants',[])),
@@ -218,25 +249,76 @@ def _recover_numeric(image, cell, proof, read, deadline):
     if clean is None or time.monotonic()>=deadline:
         return
     recovery['rapid_words']=_rapid_numeric(clean)
+    from pdf_numeric_variants import padded_rapid, italic_reads
+    recovery['rapid_words'], recovery['rapid_attempts'] = padded_rapid(
+        clean, recovery['rapid_words'], _rapid_numeric, deadline)
+    def accepted():
+        value = recovered_numeric_value(cell, recovery)
+        if value is not None:
+            return value
+        recovery['consensus_policy'] = STRONG_CONSENSUS
+        value = recovered_numeric_value(cell, recovery)
+        if value is None:
+            recovery.pop('consensus_policy', None)
+        return value
     for height,psm in ((40,7),(56,7),(80,7),(96,7),(64,6),(64,13)):
-        if time.monotonic()>=deadline or recovered_numeric_value(cell,recovery) is not None:
+        if time.monotonic()>=deadline or accepted() is not None:
             break
         scaled=clean.resize((max(1,round(clean.width*height/clean.height)),height),Image.Resampling.LANCZOS)
         scaled=ImageOps.expand(scaled,border=20,fill='white')
         words=read(_to_png(scaled),language='eng',psm=psm,timeout=max(.1,min(3,deadline-time.monotonic())))
         recovery['variants'].append(dict(height=height,psm=psm,words=words))
-    value=recovered_numeric_value(cell,recovery)
+    value=accepted()
+    if value is None:
+        for variant in italic_reads(clean, read, deadline):
+            recovery['variants'].append(variant)
+            value = accepted()
+            if value is not None:
+                break
     if value is not None:
         cell['text']=value if not cell['text'].strip() else cell['text']
         cell['numeric_verified']=True
         cell['quality']='usable'
 
 
-def refine_tables(page, tables, *, rotation=0, cache_dir=None, store_image=None, seconds:float=25, max_numbers=12, max_columns=32):
+def has_measurement_context(table):
+    # Drawing title blocks are physical grids too. A grid alone must not
+    # trigger attempts to turn all its blank boxes into quantities.
+    headers = ' '.join(c.get('text', '') for c in table['cells'] if c.get('role') == 'header')
+    if re.search(r'количеств|объ[её]м|площад|расстояни|ведомост|спецификаци', headers, re.I):
+        return True
+    return any(column_unit(table, c) for c in table['cells'] if c.get('role') == 'cell')
+
+
+def numeric_candidates(table, *, include_body=False, resume_only=False):
+    from normative_parameters import number
+    totals = {c['row'] for c in table['cells'] if c['text'].strip().casefold().rstrip(':') in {'всего', 'итог', 'итого'}}
+    body = include_body and has_measurement_context(table)
+    output = []
+    for cell in table['cells']:
+        if (cell.get('role') != 'cell' or not cell.get('header_ids') or cell.get('colspan', 1) != 1
+                or cell.get('rowspan', 1) != 1 or cell.get('numeric_verified')
+                or 'unrecovered_source_region' in cell.get('reasons', [])):
+            continue
+        if (cell.get('geometry_validation') or {}).get('requires_source_review'):
+            continue
+        if not (number(cell['text']) is not None or (table.get('recovery') and not cell['text'].strip())):
+            continue
+        if cell['row'] not in totals and not body:
+            continue
+        if not (cell.get('quality') == 'usable' or table.get('recovery')):
+            continue
+        if resume_only and (cell.get('numeric_preparation') or {}).get('version') == BODY_PREPARATION_VERSION:
+            continue
+        output.append(cell)
+    return sorted(output, key=lambda c: (c['row'] not in totals, bool(c['text'].strip()), c['row'], c['column']))
+
+
+def refine_tables(page, tables, *, rotation=0, cache_dir=None, store_image=None, seconds:float=25,
+                  max_numbers=12, max_columns=32, include_body=False, resume_only=False):
     """Refine uncertain totals and unit headers; preserve the source's raw OCR."""
     import pymupdf
     import ocr_engine
-    from normative_parameters import number
     from pathlib import Path
     deadline = time.monotonic()+seconds
     original_rotation = page.rotation
@@ -262,7 +344,6 @@ def refine_tables(page, tables, *, rotation=0, cache_dir=None, store_image=None,
         return image, proof
     def read(data, **options):
         return ocr_engine.parse_tsv(ocr_engine.run_tsv(data, **options))
-    numbers = columns = 0
     try:
         # Restoring page.rotation still writes /Rotate 0 when the original key
         # was absent. All rendering adjustments belong to a private copy.
@@ -270,22 +351,37 @@ def refine_tables(page, tables, *, rotation=0, cache_dir=None, store_image=None,
         render_page = private[0]
         render_page.set_rotation(0)
         for table in tables:
+            numbers = columns = 0
+            deferred = []
             axis = column_axis(table)
             headers = {c['cell_id']:c for c in table['cells'] if c.get('role') == 'header'}
-            totals = {c['row'] for c in table['cells'] if c['text'].strip().casefold().rstrip(':') in {'всего','итог','итого'}}
-            candidates = sorted((c for c in table['cells'] if c['row'] in totals
-                and (number(c['text']) is not None or (table.get('recovery') and not c['text'].strip()))
-                and c.get('role')=='cell' and c.get('header_ids') and c.get('colspan',1)==1
-                and c.get('rowspan',1)==1 and not c.get('numeric_verified')
-                and (c.get('quality')=='usable' or table.get('recovery'))
-                and 'unrecovered_source_region' not in c.get('reasons',[])),key=lambda c:(-c['row'],c['column']))
-            for cell in candidates:
+            candidates = numeric_candidates(table, include_body=include_body, resume_only=resume_only)
+            for at, cell in enumerate(candidates):
                 if numbers >= max_numbers or time.monotonic() >= deadline:
+                    deferred = [c['cell_id'] for c in candidates[at:]]
                     break
                 numbers += 1
                 try:
                     from copy import deepcopy
                     image, proof = render(cell['bbox'])
+                    from pdf_empty_cells import printed_dash, empty_paper
+                    blank = empty_paper(image) if not cell['text'].strip() else None
+                    if blank:
+                        cell['literal_marker'] = dict(blank, bbox=list(cell['bbox']),
+                            image_sha256=proof['image_sha256'], image_key=proof.get('image_key'),
+                            dpi=proof['dpi'], rotation=proof['rotation'])
+                        cell['numeric_verified'] = False
+                        cell['numeric_preparation'] = dict(version=BODY_PREPARATION_VERSION, state='literal_empty')
+                        continue
+                    marker = printed_dash(image) if not cell['text'].strip() else None
+                    if marker:
+                        cell['literal_marker'] = dict(marker, bbox=list(cell['bbox']),
+                            image_sha256=proof['image_sha256'], image_key=proof.get('image_key'),
+                            dpi=proof['dpi'], rotation=proof['rotation'])
+                        cell['text'] = '–'
+                        cell['numeric_verified'] = False
+                        cell['numeric_preparation'] = dict(version=BODY_PREPARATION_VERSION, state='literal_dash')
+                        continue
                     proof['variants'] = _read_variants(image,numeric=True,read=read,deadline=deadline)
                     if cell.get('numeric_refinement'):
                         cell.setdefault('raw_numeric_refinement',deepcopy(cell['numeric_refinement']))
@@ -298,6 +394,9 @@ def refine_tables(page, tables, *, rotation=0, cache_dir=None, store_image=None,
                         _recover_numeric(image,cell,proof,read,deadline)
                 except (RuntimeError, ValueError) as exc:
                     cell['refinement_error'] = type(exc).__name__
+                if include_body:
+                    cell['numeric_preparation'] = dict(version=BODY_PREPARATION_VERSION,
+                        state='verified' if cell.get('numeric_verified') else 'uncertain')
             units = table.setdefault('column_units', {})
             for column in range(table['col_count']):
                 if columns >= max_columns or time.monotonic() >= deadline:
@@ -322,6 +421,7 @@ def refine_tables(page, tables, *, rotation=0, cache_dir=None, store_image=None,
                 except (RuntimeError, ValueError):
                     continue
             table['cell_refinement'] = dict(version=VERSION,numbers_attempted=numbers,columns_attempted=columns,
-                budget_exhausted=time.monotonic() >= deadline)
+                deferred_cell_ids=deferred, budget_scope='per_table_shared_page_deadline',
+                budget_exhausted=bool(deferred) or time.monotonic() >= deadline)
     finally:
         private.close()

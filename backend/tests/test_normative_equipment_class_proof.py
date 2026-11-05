@@ -62,6 +62,47 @@ def test_real_position2_derived_class_only_and_no_mutation(sample):
     assert result['state'] == 'needs_facts'  # Final publication remains the existing verdict's job.
 
 
+def recovered_alias(sample):
+    event = next(e for e in sample['check']['evidence_trace']
+        if e.get('kind') == 'normative_resource_consumption_candidates' and e.get('norm_source_id') == 'n2')
+    recovered = deepcopy(event)
+    recovered['recovery_prefix'] = 'recovered:same-immutable-norm'
+    for row in recovered.get('resources', []):
+        original = source(sample, row['source_id'])
+        alias_id = 'recovered:' + original['id']
+        if not any(s['id'] == alias_id for s in sample['check']['sources']):
+            sample['check']['sources'].append({**deepcopy(original), 'id': alias_id})
+        row['source_id'] = alias_id
+    # Some historical fixtures retain the event but not its expanded rows.
+    original = source(sample, 'n2:resources:25')
+    if not any(s['id'] == 'recovered:n2:resources:25' for s in sample['check']['sources']):
+        sample['check']['sources'].append({**deepcopy(original), 'id': 'recovered:n2:resources:25'})
+    sample['check']['evidence_trace'].append(recovered)
+    return recovered
+
+
+def test_recovered_alias_does_not_create_a_false_resource_conflict(sample):
+    recovered_alias(sample)
+    before = deepcopy(sample['check'])
+    assert len(owned(run(sample))) == 1
+    assert sample['check'] == before
+
+
+def test_recovered_alias_with_a_different_check_remains_a_conflict(sample):
+    recovered = recovered_alias(sample)
+    recovered['checks'] = [dict(state='unknown', label='Unresolved normative condition')]
+    assert not owned(run(sample))
+
+
+def test_same_resource_text_from_a_different_pdf_is_not_an_alias(sample):
+    recovered_alias(sample)
+    source(sample, 'recovered:n2:resources:25')['source_id'] = 'different-normative-pdf'
+    # This foreign source is ignored, while the original remains valid.
+    result = run(sample)
+    assert len(owned(result)) == 1
+    assert 'recovered:n2:resources:25' not in owned(result)[0]['normative_source_ids']
+
+
 @pytest.mark.parametrize('model', ['HD120', 'HD+130', 'HD130C', 'HD130 / Bomag BW161', 'HD130 массой 13 т'])
 def test_exact_model_not_alternative_or_qualifier(sample, model):
     sample['position'].comment = sample['position'].comment.replace('HD130', model)

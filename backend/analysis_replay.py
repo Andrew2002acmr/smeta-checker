@@ -27,11 +27,18 @@ def enabled(context):
 @lru_cache(maxsize=3)
 def algorithm(stage):
     root=Path(__file__).resolve().parent
-    patterns=('pdf_*.py','ocr_*.py','document_preparation.py','analysis_replay.py') if stage=='prepared_pdf' else (
-        'audit_*.py','vor_*.py','analysis_replay.py',*(() if stage=='matching' else ('normative_*.py','human_basis.py','workspace_service.py')))
+    patterns=('pdf_*.py','ocr_*.py','header_ocr_model.py','document_preparation.py','analysis_replay.py') if stage=='prepared_pdf' else (
+        'audit_*.py','vor_*.py','analysis_replay.py',*(() if stage=='matching' else ('normative_*.py','human_basis.py','workspace_service.py','pdf_page_routing.py','pdf_drawing_readings.py')))
     paths={p for pattern in patterns for p in root.glob(pattern)}
     paths.update(p for p in (root/'uv.lock',) if p.exists())
-    return digest({p.name:hashlib.sha256(p.read_bytes().replace(b'\r\n',b'\n')).hexdigest() for p in sorted(paths)})
+    parts={p.name:hashlib.sha256(p.read_bytes().replace(b'\r\n',b'\n')).hexdigest() for p in sorted(paths)}
+    if stage=='prepared_pdf':
+        from header_ocr_model import configured
+        model=configured()
+        parts['header_model_weights']=model['sha256'] if model else 'not_installed'
+        from pdf_paired_models import signature
+        parts['paired_model_weights']=signature() or 'not_installed'
+    return digest(parts)
 
 
 def model_identity(settings):
@@ -75,6 +82,18 @@ def store_prepared(context,ident,state):
     index=load_snapshot(context.blob_store,state['snapshot'])
     if not index.metadata.get('preparation_complete') or index.pending_ocr:
         raise ValueError('Incomplete document cannot enter reusable artifact storage')
+    from pdf_header_preparation import pending_header_pages
+    from pdf_geometry_contract import pending_geometry_pages
+    if pending_geometry_pages(index):
+        raise ValueError('Unvalidated table geometry cannot enter reusable artifact storage')
+    if pending_header_pages(index):
+        raise ValueError('Unfinished table headers cannot enter reusable artifact storage')
+    from pdf_numeric_preparation import pending_numeric_pages
+    if pending_numeric_pages(index):
+        raise ValueError('Unfinished numeric cells cannot enter reusable artifact storage')
+    from pdf_header_lines import pending_pages
+    if pending_pages(index):
+        raise ValueError('Unfinished semantic headers cannot enter reusable artifact storage')
     if (index.metadata.get('document_version_id')!=ident['inputs']['version_id']
             or native.get('pdf_sha256')!=index.metadata.get('pdf_sha256')):
         raise ValueError('Reusable preparation belongs to another document')
@@ -110,7 +129,9 @@ def replay_prepared(context,ident):
         raise ValueError('Raw preparation contracts do not match')
     state=dict(old['payload']['state'],reused_from_artifact=digest(previous),
         preparation_reuse_basis='same_source_and_extraction_contract')
-    return dict(state=store_prepared(context,ident,state))
+    # The preparation barrier may still need to complete deferred headers.
+    # Do not commit a legacy snapshot under the new algorithm before that step.
+    return dict(state=state)
 
 
 def matching_identity(context,record,payload):

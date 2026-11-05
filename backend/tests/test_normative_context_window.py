@@ -7,6 +7,34 @@ from test_normative_context_packing import CAPTURES, size
 from normative_embedded_context import literal_paths
 
 
+def test_many_page_ocr_flags_are_lossless_and_leave_room_for_literal_sources():
+    from normative_context_window import columnar_page_coverage
+    pages = {str(page): dict(version='inline-raster-v1', detected=page % 4 + 1,
+        candidates=page % 3, visually_transcribed=0, unresolved=page % 2,
+        visual_review_required=True, absence_proven=False, future_flag='retained')
+        for page in range(1, 100)}
+    projected = columnar_page_coverage(pages)
+    restored = {page: {**projected['shared'], **dict(zip(projected['columns'], values, strict=True))}
+        for page, values in projected['pages'].items()}
+    assert restored == pages
+    assert len(serialize_context(projected)) < len(serialize_context(pages)) // 3
+    case = deepcopy(CAPTURES[0])
+    case['metadata']['work_scope_graph'] = dict(positions=[], same_work_other_scopes=[])
+    case['metadata'].setdefault('coverage', {})['inline_raster'] = pages
+    before = deepcopy(case)
+    packed = compact(case['metadata'], case['sources'], case['preferred'],
+        measure=lambda v: size(v, case['sources']))
+    assert size(packed, case['sources']) <= MAX_CONTEXT
+    assert packed['required_validation_claims'] == case['metadata']['required_validation_claims']
+    assert case == before
+
+
+def test_heterogeneous_unknown_page_flags_are_not_dropped():
+    from normative_context_window import columnar_page_coverage
+    pages = {'1': {'unresolved': 1}, '2': {'unresolved': 0, 'new_field': ['literal']}}
+    assert columnar_page_coverage(pages) is pages
+
+
 def test_small_window_is_lossless():
     value = dict(
         work_scope_graph={"positions": []},

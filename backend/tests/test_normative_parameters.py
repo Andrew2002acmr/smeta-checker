@@ -13,6 +13,7 @@ def test_attached_physical_units_are_literal_numeric_boundaries_not_word_suffixe
 
 
 def position(index=0, volume='431.61', unit='м2', **extra):
+    extra.setdefault('position_type', 'Работа')
     return SimpleNamespace(index=index, number=str(index+1), volume=volume, unit=unit,
         work_name='Устройство основания из ЩПС, h=12 см', formula='', calculation={},
         position_source=SimpleNamespace(row=18+index), **extra)

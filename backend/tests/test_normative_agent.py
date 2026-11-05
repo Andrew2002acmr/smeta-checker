@@ -155,6 +155,23 @@ def toolkit():
     return tools
 
 
+def test_source_only_tools_pin_document_and_read_physical_cells_without_vor_job():
+    index=toolkit().index
+    index.metadata={'document_version_id':'pinned-version'}
+    index.pending_ocr=[]
+    index.errors={}
+    with pytest.raises(ValueError,match='another document'):
+        EvidenceTools.from_prepared(index,'another-version')
+    tools=EvidenceTools.from_prepared(index,'pinned-version')
+    result=tools.execute(EvidenceRequest(tool='read_table',page=1,table_id='t1',row_ids=[1],column_ids=[1]))
+    assert result['rows'][0]['text']=='12,34'
+    assert tools.sources and not hasattr(tools,'context')
+    assert tools.coverage['source_only']
+    assert tools.execute(EvidenceRequest(tool='search_norms',query='anything'))=={'error':'normative_kb_unavailable'}
+    index.pending_ocr=[2]
+    assert EvidenceTools.from_prepared(index,'pinned-version').coverage['state']=='partial'
+
+
 def test_normative_search_preserves_late_clause_for_explicit_read():
     from normative_service import candidate
     text='Начало пункта. '*600+'Условие в конце: коэффициент только после пробной укатки.'
@@ -204,6 +221,57 @@ def test_quantity_search_reaches_late_table_beyond_bounded_model_catalogue():
     assert candidates[0]['operand_source_ids']
 
 
+def test_quantity_discovery_distinguishes_identical_work_at_numbered_sections():
+    from test_normative_table_candidates import table
+    tools=toolkit()
+    tables=[]
+    for number in range(1,14):
+        item=table()
+        item['table_id']=f'section-{number}'
+        item['cells'].insert(0,dict(cell_id=f'caption{number}',row=-1,column=0,colspan=4,role='header',
+            text=f'Ведомость работ. Участок №{number}',header_ids=[]))
+        tables.append(item)
+    tools.index.tables=(tables,[],[])
+    candidates=tools.quantity_candidates('Материал Б',unit='м2',height_cm='18',section_context='Участок №12')
+    assert candidates[0]['table_id']=='section-12'
+    assert candidates[0]['scope_identifier_match_state']=='matched'
+    assert not candidates[0]['scope_verified']
+    wrong=next(c for c in candidates if c['table_id']!='section-12')
+    assert wrong['scope_identifier_match_state']=='conflicting'
+    assert 'scope:участок:12' not in wrong['section_match_terms']
+
+
+def test_scope_can_be_discovered_in_rows_without_allocating_the_total_to_one_row():
+    from test_normative_table_candidates import table
+    tools=toolkit()
+    street=table()
+    street['table_id']='mainline'
+    exits=table()
+    exits['table_id']='exits'
+    exits['cells'].extend([dict(cell_id=f'exit-{i}',role='cell',row=i,column=0,text=f'Съезд №{i}',header_ids=[])
+        for i in (1,2)])
+    tools.index.tables=([street,exits],[],[])
+    candidates=tools.quantity_candidates('Материал Б',unit='м2',height_cm='18',section_context='Съезд №1')
+    assert candidates[0]['table_id']=='exits'
+    assert candidates[0]['scope_identifier_match_state']=='includes_requested_and_other_scopes'
+    assert not candidates[0]['scope_observations_prove_total_allocation'] and not candidates[0]['scope_verified']
+    assert candidates[0]['scope_match_observations'][0]['read_request']['column_ids']==[0]
+
+
+def test_location_words_alone_cannot_create_a_material_quantity_candidate():
+    from test_normative_table_candidates import table
+    tools=toolkit()
+    wrong=table()
+    for cell in wrong['cells']:
+        if cell['cell_id'] in {'m0','m2'}:
+            cell['text']='Выемка грунта h=0,18 м'
+    wrong['cells'].append(dict(cell_id='caption',role='header',row=-1,column=0,colspan=4,
+        text='Дорожная одежда улицы Автозаводская'))
+    tools.index.tables=([wrong],[],[])
+    assert tools.quantity_candidates('Асфальтобетон А22НТ',unit='м2',height_cm='18',
+        section_context='Дорожная одежда улицы Автозаводская')==[]
+
+
 def test_fact_graph_cannot_overflow_model_prompt():
     inputs = dict(matching_checks=[dict(claim_id='quantity', state='review_required', facts=[{'raw': 'x'*1000000}])])
     result = compact(inputs, [dict(id='p1', kind='project', text='x'*20000)])
@@ -228,6 +296,37 @@ def test_generic_table_cells_preserve_headers_and_numeric_provenance():
     assert '69.12 м2' in result['equation']
     assert result['scope_verified'] is False  # Arithmetic is not semantic applicability.
     assert tools.sources[-1]['version_id'] == 'pinned-version'
+
+
+def test_table_read_separates_literal_quote_and_rejects_invalid_highlight():
+    tools=toolkit()
+    tools.index.metadata={'page_geometry':{'0':dict(matrix=[1,0,0,1,0,0],width=100,height=200)}}
+    cells=tools.index.tables[0][0]['cells']
+    for cell in cells:
+        cell['bbox']=[10,20,80,40]
+    cells[1]['bbox']=[-10,20,80,40]
+    tools.execute(EvidenceRequest(tool='read_table',page=1,table_id='t1'))
+    first=next(s for s in tools.sources if s['id']==sid('c1'))
+    second=next(s for s in tools.sources if s['id']==sid('c2'))
+    assert first['literal_text']=='12,34' and 'Площадь' in first['text']
+    assert not first['rects'] and first['origin']=='uncertain_table'
+    assert not first['numeric_verified'] and not first['unit_verified']
+    assert second['source_anchor']['state']=='located' and second['rects']==[[.1,.1,.8,.2]]
+    result=tools.execute(EvidenceRequest(tool='sum_cells',operand_ids=[sid('c1'),sid('c2')],unit='м2'))
+    assert result['error']=='source_geometry_requires_review'
+
+
+def test_legacy_cell_envelope_is_preserved_and_requires_explicit_operand_rebinding():
+    from copy import deepcopy
+    tools=toolkit()
+    old=cell_source_id('pinned-version',1,'t1','c1',envelope_version=0)
+    previous=dict(id=old,kind='project',version_id='pinned-version',page=1,text='Old immutable evidence')
+    tools.sources.append(previous)
+    original=deepcopy(previous)
+    result=tools.execute(EvidenceRequest(tool='sum_cells',operand_ids=[old,sid('c2')],unit='м2'))
+    assert result['error']=='source_handle_version_changed'
+    assert result['replacement_source_ids']=={old:sid('c1')}
+    assert previous==original and old!=sid('c1')
 
 
 @pytest.mark.parametrize('ids,unit', [(['invented', sid('c1')], 'м2'),
@@ -300,7 +399,7 @@ def test_generic_composite_quantity_can_clear_verdict_without_road_repair_rules(
                 value='69.12', unit='м2', source_id=source['id'], quote='12.34 + 56.78 = 69.12 м2',
                 scope_state='verified', scope_quote='12.34 + 56.78 = 69.12 м2')])
     result = run(answer, None, None, '', {}, AgentAnswer, None, {'queries': []}, tools)
-    p = SimpleNamespace(index=0, number='1', work_name='Покрытие', volume='69.12', unit='м2', formula='', calculation={}, position_source=None)
+    p = SimpleNamespace(index=0, number='1', position_type='Работа', work_name='Покрытие', volume='69.12', unit='м2', formula='', calculation={}, position_source=None)
     review = enrich(p, dict(pipeline_version=3, position_key='k', sources=tools.sources, summary=result.summary,
         items=validate_items(result.items, tools.sources, {'quantity', 'normative:applicability'}),
         parameter_proposals=[v.model_dump() for v in result.parameters]), {0:p}, {})

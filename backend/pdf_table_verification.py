@@ -83,7 +83,18 @@ def verified_header_text(header):
     if confirmed is None:
         from pdf_header_geometry import geometry_text
         confirmed=geometry_text(proof)
-    return confirmed if confirmed and _clean(confirmed)==_clean(header['text']) else ''
+    return confirmed if confirmed and _clean(confirmed)==_clean(header['text']) and not independent_text_conflict(header,confirmed) else ''
+
+
+def independent_text_conflict(header, text):
+    """Two scales of one engine must not outvote a conflicting source read."""
+    def tokens(value):
+        value=unicodedata.normalize('NFKC',value).casefold().translate(str.maketrans(
+            {'a':'а','b':'в','c':'с','e':'е','k':'к','m':'м','o':'о','p':'р','t':'т','x':'х'}))
+        return set(re.findall(r'[а-яёa-z0-9]+(?:[.,/]\d+)*',value))
+    observed=tokens(text)
+    return any(word.get('confidence',0)>=.95 and not tokens(word.get('text','')).issubset(observed)
+        for word in header.get('words',[]) if word.get('text','').strip())
 
 
 def refresh_header_ancestry(table):
@@ -154,7 +165,13 @@ def verified_column_unit(table, cell, proof):
     crop=proof.get('unit_crop')
     if crop:
         from pdf_cell_ocr import literal_unit
-        expected=unit_region(proof['variants'][0]['words'],*crop.get('image_size',(0,0)))
+        expected=header_unit_region(proof['variants'],*crop.get('image_size',(0,0)))
+        if crop.get('component_reading'):
+            from pdf_unit_components import verified_component_unit
+            unit = verified_component_unit(crop)
+            if (expected == crop.get('region') and unit == proof.get('unit')
+                    and not any(v and v != unit for v in votes)):
+                return unit
         variants=crop.get('variants',[])
         readings=[literal_unit(v['words']) for v in variants]
         if proof.get('unit')=='м' and plain_m_proof(proof,crop):
@@ -177,7 +194,7 @@ def verified_column_unit(table, cell, proof):
 def unit_region(words,width,height):
     """Locate a proposed unit without deciding its exponent or its value."""
     candidates=[(i,w) for i,w in enumerate(words)
-        if re.fullmatch(r'[мm](?:[237]|[^\w\s])?',_clean(w['text']))]
+        if re.fullmatch(r'[мm](?:[237зz]|[^\w\s])?',_clean(w['text']))]
     if len(candidates)!=1 or width<=0 or height<=0:
         return None
     index,base=candidates[0]
@@ -192,6 +209,19 @@ def unit_region(words,width,height):
         min(width,max(w['left']+w['width'] for w in selected)-16),
         min(height,max(w['top']+w['height'] for w in selected)-16)]
     return box if box[2]>box[0] and box[3]>box[1] else None
+
+
+def header_unit_region(variants, width, height):
+    """Either OCR scale can propose a crop; neither supplies its unit value."""
+    for variant in variants:
+        scale = variant.get('scale', 1)
+        if scale not in (1, 1.35):
+            continue
+        region = unit_region(variant['words'], round(width * scale), round(height * scale))
+        if region:
+            return [max(0, round(region[0] / scale)), max(0, round(region[1] / scale)),
+                min(width, round(region[2] / scale)), min(height, round(region[3] / scale))]
+    return None
 
 
 def plain_m_region(words,width,height):
@@ -246,7 +276,7 @@ def _refine_unit(clean,proof,deadline,cache_dir,store_image):
     from pdf_cell_ocr import literal_unit
     if not proof['variants']:
         return None
-    region=unit_region(proof['variants'][0]['words'],clean.width,clean.height)
+    region=header_unit_region(proof['variants'],clean.width,clean.height)
     if region is None:
         return None
     crop=clean.crop(region)
@@ -295,7 +325,9 @@ def _refine_unit(clean,proof,deadline,cache_dir,store_image):
         if len(readable)>=2:
             result['variants']=[v for _,v in readable[:2]]
             return readable[0][0]
-    return None
+    from pdf_unit_components import read_components, verified_component_unit
+    result['component_reading'] = read_components(crop, deadline)
+    return verified_component_unit(result)
 
 
 def verify_page_numbers(tables,words):
@@ -374,8 +406,30 @@ def reclassify_recovered_headers(table):
     table['header_boundary_repair']=dict(previous=previous,current=boundary,reason='literal_body_row')
 
 
+def needs_unit_component_pass(table):
+    """Retry only proposed unit crops lacking the current component reader."""
+    from pdf_unit_components import VERSION as COMPONENT_VERSION
+    for header in table['cells']:
+        if header.get('role') != 'header' or header.get('colspan', 1) != 1:
+            continue
+        if (header.get('geometry_validation') or {}).get('requires_source_review'):
+            continue
+        crop = (header.get('header_refinement') or {}).get('unit_crop') or {}
+        variants = (header.get('header_refinement') or {}).get('variants') or []
+        proposal = crop or header_unit_region(variants, 1_000_000, 1_000_000)
+        if not proposal or (crop.get('component_reading') or {}).get('version') == COMPONENT_VERSION:
+            continue
+        proof = (table.get('column_units') or {}).get(str(header['column'])) or {}
+        cells = [cell for cell in table['cells'] if cell.get('role') == 'cell'
+            and cell['column'] == header['column']]
+        if cells and not any(verified_column_unit(table, cell, proof) for cell in cells):
+            return True
+    return False
+
+
 def verify_recovered_tables(page, tables, *, rotation=0, cache_dir=None, store_image=None,
-                            seconds=45, max_headers=16, max_numbers=12, independent_words=(),numeric_seconds=45):
+                            seconds=45, max_headers=16, max_numbers=12, independent_words=(),numeric_seconds=45,
+                            resume_only=False):
     """Refine new staging tables in place, retaining all crop and raw evidence."""
     import pymupdf
     import ocr_engine
@@ -384,7 +438,6 @@ def verify_recovered_tables(page, tables, *, rotation=0, cache_dir=None, store_i
     from pdf_cell_ocr import clean_glyphs, refine_tables
     deadline=time.monotonic()+seconds
     original_rotation=page.rotation
-    attempted=0
     private=pymupdf.open()
     try:
         # Even a set/restore rotation roundtrip can add an explicit /Rotate 0
@@ -398,8 +451,26 @@ def verify_recovered_tables(page, tables, *, rotation=0, cache_dir=None, store_i
             reclassify_recovered_headers(table)
             table_attempted=skipped=0
             ordered_headers=_ordered_headers(table)
+            previous_deferred=set((table.get('header_verification') or {}).get('deferred_header_ids', []))
+            # A resumed CPU pass starts with headers not attempted previously.
+            # Already uncertain crops must not starve later physical columns.
+            ordered_headers.sort(key=lambda h: h['cell_id'] not in previous_deferred)
             deferred=[]
             for header_at,header in enumerate(ordered_headers):
+                if (header.get('geometry_validation') or {}).get('requires_source_review'):
+                    header['header_refinement_error'] = 'source_geometry_requires_review'
+                    continue
+                unit_retry = False
+                if header.get('role') == 'header':
+                    # Check the same table with this single proposed header;
+                    # body cells remain present to validate any existing unit.
+                    unit_retry = needs_unit_component_pass(dict(table, cells=[header, *[
+                        c for c in table['cells'] if c.get('role') == 'cell']]))
+                if resume_only and not unit_retry and header['cell_id'] not in previous_deferred and (
+                        header.get('header_refinement') or header.get('header_observation_attempted')
+                        or header.get('header_refinement_error')):
+                    skipped += 1
+                    continue
                 existing=(table.get('column_units') or {}).get(str(header['column'])) or {}
                 if existing.get('header_id')==header['cell_id'] and any(
                         c.get('role')=='cell' and verified_column_unit(table,c,existing) for c in table['cells']
@@ -409,11 +480,11 @@ def verify_recovered_tables(page, tables, *, rotation=0, cache_dir=None, store_i
                 if header.get('colspan',1)>1 and verified_header_text(header):
                     skipped+=1
                     continue
-                if attempted>=max_headers or time.monotonic()>=deadline:
+                if table_attempted>=max_headers or time.monotonic()>=deadline:
                     deferred=[h['cell_id'] for h in ordered_headers[header_at:]]
                     break
-                attempted+=1
                 table_attempted+=1
+                header['header_observation_attempted'] = True
                 try:
                     box=pymupdf.Rect(header['bbox']) & render_page.rect
                     if box.is_empty or box.is_infinite or box.width*box.height*(600/72)**2>4_000_000:
@@ -448,6 +519,9 @@ def verify_recovered_tables(page, tables, *, rotation=0, cache_dir=None, store_i
                     if confirmed is None and header.get('colspan',1)>1:
                         from pdf_header_geometry import read_geometry
                         confirmed=read_geometry(clean,proof,deadline,cache_dir,store_image)
+                    if confirmed is not None and independent_text_conflict(header,confirmed):
+                        proof['independent_text_conflict']=True
+                        confirmed=None
                     if (confirmed is not None and header.get('colspan',1)>1 and header['text'].strip()
                             and _clean(confirmed).replace('m','м')!=_clean(header['text']).replace('m','м')):
                         # A second OCR engine can agree with its own typo in a
@@ -483,7 +557,8 @@ def verify_recovered_tables(page, tables, *, rotation=0, cache_dir=None, store_i
                 last_headers_attempted=table_attempted,headers_skipped_verified=skipped,
                 header_seconds_budget=seconds,budget_exhausted=bool(deferred) or time.monotonic()>=deadline,
                 deferred_header_ids=deferred,
-                header_limit_reached=bool(deferred) and attempted>=max_headers)
+                header_limit_reached=bool(deferred) and table_attempted>=max_headers,
+                budget_scope='per_table_header_count_shared_page_deadline')
     finally:
         private.close()
     verify_page_numbers(tables,independent_words)
@@ -498,3 +573,38 @@ def verify_recovered_tables(page, tables, *, rotation=0, cache_dir=None, store_i
     from pdf_row_sections import separate_row_sections
     for table in tables:
         separate_row_sections(table)
+
+
+def complete_recovered_headers(page, tables, *, rotation=0, cache_dir=None, store_image=None,
+                               passes=4, seconds=90, max_headers=32, checkpoint=None):
+    """Resume pending physical headers during preparation, never during checking.
+
+    Each pass is bounded; unresolved readings differ from unattempted headers.
+    Reaching a limit is recorded as incomplete, not silently called ready.
+    """
+    from pdf_tables import strip_legacy_unit_notes
+    cleaned = strip_legacy_unit_notes(tables)
+    history = []
+    for attempt in range(passes):
+        pending = [t for t in tables if t.get('recovery') and
+            (not t.get('header_verification') or
+             (t.get('header_verification') or {}).get('deferred_header_ids') or needs_unit_component_pass(t))]
+        if not pending:
+            break
+        before = {t['table_id']: list((t.get('header_verification') or {}).get('deferred_header_ids', []))
+            for t in pending}
+        verify_recovered_tables(page, pending, rotation=rotation, cache_dir=cache_dir,
+            store_image=store_image, seconds=seconds, max_headers=max_headers,
+            max_numbers=0, numeric_seconds=0, resume_only=True)
+        after = {t['table_id']: list(t['header_verification']['deferred_header_ids']) for t in pending}
+        history.append(dict(pass_number=attempt + 1, before=before, after=after))
+        if checkpoint is not None:
+            checkpoint(tables, history[-1])
+        if before == after:
+            break  # A time/geometry limit must not spin forever.
+    remaining = {t['table_id']: list((t.get('header_verification') or {}).get('deferred_header_ids', []))
+        for t in tables if t.get('recovery') and
+        (not t.get('header_verification') or (t.get('header_verification') or {}).get('deferred_header_ids'))}
+    return dict(state='header_observation_complete' if not remaining else 'incomplete_header_observation',
+        remaining=remaining, passes=history, literal_headers_cleaned=cleaned,
+        recognition_correctness_asserted=False)

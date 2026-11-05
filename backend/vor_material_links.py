@@ -90,10 +90,10 @@ def material_links(tasks):
                 continue
             area_to_asphalt_mass = (family == 'асфальтобетон' and parent_unit == 'м2'
                                     and material_unit in {'т', 'кг'})
-            linear_curb = (family == parent_family == 'бортовой камень'
-                and parent_unit == 'м' and material_unit == 'м3'
-                and owner.get('index') == parent.get('idx'))
-            if parent_unit != material_unit and not area_to_asphalt_mass and not linear_curb:
+            # A workbook multiplier alone cannot establish conversion from a
+            # product's installed length to its volume. Keep its structural
+            # owner through material_owners, without a formal derivation link.
+            if parent_unit != material_unit and not area_to_asphalt_mass:
                 thickness = re.search(r"\bh\s*=\s*(\d+(?:[.,]\d+)?)\s*(мм|см|м)\b", parent.get("w_name", ""), re.I)
                 if parent_unit != "м2" or material_unit != "м3" or not thickness:
                     continue
@@ -109,8 +109,4 @@ def material_links(tasks):
             if generic_base:
                 links[task.get('idx')]['relation_basis']='explicit_workbook_owner_generic_base'
                 links[task.get('idx')]['material_compatibility_verified']=False
-            if linear_curb:
-                links[task.get('idx')].update(
-                    relation_basis='explicit_workbook_owner_linear_curb',
-                    material_compatibility_verified=False, conversion_verified=False)
     return links

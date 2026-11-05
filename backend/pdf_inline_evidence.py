@@ -9,11 +9,82 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import re
 import time
 
 VERSION = "inline-raster-v1"
 MAX_REGIONS = 32
 PAGE_SECONDS = 20
+
+
+def excerpt_origin(index, page, offset, length):
+    """An unrelated raster insertion does not invalidate all native paragraphs.
+
+    Unknown/unlocatable insertion provenance remains uncertain. This only
+    scopes uncertainty; it neither recognizes a symbol nor certifies a number.
+    """
+    quality = index.quality.get(page - 1) or {}
+    base = 'ocr_unverified' if quality.get('origin') == 'ocr' else 'native'
+    if base != 'native' or not quality.get('inline_raster', {}).get('detected'):
+        return base
+    regions = [r for r in (index.locators[page - 1] if index.locators is not None else [])
+        if r.get('role') == 'inline_image']
+    if not regions:
+        return 'ocr_inline_unreviewed'
+    text = index.texts[page - 1]
+    for region in regions:
+        if region.get('state') == 'visually_transcribed':
+            continue
+        context = str(region.get('context') or '').strip()
+        if not context:
+            return 'ocr_inline_unreviewed'
+        pattern = r'\s+'.join(re.escape(word) for word in context.split())
+        matches = list(re.finditer(pattern, text))
+        if not matches or any(m.start() < offset + length and m.end() > offset for m in matches):
+            return 'ocr_inline_unreviewed'
+    return base
+
+
+def native_fragments(index, page, offset, length):
+    """Read contiguous native spans outside unresolved insertion lines.
+
+    The original wide excerpt remains uncertain. These smaller literal source
+    spans carry their own addresses; no text is filled into a raster gap.
+    """
+    quality = index.quality.get(page - 1) or {}
+    if quality.get('origin') != 'native' or not quality.get('inline_raster', {}).get('detected'):
+        return []
+    regions = [r for r in (index.locators[page - 1] if index.locators is not None else [])
+        if r.get('role') == 'inline_image' and r.get('state') != 'visually_transcribed']
+    if not regions:
+        return []
+    text = index.texts[page - 1]
+    end = min(len(text), offset + length)
+    blocked = []
+    for region in regions:
+        context = str(region.get('context') or '').strip()
+        if not context:
+            return []
+        matches = list(re.finditer(r'\s+'.join(re.escape(w) for w in context.split()), text))
+        if not matches:
+            return []
+        for match in matches:
+            start = text.rfind('\n', 0, match.start()) + 1
+            stop = text.find('\n', match.end())
+            stop = len(text) if stop < 0 else stop + 1
+            if start < end and stop > offset:
+                blocked.append((max(offset, start), min(end, stop)))
+    cursor = offset
+    spans = []
+    for start, stop in sorted(blocked):
+        if start > cursor:
+            spans.append((cursor, start))
+        cursor = max(cursor, stop)
+    if cursor < end:
+        spans.append((cursor, end))
+    return [dict(offset=start, text=text[start:stop]) for start, stop in spans
+        if len(text[start:stop].strip()) >= 80
+        and excerpt_origin(index, page, start, stop - start) == 'native'][:4]
 
 
 def image_regions(page):

@@ -154,7 +154,9 @@ def test_unit_recovery_requires_literal_unit_inside_its_physical_header():
     cell=dict(role='header',text='${}$',bbox=[10,10,40,30])
     words=[dict(text='м²',conf=95,bbox=[15,15,25,25])]
     recover_unit_headers([dict(cells=[cell])],words)
-    assert 'м2' in cell['text']
+    assert cell['text']=='${}$'
+    assert cell['unit_observation']['unit_candidate']=='м2'
+    assert not cell['unit_observation']['verified']
     other=dict(role='header',text='${}$',bbox=[50,10,80,30])
     recover_unit_headers([dict(cells=[other])],words)
     assert other['text']=='${}$'
@@ -232,7 +234,7 @@ def test_unverified_sum_keeps_operand_highlights_but_cannot_confirm_quantity():
 def test_model_cannot_publish_wrong_layer_as_mismatch_when_numeric_proof_fails():
     from normative_parameters import enrich
     from normative_verdict import publish
-    p=SimpleNamespace(index=0,number='1',work_name='Нижний слой h=12 см',volume='10',unit='м2',
+    p=SimpleNamespace(index=0,number='1',position_type='Работа',work_name='Нижний слой h=12 см',volume='10',unit='м2',
         position_source=None,formula='',calculation={})
     result=dict(pipeline_version=3,position_key='k',state='possible_mismatch',summary='Неподтверждённые 20 см',
         sources=[dict(id='p',kind='project',origin='native',text='Нижний слой 24 см.'),
@@ -253,7 +255,7 @@ def test_model_cannot_publish_wrong_layer_as_mismatch_when_numeric_proof_fails()
 def test_saved_agent_review_can_be_revalidated_without_model_or_raw_answer_mutation():
     from copy import deepcopy
     from normative_position_check import validate_saved
-    p=SimpleNamespace(index=0,number='1',work_name='Смесь 0/31,5',volume='22',unit='м2',
+    p=SimpleNamespace(index=0,number='1',position_type='Работа',work_name='Смесь 0/31,5',volume='22',unit='м2',
         position_source=None,formula='',calculation={})
     data=dict(position_key='k',position_check=dict(pipeline_version=3,parameter_schema_version=2,
         state='needs_facts',items=[],sources=[],telemetry=dict(requests=2,usage={'output':100})))

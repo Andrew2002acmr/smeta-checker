@@ -14,8 +14,9 @@ from typing import Any, Literal
 
 import openai
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from normative_source_addresses import cell_source_id as cell_source_id
 
-PIPELINE_VERSION = 24
+PIPELINE_VERSION = 27
 MAX_ROUNDS = 3
 MAX_CONTEXT = 58000
 
@@ -45,18 +46,13 @@ def search_evidence(kb, query, facts, *, limit=3):
     return output[:limit]
 
 
-def cell_source_id(version, page, table_id, cell_id):
-    import hashlib
-    namespace = hashlib.sha256(f'{version}:{page}:{table_id}:{cell_id}'.encode()).hexdigest()[:24]
-    return f'agent:p{page}:cell:{namespace}'
-
-
 class EvidenceRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     tool: Literal['search_project', 'search_tables', 'read_page', 'read_source', 'read_table', 'search_norms', 'sum_cells']
     document_version_id: str = Field(default='',max_length=80)
     query: str = Field(default='', max_length=300)
     page: int = Field(default=1, ge=1)
+    header_line_offset: int = Field(default=0,ge=0,le=10000)
     table_id: str = Field(default='', max_length=200)
     offset: int = Field(default=0, ge=0, le=1000000)
     operand_ids: list[str] = Field(default_factory=list, max_length=12)
@@ -86,6 +82,18 @@ search_project/search_tables ищут во всех явно привязанн�
 выдержка не содержит таблицу. До 4 requests за шаг:
 search_project(query, offset): смысл работы/конструкция/участок, без ожидаемого числа ВОР;
 search_tables(query, offset): ведомости объёмов, площади, количества и заголовки таблиц;
+matched_table_observations содержит адреса ячеек и варианты чтения OCR для поиска.
+Это кандидаты, не подтверждённые факты: observation_kind=ocr_alternative/ocr_line_candidate нельзя
+цитировать как буквальный текст ПД. Открой таблицу по page/table_id/row/column.
+Это ограниченный просмотр: при matched_table_observations_truncated дочитай нужную
+таблицу. Варианты одной физической ячейки находятся в readings и не являются
+дополнительными независимыми источниками.
+read_table возвращает header_observations отдельно от буквального текста.
+Если next_line_offset задан, продолжи по read_request/header_line_offset.
+recognition_verified=false — наблюдение для поиска, а не подтверждённая цитата.
+У prepared_quantity_tables поле discovery_only=true означает только кандидат.
+parameter_mismatches требует отдельной проверки преобразования по нормативам;
+совпадение суммы само по себе не подтверждает толщину и область применения.
 offset здесь — курсор страниц результатов (первый 0), следующий — search.next_offset.
 Повтор того же запроса и курсора не добавляет доказательств. Если search.truncated=true,
 остаются другие кандидаты: уточни запрос или продолжи с next_offset. Выдача не доказывает
@@ -143,6 +151,11 @@ claim_id: derived:rate для текущего материала, related:<inde
 from normative_verification_contract import NORMATIVE_SCOPE_INSTRUCTIONS, UNIT_SCALE_INSTRUCTIONS
 
 TOOLS += NORMATIVE_SCOPE_INSTRUCTIONS + UNIT_SCALE_INSTRUCTIONS
+TOOLS += ('\nread_table.row_measurements связывает составные значения и единицы одной физической строки '
+    'по порядку components.index: например шт./т и 114/23,53 означают 114 шт и 23,53 т, а не деление. '
+    'raw_values/raw_units остаются буквальными, source_anchors и read_request адресуют обе ячейки. '
+    'Это не доказательство принадлежности позиции ВОР. При recognition_verified=false чтение OCR ещё не проверено; '
+    'не превращай его в подтверждение. Расход вроде кг/м2 не является парой альтернативных измерителей.')
 
 
 def resource_sources(item, prefix, *, evidence_trace=None):
@@ -171,7 +184,9 @@ def model_result(result, budget=10000):
     """
     def shrink(value):
         if isinstance(value, dict):
-            keys = sorted(value, key=lambda k: (k not in {'rows','source_id','page','table_id','value','operands'},))
+            keys = sorted(value, key=lambda k: (k not in {'rows','source_id','page','table_id','value','operands',
+                'discovery_only','parameter_mismatches','scope_verified','recognition_verified','header_observations',
+                'parameter_match_state','missing_parameters','header_id','read_request','next_line_offset','row_measurements'},))
             return {k: shrink(value[k]) for k in keys
                 if k not in {'coverage','cells','bbox','cell_id','header_ids'}}
         if isinstance(value, list):
@@ -279,8 +294,7 @@ def restore_source_ids(answer, aliases, sources=()):
 
 
 class EvidenceTools:
-    def __init__(self, context, record, index, sources, kb, facts):
-        self.context, self.record = context, record
+    def _reset(self, sources, kb, facts):
         self.sources, self.kb, self.facts = sources, kb, facts
         self.cells = {}
         self.quantity_sums = []
@@ -294,9 +308,28 @@ class EvidenceTools:
         self.project_search_results = {}
         self.snapshot_refs = []
         self.coverage: dict[str, Any] = {}
-        self.blob_store = context.blob_store
         self.filename = 'Подготовленный ПД'
         self.version = None
+
+    @classmethod
+    def from_prepared(cls, index, version_id, *, filename='Подготовленный ПД'):
+        """Source-only tools: no VOR job, provider, OCR or saved verdict needed."""
+        version_id=str(version_id)
+        if index.metadata.get('document_version_id') != version_id:
+            raise ValueError('Prepared snapshot belongs to another document version')
+        tools=cls.__new__(cls)
+        tools._reset([], None, {})
+        tools.index,tools.version,tools.filename=index,version_id,filename
+        tools.coverage=dict(state='partial' if index.pending_ocr or index.errors
+            or not index.metadata.get('preparation_complete') else 'prepared',
+            pages=len(index.texts),pending_ocr_pages=[p+1 for p in index.pending_ocr],
+            error_pages=[int(p)+1 for p in index.errors],source_only=True)
+        return tools
+
+    def __init__(self, context, record, index, sources, kb, facts):
+        self._reset(sources, kb, facts)
+        self.context, self.record = context, record
+        self.blob_store = context.blob_store
         try:
             job = context.repository.load_position_job(record['id'], index)
         except KeyError:
@@ -328,6 +361,8 @@ class EvidenceTools:
                 raise ValueError('Prepared normative corpus belongs to another PDF')
             self.index = latest
             self.snapshot_refs.insert(0, refreshed)
+        from pdf_drawing_readings import apply as apply_drawing_readings
+        self.index = apply_drawing_readings(context, record, self.version, self.index)
         prepared_tables: Any = self.index.tables
         if record['config'].get('document_preparation_version') and (
             self.index.pending_ocr or not self.index.metadata.get('preparation_complete')
@@ -345,6 +380,9 @@ class EvidenceTools:
             str(page + 1): quality['inline_raster'] for page, quality in self.index.quality.items()
             if quality.get('inline_raster', {}).get('detected')}
         self.coverage['inline_raster_coverage_measured'] = self.index.metadata.get('preparation_version', 0) >= 2
+        from pdf_page_routing import coverage_for_pages
+        self.coverage.update(coverage_for_pages(self.index))
+        self.coverage['drawing_readings'] = self.index.metadata.get('drawing_readings', {})
         from normative_multidoc import attach
         attach(self,payload)
 
@@ -369,7 +407,9 @@ class EvidenceTools:
             return []
         from normative_table_candidates import grouped_totals
         from normative_retrieval import terms
+        from normative_scope_tokens import scope_tokens,compare_scopes,physical_row_labels
         scope_terms = terms(section_context)-terms(query)
+        requested_scope_ids=scope_tokens(section_context)
         ranked = []
         # Coverage is a bounded MODEL preview, not an internal search index.
         # Drawing frames can fill that preview before quantity schedules at
@@ -379,19 +419,38 @@ class EvidenceTools:
             for table in tables:
                 captions = [c['text'] for c in table['cells'] if c.get('role')=='header'
                     and c.get('colspan',1)>=table['col_count'] and c.get('text','').strip()]
-                for candidate in grouped_totals(table, section_context+' '+query, unit=unit, height_cm=height_cm, include_single=True):
+                row_labels=physical_row_labels(table)
+                # Generic labels alone ("улица", "участок") do not identify
+                # a named location. Distinctive words and typed IDs may add
+                # discovery evidence from the table's own physical rows.
+                row_wanted=scope_terms-{'улиц','участо','секци','путь','объект','проект','дорог','работ'}
+                matching_labels=[label for label in row_labels if row_wanted & terms(label['text'])]
+                row_terms=set().union(*(terms(label['text'])for label in matching_labels))
+                # Scope locates a construction; it cannot substitute for a
+                # work/material match in a wholly unrelated quantity table.
+                for candidate in grouped_totals(table, query, unit=unit, height_cm=height_cm,
+                        include_single=True,include_parameter_alternatives=True):
                     scoped_text = ' '.join([*candidate['headers'],*captions])
                     found_terms = terms(scoped_text)
                     abbreviations = re.findall(r'\b([а-я]{3,5})\.',scoped_text.casefold())
                     matched = {term for term in scope_terms if term in found_terms
-                        or any(min(len(term),len(found))>=4 and (term.startswith(found) or found.startswith(term)) for found in found_terms)
-                        or any(term.startswith(abbreviation) for abbreviation in abbreviations)}
+                        or (not term.startswith('scope:') and any(not found.startswith('scope:') and
+                            min(len(term),len(found))>=4 and (term.startswith(found) or found.startswith(term)) for found in found_terms))
+                        or (not term.startswith('scope:') and any(term.startswith(abbreviation) for abbreviation in abbreviations))}
+                    matched.update(row_wanted & row_terms)
+                    observed_scope_ids=scope_tokens(scoped_text+'\n'+'\n'.join(label['text']for label in row_labels))
                     # Section context is a bounded extra signal. A common
                     # street caption must not outrank an exact material and
                     # thickness match merely because it has one more word.
                     ranking_score=candidate['score']+min(8,2*len(matched))+2*bool(candidate['unit_verified'])
                     ranked.append(dict(**candidate, page=page+1, table_id=table['table_id'],
-                        section_match_terms=sorted(matched),context_headers=captions,ranking_score=ranking_score))
+                        section_match_terms=sorted(matched),context_headers=captions,ranking_score=ranking_score,
+                        requested_scope_identifiers=sorted(requested_scope_ids),observed_scope_identifiers=sorted(observed_scope_ids),
+                        scope_identifier_match_state=compare_scopes(requested_scope_ids,observed_scope_ids),
+                        scope_match_observations=[dict(label,read_request=dict(tool='read_table',page=page+1,
+                            document_version_id=self.version,table_id=table['table_id'],row_ids=[label['row']],column_ids=[0]))
+                            for label in matching_labels[:3]],scope_match_observation_count=len(matching_labels),
+                        scope_observations_prove_total_allocation=False))
         ranked.sort(key=lambda c: (-c['ranking_score'],not c['unit_verified'],-c['score']))
         for candidate in ranked[:4]:
             result = self.execute(EvidenceRequest(tool='read_table', page=candidate['page'],
@@ -434,6 +493,8 @@ class EvidenceTools:
         if request.tool == 'sum_cells':
             return self._sum(request)
         if request.tool == 'search_norms':
+            if self.kb is None:
+                return {'error': 'normative_kb_unavailable'}
             from normative_service import candidate
             from normative_source_registry import full_text_handle
             results = []
@@ -464,11 +525,18 @@ class EvidenceTools:
             key = (request.tool, request.query, request.offset)
             if key in cache:
                 return {**deepcopy(cache[key]), 'repeated_query': True}
-            search = self.project_search.search_page(request.query,
-                tables=request.tool == 'search_tables', offset=request.offset)
+            from normative_prepared_retrieval import PreparedTableSearch, combine
+            if getattr(self,'prepared_table_search',None) is None:
+                self.prepared_table_search=PreparedTableSearch(self.index)
+            search = combine(self.project_search,self.prepared_table_search,request.query,
+                tables=request.tool == 'search_tables',offset=request.offset)
             pages = []
             for hit in search['hits']:
-                pages.append(dict(**self._page(hit['page'], hit['offset']), preview=hit['preview']))
+                pages.append(dict(**self._page(hit['page'], hit['offset']), preview=hit['preview'],
+                    **({'matched_table_observations':hit['table_observations'],
+                        'matched_table_observation_count':hit['table_observation_count'],
+                        'matched_table_observations_truncated':hit['table_observations_truncated']}
+                        if hit.get('table_observations') else {})))
             search = {k: v for k, v in search.items() if k != 'hits'}
             self.events.append(dict(kind='project_retrieval_page_v1', tool=request.tool,
                 query=request.query, **search, returned_pages=[p['page'] for p in pages]))
@@ -502,16 +570,13 @@ class EvidenceTools:
             if len(text)>900:
                 continue
             source_id=cell_source_id(self.version,request.page,table['table_id'],header['cell_id']).replace(':cell:',':header:')
-            header_rects=[]
-            geometry=(getattr(self.index,'metadata',{}).get('page_geometry') or {}).get(str(request.page-1))
-            if geometry and header.get('bbox'):
-                from ocr_engine import _apply_matrix
-                box=_apply_matrix(header['bbox'],geometry['matrix'])
-                header_rects=[[max(0,min(1,box[0]/geometry['width'])),max(0,min(1,box[1]/geometry['height'])),
-                    max(0,min(1,box[2]/geometry['width'])),max(0,min(1,box[3]/geometry['height']))]]
+            from pdf_source_links import source_link
+            link=source_link(self.index,self.version,request.page,table,header)
+            if link['state'] in {'invalid_geometry','source_geometry_requires_review'}:
+                continue
             self._add(dict(id=source_id,kind='project',version_id=self.version,page=request.page,
                 label=self.filename,text=text,origin='ocr_verified_header',numeric_verified=True,
-                verified_parameters=facts,rects=header_rects))
+                verified_parameters=facts,rects=link['rects'],source_anchor=link))
             header_parameters.extend(dict(**{k:v for k,v in f.items() if k!='version'},source_id=source_id,
                 scope_quote=text,scope_state='unresolved') for f in facts)
             self.preferred.append(source_id)
@@ -533,26 +598,50 @@ class EvidenceTools:
             scope_context=table_scope_context(table,cell,cell_id,self.version,request.page)
             self.cells[cell_id] = dict(cell=cell, headers=text, header_text=header_text, page=request.page,unit=resolved_unit,
                 version_id=self.version,table_id=table['table_id'])
-            geometry = (getattr(self.index, 'metadata', {}).get('page_geometry') or {}).get(str(request.page-1))
-            rects = []
-            if geometry and cell.get('bbox'):
-                from ocr_engine import _apply_matrix
-                box = _apply_matrix(cell['bbox'], geometry['matrix'])
-                rects = [[max(0,min(1,box[0]/geometry['width'])),max(0,min(1,box[1]/geometry['height'])),
-                    max(0,min(1,box[2]/geometry['width'])),max(0,min(1,box[3]/geometry['height']))]]
+            from normative_header_observations import addresses
+            from pdf_source_links import source_link
+            link=source_link(self.index,self.version,request.page,table,cell)
+            invalid_geometry=link['state'] in {'invalid_geometry','source_geometry_requires_review'}
             output.append(self._add(dict(id=cell_id, kind='project',
                 **({'table_scope_context':scope_context} if scope_context else {}),
                 version_id=self.version, page=request.page, label=self.filename,
-                text=text, rects=rects, numeric_verified=bool(cell.get('numeric_verified')),
+                text=text, literal_text=cell['text'], source_anchor=link, rects=link['rects'],
+                header_observation_addresses=addresses(table,[cell]),table_id=table['table_id'],
+                ocr_observations=[h['header_line_observation'] for h in cells
+                    if h.get('header_line_observation') and h['cell_id'] in [cell['cell_id'],*cell.get('header_ids',[])]],
+                numeric_verified=bool(cell.get('numeric_verified')) and not invalid_geometry,
                 verified_parameters=[f for h in cells if h['cell_id'] in cell.get('header_ids',[]) for f in header_geometry(h)],
-                unit_verified=bool(resolved_unit),unit=resolved_unit,
-                origin=(cell.get('origin', 'native') if cell.get('quality', 'usable') == 'usable' else 'uncertain_table'))))
+                unit_verified=bool(resolved_unit) and not invalid_geometry,unit=resolved_unit,
+                origin=(cell.get('origin', table.get('origin', 'uncertain_table'))
+                    if cell.get('quality', 'usable') == 'usable' and not invalid_geometry else 'uncertain_table'))))
             if request.row_ids and request.column_ids:
                 self.preferred.append(cell_id)
         from normative_retrieval import terms
         wanted = terms(request.query)
         matching_rows = sorted({c['row'] for c in cells if wanted & terms(c['text'])})[:20]
-        return {'cells': output, 'header_parameters':header_parameters, 'matching_rows': matching_rows, 'columns': table_outline(table)['columns'], 'rows': [dict(**{k: c[k] for k in ('cell_id', 'row', 'column', 'text', 'header_ids', 'bbox', 'quality', 'numeric_verified','row_scope') if k in c},
+        from normative_header_observations import project
+        observations=project(table,selected,page=request.page,offset=request.header_line_offset)
+        from pdf_row_measurements import observations as paired_row_observations
+        from pdf_source_links import source_link
+        row_measurements=paired_row_observations(table,selected)
+        for measurement in row_measurements:
+            measurement.update(page=request.page,table_id=table['table_id'],
+                value_source_id=cell_source_id(self.version,request.page,table['table_id'],measurement['value_cell_id']),
+                read_request=dict(tool='read_table',page=request.page,document_version_id=self.version,
+                    table_id=table['table_id'],row_ids=[measurement['row']],
+                    column_ids=[measurement['unit_column'],measurement['value_column']]))
+            measurement['source_anchors']=[source_link(self.index,self.version,request.page,table,
+                next(c for c in cells if c['cell_id']==measurement[key]))for key in ('unit_cell_id','value_cell_id')]
+            from normative_paired_quantities import source_fields
+            from normative_paired_scope import observe,preview
+            paired_source=source_fields(table,measurement,version=self.version,
+                page=request.page,label=self.filename,
+                parent_context=observe(self.index,self.version,request.page,table,measurement))
+            measurement['source_id']=self._add(paired_source).get('source_id')
+            parent=preview(paired_source)
+            if parent:
+                measurement['parent_observation']=parent
+        return {'row_measurements':row_measurements,'header_observations':observations,'cells': output, 'header_parameters':header_parameters, 'matching_rows': matching_rows, 'columns': table_outline(table)['columns'], 'rows': [dict(**{k: c[k] for k in ('cell_id', 'row', 'column', 'text', 'header_ids', 'bbox', 'quality', 'numeric_verified','row_scope') if k in c},
             **output[i]) for i,c in enumerate(selected)], 'next_offset': request.offset+4, 'row_count': table['row_count']}
 
     def _sum(self, request):
@@ -579,15 +668,23 @@ class EvidenceTools:
                 continue
             for table in self._tables(source['page']):
                 cell=next((c for c in table['cells']
-                    if cell_source_id(self.version,source['page'],table['table_id'],c['cell_id'])==sid),None)
+                    if sid in {cell_source_id(self.version,source['page'],table['table_id'],c['cell_id']),
+                        cell_source_id(self.version,source['page'],table['table_id'],c['cell_id'],envelope_version=0)}),None)
                 if cell is not None:
-                    self._execute_single(EvidenceRequest(tool='read_table',page=source['page'],
+                    reopened=self._execute_single(EvidenceRequest(tool='read_table',page=source['page'],
                         table_id=table['table_id'],row_ids=[cell['row']],column_ids=[cell['column']]))
+                    current=cell_source_id(self.version,source['page'],table['table_id'],cell['cell_id'])
+                    if sid!=current:
+                        return {'error':'source_handle_version_changed',
+                            'replacement_source_ids':{sid:current},'read_result':reopened}
                     break
         cells = [self.cells.get(i) for i in ids]
         if any(c is None for c in cells):
             return {'error': 'unknown_cell'}
         cells = [c for c in cells if c is not None]
+        if any((s.get('source_anchor') or {}).get('state') in {
+                'invalid_geometry','source_geometry_requires_review'} for s in self.sources if s['id'] in ids):
+            return {'error': 'source_geometry_requires_review'}
         if any((c['cell'].get('origin') == 'ocr' and not c['cell'].get('numeric_verified'))
                 or c['cell'].get('quality', 'usable') != 'usable' for c in cells):
             return {'error': 'uncertain_cells_require_image_verification'}
@@ -617,16 +714,24 @@ class EvidenceTools:
         text = self.index.texts[page-1]
         # Retrieve the hit itself, not always the first paragraph of a long page.
         piece = text[offset:offset+3500]
+        from pdf_inline_evidence import excerpt_origin, native_fragments
         namespace=':doc:'+str(self.version) if getattr(self,'additional_documents',None) or getattr(self,'is_supporting_document',False) else ''
         ref = self._add(dict(id=f'agent:p{page}:{offset}'+namespace, kind='project', page=page,
             version_id=self.version, label=self.filename, text=piece,
-            origin='ocr_inline_unreviewed' if (self.index.quality.get(page-1) or {}).get('inline_raster', {}).get('detected')
-                else 'ocr_unverified' if (self.index.quality.get(page-1) or {}).get('origin') == 'ocr' else 'native'))
+            origin=excerpt_origin(self.index, page, offset, len(piece))))
         if exact:
             self.preferred.append(ref.get('source_id', ''))
+        readable = []
+        if excerpt_origin(self.index, page, offset, len(piece)) == 'ocr_inline_unreviewed':
+            for fragment in native_fragments(self.index, page, offset, len(piece)):
+                source = self._add(dict(id=f"agent:p{page}:{fragment['offset']}:native:{len(fragment['text'])}"+namespace,
+                    kind='project', page=page, version_id=self.version, label=self.filename,
+                    text=fragment['text'], origin='native'))
+                readable.append(dict(**source, offset=fragment['offset'], origin='native',
+                    text=fragment['text']))
         tables = self._tables(page)
         return dict(**ref, page=page, document_version_id=self.version, next_offset=offset+3500 if offset+3500 < len(text) else None,
-            tables=[table_outline(t) for t in tables])
+            tables=[table_outline(t) for t in tables], native_fragments=readable)
 
     def _tables(self, page):
         """Read shared, SHA-verified prepared pages, never repeat PDF extraction.
@@ -713,6 +818,13 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
         from normative_quantity_anchors import quantity_parameter_candidates
         supplied['quantity_parameter_candidates'] = quantity_parameter_candidates(
             tools.sources,getattr(tools,'cells',{}),getattr(tools,'quantity_sums',()))
+        if any(s.get('paired_parent_context')for s in tools.sources):
+            supplied['paired_parent_observation_rules'] = (
+                'parent_observation / paired_parent_observation связывает дочерний номер с физической родительской строкой. '
+                'Это наблюдение, а не подтверждение инженерной принадлежности или OCR описания. '
+                'Прочитай read_request, проверь операцию, участок и обозначение материала отдельно. '
+                'Одинаковое количество не отменяет различия ШТУ, прямого/кривого участка и монтажа/демонтажа. '
+                'При неоднозначности сохрани scope_state=unresolved.')
         supplied['previous_literal_parameters'] = list(getattr(tools,'parameter_evidence',{}).values())
         supplied['previous_claim_citations'] = claim_memory.context()
         owner_work=(inputs.get('normative_work_owner') or {}).get('work') or inputs.get('position',{}).get('work','')

@@ -99,6 +99,19 @@ def test_separate_grids_inside_one_scan_do_not_merge():
     assert max(box[3] for box in geometries[0][0]) < min(box[1] for box in geometries[1][0])
 
 
+@pytest.mark.parametrize('gap,expected',[(8,True),(25,False)])
+def test_short_rule_endpoint_gaps_close_but_missing_borders_do_not(gap,expected):
+    image=np.full((400,2000),255,dtype=np.uint8)
+    for x in (100,700,1300,1900):
+        cv2.line(image,(x,50),(x,350),0,2)
+    for y in (50,150,250,350):
+        cv2.line(image,(100+gap,y),(1900-gap,y),0,2)
+    geometries=closed_geometries(raster_grid(image))
+    assert bool(geometries)==expected
+    if expected:
+        assert len(geometries[0][0])==9
+
+
 def test_partial_recovery_keeps_original_other_region_and_does_not_mutate_it():
     original = dict(table_id='old', origin='ocr', cells=[dict(numeric_verified=True,quality='usable',words=[
         dict(text='100',bbox=[0,0,10,10]),dict(text='200',bbox=[0,100,10,110])])])

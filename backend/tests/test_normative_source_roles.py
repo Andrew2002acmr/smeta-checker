@@ -44,7 +44,7 @@ def test_real_manufacturer_literals_cannot_alone_prove_other_normative_claims(cl
     current = item(claim)
     assert validate_items([current], sources(), {claim})[0]['state'] == 'needs_facts'
     issues = answer_feedback(AgentAnswer(summary='', items=[current]), sources(),
-        SimpleNamespace(parameter_evidence={}))
+        SimpleNamespace(parameter_evidence={},events=[]))
     assert any('производителя' in issue for issue in issues)
 
 
@@ -52,7 +52,7 @@ def test_paired_unchanged_sources_support_only_the_exact_permitted_class_claim()
     current = item(CLAIM)
     assert validate_items([current], sources(), {CLAIM})[0]['state'] == 'confirmed'
     assert answer_feedback(AgentAnswer(summary='', items=[current]), sources(),
-        SimpleNamespace(parameter_evidence={})) == []
+        SimpleNamespace(parameter_evidence={},events=[])) == []
     assert validate_items([item('presence')], sources(), {'presence'})[0]['state'] == 'confirmed'
 
 
@@ -107,7 +107,7 @@ def test_manufacturer_numbers_never_become_norm_scales_or_calculation_coefficien
         value='100' if parameter == 'unit_scale' else '1.26', unit='м2' if parameter == 'unit_scale' else '',
         quote='Измеритель: 100 м2' if parameter == 'unit_scale' else 'Коэффициент уплотнения 1.26',
         scope_state='verified', scope_quote=source['text'])
-    tools = SimpleNamespace(parameter_evidence={parameter: proposal.model_dump()})
+    tools = SimpleNamespace(parameter_evidence={parameter: proposal.model_dump()},events=[])
     feedback = answer_feedback(AgentAnswer(summary='', items=[], parameters=[proposal]), ss, tools, owner_unit='м2')
     assert any('производителя' in issue for issue in feedback)
     assert parameter not in tools.parameter_evidence

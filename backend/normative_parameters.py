@@ -333,6 +333,16 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
             c['reason'] = 'Источник относится к другому материалу или проектной толщине; сравнение не выполнено.'
             return c
         found = measure(p['value'], p['unit'])
+        if kind=='quantity' and source.get('paired_measurement_context'):
+            from normative_paired_quantities import proposal_matches
+            if not proposal_matches(p,source):
+                c['reason']='Число и единица не образуют одну пару в физической строке таблицы.'
+                return c
+            from normative_paired_scope import scope_issue
+            issue=scope_issue(source,work_scope)
+            if p.get('scope_state')=='verified'and issue:
+                c['reason']=issue
+                return c
         from normative_parameter_feedback import header_parameter_verified
         if not header_parameter_verified(p,source):
             c['reason']='Число физической ячейки проверено отдельно; толщина в OCR-заголовке не имеет независимого подтверждения.'

@@ -75,6 +75,25 @@ def test_merged_header_unit_is_not_inherited_by_both_subcolumns():
     assert column_unit(table,table['cells'][2])==''
 
 
+def test_raw_raster_unit_cannot_inherit_native_text_trust_or_neighbour_crop():
+    table = grid()
+    table['origin'] = 'ocr'
+    header = table['cells'][0]
+    header.update(colspan=1, text='м2')
+    assert column_unit(table, table['cells'][1]) == ''
+    table['origin'] = 'native'
+    assert column_unit(table, table['cells'][1]) == 'м2'
+    table['origin'] = 'ocr'
+    header['colspan'] = 2
+    proof = dict(version=VERSION, unit='м2', header_id='h',
+        variants=[dict(words=[word('м2')])] * 2,
+        bbox=subcolumn_box(table, header, 0, column_axis(table)))
+    table['column_units'] = {'0': proof}
+    assert column_unit(table, table['cells'][1]) == 'м2'
+    proof['bbox'] = subcolumn_box(table, header, 1, column_axis(table))
+    assert column_unit(table, table['cells'][1]) == ''
+
+
 def test_border_cleanup_preserves_interior_glyphs_and_decimal_point():
     import cv2
     import numpy as np

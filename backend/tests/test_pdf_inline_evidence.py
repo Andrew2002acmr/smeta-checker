@@ -94,7 +94,8 @@ def test_full_document_preparation_retains_crop_quality_and_snapshot_locator(tmp
             prepared = source.prepare_full()
     restored = PageTextIndex.from_snapshot(prepared.to_snapshot())
     assert 'Q1' in restored.texts[0]
-    assert restored.metadata['preparation_version'] == 2
+    from document_preparation import VERSION
+    assert restored.metadata['preparation_version'] == VERSION
     assert restored.quality[0]['inline_raster']['detected'] == 1
     assert restored.quality[0]['state'] in {'uncertain', 'failed'}
     locator = next(v for v in restored.locators[0] if v['role'] == 'inline_image')

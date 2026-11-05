@@ -310,6 +310,13 @@ def answer_feedback(answer, sources, tools, *, owner_unit='', work_scope='', hei
             issues.append('Параметр '+proposal.parameter+': '+MESSAGE)
             continue
         if proposal.parameter=='quantity':
+            from normative_paired_scope import scope_issue
+            scope_problem=scope_issue(source or{},work_scope)
+            if proposal.scope_state=='verified'and scope_problem:
+                tools.invalid_project_parameter_kinds.add('quantity')
+                evidence.pop('quantity',None)
+                issues.append(scope_problem)
+                continue
             from normative_quantity_scope import partial_side_issue,unresolved_layer_issue
             partial=partial_side_issue(proposal.model_dump(),sources,
                 work_scope if quantity_work_scope is None else quantity_work_scope,section_context)

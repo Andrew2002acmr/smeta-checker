@@ -166,7 +166,12 @@ def pack_sources(value, sources, preferred=(), *, limit, planning=False, measure
             continue
         brief = {key: source[key] for key in ('id', 'kind', 'page', 'label', 'version_id', 'origin',
             'numeric_verified', 'unit_verified', 'unit', 'verified_parameters',
-            'confirmed_unit_context','expert_laying_width','physical_source_id','table_scope_context') if key in source}
+            'confirmed_unit_context','expert_laying_width','physical_source_id','table_scope_context',
+            'header_observation_addresses','table_id') if key in source}
+        from normative_paired_scope import preview as paired_parent_preview
+        parent=paired_parent_preview(source)
+        if parent:
+            brief['paired_parent_observation']=parent
         if sid in embedded:
             cap = 160
         elif sid in critical or (sid in preferred and ':cell:' not in sid):

@@ -187,6 +187,42 @@ class Repository:
             raise ValueError('Reusable analysis artifact identity mismatch')
         return saved['payload']
 
+    def drawing_reading_artifacts(self, project_id, version_id):
+        from analysis_replay import digest
+        from pdf_drawing_readings import STAGE
+        with Session(self._engine) as session:
+            rows = session.scalars(select(AnalysisArtifact).where(
+                AnalysisArtifact.project_id == UUID(str(project_id)),
+                AnalysisArtifact.stage == STAGE,
+                AnalysisArtifact.identity['version_id'].astext == str(version_id),
+            )).all()
+            result = []
+            for row in rows:
+                ident, payload = dict(row.identity), dict(row.payload)
+                if digest(ident) != row.key or digest(payload) != row.sha256:
+                    raise ValueError('Drawing artifact hash mismatch')
+                result.append(dict(identity=ident, payload=payload))
+            return result
+
+    def visual_header_artifacts(self, project_id, version_id, page, table_id):
+        from analysis_replay import digest
+        from normative_table_headers import STAGE
+        with Session(self._engine) as session:
+            rows = session.scalars(select(AnalysisArtifact).where(
+                AnalysisArtifact.project_id == UUID(str(project_id)),
+                AnalysisArtifact.stage == STAGE,
+                AnalysisArtifact.identity['version_id'].astext == str(version_id),
+                AnalysisArtifact.identity['page'].as_integer() == page,
+                AnalysisArtifact.identity['table_id'].astext == table_id,
+            )).all()
+            result = []
+            for row in rows:
+                ident, payload = dict(row.identity), dict(row.payload)
+                if digest(ident) != row.key or digest(payload) != row.sha256:
+                    raise ValueError('Visual header artifact hash mismatch')
+                result.append(dict(identity=ident, payload=payload, key=row.key))
+            return result
+
     def compatible_prepared_artifact(self,project_id,inputs):
         """Only raw extraction with exactly the same explicit source contract."""
         from analysis_replay import digest

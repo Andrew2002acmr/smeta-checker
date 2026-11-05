@@ -38,7 +38,9 @@ def terms(text):
     # Share normalization with matching; "нижнего" and "нижний" must not
     # become different five-character prefixes in the normative search.
     from audit_core import _terms
-    return _terms(text) | set(re.findall(r'\d+/\d+(?:[.,]\d+)?', str(text)))
+    from normative_scope_tokens import scope_tokens
+    from normative_code_tokens import code_tokens
+    return _terms(text) | set(re.findall(r'\d+/\d+(?:[.,]\d+)?', str(text))) | scope_tokens(text) | code_tokens(text)
 
 
 def blocks(text, size=2400):
@@ -73,15 +75,19 @@ class DocumentSearch:
         if type(limit) is not int or limit < 1 or type(offset) is not int or offset < 0:
             raise ValueError('Positive limit and nonnegative offset required')
         wanted = terms(query)
-        candidates = set(self.table_rows) if tables else set().union(
-            *(self.postings.get(token, set()) for token in wanted))
+        candidates = set().union(*(self.postings.get(token, set()) for token in wanted))
+        if tables:
+            # A real schedule may lack a recognised "quantity/total" label.
+            # Table-marker heuristics broaden discovery; they must not remove
+            # pages that match the requested material or work itself.
+            candidates.update(self.table_rows)
         ranked = []
         for index in candidates:
             page, block_offset, text, ts = self.rows[index]
             overlap = wanted & ts
             score = sum(self.weights[t] for t in overlap)
             if tables:
-                score += self.table_bonus[index]
+                score += self.table_bonus.get(index, 0)
             ranked.append((score, page, block_offset, text))
         ranked.sort(key=lambda row: (-row[0], row[1], row[2]))
         found, seen = [], set()

@@ -4,6 +4,31 @@ import json
 from functools import lru_cache
 
 
+def same_physical_resource_event(events):
+    """Collapse transport aliases only; retain every conflicting observation.
+
+    Hydration keeps original events for audit. Recovered rows can therefore
+    describe the exact same norm a second time under new source handles.
+    IDs of resource cards and recovery_prefix are transport, all normative
+    rows, quantities, units, pages, checks and rules must remain identical.
+    """
+    shapes = set()
+    for event in events:
+        normalized = dict(event)
+        normalized.pop('recovery_prefix', None)
+        normalized['resources'] = [{k: v for k, v in row.items() if k != 'source_id'}
+            for row in event.get('resources', [])]
+        shapes.add(json.dumps(normalized, sort_keys=True, ensure_ascii=False))
+    return events[0] if events and len(shapes) == 1 else None
+
+
+def same_physical_resource_source(sources):
+    """Source handles may differ; every physical payload field must agree."""
+    shapes = {json.dumps({k: v for k, v in source.items() if k != 'id'},
+        sort_keys=True, ensure_ascii=False) for source in sources}
+    return min(sources, key=lambda s: s['id']) if sources and len(shapes) == 1 else None
+
+
 @lru_cache(maxsize=128)
 def _norm_ids(kb,source_id,code):
     with kb.connect() as db:

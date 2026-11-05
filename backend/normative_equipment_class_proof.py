@@ -93,9 +93,10 @@ def _resource(kb, result, base, definition):
     events = [event for event in result.get('evidence_trace', [])
         if event.get('kind') == 'normative_resource_consumption_candidates'
         and event.get('norm_source_id') == base['id'] and event.get('norm_code') == definition['code']]
-    if len(events) != 1:
+    from normative_resource_recovery import same_physical_resource_event, same_physical_resource_source
+    event = same_physical_resource_event(events)
+    if event is None:
         return None
-    event = events[0]
     norm = kb.entity('norm', event['norm_id'])
     if (norm.get('source_id') != base['source_id'] or norm.get('code') != definition['code']
             or norm.get('status') != base.get('origin')
@@ -123,8 +124,9 @@ def _resource(kb, result, base, definition):
             and source.get('origin') == norm['status']
             and source.get('text', '').startswith('Ресурсы нормы ' + norm['code'] + '; Измеритель: ')
             and quote in source.get('text', '').splitlines()]
-        if len(sources) == 1:
-            return dict(source_id=sources[0]['id'], quote=quote, norm_id=norm['id'],
+        physical = same_physical_resource_source(sources)
+        if physical is not None:
+            return dict(source_id=physical['id'], quote=quote, norm_id=norm['id'],
                 norm_code=norm['code'], resource_id=resource['id'])
     return None
 
