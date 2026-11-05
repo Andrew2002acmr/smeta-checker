@@ -744,9 +744,14 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
     from normative_schedule_quantity import prepare as prepare_schedule_quantity
     prepared_schedule_candidates = prepare_schedule_quantity(parent_position or position, positions, tools, related)
     discovered = dict(sources=sources, quantity_composition=None)
-    tracing = TracingRun(context.settings.langfuse_public_key, context.settings.langfuse_secret_key,
-        context.settings.langfuse_base_url, context.settings.langfuse_environment, audit_run_id=str(record["id"]),
-        redact_pdf=context.settings.telemetry_redact_pdf, mask_prompts=context.settings.telemetry_mask_prompts,
+    tracing = TracingRun(
+        endpoint=context.settings.phoenix_collector_endpoint,
+        project=context.settings.phoenix_project_name,
+        public_url=context.settings.phoenix_public_url,
+        environment=context.settings.phoenix_environment,
+        audit_run_id=str(record["id"]),
+        redact_pdf=context.settings.telemetry_redact_pdf,
+        mask_prompts=context.settings.telemetry_mask_prompts,
         flush_on_close=False)
     trace = tracing.position(input={"operation": "normative-position-check", "position_index": index},
         metadata={"operation": "normative-position-check", "position_index": index, "model": credentials.model_name})

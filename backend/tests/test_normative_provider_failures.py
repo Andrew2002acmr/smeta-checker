@@ -100,7 +100,7 @@ def position_review(*, direct_pair=False, response=None):
     if isinstance(response, Exception):
         client.chat.completions.create.side_effect = response
     settings=SimpleNamespace(llm_credentials=lambda:credentials, allowed_llm_hosts=('routerai.ru',),
-        langfuse_public_key='', langfuse_secret_key='', langfuse_base_url='', langfuse_environment='test',
+        phoenix_collector_endpoint='', phoenix_project_name='test', phoenix_public_url='', phoenix_environment='test',
         telemetry_redact_pdf=True, telemetry_mask_prompts=True)
     repo=Mock()
     repo.save_normative_review.side_effect=lambda run,index,kind,payload,actor:dict(id='saved',payload=payload)
@@ -108,7 +108,7 @@ def position_review(*, direct_pair=False, response=None):
     position=VorPosition(index=0, work_name='Основание', volume='20', unit='м2',
                          formula='=10*2', position_type='Работа')
     facts=SimpleNamespace(model_dump=lambda:{})
-    record=dict(id='run', vor_version_id='vor', config={},
+    record=dict(id='run', project_id='project', vor_version_id='vor', config={},
                 indexed_results=[dict(position_index=0,result=dict(status='ОК'))])
     original=deepcopy(record)
     kb=SimpleNamespace(profile='roads', identity={'release':'test'})

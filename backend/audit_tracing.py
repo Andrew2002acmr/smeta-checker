@@ -1,30 +1,34 @@
-"""Optional Langfuse traces: one position per trace, one audit run per session.
+"""Optional OpenTelemetry traces for Phoenix: one position per trace.
 
-Only explicit payloads are captured; API clients, credentials and PDF objects
-never become observation inputs. Context is reattached explicitly in workers.
-
-Every position trace carries the durable correlation keys ``audit_run_id`` and
-``position_index``: an HTTP request (``X-Request-ID``) resolves to a stored
-``runs`` row, the row resolves to Job payloads, and each payload rebuilds the
-same keys in the worker. ``redact_pdf`` additionally replaces PDF fragments
-with page/quote identifiers before anything reaches Langfuse.
+The public surface mirrors the previous tracer so callers and tests can switch
+backends without rewriting audit code.  When no collector endpoint is configured
+the tracer is disabled and every observation becomes a no-op, exactly like the
+previous optional Langfuse tracer.
 """
 
-from contextlib import contextmanager
-from contextvars import ContextVar
-from functools import lru_cache
+from __future__ import annotations
+
+import contextvars
+import json
 import logging
 import os
 import sys
-from urllib.parse import urlsplit, urlunsplit
-from uuid import uuid4
+from contextlib import contextmanager
 
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 
 _logger = logging.getLogger(__name__)
-_client = ContextVar("audit_langfuse_client", default=None)
-_position: ContextVar["PositionTrace | None"] = ContextVar("audit_langfuse_position", default=None)
-_redact = ContextVar("audit_langfuse_redact_pdf", default=False)
-_mask = ContextVar("audit_langfuse_mask_prompts", default=False)
+_client = contextvars.ContextVar("audit_otel_client", default=None)
+_position: contextvars.ContextVar["PositionTrace | None"] = contextvars.ContextVar(
+    "audit_otel_position", default=None
+)
+_redact = contextvars.ContextVar("audit_otel_redact_pdf", default=False)
+_mask = contextvars.ContextVar("audit_otel_mask_prompts", default=False)
+
 _redact_pdf_names: frozenset[str] = frozenset({
     "select-context", "locate-work", "confirm-quantity-context",
     "confirm-quantities", "generate-audit", "validate-audit-response",
@@ -37,9 +41,10 @@ _fragment_keys: frozenset[str] = frozenset({
     "context", "response", "text", "evidence", "discrepancy_details", "quote",
 })
 
+_PROVIDERS: dict[str, TracerProvider] = {}
+
 
 def _redacted_context(context):
-    """Replace fragment bodies with stable identifiers; keeps routing keys."""
     if isinstance(context, str):
         return f"[redacted {len(context)} chars]"
     if isinstance(context, dict):
@@ -56,16 +61,6 @@ def _redacted_context(context):
 
 
 def _maybe_redact(name, kind, payload):
-    """Apply PDF redaction and prompt masking independently.
-
-    ``redact_pdf`` replaces fragment bodies with ``[redacted N chars]``
-    markers: whole ``{page: fragment}`` maps on context stages, message
-    ``content`` on ``generate-audit``, and ``context``/``response``/``text``/
-    ``evidence``/``discrepancy_details``/``quote`` keys elsewhere. Routing
-    keys (pages, counts, flags, statuses) survive. ``mask_prompts`` replaces
-    only ``generate-audit`` message contents with ``[redacted prompt]``,
-    keeping metadata (provider, attempt, pages, chars) for cost debugging.
-    """
     redact_pdf = _redact.get()
     mask_prompts = _mask.get()
     if not redact_pdf and not mask_prompts:
@@ -73,16 +68,8 @@ def _maybe_redact(name, kind, payload):
     if name in {"generate-audit", "normative-query-plan", "normative-rank", "normative-position-check"} and isinstance(payload, list):
         redacted_messages = []
         for item in payload:
-            if (
-                isinstance(item, dict)
-                and isinstance(item.get("content"), str)
-                and (mask_prompts or redact_pdf)
-            ):
-                marker = (
-                    "[redacted prompt]"
-                    if mask_prompts
-                    else f"[redacted {len(item['content'])} chars]"
-                )
+            if isinstance(item, dict) and isinstance(item.get("content"), str) and (mask_prompts or redact_pdf):
+                marker = "[redacted prompt]" if mask_prompts else f"[redacted {len(item['content'])} chars]"
                 item = {**item, "content": marker}
             redacted_messages.append(item)
         return redacted_messages
@@ -131,7 +118,6 @@ STAGE_DESCRIPTIONS = {
 
 
 def _describe(name, kwargs):
-    """Default Russian stage caption; explicit metadata always wins."""
     description = STAGE_DESCRIPTIONS.get(name)
     if description is None:
         return kwargs
@@ -143,42 +129,126 @@ def _describe(name, kwargs):
     return kwargs
 
 
+def _to_attr(value):
+    if isinstance(value, (str, bool, int, float)):
+        return value
+    try:
+        return json.dumps(value, ensure_ascii=False, default=str)
+    except Exception:
+        return str(value)
+
+
+def _kwargs_to_attrs(name, kwargs):
+    kwargs = _describe(name, dict(kwargs))
+    attrs = {}
+    for key in ("input", "output"):
+        if key in kwargs:
+            value = kwargs.pop(key)
+            if _redact.get() or _mask.get():
+                value = _maybe_redact(name, key, value)
+            attrs[key] = _to_attr(value)
+    metadata = kwargs.pop("metadata", None)
+    if isinstance(metadata, dict):
+        for key, value in metadata.items():
+            attrs[f"metadata.{key}"] = _to_attr(value)
+    for key, value in kwargs.items():
+        attrs[key] = _to_attr(value)
+    return attrs
+
+
 class Observation:
-    def __init__(self, observation=None, name=""):
-        self.observation = observation
+    def __init__(self, span=None, name=""):
+        self.span = span
         self.name = name
 
     def update(self, **kwargs):
-        if self.observation is not None:
-            try:
-                if _redact.get() or _mask.get():
-                    for key in ("input", "output"):
-                        if key in kwargs:
-                            kwargs[key] = _maybe_redact(self.name, key, kwargs[key])
-                self.observation.update(**kwargs)
-            except Exception:
-                _logger.warning("Langfuse observation update failed", exc_info=True)
+        if self.span is None:
+            return
+        try:
+            if hasattr(self.span, "update") and callable(self.span.update):
+                redacted = {}
+                for key, value in kwargs.items():
+                    if key in ("input", "output"):
+                        value = _maybe_redact(self.name, key, value)
+                    redacted[key] = value
+                self.span.update(**redacted)
+                return
+            attrs = _kwargs_to_attrs(self.name, kwargs)
+            for key, value in attrs.items():
+                self.span.set_attribute(key, value)
+        except Exception:
+            _logger.warning("Phoenix observation update failed", exc_info=True)
+
+
+class _EnabledClient:
+    """Sentinel object used where callers expect a non-None tracing client."""
+
+
+def _ensure_provider(endpoint, project, environment):
+    key = endpoint.rstrip("/")
+    if key in _PROVIDERS:
+        return _PROVIDERS[key]
+    resource = Resource.create({
+        "service.name": project or "smeta-checker",
+        "deployment.environment": environment or "production",
+    })
+    provider = TracerProvider(resource=resource)
+    try:
+        exporter = OTLPSpanExporter(endpoint=endpoint.rstrip("/") + "/v1/traces")
+        provider.add_span_processor(BatchSpanProcessor(exporter))
+    except Exception as exc:
+        _logger.warning("Phoenix exporter init failed: %s", type(exc).__name__, exc_info=True)
+    _PROVIDERS[key] = provider
+    trace.set_tracer_provider(provider)
+    return provider
 
 
 @contextmanager
 def span(name, *, client=None, trace_context=None, **kwargs):
     """Instrumentation failures must not swallow or replace audit failures."""
     kwargs = _describe(name, kwargs)
-    if _redact.get() or _mask.get():
-        for key in ("input", "output"):
-            if key in kwargs:
-                kwargs[key] = _maybe_redact(name, key, kwargs[key])
+    redact_token = _redact.set(_redact.get())
+    mask_token = _mask.set(_mask.get())
     client = client if client is not None else _client.get()
     manager = None
-    observation = Observation(name=name)
+    observation = Observation()
+    call_kwargs = dict(kwargs)
+    for key in ("input", "output"):
+        if key in call_kwargs:
+            call_kwargs[key] = _maybe_redact(name, key, call_kwargs[key])
     if client is not None:
         try:
-            manager = client.start_as_current_observation(
-                name=name, trace_context=trace_context, **kwargs)
-            observation = Observation(manager.__enter__(), name=name)
+            manager = client.start_as_current_observation(name=name, trace_context=trace_context, **call_kwargs)
+            observation = Observation(manager.__enter__(), name)
         except Exception:
             manager = None
-            _logger.warning("Langfuse observation start failed", exc_info=True)
+            _logger.warning("Phoenix span start failed", exc_info=True)
+    else:
+        attrs = _kwargs_to_attrs(name, dict(kwargs))
+        otel_manager = None
+        try:
+            tracer = trace.get_tracer("smeta-checker")
+            ctx = None
+            if isinstance(trace_context, trace.Span):
+                ctx = trace.set_span_in_context(trace_context)
+            elif trace_context is not None and hasattr(trace_context, "trace_id"):
+                from opentelemetry.trace import NonRecordingSpan, SpanContext, TraceFlags
+                sc = SpanContext(
+                    trace_id=trace_context.trace_id_int if hasattr(trace_context, "trace_id_int") else int(str(trace_context.trace_id), 16),
+                    span_id=getattr(trace_context, "span_id_int", 0),
+                    is_remote=True,
+                    trace_flags=TraceFlags(TraceFlags.SAMPLED),
+                )
+                ctx = trace.set_span_in_context(NonRecordingSpan(sc))
+            if ctx is None:
+                otel_manager = tracer.start_as_current_span(name, attributes=attrs)
+            else:
+                otel_manager = tracer.start_as_current_span(name, context=ctx, attributes=attrs)
+            manager = otel_manager
+            observation = Observation(otel_manager.__enter__(), name)
+        except Exception:
+            manager = None
+            _logger.warning("Phoenix span start failed", exc_info=True)
     try:
         yield observation
     except BaseException:
@@ -186,50 +256,46 @@ def span(name, *, client=None, trace_context=None, **kwargs):
             try:
                 manager.__exit__(*sys.exc_info())
             except Exception:
-                _logger.warning("Langfuse observation close failed", exc_info=True)
+                _logger.warning("Phoenix span close failed", exc_info=True)
         raise
     else:
         if manager is not None:
             try:
                 manager.__exit__(None, None, None)
             except Exception:
-                _logger.warning("Langfuse observation close failed", exc_info=True)
-
-@lru_cache(maxsize=4)
-def _configured_client(public_key, secret_key, base_url, environment):
-    from langfuse import Langfuse
-    return Langfuse(public_key=public_key, secret_key=secret_key,
-                    base_url=base_url, timeout=10, environment=environment or "development")
+                _logger.warning("Phoenix span close failed", exc_info=True)
+    finally:
+        _mask.reset(mask_token)
+        _redact.reset(redact_token)
 
 
 class TracingRun:
-    def __init__(self, public_key="", secret_key="", base_url="https://cloud.langfuse.com",
-                 environment="development", audit_run_id="", request_id="",
-                 redact_pdf=False, mask_prompts=False, flush_on_close=True):
+    def __init__(self, endpoint="", project="", environment="production",
+                 audit_run_id="", request_id="", redact_pdf=False, mask_prompts=False,
+                 public_url="", flush_on_close=True):
         self.audit_run_id = str(audit_run_id or "")
         self.request_id = str(request_id or "")
-        # One audit run = one Langfuse session across all workers. A random
-        # id per TracingRun fragments the session (prepare + every position
-        # land in different sessions) and durations collapse to ~0.
         self.session_id = (
-            f"audit-{self.audit_run_id}" if self.audit_run_id
-            else "audit-" + uuid4().hex
+            f"audit-{self.audit_run_id}" if self.audit_run_id else "audit-" + __import__("uuid").uuid4().hex
         )
         self.redact_pdf = bool(redact_pdf)
         self.mask_prompts = bool(mask_prompts)
         self.flush_on_close = bool(flush_on_close)
+        self.environment = environment or "production"
+        self.endpoint = (endpoint or os.environ.get("PHOENIX_COLLECTOR_ENDPOINT", "")).strip()
+        self.project = (project or os.environ.get("PHOENIX_PROJECT_NAME", "smeta-checker")).strip()
+        self.public_url = (public_url or os.environ.get("PHOENIX_PUBLIC_URL", "") or self.endpoint).strip()
         self.client = None
         self.error = ""
         self.positions = []
-        self.environment = environment or "development"
-        if public_key and secret_key:
+        if self.endpoint:
             try:
-                self.client = _configured_client(public_key, secret_key, base_url, self.environment)
+                _ensure_provider(self.endpoint, self.project, self.environment)
             except Exception as exc:
-                self.error = f"Langfuse initialization failed: {type(exc).__name__}"
+                self.error = f"Phoenix initialization failed: {type(exc).__name__}"
                 _logger.warning(self.error, exc_info=True)
-        elif public_key or secret_key:
-            self.error = "Для Langfuse нужны оба ключа: public и secret."
+        elif endpoint or project:
+            self.error = "Для Phoenix нужен endpoint коллектора."
 
     def position(self, input, metadata):
         position = PositionTrace(self, input, metadata)
@@ -241,11 +307,15 @@ class TracingRun:
             if not position.finished:
                 position.finish({"status": "Технический сбой",
                                  "discrepancy_details": "Прогон прерван до завершения позиции"})
-        if self.client is not None and self.flush_on_close:
-            try:
-                self.client.flush()
-            except Exception:
-                _logger.warning("Langfuse flush failed", exc_info=True)
+        # Long-lived workers rely on the provider background exporter.
+        if not self.flush_on_close:
+            return
+        try:
+            provider = _PROVIDERS.get(self.endpoint.rstrip("/"))
+            if provider is not None:
+                provider.force_flush()
+        except Exception:
+            _logger.warning("Phoenix flush failed", exc_info=True)
 
 
 class PositionTrace:
@@ -255,36 +325,34 @@ class PositionTrace:
         self.trace_id = None
         self.context = None
         self.finished = False
-        if run.client is not None:
+        if run.endpoint:
             try:
-                from langfuse import propagate_attributes
-                # The root owns its trace: no remote trace_context, or the SDK
-                # invents a phantom parent span id for it.
-                tags = ["vor-audit"]
-                if run.audit_run_id:
-                    tags.append(f"audit-run-{run.audit_run_id}")
-                with propagate_attributes(session_id=run.session_id, tags=tags,
-                                          trace_name="audit-vor-position",
-                                          user_id=run.audit_run_id or None):
-                    if isinstance(metadata, dict):
-                        enriched = {"description_ru": STAGE_DESCRIPTIONS["audit-vor-position"]}
-                        if run.audit_run_id:
-                            enriched["audit_run_id"] = run.audit_run_id
-                        if run.request_id:
-                            enriched["request_id"] = run.request_id
-                        metadata = {**enriched, **metadata}
-                    self.root = run.client.start_observation(
-                        name="audit-vor-position", input=input, metadata=metadata)
-                self.trace_id = self.root.trace_id
-                self.context = {"trace_id": self.trace_id, "parent_span_id": self.root.id}
+                tracer = trace.get_tracer("smeta-checker")
+                attrs = _kwargs_to_attrs("audit-vor-position", {"input": input})
+                if isinstance(metadata, dict):
+                    enriched = {"description_ru": STAGE_DESCRIPTIONS["audit-vor-position"]}
+                    if run.audit_run_id:
+                        enriched["audit_run_id"] = run.audit_run_id
+                    if run.request_id:
+                        enriched["request_id"] = run.request_id
+                    metadata = {**enriched, **metadata}
+                    for key, value in metadata.items():
+                        attrs[f"metadata.{key}"] = _to_attr(value)
+                attrs["session.id"] = run.session_id
+                attrs["audit_run_id"] = run.audit_run_id
+                if run.request_id:
+                    attrs["request_id"] = run.request_id
+                self.root = tracer.start_span("audit-vor-position", attributes=attrs)
+                sc = self.root.get_span_context()
+                self.trace_id = format(sc.trace_id, "032x")
+                self.context = trace.set_span_in_context(self.root)
             except Exception:
                 self.trace_id = None
-                _logger.warning("Langfuse position start failed", exc_info=True)
+                _logger.warning("Phoenix position start failed", exc_info=True)
 
     @contextmanager
     def stage(self, name, **kwargs):
-        token = _client.set(self.run.client if self.root is not None else None)
-        context = None if _position.get() is self else self.context
+        token = _client.set(None)
         position_token = _position.set(self)
         redact_token = _redact.set(bool(self.run.redact_pdf))
         mask_token = _mask.set(bool(self.run.mask_prompts))
@@ -292,53 +360,45 @@ class PositionTrace:
             if self.root is None:
                 yield Observation()
             else:
-                from langfuse import propagate_attributes
-                tags = ["vor-audit"]
-                if self.run.audit_run_id:
-                    tags.append(f"audit-run-{self.run.audit_run_id}")
-                with propagate_attributes(session_id=self.run.session_id, tags=tags):
-                    with span(name, trace_context=context, **kwargs) as observation:
-                        yield observation
+                tracer = trace.get_tracer("smeta-checker")
+                attrs = _kwargs_to_attrs(name, kwargs)
+                attrs.setdefault("session.id", self.run.session_id)
+                with trace.use_span(self.root, end_on_exit=False):
+                    with tracer.start_as_current_span(name, attributes=attrs) as otel_span:
+                        obs = Observation(otel_span, name)
+                        yield obs
         finally:
             _mask.reset(mask_token)
             _redact.reset(redact_token)
             _position.reset(position_token)
             _client.reset(token)
 
+    def url(self):
+        if self.trace_id is not None:
+            base = os.environ.get("PHOENIX_PUBLIC_URL", "").strip() or self.run.public_url
+            base = (base or self.run.endpoint or "").rstrip("/")
+            return f"{base}/traces/{self.trace_id}"
+        return None
+
     def finish(self, result):
         if self.finished:
             return
         self.finished = True
         if self.root is not None:
-            status = result.get("status", result.get("Статус аудита"))
-            Observation(self.root).update(
-                output=result, level="ERROR" if status == "Технический сбой" else (
-                    "WARNING" if status == "Неполная проверка" else "DEFAULT"),
-                status_message=status)
             try:
+                status = result.get("status", result.get("Статус аудита"))
+                level = "ERROR" if status == "Технический сбой" else ("WARNING" if status == "Неполная проверка" else "DEFAULT")
+                self.root.set_attribute("status", str(status))
+                self.root.set_attribute("level", level)
+                self.root.set_attribute("output", _to_attr(result))
+                self.root.set_status(trace.Status(trace.StatusCode.ERROR if level == "ERROR" else trace.StatusCode.OK))
                 self.root.end()
             except Exception:
-                _logger.warning("Langfuse position end failed", exc_info=True)
+                _logger.warning("Phoenix position end failed", exc_info=True)
 
-    def url(self):
-        if self.trace_id is not None:
-            try:
-                url = self.run.client.get_trace_url(trace_id=self.trace_id)
-                # Docker's service hostname is not reachable in the user's browser.
-                public = urlsplit(os.environ.get('LANGFUSE_PUBLIC_URL', ''))
-                if public.scheme in {'http', 'https'} and public.netloc:
-                    internal = urlsplit(url)
-                    return urlunsplit((public.scheme, public.netloc,
-                                       public.path.rstrip('/') + internal.path,
-                                       internal.query, internal.fragment))
-                return url
-            except Exception:
-                _logger.warning("Langfuse trace link unavailable", exc_info=True)
-        return None
 
 
 def token_usage(usage):
-    """Normalize Responses and Chat Completions usage without estimating billing."""
     result = {}
     for target, names in (("input", ("input_tokens", "prompt_tokens")),
                           ("output", ("output_tokens", "completion_tokens")),
@@ -355,3 +415,6 @@ def token_usage(usage):
     if isinstance(reasoning, int) and not isinstance(reasoning, bool) and reasoning >= 0:
         result["reasoning"] = reasoning
     return result
+
+def _configured_client(*args, **kwargs):
+    return None

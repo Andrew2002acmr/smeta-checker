@@ -205,9 +205,7 @@ def run_baseline():
         try:
             with patch.dict(os.environ, {"YANDEX_CLOUD_API_KEY": "test-only",
                                          "YANDEX_CLOUD_FOLDER": "test-folder",
-                                         "LANGFUSE_PUBLIC_KEY": "",
-                                         "LANGFUSE_SECRET_KEY": ""}), \
-                    patch("audit_tracing._configured_client", return_value=None), \
+                                         }), \
                     connection_guard, http_guard, url_guard:
                 settings = AuditSettings(
                     yandex_cloud_folder="test-folder",

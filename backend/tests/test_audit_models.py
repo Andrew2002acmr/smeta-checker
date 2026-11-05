@@ -210,7 +210,7 @@ class AuditSettingsModelTests(unittest.TestCase):
         self.assertEqual(settings.yandex_cloud_folder, "folder")
         self.assertEqual(settings.yandex_cloud_api_key, "key")
         self.assertEqual(settings.yandex_cloud_model, "qwen3.6-35b-a3b/latest")
-        self.assertEqual(settings.langfuse_base_url, "https://cloud.langfuse.com")
+        self.assertEqual(settings.phoenix_project_name, "smeta-checker")
         self.assertEqual(settings.database_url, "")
         self.assertEqual(settings.blob_store_url, "")
 

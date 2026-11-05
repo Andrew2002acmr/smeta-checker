@@ -31,3 +31,17 @@
 При отсутствии загруженного MCP используйте CLI; наличие `.mcp.json` не доказывает, что сервер подключён в текущей сессии. Новый Chrome не требуется, если доступен системный Chrome через `--executable-path` или уже запущенный собственный браузер через `--cdp`.
 
 Документация: https://agent-browser.dev/installation и https://agent-browser.dev/cdp-mode.
+
+## Наблюдаемость (GlitchTip + Phoenix)
+
+- Ошибки API/воркеров/Nuxt: GlitchTip (Sentry-совместимый), DSN в `GLITCHTIP_DSN`.
+- LLM-трейсы, промпты, evals: Arize Phoenix (OTLP), compose.phoenix.yaml.
+- MCP:
+  - Phoenix: `http://localhost:6006/mcp` (встроен с v19).
+  - GlitchTip: включить `GLITCHTIP_ENABLE_MCP=true`, endpoint `/mcp`.
+- CLI:
+  - Phoenix: `npx @arizeai/phoenix-cli ...` (`px`), включая `trace list/get`.
+  - GlitchTip: `glitchtip-cli` (beta).
+- Skills: `npx skills add Arize-ai/phoenix` для Phoenix.
+- При работе с проектами и отладке наблюдаемости используй CLI/MCP этих систем, а не только логи.
+

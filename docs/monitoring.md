@@ -32,7 +32,7 @@ docker compose -f compose.yaml -f compose.monitoring.yaml stop grafana prometheu
 - Логи всех контейнеров через Loki/Promtail (фильтр по `container`).
 - Ошибки 4xx/5xx в логах API/Nuxt.
 - Время ответа healthcheck (blackbox probe duration).
-- LLM-трейсинг и стоимость — через Langfuse (уже настроен в compose через `LANGFUSE_*`), Grafana его не дублирует.
+- LLM-трейсинг — через Phoenix (OTLP, compose.phoenix.yaml), Grafana его не дублирует.
 
 ### Очереди и воркеры
 - Живость `worker-pdf` / `worker-llm` (pidfile healthcheck в compose).

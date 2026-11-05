@@ -24,7 +24,7 @@ def _scrub(event, hint):  # type: ignore[no-untyped-def]
 
 
 def init_sentry(service: str) -> None:
-    dsn = os.getenv("GLITCHTIP_DSN") or os.getenv("SENTRY_DSN") or ""
+    dsn = os.getenv("GLITCHTIP_DSN") or ""
     if not dsn.strip():
         return
     try:
