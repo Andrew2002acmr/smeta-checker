@@ -120,6 +120,9 @@ def test_zero_header_budget_does_not_approve_a_raw_unit():
         verify_recovered_tables(page,[t],max_headers=0,max_numbers=0)
         assert 'header_refinement' not in t['cells'][0]
         assert column_unit(t,t['cells'][1])==''
+        assert t['header_verification']['budget_exhausted']
+        assert t['header_verification']['header_limit_reached']
+        assert t['header_verification']['deferred_header_ids']==['h']
 
 
 def test_unit_evidence_is_independent_of_unresolved_material_code():

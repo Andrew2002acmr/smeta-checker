@@ -27,6 +27,7 @@ from pdf_binding import (
     index_designations,
     resolve_pdf_name,
     resolve_position_pdfs,
+    multi_pdf_context_enabled,
     verify_designations,
 )
 _SHEET_STAMP_RE = None
@@ -130,7 +131,8 @@ def preflight_bindings(loaded_vors, target_vor_selection, pdf_pool_keys, binding
                 continue
             seen_bindings.add(binding_key)
             matched, _, _, error = resolve_position_pdfs(
-                refs, pdf_pool_keys, prev_meta.get("basis_code", ""), bindings
+                refs, pdf_pool_keys, prev_meta.get("basis_code", ""), bindings,
+                allow_multiple=multi_pdf_context_enabled(),
             )
             if error:
                 bind_status = "🔴 " + error

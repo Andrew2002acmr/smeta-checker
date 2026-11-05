@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "scope": "offline boundary checks; not model evaluation or project audit",
+  "stages": [
+    {
+      "id": "preparation",
+      "contract": "Keep native text, page identity, raster occurrences, headers and honest quality; missing OCR is not a missing project fact.",
+      "tests": ["tests/test_pdf_inline_evidence.py", "tests/test_normative_source_preparation.py"],
+      "known_limit": "Real OCR accuracy and canonical-clause attachment of page-level raster supplements are not certified by synthetic image tests."
+    },
+    {
+      "id": "retrieval",
+      "contract": "Find explicitly scoped sections and all accessible prepared pages without using expected quantities to select evidence.",
+      "tests": ["tests/test_normative_corpus_search.py", "tests/test_evidence_work_plan.py"],
+      "known_limit": "Passing regression searches does not measure recall on independently annotated documents."
+    },
+    {
+      "id": "context",
+      "contract": "Separate registered, fully exposed, partial and omitted evidence; retain exact identity, offsets and transport outcome under the existing budget.",
+      "tests": ["tests/test_normative_context_packing.py", "tests/test_normative_context_window.py", "tests/test_normative_context_serialization.py", "tests/test_pipeline_stage_contracts.py"],
+      "known_limit": "Exposure in a completed context does not prove comprehension. Legacy traces without receipt/fingerprint metadata remain unmeasured."
+    },
+    {
+      "id": "interpretation",
+      "contract": "The model must identify property, subject, scope and required relation without demanding unrelated evidence.",
+      "tests": [],
+      "evaluation_status": "not_measured_no_model_calls",
+      "known_limit": "Protocol fixtures are not model answers or evidence of factual effectiveness."
+    },
+    {
+      "id": "facts",
+      "contract": "A fact retains literal provenance, units, quality, subject scope and immutable dependencies; another row's verdict cannot replace evidence.",
+      "tests": ["tests/test_scoped_agent_evidence.py", "tests/test_parent_geometry_dependency.py", "tests/test_normative_source_registry.py", "tests/test_evidence_snapshot.py"],
+      "known_limit": "The existing shared fact ledger primarily covers geometry. Generic semantic relations for arbitrary material properties are not established."
+    },
+    {
+      "id": "validation",
+      "contract": "Reject altered quotes, unknown units, unverified scope and contradictions while preserving independently proven assertions.",
+      "tests": ["tests/test_normative_parameters.py", "tests/test_numeric_quote_boundaries.py", "tests/test_normative_verification_contract.py"],
+      "known_limit": "General properties are checked separately from retained domain-specific adapters; passing these tests does not certify those adapters on new standards."
+    },
+    {
+      "id": "publication",
+      "contract": "Absence of proof is needs_facts; a discrepancy needs incompatible scoped evidence; geometry alone cannot confirm an entire row.",
+      "tests": ["tests/test_normative_verdict.py", "tests/test_pipeline_stage_contracts.py"],
+      "known_limit": "No database publication or production project status is changed by this suite."
+    },
+    {
+      "id": "planning",
+      "contract": "Route by fact kind and source responsibility; read registered but unexposed evidence before repeating search; retry only on changed evidence, without confirming anything.",
+      "tests": ["tests/test_evidence_work_plan.py", "tests/test_pipeline_stage_contracts.py", "tests/test_pipeline_transfer_selection.py"],
+      "known_limit": "No follow-up model pass is dispatched by the suite."
+    }
+  ],
+  "development_data": {
+    "pilot_indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "role": "development regressions; not an independent benchmark",
+    "synthetic_contracts": "also development data, not a blind holdout"
+  },
+  "frozen_domain_adapters": [
+    {"module": "normative_coefficient_policy.py", "scope": "Named estimator allowance and SP78 mixture conditions", "transfer_quality": "not_established"},
+    {"module": "normative_material_search.py", "scope": "ГОСТ70458/32703 mixture and aggregate specification relation", "transfer_quality": "not_established"},
+    {"module": "normative_equipment_class_proof.py", "scope": "Specific reviewed equipment function proof", "transfer_quality": "not_established"}
+  ],
+  "transfer_policy": {
+    "select_inputs_only": true,
+    "exclude_development_pilot_and_exact_known_fixtures": true,
+    "do_not_consult_saved_verdicts": true,
+    "independent_annotation_required": true,
+    "same_project_candidates_are_not_external_validation": true,
+    "no_full_103_dispatch": true,
+    "no_model_calls": true
+  }
+}

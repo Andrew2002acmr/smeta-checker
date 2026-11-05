@@ -22,7 +22,14 @@ def setup(data=None):
     data=deepcopy(data or fixture())
     table=data['table']
     tools=EvidenceTools.__new__(EvidenceTools)
-    tools.sources=deepcopy(data['sources'])
+    # Reacquire this fixture's physical cells from its own table snapshot.
+    # Negative cases mutate that snapshot before acquisition; retaining the old
+    # source registry would test an identity collision instead of scope guards.
+    tools.sources=[]
+    # The frozen capture predates the explicit empty header-fact list. Keep
+    # source identities strict when reacquiring the same physical cells today.
+    for source in tools.sources:
+        source.setdefault('verified_parameters',[])
     tools.cells={}
     tools.events=[]
     tools.preferred=[]
@@ -32,7 +39,12 @@ def setup(data=None):
     tools.snapshot_refs=[]
     tables=[[] for _ in range(data['page'])]
     tables[-1]=[table]
-    tools.index=SimpleNamespace(tables=tables,texts=['']*data['page'],metadata={})
+    # Original prepared PD89 page geometry (rotated A3), needed to reproduce
+    # the captured normalized highlight rectangles rather than erase them.
+    geometry=dict(height=841.8897705078125,width=1190.5511474609375,
+        matrix=[0.0,-1.0,1.0,0.0,0.0,841.8897705078125])
+    tools.index=SimpleNamespace(tables=tables,texts=['']*data['page'],
+        metadata=dict(page_geometry={str(data['page']-1):geometry}))
     tools.execute(EvidenceRequest(tool='read_table',page=data['page'],table_id=table['table_id'],row_ids=[41],column_ids=[2,8]))
     answer=AgentAnswer(summary='Frozen live26',items=[],parameters=data['parameters'])
     kwargs=dict(owner_work=data['position']['work_name'],work_scope=data['work_scope'],

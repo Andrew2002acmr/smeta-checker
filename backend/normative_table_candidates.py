@@ -41,6 +41,8 @@ def grouped_totals(table, query, *, unit='', height_cm=None, include_single=Fals
             groups[tuple(signature)].append((cell, ancestry))
     wanted = terms(query)
     fractions = material_fractions(query)
+    from vor_material_links import _family
+    wanted_family=_family(query)
     output = []
     for signature, members in groups.items():
         if not (1 if include_single else 2) <= len(members) <= 12:
@@ -49,8 +51,13 @@ def grouped_totals(table, query, *, unit='', height_cm=None, include_single=Fals
         score = len(wanted & terms(text))
         if not score:
             continue
-        thicknesses = [Decimal(v.replace(',', '.'))*(100 if u in {'m','м'} else 1)
-            for v,u in re.findall(r'\bh\s*=\s*(\d+(?:[.,]\d+)?)\s*(см|[мm])\b', text, re.I)]
+        thicknesses = [Decimal(v.replace(',', '.'))*(100 if u.lower() in {'m','м'} else 1)
+            for v,u in re.findall(r'(?:\bh\s*=\s*|[([]\s*)(\d+(?:[.,]\d+)?)\s*(см|cm|[мm])\b', text, re.I)]
+        found_family=_family(text)
+        if not found_family and re.search(r'\b[аa]\d{1,3}[а-яa-z]+|щма\s*[-–]?\s*\d',text,re.I):
+            found_family='асфальтобетон'
+        if wanted_family and found_family and wanted_family!=found_family:
+            continue
         found_fractions = material_fractions(text)
         if fractions and found_fractions and fractions.isdisjoint(found_fractions):
             continue

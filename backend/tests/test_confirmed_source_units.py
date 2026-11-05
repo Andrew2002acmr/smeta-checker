@@ -64,6 +64,24 @@ def test_conflicting_fact_is_not_silently_overwritten():
     assert stored['payload']['binding']==binding(source)
 
 
+@pytest.mark.parametrize('change',['alias','changed_text','changed_rects','changed_version','wrong_physical_id'])
+def test_confirmation_follows_only_unchanged_physical_envelope_through_logical_alias(change):
+    context,record,source=fixture()
+    confirm(context,record,source,'м','user','Уточнение единицы')
+    alias=dict(deepcopy(source),id='shared:39:logical',physical_source_id=source['id'])
+    if change=='changed_text':
+        alias['text']+=' другая колонка'
+    elif change=='changed_rects':
+        alias['rects']=[[.4,.5,.6,.7]]
+    elif change=='changed_version':
+        alias['version_id']='pdf-v2'
+    elif change=='wrong_physical_id':
+        alias['physical_source_id']='agent:p92:cell:other'
+    attached=attach(context,record,dict(sources=[alias]))['sources'][0]
+    assert unit_confirmed(attached,'м')==(change=='alias')
+    assert attached['text']==alias['text']
+
+
 @pytest.mark.parametrize('declared,unit,expected',[('2163','м','confirmed'),
     ('2164','м','possible_mismatch'),('2163','м2','possible_mismatch')])
 def test_quantity_is_rechecked_independently_after_unit_confirmation(declared,unit,expected):

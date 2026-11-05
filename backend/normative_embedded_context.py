@@ -37,9 +37,20 @@ def literal_paths(inputs, sources):
 
 
 def packing_record(supplied, sources, stage):
+    from normative_source_registry import source_fingerprint
     embedded = literal_paths(supplied, sources)
+    lookup = {s['id']: s for s in sources}
     exposed = {source['id'] for source in supplied.get('sources', [])}
-    return dict(stage=stage, registry_sources=len(sources),
+    full = set(embedded) | {s['id'] for s in supplied.get('sources', [])
+        if s['id'] in lookup and not s.get('excerpt_truncated')
+        and s.get('text') == lookup[s['id']].get('text')}
+    offsets = {s['id']: s['next_offset'] for s in supplied.get('sources', [])
+        if s['id'] in lookup and type(s.get('next_offset')) is int
+        and 0 <= s['next_offset'] < len(lookup[s['id']].get('text', ''))}
+    return dict(stage=stage, registry_sources=len(sources), response_state='prepared',
+        delivery_contract_version=1, full_text_source_ids=sorted(full),
+        next_offset_by_source=offsets,
+        source_fingerprints={s['id']: source_fingerprint(s) for s in sources},
         supplied_source_ids=sorted(exposed), embedded_full_source_ids=sorted(embedded),
         truncated_previews=[source['id'] for source in supplied.get('sources', [])
             if source.get('excerpt_truncated') and source['id'] not in embedded],

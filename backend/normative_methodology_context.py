@@ -26,12 +26,66 @@ CLAUSES = (
     ('22', 'clause-d0664afac286bb9b46b121b08905b38e', (7,),
      '8feb5db524ae26de90af4180740fa463916e7e23d92cc16f805624b38f37a1b7'),
 )
+MATERIAL_CLAUSES = (CLAUSES[1],
+    ('12','clause-3651e9d5ed4782554872a0caaf9b3135',(5,),
+     '7b27a0faa8b5207d240a489cc9912c76cb031815865a1946201075e403a3f320'))
+MATERIAL_SCOPE = (
+    'Проверяется спецификация и физическое количество самостоятельного материала ВОР. '
+    'Пункты 7 и 12 читать вместе: проектные данные и специальные положения сборника '
+    'остаются основанием ресурса П, потери и отходы не объявляются доказанными этой ссылкой. '
+    'Различай геометрический объём проектной конструкции и снабженческий расход с потерями. '
+    'Не переноси выбор вида нормы родительской работы на независимое физическое количество '
+    'материала; если расход взят именно из этой нормы, её область применения обязательна. '
+    'Прямые проектные количества, расчёт из площади/толщины, добавки, потери и условия '
+    'коэффициентов проверяются раздельно. Эта методика не подтверждает ни количество, '
+    'ни совместимость материала, ни коэффициент автоматически.'
+)
 # Includes registry cards AND the full literal context retained by compact().
 # A UTF-8 byte cap is conservative for byte-fallback tokenizers; no provider
 # tokenizer is guessed and no model request is made to estimate usage.
 MAX_ADDITION_CHARS = 10000
 MAX_ADDITION_UTF8_BYTES = 18000
 MAX_METHOD_CLAIMS = 12
+
+# Optional addressed excerpts, not a consolidated edition or a loss verdict.
+LOSS_SOURCE_SHA256 = '229859743265831e2c3043e7a68250f7df543d8c2dfde637ebf9d18e7431a017'
+LOSS_SOURCE_ID = 'pdf-' + LOSS_SOURCE_SHA256[:24]
+LOSS_DESIGNATION = 'Приказ Минстроя России от 16.01.2020 № 15/пр. Методика потерь и отходов'
+LOSS_AMENDMENT_SHA256 = '1c15bb4c4063aa6f0706d972e3471afb962d1357dfe2ec37a2c8a30f8c039b0f'
+LOSS_AMENDMENT_ID = 'pdf-' + LOSS_AMENDMENT_SHA256[:24]
+LOSS_AMENDMENT_DESIGNATION = 'Приказ Минстроя России от 14.10.2024 № 695/пр. Изменения Методики 15/пр'
+LOSS_FORMULA_TRANSCRIPTION = 'visual_literal_transcription_formula_linearized'
+LOSS_FORMULA = 'P_Σ(ij) = P_п(ij) + P_то(ij) + P_тп(ij) + P_проч (1)'
+LOSS_RENDER_SHA256 = {
+    3: '102c9d46623c7be05251e556ccaa95ce137073283a3a8d603a5af5e124ea623e',
+    8: '8164f0fd13d40792045f236fba8ffdc6dd20916ddacfd255209dd5bf60b2d0d8',
+    9: '46b1165b5e7e670fafec53d20772c04a3bfad81140455f5908c8b54e85c1a748',
+}
+LOSS_CLAUSES = (
+    ('6', 'clause-a9dfaddf71cd58c264ad3f8c0eb9b6a3', (3,),
+     'ae4f24e3bcfb8e75dbf99e3c8de268abc4aa8088328b165b83bd02483d19b36e'),
+    ('8', 'clause-8d0551530497054f2abf4c57a33b2c97', (3,),
+     '66254e7ed6ba136adf03c55414114d758df95194abaf1d01d53d3022406154c7'),
+    ('22', 'clause-14059d01376a45dc224bd0ba465a39ae', (8,),
+     '43523bac3cf2952ba1a4e5402f3dbb0ec2fc885f523d3590e1d69e4cd639845a'),
+    ('23', 'clause-e23c9bd4f1c7786b11acd88c07b3405f', (8, 9),
+     'c5dd30e15e4aeb7d3f07c5ceb6a6a9682e28e7f4cc13e5c37e119a27bf8c8545'),
+)
+LOSS_SCOPE = (
+    'Пункты 6 и 8 Методики 15/пр задают область учета потерь в общем сметном расходе '
+    'ресурсов П; пункты 22 и 23 различают полезный и суммарный расход. '
+    'Сначала установи предмет конкретного утверждения ВОР: проектное физическое количество, '
+    'полезный расход, насыпной объём после коэффициента запаса или общий сметный расход. '
+    'Геометрическая формула сама не объявляет потери нулевыми или учтёнными. '
+    'Не расширяй проверку проектного физического количества до полного снабженческого '
+    'расхода, если это не входит в проверяемое утверждение; общий расход и заявленные '
+    'потери требуют своего основания. Коэффициент запаса на уплотнение не доказывает '
+    'автоматически учёт всех потерь. Эти выдержки не подтверждают ни один claim. '
+    'Проверены только адресные пункты оригинала и отсутствие их изменения приказом '
+    '695/пр; полная консолидация и отсутствие иных последующих изменений не заявлены.'
+)
+MAX_LOSS_BUNDLE_CHARS = 14000
+MAX_LOSS_BUNDLE_UTF8_BYTES = 25000
 
 SCOPE = (
     'Это методика применения сметных норм, а не доказательство пригодности конкретной машины '
@@ -95,7 +149,89 @@ def _valid_entity(item, label, entity_id, pages, text_sha):
     return item.get('citations') == expected_refs
 
 
-def methodology_context(kb, claim_definitions, *, expected_pin) -> dict[str, Any]:
+def _loss_context(kb, pin):
+    """All four reviewed clauses or none; availability never decides necessity."""
+    descriptors = (
+        (LOSS_SOURCE_ID, LOSS_SOURCE_SHA256, LOSS_DESIGNATION, 44, 'material_loss_methodology'),
+        (LOSS_AMENDMENT_ID, LOSS_AMENDMENT_SHA256, LOSS_AMENDMENT_DESIGNATION, 2,
+         'material_loss_methodology_amendment'),
+    )
+    try:
+        records = {}
+        with kb.connect() as db:
+            for sid, sha, designation, pages, role in descriptors:
+                source = getattr(kb, 'source_index', {}).get(sid, {})
+                row = db.execute('SELECT * FROM sources WHERE id=?', (sid,)).fetchone()
+                if (source.get('designation') != designation or source.get('pages') != pages
+                        or not row or row['sha256'] != sha or row['kind'] != 'METHODOLOGY'
+                        or row['blob_path'] != 'blobs/' + sha + '.pdf'
+                        or row['designation'] != designation or row['pages'] != pages):
+                    return [], [], 'reviewed_loss_source_unavailable'
+                metadata = json.loads(row['metadata_json'])
+                if (metadata.get('sha256') != sha or metadata.get('status') != 'pdf_verified'
+                        or metadata.get('role') != role or metadata.get('ingestion') != 'reviewed_loss_methodology'):
+                    return [], [], 'reviewed_loss_source_identity_mismatch'
+                records[sid] = metadata
+        amendment = records[LOSS_AMENDMENT_ID]
+        if (amendment.get('amends_source_sha256') != LOSS_SOURCE_SHA256
+                or amendment.get('unchanged_reviewed_clauses') != ['6', '8', '22', '23']
+                or amendment.get('verified_change_scope') != 'clause12_and_appendix4_only'
+                or amendment.get('verification') != 'two_independent_visual_readings'):
+            return [], [], 'reviewed_loss_amendment_unavailable'
+        cards, literals = [], []
+        for label, entity_id, pages, text_sha in LOSS_CLAUSES:
+            item = kb.entity('clause', entity_id)
+            text = item.get('text')
+            provenance = LOSS_FORMULA_TRANSCRIPTION if label == '22' else TRANSCRIPTION
+            metadata = records[LOSS_SOURCE_ID]
+            reviewed = [c for c in metadata.get('reviewed_clauses', []) if c.get('label') == label]
+            refs = [dict(source_id=LOSS_SOURCE_ID, physical_page=p, source_sha256=LOSS_SOURCE_SHA256,
+                         text_provenance=provenance) for p in pages]
+            if (item.get('id') != entity_id or item.get('entity_kind') != 'clause'
+                    or item.get('source_id') != LOSS_SOURCE_ID or item.get('source_kind') != 'METHODOLOGY'
+                    or item.get('designation') != LOSS_DESIGNATION or item.get('label') != label
+                    or item.get('status') != REVIEW_STATUS or not isinstance(text, str)
+                    or hashlib.sha256(text.encode()).hexdigest() != text_sha
+                    or item.get('edition') != metadata or item.get('citations') != refs
+                    or len(reviewed) != 1 or reviewed[0].get('text') != text
+                    or reviewed[0].get('physical_pages') != list(pages)
+                    or reviewed[0].get('verification') != provenance
+                    or reviewed[0].get('independent_readings') != 2):
+                return [], [], 'reviewed_loss_clause_set_unavailable'
+            renderings = reviewed[0].get('primary_renderings')
+            if (not isinstance(renderings, list) or len(renderings) != len(pages)
+                    or [r.get('physical_page') for r in renderings] != list(pages)
+                    or any(r.get('sha256') != LOSS_RENDER_SHA256[p]
+                           for r, p in zip(renderings, pages, strict=True))):
+                return [], [], 'reviewed_loss_renderings_unavailable'
+            rendering_refs = [dict(physical_page=r['physical_page'], sha256=r['sha256']) for r in renderings]
+            notation = reviewed[0].get('formula_notation')
+            if label == '22' and (not isinstance(notation, dict)
+                    or notation.get('kind') != 'linearized_visual_formula'
+                    or notation.get('formula') != LOSS_FORMULA or LOSS_FORMULA not in text):
+                return [], [], 'reviewed_loss_formula_provenance_unavailable'
+            card_id = 'methodology:loss15:' + entity_id
+            cards.append(dict(id=card_id, kind='normative', source_id=LOSS_SOURCE_ID,
+                page=pages[0], citation_pages=list(pages), label=LOSS_DESIGNATION + ' · п. ' + label,
+                text=text, origin=REVIEW_STATUS, clause_id=entity_id, source_sha256=LOSS_SOURCE_SHA256,
+                amendment_sha256=LOSS_AMENDMENT_SHA256, kb_identity=deepcopy(pin),
+                text_provenance=provenance, primary_renderings=deepcopy(rendering_refs)))
+            literals.append(dict(source_id=card_id, clause=label, physical_pages=list(pages), quote=text,
+                document_source_id=LOSS_SOURCE_ID, source_sha256=LOSS_SOURCE_SHA256,
+                text_provenance=provenance, primary_renderings=deepcopy(rendering_refs)))
+            if label == '22':
+                cards[-1]['formula_notation'] = deepcopy(notation)
+                literals[-1]['formula_notation'] = deepcopy(notation)
+        encoded = json.dumps(dict(sources=cards, literal_clauses=literals, instruction=LOSS_SCOPE),
+                             ensure_ascii=False, separators=(',', ':'))
+        if len(encoded) > MAX_LOSS_BUNDLE_CHARS or len(encoded.encode()) > MAX_LOSS_BUNDLE_UTF8_BYTES:
+            return [], [], 'reviewed_loss_context_budget_exceeded'
+        return cards, literals, 'reviewed_addressed_loss_context'
+    except (KeyError, ValueError, TypeError, AttributeError, sqlite3.Error):
+        return [], [], 'reviewed_loss_clause_set_unavailable'
+
+
+def methodology_context(kb, claim_definitions, *, expected_pin, material=False) -> dict[str, Any]:
     """Return optional cards/context for method claims from one frozen corpus.
 
     No searches, source writes, fabricated quotes, claim mutations or API calls.
@@ -105,6 +241,11 @@ def methodology_context(kb, claim_definitions, *, expected_pin) -> dict[str, Any
     too, so ordinary source compaction cannot sever clause 7's restrictions.
     """
     claims = _method_claims(claim_definitions)
+    clauses=CLAUSES
+    if material:
+        claims=list(dict.fromkeys(['normative:applicability',*[d['claim_id'] for d in claim_definitions
+            if d.get('claim_id','').startswith(('basis:','derived:','quantity:consumption'))]]))
+        clauses=MATERIAL_CLAUSES
     if not claims:
         return _empty('no_work_method_claims')
     if len(claims) > MAX_METHOD_CLAIMS:
@@ -130,7 +271,7 @@ def methodology_context(kb, claim_definitions, *, expected_pin) -> dict[str, Any
                 or record['kind'] != 'METHODOLOGY' or record['designation'] != DESIGNATION
                 or record['pages'] != 27):
             return _empty('reviewed_source_identity_mismatch')
-        for label, entity_id, pages, text_sha in CLAUSES:
+        for label, entity_id, pages, text_sha in clauses:
             item = kb.entity('clause', entity_id)
             if not _valid_entity(item, label, entity_id, pages, text_sha):
                 return _empty('reviewed_clause_set_unavailable')
@@ -146,12 +287,26 @@ def methodology_context(kb, claim_definitions, *, expected_pin) -> dict[str, Any
     # Detect a caller switching corpus identities while the three rows are read.
     if getattr(kb, 'identity', None) != pin:
         return _empty('corpus_pin_changed')
-    context = dict(scope='estimate_norm_application_only', claim_ids=claims, kb=pin,
+    context: dict[str, Any] = dict(scope='material_quantity_basis_only' if material else 'estimate_norm_application_only', claim_ids=claims, kb=pin,
                    pdf_source_id=SOURCE_ID, source_sha256=SOURCE_SHA256,
-                   instruction=SCOPE, literal_clauses=literals)
-    result = dict(sources=cards, preferred_source_ids=[card['id'] for card in cards],
+                   instruction=MATERIAL_SCOPE if material else SCOPE, literal_clauses=literals)
+    result: dict[str, Any] = dict(sources=cards, preferred_source_ids=[card['id'] for card in cards],
                   context=context, reason='reviewed_literal_context')
     serialized = json.dumps(result, ensure_ascii=False, separators=(',', ':'))
     if len(serialized) > MAX_ADDITION_CHARS or len(serialized.encode()) > MAX_ADDITION_UTF8_BYTES:
         return _empty('methodology_context_budget_exceeded')
+    if material:
+        loss_cards, loss_literals, loss_reason = _loss_context(kb, pin)
+        # Optional loss evidence must never remove or shorten the base 571 set.
+        if getattr(kb, 'identity', None) != pin:
+            return _empty('corpus_pin_changed')
+        result['loss_context_reason'] = loss_reason
+        if loss_cards:
+            result['sources'].extend(loss_cards)
+            result['preferred_source_ids'].extend(card['id'] for card in loss_cards)
+            result['context']['literal_clauses'].extend(loss_literals)
+            result['context']['instruction'] += ' ' + LOSS_SCOPE
+            result['context']['loss_basis'] = dict(source_id=LOSS_SOURCE_ID, source_sha256=LOSS_SOURCE_SHA256,
+                amendment_source_id=LOSS_AMENDMENT_ID, amendment_sha256=LOSS_AMENDMENT_SHA256,
+                edition_scope='addressed_original_clauses_unchanged_by695_not_full_consolidation')
     return result

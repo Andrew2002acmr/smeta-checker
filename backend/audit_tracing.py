@@ -281,7 +281,7 @@ def span(name, *, client=None, trace_context=None, **kwargs):
 class TracingRun:
     def __init__(self, endpoint="", project="", environment="production",
                  audit_run_id="", request_id="", redact_pdf=False, mask_prompts=False,
-                 public_url=""):
+                 public_url="", flush_on_close=True):
         self.audit_run_id = str(audit_run_id or "")
         self.request_id = str(request_id or "")
         self.session_id = (
@@ -289,6 +289,7 @@ class TracingRun:
         )
         self.redact_pdf = bool(redact_pdf)
         self.mask_prompts = bool(mask_prompts)
+        self.flush_on_close = bool(flush_on_close)
         self.environment = environment or "production"
         self.endpoint = (endpoint or os.environ.get("PHOENIX_COLLECTOR_ENDPOINT", "")).strip()
         self.project = (project or os.environ.get("PHOENIX_PROJECT_NAME", "smeta-checker")).strip()
@@ -315,10 +316,11 @@ class TracingRun:
             if not position.finished:
                 position.finish({"status": "Технический сбой",
                                  "discrepancy_details": "Прогон прерван до завершения позиции"})
-        if not flush:
+        # Long-lived workers rely on the provider background exporter, and callers
+        # may also skip a flush per call. Best-effort flush with a short timeout:
+        # a hung collector must not stall audits.
+        if not flush or not self.flush_on_close:
             return
-        # Best-effort flush with a short timeout: the batch processor
-        # delivers in background; a hung collector must not stall audits.
         try:
             provider = _PROVIDERS.get(self.endpoint.rstrip("/"))
             if provider is not None:

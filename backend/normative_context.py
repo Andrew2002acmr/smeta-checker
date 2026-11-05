@@ -58,6 +58,39 @@ class ModelProviderResponseError(ModelResponseError):
             'Нормативная проверка технически не завершена; это не замечание к ВОР.')
 
 
+class ModelProviderQuotaError(ModelResponseError):
+    """A known monetary limit cannot be recovered by retrying agent steps."""
+
+    code = 429
+    reason = 'api_key_monthly_spending_limit_exceeded'
+
+    def __init__(self):
+        super().__init__('Исчерпан месячный лимит расходов API-ключа провайдера. '
+            'Нормативная проверка технически не завершена; это не замечание к ВОР. '
+            'Повтор возможен после снятия ограничения ключа.')
+
+
+def _monthly_key_limit(code, body):
+    # Classify only the reproduced provider statement. Never publish arbitrary
+    # exception strings, response bodies, account amounts or credentials.
+    if code not in (429, '429') or not isinstance(body, dict):
+        return False
+    error = body.get('error', body)
+    message = error.get('message') if isinstance(error, dict) else None
+    return isinstance(message, str) and message.startswith('API key monthly spending limit exceeded:')
+
+
+def _record_transport_error(exc, stats, observation, stage, max_tokens):
+    quota = _monthly_key_limit(exc.status_code, exc.body)
+    failure = ModelProviderQuotaError() if quota else None
+    diagnostic = dict(kind=type(failure).__name__ if failure else type(exc).__name__, code=exc.status_code)
+    if failure:
+        diagnostic.update(reason=failure.reason, retryable=False)
+    stats.setdefault('responses', []).append(dict(stage=stage, error=diagnostic, max_tokens=max_tokens))
+    observation.update(output=dict(error=diagnostic))
+    return failure
+
+
 class ModelEmptyResponseError(ModelResponseError):
     def __init__(self):
         super().__init__('Провайдер модели вернул пустой ответ без результата проверки. '
@@ -69,6 +102,8 @@ def _provider_response_error(response):
     if error is None:
         return None
     code = error.get('code') if isinstance(error, dict) else getattr(error, 'code', None)
+    if _monthly_key_limit(code, error):
+        return ModelProviderQuotaError()
     return ModelProviderResponseError(code)
 
 
@@ -99,14 +134,26 @@ def _ask(client, credentials, instructions, data, schema, trace, stage, stats):
             reasoning = options.get('extra_body', {}).get('reasoning', {})
             if stage.startswith('normative-evidence-') and reasoning.get('effort') == 'low':
                 reasoning['effort'] = 'none'
-            response = client.chat.completions.create(model=credentials.model_name, messages=messages,
-                temperature=0.1, max_tokens=max_tokens, **options)
+            try:
+                response = client.chat.completions.create(model=credentials.model_name, messages=messages,
+                    temperature=0.1, max_tokens=max_tokens, **options)
+            except openai.APIStatusError as exc:
+                failure = _record_transport_error(exc, stats, observation, stage, max_tokens)
+                if failure:
+                    raise failure from exc
+                raise
             text = _chat_completion_text(response)
             choices = getattr(response, 'choices', None) or []
             finish_reason = getattr(choices[0], 'finish_reason', '') if choices else ''
         else:
-            response = client.responses.create(model=f"gpt://{credentials.folder}/{credentials.model_name}",
-                instructions=instructions, input=messages[1]["content"], temperature=0.1, max_output_tokens=max_tokens)
+            try:
+                response = client.responses.create(model=f"gpt://{credentials.folder}/{credentials.model_name}",
+                    instructions=instructions, input=messages[1]["content"], temperature=0.1, max_output_tokens=max_tokens)
+            except openai.APIStatusError as exc:
+                failure = _record_transport_error(exc, stats, observation, stage, max_tokens)
+                if failure:
+                    raise failure from exc
+                raise
             text = getattr(response, 'output_text', '')
             if getattr(getattr(response, 'incomplete_details', None), 'reason', '') == 'max_output_tokens':
                 finish_reason = 'length'
@@ -118,6 +165,8 @@ def _ask(client, credentials, instructions, data, schema, trace, stage, stats):
             failure = ModelEmptyResponseError()
         if failure is not None:
             diagnostic = dict(kind=type(failure).__name__, code=getattr(failure, 'code', None))
+            if isinstance(failure, ModelProviderQuotaError):
+                diagnostic.update(reason=failure.reason, retryable=False)
             stats.setdefault('warnings', []).append(str(failure))
             stats.setdefault('responses', []).append(dict(stage=stage, finish_reason=finish_reason,
                 error=diagnostic, max_tokens=max_tokens))

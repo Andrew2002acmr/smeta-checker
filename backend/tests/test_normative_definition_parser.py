@@ -1,4 +1,7 @@
 from copy import deepcopy
+import json
+from pathlib import Path
+from typing import Any
 
 import pymupdf
 
@@ -6,7 +9,7 @@ from normative_definition_parser import definition_context,parse_rows,source_row
 
 
 def row(y,*parts,page=1):
-    pieces=[dict(text=text,bbox=[x,y,right,y+9]) for x,right,text in parts]
+    pieces:list[dict[str,Any]]=[dict(text=text,bbox=[x,y,right,y+9]) for x,right,text in parts]
     return dict(page=page,text=' '.join(p['text'] for p in pieces),pieces=pieces,
         bbox=[pieces[0]['bbox'][0],y,pieces[-1]['bbox'][2],y+9])
 
@@ -198,3 +201,50 @@ def test_wrapped_measure_requires_literal_balanced_parentheses_same_column():
     rows[7]=row(85,(150,350,'77-01-001-04)'))
     definitions,gaps=parse_rows(rows)
     assert not definitions and gaps
+
+
+def real_geometry(edition,table):
+    fixture=Path(__file__).with_name('fixtures')/'native-definition-real-geometry-378.json'
+    data=json.loads(fixture.read_text(encoding='utf-8'))
+    return next(case['rows'] for case in data['cases']
+        if case['edition']==edition and case['table']==table)
+
+
+def test_equal_indent_real_continuation_cannot_become_next_siblings_parent():
+    for table,code,lost in [
+        ('27-06-039','27-06-039-01','комплексом с толщиной верхнего слоя'),
+        ('27-03-002','27-03-002-01','битума, обрабатываемых смешением'),
+    ]:
+        rows=real_geometry('official378',table)
+        assert any(lost in r['text'] for r in rows)
+        definitions,gaps=parse_rows(rows)
+        assert code not in definitions
+        assert any(g.get('detail')=='previous_label_and_following_heading_same_indent'
+            and code in g['codes'] for g in gaps)
+
+
+def test_real_outdented_heading_keeps_previous_description_and_next_parent():
+    for table,code,literal in [
+        ('27-06-039','27-06-039-01','асфальтобетонной смеси толщиной 7 см'),
+        ('27-03-002','27-03-002-01','обрабатываемых смешением автогрейдерами на месте из новых материалов'),
+    ]:
+        definitions,gaps=parse_rows(real_geometry('original1046',table))
+        assert not gaps
+        assert literal in definitions[code]['proof']['own_label']
+        assert not definitions[code]['proof']['parents']
+        assert definitions[table+'-02']['proof']['parents']
+        assert literal not in ' '.join(definitions[table+'-02']['proof']['parents'])
+
+
+def test_real_page_footer_between_table_title_and_next_page_is_not_title():
+    rows=real_geometry('official378','27-09-012')
+    footer=next(r for r in rows if r['text']=='2387')
+    assert footer['bbox'][1]>.9*footer['page_size'][1]
+    definitions,gaps=parse_rows(rows)
+    assert not gaps
+    definition=definitions['27-09-012-01']
+    assert '2387' not in definition['text']
+    assert all(r['text']!='2387' for r in definition['proof']['rows'])
+    assert definition['title'].startswith('Установка дополнительных щитков')
+    assert 'Измеритель: 100 шт' in definition['text']
+    assert '01. Крепление щитков.' in definition['text']

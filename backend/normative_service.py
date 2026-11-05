@@ -44,6 +44,32 @@ def profile_for(record):
     return "electrical"
 
 
+def run_corpus(context, record, continuation=None):
+    """Freeze a run's release; a continuation retains its original evidence."""
+    pin=(continuation or {}).get('review',{}).get('payload',{}).get('kb')
+    existing=record['config'].get('normative_kb_pin')
+    if pin and existing and pin!=existing:
+        raise ValueError('Follow-up normative release differs from run pin')
+    selected=pin or existing
+    if selected and selected.get('profile')!=profile_for(record):
+        raise ValueError('Normative release profile differs from project')
+    kb=corpus(selected,profile=profile_for(record))
+    if selected and kb.identity!=selected:
+        raise ValueError('Normative release identity changed')
+    # Only a real repository implementation may acquire the transactional pin;
+    # arbitrary mocks/connected clients must not invent a successful binding.
+    if getattr(type(context.repository),'pin_normative_corpus',None) is not None:
+        bound=context.repository.pin_normative_corpus(record['id'],kb.identity)
+        if pin and bound!=pin:
+            raise ValueError('Follow-up normative release differs from run pin')
+        if bound!=kb.identity:
+            kb=corpus(bound,profile=profile_for(record))
+            if kb.identity!=bound:
+                raise ValueError('Normative release identity changed')
+    record['config']={**record['config'],'normative_kb_pin':kb.identity}
+    return kb
+
+
 @lru_cache(maxsize=32)
 def _source_hash(path, stamp, size):
     with Path(path).open("rb") as stream:
@@ -169,7 +195,7 @@ def candidate(kb, item, facts=None):
            for r, raw in zip(rules, item.get("rules") or [], strict=True)):
         status = "possible_duplicate"
     return dict(id=item["id"], code=item.get("code") or item.get("label") or "", title=item.get("title") or item.get("label") or "Пункт документа",
-        designation=item["designation"], entity_kind=item["entity_kind"], text=str(item.get("text") or "")[:6000],
+        designation=item["designation"], entity_kind=item["entity_kind"], text=str(item.get("text") or ""),
         unit_raw=(item.get("unit") or {}).get("raw") or "", unit_base=(item.get("unit") or {}).get("unit") or "",
         unit_scale=(item.get("unit") or {}).get("scale"), status=status, extraction_status=item["status"],
         edition_status=(item.get("edition") or {}).get("edition_state", "edition_not_confirmed"),

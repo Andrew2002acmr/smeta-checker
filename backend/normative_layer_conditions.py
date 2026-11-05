@@ -114,7 +114,7 @@ def layer_condition_proof(position, result, group):
     specs = technical_specs(position.work_name,getattr(position,'comment',''),
         getattr(position,'position_type',''),[],getattr(position,'formula',''))
     candidates = [s for s in specs
-        if s.property_label == 'consumption' and re.match(r'в\s+два\s+слоя\b',s.expected_text,re.I)]
+        if s.property_label in {'consumption','normative_instruction'} and re.match(r'в\s+два\s+слоя\b',s.expected_text,re.I)]
     thresholds = [s for s in specs if s.claim_id.startswith('geometry:comment:thickness:')]
     if not candidates:
         return None
@@ -135,9 +135,15 @@ def layer_condition_proof(position, result, group):
     resource_ids=[]
     explanations=[]
     for spec in candidates:
-        tail_proof=_compound_tail_proof(spec.expected_text,result,selected)
+        notes=[s for s in specs if s.claim_id=='attribute:comment:separate_notes']
+        # Old reviews treated these notes as one compound requirement. Preserve
+        # that conservative proof gate while exposing separate tasks to agents;
+        # only the same literal resource proof may close the new power claim.
+        compound=spec.expected_text+'\n'+'\n'.join(s.expected_text for s in notes) if notes else spec.expected_text
+        tail_proof=_compound_tail_proof(compound,result,selected)
         if tail_proof is not None:
             claims.append(spec.claim_id)
+            claims.extend(s.claim_id for s in notes)
             resource_ids.extend(tail_proof[0])
             explanations.append(tail_proof[1])
     if not claims:

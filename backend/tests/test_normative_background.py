@@ -127,3 +127,81 @@ def test_saved_review_upgrade_uses_local_validation_and_does_not_repeat_it(pipel
     with patch('normative_position_check.validate_saved') as local:
         assert review_position(p.context,p.run.id,2,local_only=True)=={'skipped':'already_reviewed'}
         local.assert_not_called()
+
+
+def test_evidence_plan_is_enqueued_atomically_once_and_progress_counts_position(pipeline):
+    from test_scoped_agent_evidence import payload
+    p = pipeline
+    p.repo.update_run_config(p.run.id, {'normative_after_match':True})
+    data = payload()
+    p.repo.save_normative_review(p.run.id,0,'check',data,'synthetic-initial')
+    p.repo.save_normative_review(p.run.id,0,'check',data,'synthetic-redelivery')
+    deliveries = p.repo.reserve_deliveries()
+    assert len(deliveries)==1
+    assert deliveries[0]['payload']['evidence_followup'] is True
+    assert p.repo.normative_stage(p.run.id,0)['status']=='dispatched'
+    assert p.repo.run_progress_records(run_id=p.run.id)[0]['normative_counts']=={'dispatched':1}
+    task,token=UUID(deliveries[0]['id']),UUID(deliveries[0]['token'])
+    assert p.repo.claim_delivery(task,token,timeout=30)
+    p.repo.settle_delivery(task,token,error='synthetic technical failure')
+    p.repo.save_normative_review(p.run.id,0,'check',data,'synthetic-local-refresh')
+    assert p.repo.reserve_deliveries()==[]
+
+
+def test_pending_followup_waits_for_same_position_base_job(pipeline):
+    from test_scoped_agent_evidence import payload
+    p = pipeline
+    p.repo.update_run_config(p.run.id, {'normative_after_match':True})
+    p.repo.enqueue_task(NAME,dict(run_id=str(p.run.id),position_index=0))
+    base=p.repo.reserve_deliveries()[0]
+    task,token=UUID(base['id']),UUID(base['token'])
+    assert p.repo.claim_delivery(task,token,timeout=30)
+    p.repo.save_normative_review(p.run.id,0,'check',payload(),'synthetic-initial')
+    assert p.repo.reserve_deliveries()==[]
+    p.repo.settle_delivery(task,token)
+    tasks=p.repo.reserve_deliveries()
+    assert len(tasks)==1 and tasks[0]['payload']['evidence_followup']
+    assert p.repo.run_progress_records(run_id=p.run.id)[0]['normative_counts']=={'dispatched':1}
+
+
+def test_parent_fact_change_revalidates_only_formal_existing_child_without_paid_retry(pipeline):
+    p = pipeline
+    p.repo.update_run_config(p.run.id, {'normative_after_match':True})
+    def saved(index,**extra):
+        return dict(position_key=str(index),vor_version_id='vor',kb={},
+            position_check=dict(pipeline_version=6,execution_state='complete',state='needs_facts',
+                items=[],parameter_cards=[],parameter_proposals=[],sources=[]),**extra)
+    child = saved(1,work_relations={'parent':{'index':0}})
+    neighbour = saved(2,work_relations={'material_owner':{'index':0}})
+    p.repo.save_normative_review(p.run.id,1,'check',child,'synthetic-child')
+    p.repo.save_normative_review(p.run.id,2,'check',neighbour,'synthetic-neighbour')
+    parent = saved(0,work_relations={'children':[{'material_index':1},{'material_index':2}]})
+    p.repo.save_normative_review(p.run.id,0,'check',parent,'synthetic-parent')
+    jobs = p.repo.reserve_deliveries()
+    assert len(jobs)==1 and jobs[0]['payload']['position_index']==1
+    assert jobs[0]['payload']['local_only'] is True
+    assert jobs[0]['payload']['dependency_revision']
+    p.repo.save_normative_review(p.run.id,0,'check',parent,'synthetic-unchanged')
+    assert p.repo.reserve_deliveries()==[]
+
+
+def test_no_extra_paid_pass_for_legacy_or_disabled_runs(pipeline):
+    from test_scoped_agent_evidence import payload
+    p = pipeline
+    p.repo.update_run_config(p.run.id, {'normative_after_match':True,'normative_evidence_followups':False})
+    p.repo.save_normative_review(p.run.id,0,'check',payload(),'synthetic-disabled')
+    p.repo.update_run_config(p.run.id, {'normative_evidence_followups':True})
+    legacy=payload()
+    legacy['position_check']['pipeline_version']=5
+    p.repo.save_normative_review(p.run.id,1,'check',legacy,'synthetic-legacy')
+    assert p.repo.reserve_deliveries()==[]
+
+
+def test_queue_readiness_uses_database_clock_even_if_dispatcher_clock_lags(pipeline):
+    from datetime import datetime,timedelta,timezone
+    from unittest.mock import patch
+    p=pipeline
+    p.repo.enqueue_task(NAME,dict(run_id=str(p.run.id),position_index=0))
+    with patch('storage_db.datetime') as clock:
+        clock.now.return_value=datetime.now(timezone.utc)-timedelta(hours=2)
+        assert len(p.repo.reserve_deliveries())==1

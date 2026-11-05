@@ -68,6 +68,7 @@ services:
       NORMATIVE_PREPARED_CACHE_ROOT: /prepared-cache/pdf
       NORMATIVE_KB_ROOT: /knowledge/electrical-norms
       NORMATIVE_ROAD_KB_ROOT: /knowledge/road-norms
+      NORMATIVE_SQLITE_CACHE_DIR: /srv/smeta/.normative-sqlite-cache
       NORMATIVE_CATALOG_ROOT: /normative-base
       CELERY_BROKER_URL: redis://redis:6379/0
       AUDIT_API_TOKEN: ${AUDIT_API_TOKEN:?Set AUDIT_API_TOKEN in .env}
@@ -96,6 +97,7 @@ services:
     volumes:
       - blobs:/srv/smeta/.audit_blobs
       - pdfcache:/prepared-cache:ro
+      - normcache:/srv/smeta/.normative-sqlite-cache
       - type: bind
         source: ${NORMATIVE_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/electrical-norms}
         target: /knowledge/electrical-norms
@@ -241,7 +243,9 @@ services:
       AUDIT_TASK_SOFT_TIME_LIMIT: "210"
       NORMATIVE_KB_ROOT: /knowledge/electrical-norms
       NORMATIVE_ROAD_KB_ROOT: /knowledge/road-norms
+      NORMATIVE_SQLITE_CACHE_DIR: /srv/smeta/.normative-sqlite-cache
     volumes:
+      - normcache:/srv/smeta/.normative-sqlite-cache
       - type: bind
         source: ${NORMATIVE_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/electrical-norms}
         target: /knowledge/electrical-norms
@@ -346,3 +350,4 @@ volumes:
   redisdata:
   blobs:
   pdfcache:
+  normcache:

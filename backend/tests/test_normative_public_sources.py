@@ -84,3 +84,26 @@ def test_projection_does_not_hide_invalid_non_source_contract_fields():
     saved['payload']['position_check']['invented_field'] = 'wrong'
     with pytest.raises(ValidationError):
         NormativeReviewDTO.model_validate(public_sources(saved))
+
+
+def test_actual_allocation_cards_use_existing_public_calculation_contract_losslessly():
+    from normative_parameters import enrich
+    from test_planned_allocation_integration import prepared
+    positions, raw, relation = prepared()
+    checked = enrich(positions[1], raw, positions, relation)
+    saved = review()
+    saved['payload']['position_check'].update(parameter_cards=checked['parameter_cards'],
+        evidence_trace=checked['evidence_trace'])
+    before = deepcopy(saved)
+    projected = public_sources(saved)
+    parsed = NormativeReviewDTO.model_validate(projected)
+    assert saved == before
+    assert projected['payload']['position_check']['evidence_trace'] == checked['evidence_trace']
+    cards = parsed.payload.position_check.parameter_cards
+    allocated = next(c for c in cards if c.label == 'Заявленный объём распределения')
+    assert allocated.role == 'calculation' and 'не измеренный' in allocated.reason
+    assert next(c for c in cards if c.id == 'quantity').found_value == '133.3584'
+    broken = deepcopy(projected)
+    broken['payload']['position_check']['parameter_cards'][0]['invented_field'] = True
+    with pytest.raises(ValidationError):
+        NormativeReviewDTO.model_validate(public_sources(broken))

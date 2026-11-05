@@ -15,6 +15,21 @@ import test_audit
 
 
 class TracingIsolationTests(unittest.TestCase):
+    def test_long_lived_worker_does_not_block_on_synchronous_export(self):
+        from audit_tracing import TracingRun
+        from unittest.mock import Mock
+        provider=Mock()
+        endpoint='http://phoenix-test:6006'
+        with patch('audit_tracing._ensure_provider',return_value=provider), patch.dict(
+                'audit_tracing._PROVIDERS',{endpoint:provider},clear=True):
+            run=TracingRun(endpoint=endpoint,project='test',flush_on_close=False)
+            position=run.position({},dict(position_index=0))
+            run.close()
+            self.assertTrue(position.finished)
+            provider.force_flush.assert_not_called()
+            TracingRun(endpoint=endpoint,project='test').close()
+            provider.force_flush.assert_called_once()
+
     def test_local_trace_link_uses_public_browser_origin(self):
         trace = object.__new__(PositionTrace)
         trace.trace_id = 'trace-test'

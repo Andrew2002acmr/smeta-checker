@@ -29,6 +29,19 @@ def test_split_unit_requires_a_letter_and_attached_superscript():
     assert literal_unit([word('м²',77)])=='м2'
 
 
+def test_raised_digit_can_match_lowercase_x_height_but_must_be_adjacent():
+    # Real saved crop: exponent 20 px vs lowercase m 22 px. The digit is
+    # completely above the base, despite failing the former 0.9 size ratio.
+    base=dict(text='м',conf=90,left=23,top=43,width=27,height=22)
+    power=dict(text='2',conf=96,left=57,top=23,width=19,height=20)
+    assert literal_unit([power,base])=='м2'
+    assert literal_unit([base,{**power,'text':'3'}])=='м3'
+    assert literal_unit([base,{**power,'top':38}]) is None
+    assert literal_unit([base,{**power,'left':130}]) is None
+    assert literal_unit([base,{**power,'height':30}]) is None
+    assert literal_unit([base,{**power,'conf':89}]) is None
+
+
 def grid(rotated=False):
     def box(x0,y0,x1,y1):
         return [y0,x0,y1,x1] if rotated else [x0,y0,x1,y1]

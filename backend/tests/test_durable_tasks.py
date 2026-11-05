@@ -59,6 +59,19 @@ def enqueue(p):
     return p.repo.reserve_deliveries()[0]
 
 
+def test_concurrent_normative_release_pin_has_one_winner(pipeline):
+    from concurrent.futures import ThreadPoolExecutor
+    p=pipeline
+    pins=[dict(database=f'releases/{i}/knowledge.sqlite',release_id=str(i),
+        sha256=str(i)*64,profile='roads') for i in (1,2)]
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results=list(executor.map(lambda pin:p.repo.pin_normative_corpus(p.run.id,pin),pins))
+    stored=p.repo.load_run(p.run.id)['config']['normative_kb_pin']
+    assert results[0]==results[1]==stored and stored in pins
+    results[0]['sha256']='changed'
+    assert p.repo.load_run(p.run.id)['config']['normative_kb_pin']==stored
+
+
 def test_soft_timeout_checkpoints_and_resumes_on_another_worker(pipeline):
     p = pipeline
     with patch(

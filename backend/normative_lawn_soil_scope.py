@@ -143,3 +143,50 @@ def lawn_soil_scope(position, result, cards, fact, definition):
         )
         and not OTHER.search(qscope)
     )
+
+
+def _lawn_categories(text):
+    """Literal adjective-to-lawn relation, never meadow grass or soil."""
+    stems=r'(?:лугов|обыкновенн|партерн|спортивн|мавританск)[а-яё]*'
+    bound=[m[0] for m in re.finditer(r'\b'+stems+r'\s+газон[а-яё]*\b',text)]
+    bound += [m[0] for m in re.finditer(r'\bгазон[а-яё]*\s+'+stems+
+        r'(?:(?:\s*,\s*|\s+и\s+)'+stems+r')*',text)]
+    return set(stem for phrase in bound for stem in re.findall(
+        r'\b(лугов|обыкновенн|партерн|спортивн|мавританск)[а-яё]*\b',phrase))
+
+
+def areal_resource_scope_gap(definition, project_scopes):
+    """Do not widen a qualified lawn recipe through equal resource doses.
+
+    Only the verified scope of this recipe's project area supplies a category
+    or a manual operation. A machine classification or a green model item is
+    not a literal project lawn category.
+    """
+    title=clean(definition.split('Состав работ:')[0])
+    categories=_lawn_categories(title)
+    scopes=[clean(scope) for scope in project_scopes if scope]
+    positive=[scope for scope in scopes if not re.search(r'\b(?:не|без|кроме|либо|или|вместо)\b',scope)
+        and not re.search(r'\b(?:друг|ин|соседн)[а-яё]*\s+участ[а-яё]*\b',scope)]
+    if categories:
+        found=set(stem for scope in positive for stem in _lawn_categories(scope))
+        if len(found)!=1 or not found<=categories:
+            return ('Буквальное определение нормы ограничено категорией газона «'+', '.join(sorted(categories))+
+                '…»; положительная проектная привязка допустимой категории к площади расчёта отсутствует. '
+                'Одинаковый расход и подтверждение класса машины не расширяют область нормы.')
+    manual=r'\b(?:вручную|ручн[а-яё]*)\b'
+    mechanical=r'\b(?:механизирован[а-яё]*|трактор[а-яё]*|сеялк[а-яё]*)\b'
+    if re.search(manual,title):
+        if not any(re.search(manual,scope) and not re.search(mechanical,scope) for scope in positive):
+            return ('Норма задаёт ручной способ; согласованная положительная привязка этого '
+                'способа к текущей рецептуре не установлена. Равный расход не доказывает применимость способа.')
+    if re.search(r'\bсеялк[а-яё]*\b',title):
+        tractor=bool(re.search(r'\bтрактор[а-яё]*\b',title))
+        if not any(re.search(r'\bсеялк[а-яё]*\b',scope) and not re.search(manual,scope)
+                and (not tractor or re.search(r'\bтрактор[а-яё]*\b',scope)) for scope in positive):
+            if any(re.search(manual,scope) for scope in positive):
+                return 'Проектная привязка площади явно задаёт ручной способ, несовместимый с посевом сеялкой выбранной нормы.'
+            return ('Норма задаёт посев '+('тракторной ' if tractor else '')+
+                'сеялкой; связанное положительное основание способа/функции машины для этой рецептуры не установлено. '
+                'Этот ограниченный числовой маршрут не подтверждает связь дополнения ВОР с классом машины; '
+                'буквальное перечисление машины в ПД не является обязательным требованием.')
+    return None

@@ -10,7 +10,7 @@ from normative_local_checks import layer_group
 from normative_source_roles import classification_source, MESSAGE as CLASSIFICATION_MESSAGE
 from vor_formula import calculate_cell
 
-PARAMETER_SCHEMA_VERSION = 9
+PARAMETER_SCHEMA_VERSION = 16
 
 
 def _parameter_claim(claim, kind):
@@ -18,6 +18,8 @@ def _parameter_claim(claim, kind):
     # obligation from the literal physical thickness extracted from the PD.
     if kind == 'quantity':
         return claim == 'quantity'
+    if kind == 'input:area':
+        return claim == kind
     return claim in {'geometry:thickness', 'thickness'}
 
 
@@ -80,7 +82,14 @@ def measure(value, unit):
 
 
 def unit_quoted(unit, quote):
-    return bool(re.search(r'(?<![а-яa-z0-9])'+re.escape(clean(unit).rstrip('.'))+r'(?![а-яa-z0-9])', clean(quote)))
+    literal=clean(unit).replace(' ','').rstrip('.')
+    # The measurement parser already accepts SI Latin/Russian spellings.
+    # Citation validation must use the same aliases, without converting scale
+    # (m is not cm), dimension (m is not m2) or missing units.
+    aliases=[key for key,spec in UNITS.items() if key and literal in UNITS and spec==UNITS[literal]]
+    aliases=aliases or [literal]
+    return bool(literal and re.search(r'(?<![а-яa-z])(?:'+'|'.join(map(re.escape,aliases))+
+        r')(?![а-яa-z0-9])',clean(quote)))
 
 
 def quoted(value, quote, text):
@@ -90,11 +99,23 @@ def quoted(value, quote, text):
     # PDF extraction can split a decimal after its separator (``0, 20``).
     # Neither 0 nor 20 is a standalone literal in that fragment. Preserve the
     # decimal value; a repaired anchor must still supply the actual units.
+    # A complete unit is a boundary in PDF geometry such as h=25см. Arbitrary
+    # word suffixes and numbers embedded in designations remain rejected.
     values = {number(match[0]) for match in re.finditer(
-        r'(?<![\w.,])[-+]?\d+(?:[.,]\s*\d+)?(?!\w|[.,]\s*\d)', literal)
+        r'(?<![\w.,])[-+]?\d+(?:[.,]\s*\d+)?', literal)
+        if (not re.match(r'\w',literal[match.end():]) or re.match(
+            r'(?:мм|см|м[23]?|mm|cm|m[23]?|кг|kg|т|t|шт|га)(?!\w)',literal[match.end():]))
+        and not re.match(r'[.,]\s*\d',literal[match.end():])
         if not re.search(r'\d[.,]\s*$', literal[:match.start()])
         and not re.match(r'[.,]\s+\d', literal[match.end():])}
-    return bool(amount is not None and len(clean(quote)) >= 5 and clean(quote) in clean(text)
+    # A complete dimensioned literal such as 20cm or 5см is independently
+    # bounded even when shorter than five characters. Bare short numbers,
+    # partial words and fabricated units retain the original rejection.
+    dimensioned=re.fullmatch(r'[+-]?\d+(?:[.,]\s*\d+)?\s*'
+        r'(?:мм|см|м[23]?|mm|cm|m[23]?|кг|kg|т|t|шт|га)',literal)
+    occurrence=(re.search(r'(?<![\w.,])'+re.escape(literal)+r'(?!\w)',clean(text))
+        if dimensioned else literal in clean(text))
+    return bool(amount is not None and (len(literal)>=5 or dimensioned) and occurrence
         and amount in values)
 
 
@@ -172,24 +193,39 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
     cards, verified = [], {}
     owner = positions.get((relation.get('parent') or {}).get('index'), position)
     row = position.position_source.row if position.position_source else None
-    group = layer_group(owner, result.get('related_positions') or [])
-    from normative_layer_assembly import layer_assembly
+    group = layer_group(owner, result.get('related_positions') or [],positions)
+    from normative_layer_assembly import layer_assembly,material_allocation_proof
+    allocation=(material_allocation_proof(position,result,positions,relation)
+        if str(getattr(position,'position_type','')).casefold()=='материал'
+        and all(callable(getattr(p,'model_dump',None)) for p in positions.values()) else None)
     thickness_group = group or layer_assembly(owner,positions)
     work_scope = owner.work_name+' '+position.work_name+' '+' '.join(
         child.get('work', '') for child in relation.get('children') or [])
     height = re.search(r'\bh\s*=\s*(\d+(?:[.,]\d+)?)\s*(мм|см|м)\b', owner.work_name, re.I)
+    from normative_layer_scope import technological_part
+
+    def role_supported(proposal,source,comparison_group):
+        declared=set(re.findall(r'нижн|средн|верхн',clean(owner.work_name)))
+        found=set(re.findall(r'нижн|средн|верхн',clean(proposal.get('scope_quote',''))))
+        return (not declared or found==declared
+            or technological_part(owner,proposal,source,comparison_group,work_scope))
 
     def card(key, label, value, unit, role='project_value', **extra):
         return dict(id=key, label=label, role=role, row=row, declared_value=str(value), unit=unit,
             state='needs_facts', reason='Нет структурированного подтверждения из источника.', **extra)
 
-    def compare(c, kind, expected_value=None):
+    def compare(c, kind, expected_value=None, *, claim_kind=None, verification_key=None, dimension_required=None):
         comparison_group=thickness_group if kind=='thickness' else group
         expected = measure(expected_value or c['declared_value'], c['unit'])
         wanted_kind = 'project' if kind in {'quantity', 'thickness'} else 'normative'
         matches = [p for p in proposals if p['parameter'] == kind and p['source_id'] in sources
             and sources[p['source_id']]['kind'] == wanted_kind
             and (p.get('operation') != 'sum' or sources[p['source_id']]['origin'] == 'calculated_from_cells')]
+        if kind == 'quantity':
+            from normative_fact_contract import dimension_candidates
+            if dimension_required:
+                matches=[p for p in matches if (m:=measure(p['value'],p['unit'])) and m[0]==dimension_required]
+            matches = dimension_candidates(matches, expected)
         if kind=='thickness' and thickness_group and not group:
             from normative_layer_assembly import assembly_scope_matches
             matches=[p for p in matches if assembly_scope_matches(owner,p,sources[p['source_id']])]
@@ -197,6 +233,11 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
                 c['reason']='Для суммы технологических слоёв не подтверждена конструкция того же участка ПД.'
                 return c
         if c['role'] == 'coefficient':
+            scalar_matches=[p for p in matches if (m:=measure(p['value'],p['unit'])) and m[0]=='factor']
+            if matches and not scalar_matches:
+                c['reason']='Предложен размерный расход вместо безразмерного коэффициента; сравнение не выполнено.'
+                return c
+            matches=scalar_matches
             exact = [p for p in matches if number(p['value']) == number(c['declared_value'])]
             matches = exact or matches
         # Several reads of one physical page can expose the SAME literal
@@ -204,9 +245,7 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
         if kind in {'quantity','thickness'}:
             valid = [p for p in matches if p.get('scope_state')=='verified'
                 and not construction_conflict(p.get('scope_quote',''),work_scope,comparison_group['height'] if comparison_group else None)
-                and (kind != 'thickness' or not re.findall(r'нижн|средн|верхн', clean(owner.work_name))
-                    or set(re.findall(r'нижн|средн|верхн', clean(p.get('scope_quote', ''))))
-                        == set(re.findall(r'нижн|средн|верхн', clean(owner.work_name))))
+                and (kind != 'thickness' or role_supported(p,sources[p['source_id']],comparison_group))
                 and quoted(p['value'],p['quote'],sources[p['source_id']]['text'])]
             if valid:
                 # A claimed same-scope fact with a broken numeric citation is
@@ -294,9 +333,18 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
             c['reason'] = 'Источник относится к другому материалу или проектной толщине; сравнение не выполнено.'
             return c
         found = measure(p['value'], p['unit'])
+        from normative_parameter_feedback import header_parameter_verified
+        if not header_parameter_verified(p,source):
+            c['reason']='Число физической ячейки проверено отдельно; толщина в OCR-заголовке не имеет независимого подтверждения.'
+            return c
         from normative_confirmed_units import unit_confirmed
         unit_present = (kind == 'coefficient' or unit_quoted(p['unit'], p['quote'])
             or kind == 'quantity' and unit_confirmed(source, p['unit']))
+        if source.get('origin')=='ocr_verified_header' and not any(
+                f.get('parameter')==kind and measure(f.get('value'),f.get('unit',''))==found
+                for f in source.get('verified_parameters',[])):
+            c['reason']='В этом заголовке независимо проверен другой параметр; его нельзя использовать как количество.'
+            return c
         if source['kind'] != wanted_kind or not quoted(p['value'], p['quote'], source['text']) or not expected or not found or not unit_present:
             c['reason'] = ('Для коэффициента нужен нормативный источник с условиями применения.' if kind=='coefficient'
                 else 'Число, цитата, тип источника или единица не подтверждены программно.')
@@ -312,11 +360,12 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
                 return set(re.findall(r'нижн|средн|верхн', clean(text)))
             declared_roles, found_roles = roles(owner.work_name), roles(scope)
             relevant = [i for i in result.get('items', []) if p['source_id'] in i.get('project_source_ids', [])
-                and any(_parameter_claim(claim, kind) for claim in i.get('claim_ids', []))]
+                and any(_parameter_claim(claim, claim_kind or kind) for claim in i.get('claim_ids', []))]
             disputed = any(i.get('state') == 'needs_facts' for i in relevant)
             if (p.get('scope_state') != 'verified' or not quoted(p['value'], p['quote'], scope)
                     or clean(scope) not in clean(source['text']) or disputed
-                    or (declared_roles and (found_roles != declared_roles) and (kind == 'thickness' or found_roles))):
+                    or (declared_roles and (found_roles != declared_roles) and (kind == 'thickness' or found_roles)
+                        and not technological_part(owner,p,source,comparison_group,work_scope))):
                 c['reason'] = 'Принадлежность числа той же конструкции, слою и участку не подтверждена; сравнение не выполнено.'
                 return c
         if re.search(r'\b(?:не более|не менее|до\s*\d|от\s*\d|в пределах|диапазон)', clean(p['quote'])):
@@ -351,12 +400,33 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
             c['source_anchors'] = [dict(source_id=item['source_id'], quote=item['quote'],
                 rects=sources[item['source_id']].get('rects', [])) for item in matches]
         if kind in {'quantity', 'thickness'}:
-            verified[kind] = found
+            verified[verification_key or claim_kind or kind] = found
         return c
 
     quantity_card = card('quantity', 'Количество родительской работы по ПД' if owner.index != position.index else 'Количество по ПД', owner.volume, owner.unit)
     quantity_card['row'] = owner.position_source.row if owner.position_source else None
-    cards.append(compare(quantity_card, 'quantity'))
+    from normative_workbook_rate import analyze as area_rate
+    recipe=area_rate(owner)
+    direct_output=any(p.get('parameter')=='quantity' and (m:=measure(p.get('value'),p.get('unit','')))
+        and m[0]==(recipe or {}).get('output_dimension','mass') and p.get('source_id') in sources
+        and sources[p['source_id']]['kind']=='project' for p in proposals)
+    area_input_mode=bool(recipe and not direct_output)
+    if recipe and area_input_mode:
+        quantity_card['reason']=(('Масса рассчитывается из площади и расхода; площадь ПД не является готовой массой. '
+            if recipe['output_dimension']=='mass' else
+            'Объём рассчитывается из площади и размерного расхода; площадь ПД не является готовым объёмом. ')
+            +('Для расхода в л/м² дополнительно нужна подтверждённая плотность.' if recipe['density_required'] else
+              'Нужно подтвердить применимость расхода; масштаб и перевод единиц проверяются отдельно.'))
+        cards.append(quantity_card)
+    else:
+        cards.append(compare(quantity_card, 'quantity'))
+    if recipe:
+        area=card('input:area','Площадь-основание расчёта',recipe['area'],'м2')
+        area['row']=quantity_card['row']
+        area['expression']=recipe['expression']
+        explicit_role=any('input:area' in item.get('claim_ids',[]) for item in result.get('items',[]))
+        cards.append(compare(area,'quantity',claim_kind='input:area' if explicit_role else 'quantity',
+            verification_key='input:area',dimension_required='area'))
     if height:
         h_value, h_unit = height[1], height[2].lower()
         total = str(thickness_group['height']) if thickness_group else h_value
@@ -473,7 +543,10 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
         if p['parameter'] != 'unit_scale' or p['source_id'] not in sources:
             continue
         s, scale, declared = sources[p['source_id']], measure(p['value'], p['unit']), measure(owner.volume, owner.unit)
-        c = card('unit_scale:'+p['source_id'], 'Масштаб измерителя нормы', owner.volume, owner.unit, role='unit_scale',
+        input_scale=bool(recipe and scale and scale[0]=='area')
+        declared_value,declared_unit=(recipe['area'],'м2') if recipe is not None and input_scale else (owner.volume,owner.unit)
+        declared=measure(declared_value,declared_unit)
+        c = card('unit_scale:'+p['source_id'], 'Масштаб измерителя нормы', declared_value, declared_unit, role='unit_scale',
             found_value=p['value'], found_unit=p['unit'], source_ids=[p['source_id']], quote=p['quote'],
             source_anchors=[dict(source_id=p['source_id'], quote=p['quote'], rects=[])])
         readable = s['origin'] != 'uncertain_table' and (not s['origin'].startswith('ocr') or s.get('numeric_verified'))
@@ -481,6 +554,10 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
             c['reason'] = CLASSIFICATION_MESSAGE
         elif s['kind'] == 'normative' and readable and 'измерител' in clean(p['quote']) and unit_scale_quoted(p['value'], p['unit'], p['quote'], s['text']) and scale and declared and scale[0] == declared[0] and scale[1] > 0:
             c.update(state='confirmed', reason=f"Объём ВОР соответствует {declared[1]/scale[1]} измерителя нормы; масштаб {p['value']} {p['unit']} учтён.")
+            if input_scale:
+                c['quantity_role']='calculation_input'
+                c['reason']='Площадь-основание формулы приведена к буквальному площадному измерителю нормы. '
+                c['reason']+='Собственное количество материала, расход и применимость нормы проверяются отдельно.'
         cards.append(c)
     selected_norms = {sid for item in result.get('items',[]) if 'normative:applicability' in item.get('claim_ids',[])
         for sid in item.get('normative_source_ids',[])}
@@ -504,7 +581,7 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
         c.update(state=composition['state'], found_value=composition['total'], found_unit=composition['unit'],
             source_ids=[composition['source_id']], source_anchors=[anchor], quote=anchor['quote'],
             reason='Количество извлечено по заголовкам и итоговой строке таблицы; слагаемые сохранены с координатами.')
-    if basis:
+    if basis and (not area_input_mode or measure('1',basis['unit'])==measure('1',owner.unit)):
         for c in cards:
             if c['id'] in {'quantity', 'thickness'}:
                 value = basis['quantity'] if c['id'] == 'quantity' else basis['thickness_cm']
@@ -522,9 +599,39 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
     if composition:
         # Prefer the actual operands to distant header rectangles when opening a sum.
         c = next(c for c in cards if c['id'] == 'quantity')
-        if number(composition['declared_value']) == number(owner.volume):
+        if number(composition['declared_value']) == number(owner.volume) and measure('1',composition['unit'])==measure('1',owner.unit):
             c['source_anchors'] = [dict(source_id=composition['source_id'], quote=' + '.join(v['value'] for v in composition['terms']),
                 rects=[v['rect'] for v in composition['terms']])]
+    if allocation:
+        # The PD proves the whole homogeneous requirement. Individual bases
+        # remain declared planning allocations, never fabricated PD cells.
+        operand=next(o for o in allocation['operands'] if o['material_index']==position.index)
+        limits={key:allocation[key] for key in ('individual_project_volumes_verified',
+            'stage_areas_verified','coefficient_applicability_verified','normative_rate_verified')}
+        limits['stage_thicknesses_verified']=False
+        anchors=deepcopy(allocation['source_anchors'])
+        common=dict(state='confirmed',source_ids=list(allocation['root_source_ids']),
+            source_anchors=anchors,quote=allocation['project_basis']['volume']['scope_quote'],
+            proof_limits=limits,project_total=allocation['project_volume'])
+        quantity_card.update(**common,label='Расчётное количество распределённого материала',
+            role='calculation',quantity_role='allocated_output',row=row,
+            declared_value=str(position.volume),unit=position.unit,
+            found_value=operand['calculated_material_volume'],found_unit=operand['unit'],
+            reason='Результат расчёта заявленного распределения полного проектного объёма; '
+                'часть не является буквальным числом ПД. Площади и физические толщины отдельных '
+                'рабочих операций этим не подтверждаются. Коэффициент проверяется отдельно.')
+        cards=[c for c in cards if c['id']!='thickness']
+        for c in cards:
+            if (c['id'].startswith(f'factor:{position.index}:')
+                    and number(c['declared_value'])==number(operand['declared_volume'])):
+                c.update(**common,role='calculation_declared_allocation',unit=operand['unit'],
+                    found_value=operand['declared_volume'],found_unit=operand['unit'],
+                    label='Заявленный объём распределения',
+                    reason='Плановая часть полного объёма ПД; сумма частей и структурная полнота '
+                        'пересобраны по исходным данным. Это не измеренный объём отдельного '
+                        'физического слоя и не проектная площадь работы.')
+        if resource_proofs is not None:
+            resource_proofs.append(allocation)
     if relation.get('material_owner') and not relation.get('parent'):
         from vor_material_ownership import annotate_quantity_cards
         annotate_quantity_cards(cards,position.legacy_task(),relation['material_owner'])
@@ -533,6 +640,8 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
 
 def enrich(position, result, positions, relation):
     output = deepcopy(result)
+    from normative_fact_contract import restore_numeric_items, record_projection
+    restore_numeric_items(output)
     from normative_layer_assembly import recover_thickness
     geometry_owner=positions.get((relation.get('parent') or {}).get('index'),position)
     recover_thickness(geometry_owner,output,positions)
@@ -549,8 +658,9 @@ def enrich(position, result, positions, relation):
         resource_proofs=[]
         output['parameter_cards']=build_cards(position,output,positions,relation,resource_proofs=resource_proofs)
     from normative_resource_consumption import PROOF
+    from normative_layer_assembly import ALLOCATION_PROOF
     output['evidence_trace'] = [event for event in output.get('evidence_trace',[])
-        if event.get('kind') not in {PROOF,'rounded_parent_workbook_operand_v1'}]+resource_proofs
+        if event.get('kind') not in {PROOF,'rounded_parent_workbook_operand_v1',ALLOCATION_PROOF}]+resource_proofs
     output['parameter_schema_version'] = PARAMETER_SCHEMA_VERSION
     from normative_workbook_arithmetic import record_arithmetic
     record_arithmetic(position,output)
@@ -582,8 +692,10 @@ def enrich(position, result, positions, relation):
             required_state = 'possible_mismatch' if item['state'] == 'possible_mismatch' else 'confirmed'
             cards = [c for c in output['parameter_cards'] if c['id'] in keys]
             if not cards or any(c['state'] != required_state for c in cards):
+                original = deepcopy(item)
                 item['state'] = 'needs_facts'
                 item['explanation'] += ' Числовое основание не прошло проверку цитаты, OCR, единицы или конструкции; расхождение не доказано.'
+                record_projection(output, original, item)
                 changed = True
         if changed:
             output['state'] = 'possible_mismatch' if any(i['state']=='possible_mismatch' for i in output['items']) else 'needs_facts'
@@ -604,12 +716,13 @@ def enrich(position, result, positions, relation):
             output['items'].append(proof)
         append_quantity_bridge(position, output, positions, relation)
     from normative_coefficient_policy import apply as apply_coefficient_policy
-    return apply_coefficient_policy(position,output)
+    from normative_material_search import apply_specification_compatibility
+    return apply_specification_compatibility(position,apply_coefficient_policy(position,output))
 
 
 def numeric_card_keys(claims):
-    return {'quantity' if claim in {'quantity', 'unit'} else 'thickness'
-        for claim in claims if claim in {'quantity','unit'} or 'thickness' in claim}
+    return {'input:area' if claim=='input:area' else 'quantity' if claim in {'quantity', 'unit'} else 'thickness'
+        for claim in claims if claim in {'quantity','unit','input:area'} or 'thickness' in claim}
 
 
 def inherit_work_evidence(result, parent, index):
@@ -619,7 +732,8 @@ def inherit_work_evidence(result, parent, index):
     output = deepcopy(result)
     mapping = {s['id']: f'work-{index}:{s["id"]}' for s in parent['sources']}
     output['sources'] = [s for s in output['sources'] if s['id'] not in mapping.values()]
-    output['sources'] += [{**deepcopy(s), 'id':mapping[s['id']]} for s in parent['sources']]
+    output['sources'] += [{**deepcopy(s), 'id':mapping[s['id']],
+        'physical_source_id':s.get('physical_source_id',s['id'])} for s in parent['sources']]
     basis = deepcopy(parent['local_work_basis'])
     for key in ('project_source_ids','normative_source_ids'):
         basis[key] = [mapping[i] for i in basis[key]]

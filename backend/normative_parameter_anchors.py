@@ -44,8 +44,14 @@ def parameter_candidates(sources):
     result = []
     for source in sources:
         text = source['text']
+        if source['kind']=='project' and source.get('origin')=='ocr_verified_header':
+            for fact in source.get('verified_parameters',[]):
+                if fact.get('parameter')=='thickness' and quoted(fact['value'],fact['quote'],text):
+                    result.append(dict(parameter='thickness',value=fact['value'],unit=fact['unit'],
+                        source_id=source['id'],quote=fact['quote'],scope_quote=text,scope_state='unresolved'))
         if source['kind'] == 'project' and source.get('origin') == 'native':
-            roles = list(re.finditer(r'(?:нижн\w*|средн\w*|верхн\w*)\s+сло[йя]\s+основан\w*',text,re.I))
+            roles = list(re.finditer(r'(?:нижн\w*|средн\w*|верхн\w*)\s+сло[йя]\s+(?:основан|покрыт)\w*'
+                r'|\b(?:основание|покрытие)\s*(?:[—–-]|:)',text,re.I))
             for match in re.finditer(r'\bh\s*=\s*(\d+(?:[.,]\d+)?)\s*(мм|см|м)\b',text,re.I):
                 prior = [r for r in roles if 0 < match.start()-r.start() < 800]
                 if not prior:
@@ -72,7 +78,7 @@ def parameter_candidates(sources):
     return result[:32]
 
 
-def resolve_anchors(proposals, sources, items, *, work_scope='', height_cm=None, owner_unit=''):
+def resolve_anchors(proposals, sources, items, *, work_scope='', height_cm=None, owner_unit='', evidence_trace=None,calculation_input_unit=''):
     """Repair a citation only through a unique literal anchor in the SAME source.
 
     A missing or conflicting engineering scope is never upgraded by this step.
@@ -88,6 +94,24 @@ def resolve_anchors(proposals, sources, items, *, work_scope='', height_cm=None,
             continue
         literal_valid = (unit_scale_quoted(proposal.value, proposal.unit, proposal.quote, source['text'])
             if proposal.parameter == 'unit_scale' else quoted(proposal.value, proposal.quote, source['text']))
+        if (proposal.parameter == 'thickness' and literal_valid and proposal.scope_state == 'verified'
+                and source.get('kind') == 'project' and source.get('origin') == 'native'
+                and clean(proposal.scope_quote) in clean(source['text'])
+                and clean(proposal.quote) in clean(proposal.scope_quote)
+                and clean(proposal.scope_quote).count(clean(proposal.quote)) == 1
+                and construction_conflict(proposal.scope_quote,work_scope,height_cm)
+                and not construction_conflict(proposal.quote,work_scope,height_cm)):
+            from normative_parameters import material_fractions
+            roles = re.findall(r'\b(нижн\w*|средн\w*|верхн\w*)\s+сло[йя]\s+основан\w*',proposal.quote,re.I)
+            headings = re.findall(r'\bтип\s+[ivxlcdm\d]+\b',clean(proposal.scope_quote).replace('*','').replace('_',''))
+            # Narrow only an explicit selected layer inside ONE construction.
+            # No lookup by VOR value, another source, column or section.
+            if len(roles) == len(headings) == 1 and material_fractions(proposal.quote) and material_fractions(work_scope):
+                original = proposal.model_dump()
+                proposal.scope_quote = proposal.quote
+                if evidence_trace is not None:
+                    evidence_trace.append(dict(kind='selected_layer_quote_scope_v1',
+                        original_proposal=original,replacement_proposal=proposal.model_dump()))
         if literal_valid and proposal.scope_quote and proposal.scope_quote in source['text']:
             continue
         matches = [c for c in candidates if c['parameter'] == proposal.parameter and c['source_id'] == proposal.source_id
@@ -102,8 +126,9 @@ def resolve_anchors(proposals, sources, items, *, work_scope='', height_cm=None,
                 proposal.scope_quote = candidate['scope_quote']
     if not any(p.parameter == 'unit_scale' for p in proposals):
         selected = {sid for i in items if 'normative:applicability' in i.claim_ids for sid in i.normative_source_ids}
+        dimensions={m[0] for unit in (owner_unit,calculation_input_unit) if (m:=measure('1',unit))}
         matching_units = [c for c in candidates if c['parameter'] == 'unit_scale' and c['source_id'] in selected
-            and (value := measure(c['value'],c['unit'])) and (owner := measure('1',owner_unit)) and value[0] == owner[0]]
+            and (value := measure(c['value'],c['unit'])) and value[0] in dimensions]
         values = {measure(c['value'],c['unit']) for c in matching_units}
         if matching_units and len(values) == 1:
             proposals.append(NormativeParameterProposal(**matching_units[0]))
