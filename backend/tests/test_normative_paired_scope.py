@@ -178,3 +178,27 @@ def test_parent_preview_truncation_has_an_exact_read_request():
     view=preview(source)
     assert view['excerpt_truncated']and len(view['text'])==450
     assert view['full_length']>450 and view['read_request']['row_ids']==[1]
+
+
+@pytest.mark.parametrize('parent_text,child_text,work,problem',[
+    ('Разборка пути РТ62 эпюра 1680', 'Шпалы железобетонные', 'Шпалы для пути Р65', 'другому обозначению'),
+    ('Разборка пути Р65 эпюра 1440', 'Шпалы железобетонные', 'Шпалы для пути РТ62', 'другому обозначению'),
+    ('Разборка пути РТ62 эпюра 1680', 'Скрепления для рельсов Р65', 'Скрепления Р65', 'противоречат'),
+    ('Разборка пути РТ62 эпюра 1680', 'Шпалы железобетонные', 'Шпалы железобетонные', None),
+    ('Разборка пути Р65 эпюра 1440', 'Скрепления для рельсов P65', 'Скрепления Р65', None),
+])
+def test_rail_designations_preserve_source_contradiction_as_unresolved_scope(parent_text,child_text,work,problem):
+    _,_,_,source=fixture()
+    context=source['paired_parent_context']
+    context['description']['cell']['text']=parent_text
+    context['description']['anchor']['literal_text']=parent_text
+    pair=source['paired_measurement_context']
+    next(c for c in pair['row_cells']if c['column']==1)['text']=child_text
+    source['text']=source['literal_text']=' | '.join(c['text']for c in sorted(pair['row_cells'],key=lambda c:c['column']))
+    source['id']=source_id('v',1,'table',pair['unit_cell_id'],pair['value_cell_id'],parent_context=context)
+    assert len(verified_components(source))==2
+    issue=scope_issue(source,work)
+    if problem:
+        assert problem in issue
+    else:
+        assert issue is None  # Absence of a conflict is not scope verification.

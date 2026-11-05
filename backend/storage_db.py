@@ -204,6 +204,26 @@ class Repository:
                 result.append(dict(identity=ident, payload=payload))
             return result
 
+    def engineering_relation_artifacts(self, project_id, vor_version_id, pdf_versions):
+        """Read immutable engineering artifacts with exact document pins only."""
+        from analysis_replay import digest
+        from normative_engineering_relations import STAGE
+        pins = sorted(set(str(v) for v in pdf_versions))
+        with Session(self._engine) as session:
+            rows = session.scalars(select(AnalysisArtifact).where(
+                AnalysisArtifact.project_id == UUID(str(project_id)),
+                AnalysisArtifact.stage == STAGE,
+                AnalysisArtifact.identity['vor_version_id'].astext == str(vor_version_id),
+                AnalysisArtifact.identity['pdf_versions'] == pins,
+            ).order_by(AnalysisArtifact.key)).all()
+            result = []
+            for row in rows:
+                identity, payload = dict(row.identity), dict(row.payload)
+                if digest(identity) != row.key or digest(payload) != row.sha256:
+                    raise ValueError('Engineering relation artifact hash mismatch')
+                result.append(dict(identity=identity, payload=payload, key=row.key))
+            return result
+
     def visual_header_artifacts(self, project_id, version_id, page, table_id):
         from analysis_replay import digest
         from normative_table_headers import STAGE

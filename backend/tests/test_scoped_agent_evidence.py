@@ -298,11 +298,11 @@ def test_shared_sum_reacquires_real_cells_without_inventing_quality(uncertain):
         EvidenceRequest(tool="sum_cells", operand_ids=ids, unit="м2")
     )
     assert "error" not in computed
-    sources = deepcopy(donor.sources)
-    mapping = {s["id"]: "shared:" + str(i) for i, s in enumerate(sources)}
-    for source in sources:
-        source["physical_source_id"] = source["id"]
-        source["id"] = mapping[source["id"]]
+    from normative_source_identity import shared_source
+
+    sources = [shared_source(s, 0) for s in donor.sources]
+    assert all(s is not None for s in sources)
+    mapping = {s["physical_source_id"]: s["id"] for s in sources}
     proposal = dict(
         parameter="quantity",
         operation="sum",

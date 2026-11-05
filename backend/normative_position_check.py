@@ -476,30 +476,66 @@ def canonicalize_cell_parameters(answer,sources,*,work_scope='',height_cm=None,s
 
 
 def retain_literal_parameters(answer, sources, tools):
-    """Do not lose a valid numeric read while correcting an unrelated claim.
+    """Retain all omitted literal candidates, independently of their scope.
 
-    Only mechanical evidence is retained. Scope/card and verdict validation
-    still run afterwards; an explicit unresolved scope is never overridden.
+    Memory keys may be parameter names or resume fingerprints. Read the actual
+    parameter field and never select one of several conflicting candidates.
+    Explicit new scope/composition/selection is preserved; ordinary scope/card
+    guards still decide ownership. This does not issue another tool/model call.
     """
-    from normative_parameters import quoted
+    from normative_parameter_feedback import literal_parameter_issues
+    from normative_parent_basis import _proposal_dependencies
+    from normative_source_identity import canonical_source_id
+    from normative_parameters import _parameter_claim
     from workspace_models import NormativeParameterProposal
-    lookup={s['id']:s for s in sources}
-    for kind,p in getattr(tools,'parameter_evidence',{}).items():
-        if kind not in {'quantity','thickness'}:
+    from analysis_replay import digest
+
+    lookup = {s['id']: s for s in sources}
+
+    def literal_valid(proposal):
+        source = lookup.get(proposal.source_id)
+        if (source is None or canonical_source_id(source) is None
+                or source.get('kind') != 'project' or source.get('origin') == 'uncertain_table'
+                or source.get('origin', '').startswith('ocr') and not source.get('numeric_verified')):
+            return False
+        literal = proposal.model_copy(update={'scope_state': 'unresolved', 'scope_quote': ''})
+        if literal_parameter_issues(literal, source):
+            return False
+        try:
+            dependencies = _proposal_dependencies(proposal.model_dump(), lookup)
+        except (KeyError, TypeError, ValueError):
+            return False
+        return bool(dependencies) and all(canonical_source_id(lookup[sid]) is not None for sid in dependencies)
+
+    candidates = {}
+    for raw in getattr(tools, 'parameter_evidence', {}).values():
+        try:
+            proposal = NormativeParameterProposal.model_validate(raw)
+        except (TypeError, ValueError):
             continue
-        current=[v for v in answer.parameters if v.parameter==kind]
-        if any(v.scope_state=='unresolved' for v in current):
+        if proposal.parameter in {'quantity', 'thickness'} and literal_valid(proposal):
+            candidates.setdefault(proposal.parameter, {})[digest(proposal.model_dump())] = proposal
+    for kind, saved in candidates.items():
+        current = [v for v in answer.parameters if v.parameter == kind]
+        if any(v.scope_state == 'unresolved' or v.operation == 'sum' for v in current):
+            # A new unresolved scope or explicitly chosen composition is not an
+            # omission. In particular, never replace a sum with a saved part.
             continue
-        if any(v.operation=='sum' for v in current):
-            # A newly selected composition is not an omission during an
-            # unrelated repair. Never replace it by an old single-side read.
+        if any(literal_valid(v) for v in current):
             continue
-        valid=any(('error' not in tools.execute(EvidenceRequest(tool='sum_cells',operand_ids=v.operand_source_ids,unit=v.unit)))
-            if v.operation=='sum' else v.source_id in lookup and quoted(v.value,v.quote,lookup[v.source_id]['text']) for v in current)
-        if valid:
-            continue
-        answer.parameters=[v for v in answer.parameters if v.parameter!=kind]+[NormativeParameterProposal(**p)]
-        tools.events.append(dict(kind='retained_literal_parameter',parameter=kind,source_id=p['source_id']))
+        retained = []
+        for proposal in saved.values():
+            disputed = any(item.state == 'needs_facts'
+                and any(_parameter_claim(claim, kind) or kind == 'quantity' and claim == 'input:area'
+                    for claim in item.claim_ids)
+                and proposal.source_id in item.project_source_ids for item in answer.items)
+            if disputed:
+                # Preserve the literal, not the withdrawn ownership assertion.
+                proposal = proposal.model_copy(update={'scope_state': 'unresolved'})
+            retained.append(proposal)
+            tools.events.append(dict(kind='retained_literal_parameter', parameter=kind,
+                source_id=proposal.source_id, scope_state=proposal.scope_state))
+        answer.parameters = [v for v in answer.parameters if v.parameter != kind] + retained
     return answer
 
 
@@ -1101,10 +1137,9 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
             matching=matching,raw_items=raw_equipment_items)
         result = finalize_state(result,matching,service.position_key(position),derived=bool(parent),position=position,relation=relation)
     if continuation is not None:
-        result.setdefault('coverage',{})['evidence_followup'] = dict(
-            round=1, origin_review_id=str(continuation['review']['id']),
-            attempted_fingerprints=[a['retry_fingerprint'] for a in continuation['plan']['actions']])
-    from normative_fact_ledger import store as store_facts
+        from normative_evidence_followup import complete_followup
+        complete_followup(result, continuation)
+    from normative_engineering_tools import persist as store_facts
     store_facts(context,record,position,result,positions,relation)
     snapshot = dict(work_item_id=f"{record['id']}:{index}", query=payload.question or position.work_name, kind="ALL", mode="context",
         context_analysis=None, position_check=result, work_relations=relation, facts=facts.model_dump(), fact_origins=origins, kb=kb.identity,
@@ -1226,7 +1261,7 @@ def validate_agent_saved(context, record, index, row, actor, *, register=True):
         elapsed_seconds=round(time.monotonic()-started,3),trace_id=None,trace_url=None)
     data['position_check']=result
     if result.get('pipeline_version',0)>=6:
-        from normative_fact_ledger import store as store_facts
+        from normative_engineering_tools import persist as store_facts
         store_facts(context,record,position,result,positions,relation)
     data['status']='candidate' if result['state']=='confirmed' else result['state']
     saved=context.repository.save_normative_review(record['id'],index,'check',data,actor)

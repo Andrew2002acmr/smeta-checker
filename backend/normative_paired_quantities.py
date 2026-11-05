@@ -49,7 +49,8 @@ def verified_components(source):
     text=' | '.join(c['text']for c in sorted(cells,key=lambda c:c['column']))
     if source.get('text')!=text or source.get('literal_text')!=text:
         return []
-    if source.get('id')!=source_id(version,page,context.get('table_id'),
+    from normative_source_identity import canonical_source_id
+    if canonical_source_id(source)!=source_id(version,page,context.get('table_id'),
             context.get('unit_cell_id'),context.get('value_cell_id'),parent_context=source.get('paired_parent_context')):
         return []
     if source.get('paired_parent_context')is not None:

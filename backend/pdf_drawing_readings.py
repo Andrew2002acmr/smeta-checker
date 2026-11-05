@@ -68,6 +68,14 @@ Its source IDs/coordinates can be shown and read by the evidence agent.
     if (getattr(context.repository, "supports_analysis_replay", False) is not True
             or str(version) not in (record["config"].get("pdf_versions") or {}).values()):
         return index
+    lookup = getattr(context.repository, "drawing_reading_artifacts", None)
+    if not callable(lookup):
+        return index
+    artifacts = lookup(record["project_id"], str(version))
+    # Legacy text snapshots need not have a drawing-overlay version field.
+    # With no saved reading there is nothing to overlay or validate here.
+    if not artifacts:
+        return index
     document = context.repository.load_version(UUID(str(version)))
     if index.metadata.get("document_version_id") != str(version):
         raise ValueError("Drawing corpus version mismatch")
@@ -77,10 +85,7 @@ Its source IDs/coordinates can be shown and read by the evidence agent.
     metadata = deepcopy(index.metadata)
     readings = dict(metadata.get("drawing_readings") or {})
     changed = False
-    lookup = getattr(context.repository, "drawing_reading_artifacts", None)
-    if not callable(lookup):
-        return index
-    for artifact in lookup(record["project_id"], str(version)):
+    for artifact in artifacts:
         page = artifact["identity"]["page"]
         ident = identity(record["project_id"], version, document.sha256, page)
         if artifact["identity"] != ident:

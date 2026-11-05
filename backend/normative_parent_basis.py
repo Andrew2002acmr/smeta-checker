@@ -1,7 +1,8 @@
 """Bind a derived material to verified parent geometry, preserving its own rate check."""
 from copy import deepcopy
-import hashlib
 import json
+
+from normative_source_identity import shared_source
 
 
 GEOMETRY_TOPIC='Подтверждённый параметр родительской работы'
@@ -59,7 +60,8 @@ def verified_geometry_dependency(result,position=None):
             rebuilt=cards.get(kind) or {}
             current=actual.get(kind) or {}
             fact=proof['facts'][kind]
-            if (rebuilt.get('state')!='confirmed' or current.get('state')!='confirmed'
+            if (rebuilt.get('state')not in {'confirmed','possible_mismatch'}
+                    or current.get('state')not in {'confirmed','possible_mismatch'}
                     or not _anchored_card(rebuilt,available)
                     or not _anchored_card(current,available)
                     or not set(fact['source_ids'])<=set(current.get('source_ids',[]))
@@ -100,12 +102,15 @@ def _clear_geometry(result,parent_index):
     lookup={source['id']:source for source in output['sources']}
     remap={}
     def physical(source):
-        return {key:value for key,value in source.items() if key not in {'id','physical_source_id'}}
+        return {key:value for key,value in source.items() if key not in {'id','physical_source_id','source_alias'}}
     for event in output.get('evidence_trace',[]):
         if event.get('kind')!=GEOMETRY_TRACE or event.get('position_index')!=parent_index:
             continue
         for original,alias in event.get('source_mapping',{}).items():
+            from normative_source_identity import canonical_source_id
             if (alias.startswith(prefix) and original in lookup and alias in lookup
+                    and canonical_source_id(lookup[original]) is not None
+                    and canonical_source_id(lookup[alias])==canonical_source_id(lookup[original])
                     and physical(lookup[original])==physical(lookup[alias])):
                 remap[alias]=original
     for item in output['items']:
@@ -152,7 +157,10 @@ def _anchored_card(card,sources):
 def _proposal_dependencies(proposal,sources):
     """Check a saved sum against its actual independently readable operands."""
     from normative_parameters import number,measure
+    from normative_source_identity import canonical_source_id
     source=sources[proposal['source_id']]
+    if canonical_source_id(source) is None:
+        return []
     operands=proposal.get('operand_source_ids') or []
     if proposal.get('operation','direct')=='direct':
         return [source['id']] if not operands and source['origin']!='calculated_from_cells' else []
@@ -160,12 +168,14 @@ def _proposal_dependencies(proposal,sources):
             or not 2<=len(operands)<=12 or len(set(operands))!=len(operands)):
         return []
     cells=[sources.get(sid) for sid in operands]
-    if any(s is None or s['kind']!='project' or s['origin']=='uncertain_table'
+    if any(s is None or canonical_source_id(s) is None or s['kind']!='project' or s['origin']=='uncertain_table'
             or (s['origin'].startswith('ocr') and not s.get('numeric_verified'))
             or not s.get('unit_verified') or measure('1',s.get('unit',''))!=measure('1',proposal['unit'])
             for s in cells):
         return []
     cells=[s for s in cells if s is not None]
+    if len({canonical_source_id(s)for s in cells})!=len(cells):
+        return []  # Different aliases cannot count one physical operand twice.
     if len({(s.get('version_id'),s.get('page')) for s in [source,*cells]})!=1:
         return []
     values=[number(s['text'].rsplit('\n',1)[-1]) for s in cells]
@@ -183,15 +193,17 @@ def _reuse_geometry(result,parent,basis,positions,parent_relation,row,child=None
     sources={s['id']:s for s in basis['sources']}
     # A saved state/shortcut is not an independent proof. Rebuild from literal
     # proposals, scope, units and current OCR flags before selecting any card.
-    literal={**basis,'local_work_basis':None,'quantity_composition':None}
+    literal=deepcopy({**basis,'local_work_basis':None,'quantity_composition':None})
+    from normative_fact_contract import restore_numeric_items
+    restore_numeric_items(literal)
     fresh={c['id']:c for c in build_cards(parent,literal,positions,parent_relation)}
     selected={}
     needed=set()
     for stored in basis.get('parameter_cards') or []:
         kind=stored.get('id')
         current=fresh.get(kind) or {}
-        if (kind not in {'quantity','thickness'} or stored.get('state')!='confirmed'
-                or current.get('state')!='confirmed' or not _anchored_card(stored,sources)
+        if (kind not in {'quantity','thickness'} or stored.get('state')not in {'confirmed','possible_mismatch'}
+                or current.get('state')not in {'confirmed','possible_mismatch'} or not _anchored_card(stored,sources)
                 or not _anchored_card(current,sources)
                 or set(stored['source_ids'])!=set(current['source_ids'])
                 or measure(stored.get('found_value'),stored.get('found_unit',''))
@@ -213,6 +225,10 @@ def _reuse_geometry(result,parent,basis,positions,parent_relation,row,child=None
             needed.update(dependencies)
     if not selected:
         return output if output!=result else result
+    aliases={sid:shared_source(sources[sid],parent.index,namespace='geometry')for sid in needed}
+    if any(source is None for source in aliases.values()):
+        return output  # An unresolvable saved alias cannot certify new geometry.
+    mapping={sid:source['id']for sid,source in aliases.items()if source is not None}
     # Replacing a certified fact's alias must not fabricate a second reading.
     # Require the entire physical dependency envelope, not equal numbers.
     def envelopes(proposal, lookup):
@@ -254,10 +270,7 @@ def _reuse_geometry(result,parent,basis,positions,parent_relation,row,child=None
             output['parameter_proposals'] = [p for p in output['parameter_proposals'] if p not in covered]
             output.setdefault('evidence_trace', []).append(dict(kind='parent_sum_supersedes_parts_v1',
                 position_index=parent.index, original_parameters=deepcopy(covered)))
-    mapping={sid:f'parent-{parent.index}:geometry:'+hashlib.sha256(sid.encode()).hexdigest()[:24]
-        for sid in needed}
-    output['sources'] += [{**deepcopy(s),'id':mapping[s['id']],
-        'physical_source_id':s.get('physical_source_id',s['id'])} for s in basis['sources'] if s['id'] in needed]
+    output['sources'] += [source for source in aliases.values()if source is not None]
     for kind,(card,proposals) in selected.items():
         for original in proposals:
             proposal=deepcopy(original)
@@ -397,10 +410,12 @@ def bind_parent_basis(context,record,result,positions,relation,*,expected_kb=Non
         current=_current_material_geometry(clean,parent,child,positions,record)
         return current if any(e.get('kind')==DEPENDENCY_TRACE for e in current.get('evidence_trace',[])) else reused
     output=_clear_geometry(result,parent_index)
-    mapping={s['id']:f'parent-{parent_index}:'+s['id'] for s in basis['sources']}
+    aliases={s['id']:shared_source(s,parent_index,namespace='basis')for s in basis['sources']}
+    if any(source is None for source in aliases.values()):
+        return output
+    mapping={sid:source['id']for sid,source in aliases.items()if source is not None}
     output['sources']=[s for s in output['sources'] if s['id'] not in mapping.values()]
-    output['sources'] += [{**deepcopy(s),'id':mapping[s['id']],
-        'physical_source_id':s.get('physical_source_id',s['id'])} for s in basis['sources']]
+    output['sources'] += [source for source in aliases.values()if source is not None]
     output['parameter_proposals']=[p for p in output.get('parameter_proposals',[]) if p['parameter']=='coefficient']
     for p in basis.get('parameter_proposals',[]):
         if p['parameter'] not in {'quantity','thickness','unit_scale'} or p['source_id'] not in mapping:

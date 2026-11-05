@@ -127,14 +127,15 @@ def test_invalid_allocation_or_explicit_physical_part_constraint_keeps_parent_pa
 
 
 def test_saved_literal_alias_and_fresh_primary_source_do_not_create_false_ambiguity():
+    from normative_source_identity import shared_source
     positions, raw, relation, record, context = setup()
     source=next(s for s in raw["sources"] if s["id"]=="construction")
-    raw["sources"]=[s for s in raw["sources"] if s["id"]!="construction"] + [
-        {**deepcopy(source),"id":"shared-construction","physical_source_id":"construction"},source]
-    next(p for p in raw["parameter_proposals"] if p["parameter"]=="thickness")["source_id"]="shared-construction"
+    alias=shared_source(source,0)
+    raw["sources"]=[s for s in raw["sources"] if s["id"]!="construction"] + [alias,source]
+    next(p for p in raw["parameter_proposals"] if p["parameter"]=="thickness")["source_id"]=alias['id']
     saved=old_partial_binding(positions,raw,record)
     bound=bind(positions,saved,relation,record,context)
-    assert next(p for p in bound["parameter_proposals"] if p["parameter"]=="thickness")["source_id"]=="shared-construction"
+    assert next(p for p in bound["parameter_proposals"] if p["parameter"]=="thickness")["source_id"]==alias['id']
     checked=enrich(positions[1],bound,positions,relation)
     assert verified_material_allocation(checked,positions[1])
     assert report(checked,positions[1])["Статус аудита"]=="ОК"

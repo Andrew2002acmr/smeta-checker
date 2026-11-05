@@ -99,8 +99,10 @@ def recover_thickness(position,result,positions):
     if not family:
         return
     candidates={}
+    from normative_source_identity import canonical_source_id
     for source in result.get('sources',[]):
-        if source.get('kind')!='project' or source.get('origin')!='native' or not source.get('version_id'):
+        if (source.get('kind')!='project' or source.get('origin')!='native' or not source.get('version_id')
+                or canonical_source_id(source) is None):
             continue
         anchors=parameter_candidates([source])
         if len(anchors)>=32:
@@ -131,11 +133,11 @@ def recover_thickness(position,result,positions):
         # Alias identity and the entire project envelope must agree. Do not
         # append a second reading of the exact literal already verified by the
         # model; keep its original handle and engineering scope unchanged.
-        physical=source.get('physical_source_id',source['id'])
-        target_physical=target.get('physical_source_id',target['id'])
-        return bool(physical==target_physical
-            and {k:v for k,v in source.items() if k not in {'id','physical_source_id'}}
-                =={k:v for k,v in target.items() if k not in {'id','physical_source_id'}}
+        physical=canonical_source_id(source)
+        target_physical=canonical_source_id(target)
+        return bool(physical is not None and physical==target_physical
+            and {k:v for k,v in source.items() if k not in {'id','physical_source_id','source_alias'}}
+                =={k:v for k,v in target.items() if k not in {'id','physical_source_id','source_alias'}}
             and proposal.get('operation','direct')=='direct'
             and not proposal.get('operand_source_ids')
             and proposal.get('quote')==candidate.get('quote')

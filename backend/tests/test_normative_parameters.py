@@ -169,8 +169,11 @@ def test_material_inherits_verified_geometry_with_unambiguous_source_names():
     child=dict(sources=[source(text='Другой исходный фрагмент')])
     value=inherit_work_evidence(child,parent,0)
     assert len(value['sources'])==2 and value['sources'][0]['id']=='p1'
-    assert value['local_work_basis']['project_source_ids']==['work-0:p1']
-    assert value['quantity_composition']['source_id']=='work-0:p1'
+    from normative_source_identity import canonical_source_id,shared_source
+    alias=shared_source(parent['sources'][0],0,namespace='work')
+    assert value['local_work_basis']['project_source_ids']==[alias['id']]
+    assert value['quantity_composition']['source_id']==alias['id']
+    assert canonical_source_id(value['sources'][1])=='p1'
     assert inherit_work_evidence(value,parent,0)==value
     assert parent==original and len(child['sources'])==1
 

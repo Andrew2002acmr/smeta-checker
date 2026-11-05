@@ -30,6 +30,43 @@ def test_project_dependency_is_verified_while_parent_norm_and_child_rate_stay_op
     assert checked==original
 
 
+def test_parent_vor_mismatch_keeps_proved_project_input_without_importing_parent_verdict():
+    from normative_parameters import enrich
+    from normative_source_identity import canonical_source_id
+    donor,record,result,positions,context=fixture()
+    positions[0].volume='12'
+    basis=donor['payload']['position_check']
+    donor['payload']['position_check']=enrich(positions[0],basis,positions,{})
+    parent_card=next(c for c in donor['payload']['position_check']['parameter_cards']if c['id']=='quantity')
+    assert parent_card['state']=='possible_mismatch'and parent_card['found_value']=='10'
+    original=deepcopy(donor)
+    output=invoke(donor,record,result,positions,context)
+    checked,cards=geometry_cards(output,positions)
+    assert cards['quantity']['state']=='possible_mismatch'
+    assert cards['quantity']['found_value']=='10'
+    assert cards['thickness']['state']=='confirmed'
+    assert verified_geometry_dependency(checked,positions[1])
+    project=next(s for s in checked['sources']if s['kind']=='project')
+    assert canonical_source_id(project)=='p'
+    assert all(i['state']=='needs_facts'for i in checked['items']if 'derived:rate'in i['claim_ids'])
+    assert [s['id']for s in checked['sources']if s['kind']=='normative']==['own']
+    assert donor==original
+    assert invoke(donor,record,output,positions,context)==output
+
+
+def test_parent_mismatch_does_not_override_unproved_subject_binding():
+    from normative_parameters import enrich
+    donor,record,result,positions,context=fixture()
+    positions[0].volume='12'
+    basis=donor['payload']['position_check']
+    for proposal in basis['parameter_proposals']:
+        proposal['scope_state']='unresolved'
+    donor['payload']['position_check']=enrich(positions[0],basis,positions,{})
+    output=invoke(donor,record,result,positions,context)
+    assert not any(e.get('kind')==DEPENDENCY_TRACE for e in output.get('evidence_trace',[]))
+    assert not any(p['parameter']=='quantity'for p in output['parameter_proposals'])
+
+
 @pytest.mark.parametrize('change',['source','proposal','unit','card','child','proof','missing_thickness'])
 def test_changed_or_incomplete_facts_cannot_establish_parent_dependency(change):
     _,_,checked,positions,_=prepared()

@@ -58,6 +58,11 @@ class EvidenceRequest(BaseModel):
     operand_ids: list[str] = Field(default_factory=list, max_length=12)
     unit: str = Field(default='', max_length=30)
     source_id: str = Field(default='', max_length=200)
+    entity_id: str = Field(default='', max_length=160)
+    entity_kind: Literal['', 'ProjectArea', 'Construction', 'Work', 'Material', 'Fact', 'Evidence'] = ''
+    entity_offset: int = Field(default=0, ge=0, le=1000000)
+    bbox: list[float] = Field(default_factory=list, max_length=4)
+    scale: float = Field(default=1, ge=0.25, le=3)
     row_ids: list[int] = Field(default_factory=list, max_length=12)
     column_ids: list[int] = Field(default_factory=list, max_length=32)
 
@@ -156,6 +161,19 @@ TOOLS += ('\nread_table.row_measurements связывает составные �
     'raw_values/raw_units остаются буквальными, source_anchors и read_request адресуют обе ячейки. '
     'Это не доказательство принадлежности позиции ВОР. При recognition_verified=false чтение OCR ещё не проверено; '
     'не превращай его в подтверждение. Расход вроде кг/м2 не является парой альтернативных измерителей.')
+TOOLS += ('\nsearch_project также возвращает engineering_entities: краткие сущности с устойчивыми ID. '
+    'search_project(query,entity_kind="Construction"|"Work"|"Material"|"Fact"|"ProjectArea"|"Evidence") '
+    'ищет только каталог сущностей, без страниц PDF. '
+    'Для следующих сущностей используй entity_offset из next_offset этого каталога. '
+    'read_source(entity_id, offset) возвращает связанные работы, участки, материалы, факты и доказательства; '
+    'next_offset дочитывает отношения. candidate/rejected/stale не являются verified. '
+    'По read_request дочитай физический источник; граф не заменяет проверку принадлежности. '
+    'read_page(document_version_id,page,bbox=[x0,y0,x1,y1],scale) получает локальный фрагмент '
+    'чертежа в координатах PDF без поворота. Это только изображение, без автоматического распознавания; '
+    'requires_visual_reader=true требует отдельной визуальной проверки. Не подтверждай величину по факту получения изображения.')
+TOOLS += ('\nЕсли ответ инструмента усечён, archive_read_request дочитывает полный JSON по '
+    'result_handle через read_source и next_offset. tool-result:* — навигационный архив, '
+    'не источник ПД и не доказательство. Для заключений цитируй только физические sources.id, найденные внутри архива.')
 
 
 def resource_sources(item, prefix, *, evidence_trace=None):
@@ -193,6 +211,15 @@ def model_result(result, budget=10000):
             return [shrink(v) for v in value]
         return value
     value = shrink(result)
+    if len(json.dumps(value, ensure_ascii=False)) <= budget:
+        return value
+    if 'engineering_entities' in value:
+        # Keep a complete cursor page together. Slicing items while retaining
+        # its original next_offset silently skips entities on the next call.
+        catalogue = {k: value[k] for k in ('engineering_entities', 'result_handle', 'archive_read_request') if k in value}
+        catalogue['page_results_archived'] = True
+        if len(json.dumps(catalogue, ensure_ascii=False)) <= budget:
+            return catalogue
     # Headers are shared per physical column rather than copied for every cell.
     def bound(value, remaining):
         if isinstance(value, dict):
@@ -219,6 +246,7 @@ def model_result(result, budget=10000):
         # A very wide object still has retrievable addresses, never a giant
         # string slice that could sever a source ID or fabricate a JSON cell.
         return dict(truncated=True, read_again=True,
+            **{k: result[k] for k in ('result_handle', 'archive_read_request') if k in result},
             source_ids=[r['source_id'] for r in result.get('rows',[]) if 'source_id' in r][:32])
     return output
 
@@ -307,6 +335,8 @@ class EvidenceTools:
         self.project_search: Any = None
         self.project_search_results = {}
         self.snapshot_refs = []
+        self.engineering_graph = None
+        self.result_archive = {}
         self.coverage: dict[str, Any] = {}
         self.filename = 'Подготовленный ПД'
         self.version = None
@@ -385,6 +415,8 @@ class EvidenceTools:
         self.coverage['drawing_readings'] = self.index.metadata.get('drawing_readings', {})
         from normative_multidoc import attach
         attach(self,payload)
+        from normative_engineering_tools import attach as attach_engineering
+        attach_engineering(self, context, record)
 
     def _add(self, source):
         context = getattr(self, 'context', None)
@@ -474,9 +506,69 @@ class EvidenceTools:
         return ranked[:4]
 
     def execute(self, request) -> dict[str, Any]:
+        if request.tool == 'read_source' and request.source_id.startswith('tool-result:'):
+            return self._read_tool_result(request)
+        from normative_engineering_tools import execute as engineering_execute
+        related = engineering_execute(self, request)
+        if related is not None:
+            return self._archive_tool_result(related)
+        if request.tool == 'read_page' and request.bbox:
+            from normative_drawing_tool import render_region
+            return render_region(self, request)
         from normative_multidoc import route
         routed=route(self,request)
-        return routed if routed is not None else self._execute_single(request)
+        result = routed if routed is not None else self._execute_single(request)
+        if request.tool == 'search_project' and getattr(self, 'engineering_graph', None):
+            from normative_engineering_relations import search
+            result = {**result, 'engineering_entities': search(self.engineering_graph,
+                request.query, offset=request.entity_offset)}
+        return self._archive_tool_result(result)
+
+    def _archive_tool_result(self, result):
+        """Navigation archive is not a document source or a citation handle."""
+        if len(json.dumps(result, ensure_ascii=False)) <= 3500:
+            return result
+        from analysis_replay import digest
+        handle = 'tool-result:'+digest(result)[:32]
+        archive = getattr(self, 'result_archive', {})
+        self.result_archive = archive
+        if len(archive) < 256 or handle in archive:
+            archive[handle] = deepcopy(result)
+            return dict(result, result_handle=handle,
+                archive_read_request=dict(tool='read_source', source_id=handle, offset=0))
+        return dict(result, archive_error='tool_result_archive_budget_exhausted')
+
+    def _read_tool_result(self, request):
+        archive = getattr(self, 'result_archive', {})
+        value = archive.get(request.source_id)
+        if value is None:
+            # Saved tool receipts survive follow-up. Rebuild only a hash-matched
+            # archive, never accept arbitrary tool-result handles as evidence.
+            from analysis_replay import digest
+            for event in self.events:
+                candidate = event.get('result') or {}
+                if candidate.get('result_handle') == request.source_id:
+                    original = {k: v for k, v in candidate.items() if k not in {'result_handle', 'archive_read_request'}}
+                    if request.source_id == 'tool-result:'+digest(original)[:32]:
+                        value = original
+                        break
+        if value is None:
+            return {'error': 'unknown_tool_result'}
+        text = json.dumps(value, ensure_ascii=False)
+        if request.offset > len(text):
+            return {'error': 'source_offset_out_of_range', 'full_length': len(text)}
+        piece = text[request.offset:request.offset+3000]
+        def reply(part):
+            consumed = request.offset+len(part)
+            return dict(result_handle=request.source_id, text=part,
+                offset=request.offset, full_length=len(text),
+                next_offset=consumed if consumed < len(text) else None,
+                navigation_only=True, document_evidence=False)
+        # JSON escaping also consumes the response budget. The cursor follows
+        # delivered characters, never a nominal chunk that could be truncated.
+        while len(json.dumps(reply(piece), ensure_ascii=False)) > 3500:
+            piece = piece[:max(1, len(piece)*4//5)]
+        return reply(piece)
 
     def _execute_single(self, request):
         if request.tool == 'read_source':
@@ -484,12 +576,17 @@ class EvidenceTools:
             if source is None:
                 return {'error': 'unknown_source'}
             text = source['text']
+            if request.offset > len(text):
+                return {'error': 'source_offset_out_of_range', 'full_length': len(text)}
             self.preferred.append(source['id'])
             if request.offset:
                 source = {**source, 'id':source['id']+f':part:{request.offset}', 'text':text[request.offset:request.offset+3500]}
                 self.preferred.append(source['id'])
-                return self._add(source)
-            return {'source_id': source['id'], 'full_length':len(text)}
+                return {**self._add(source), 'text': source['text'], 'full_length': len(text),
+                    'offset': request.offset,
+                    'next_offset': request.offset+3500 if request.offset+3500 < len(text) else None}
+            return {'source_id': source['id'], 'full_length':len(text), 'offset': 0,
+                'next_offset': 3500 if len(text)>3500 else None}
         if request.tool == 'sum_cells':
             return self._sum(request)
         if request.tool == 'search_norms':

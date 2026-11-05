@@ -739,11 +739,14 @@ def inherit_work_evidence(result, parent, index):
     """Reuse verified work geometry for a linked material, retaining source IDs."""
     if not parent.get('local_work_basis'):
         return result
+    from normative_source_identity import shared_source
+    aliases = {s['id']:shared_source(s,index,namespace='work')for s in parent['sources']}
+    if any(source is None for source in aliases.values()):
+        return result
     output = deepcopy(result)
-    mapping = {s['id']: f'work-{index}:{s["id"]}' for s in parent['sources']}
+    mapping = {sid:source['id']for sid,source in aliases.items()if source is not None}
     output['sources'] = [s for s in output['sources'] if s['id'] not in mapping.values()]
-    output['sources'] += [{**deepcopy(s), 'id':mapping[s['id']],
-        'physical_source_id':s.get('physical_source_id',s['id'])} for s in parent['sources']]
+    output['sources'] += [source for source in aliases.values()if source is not None]
     basis = deepcopy(parent['local_work_basis'])
     for key in ('project_source_ids','normative_source_ids'):
         basis[key] = [mapping[i] for i in basis[key]]

@@ -68,7 +68,8 @@ def test_conflicting_fact_is_not_silently_overwritten():
 def test_confirmation_follows_only_unchanged_physical_envelope_through_logical_alias(change):
     context,record,source=fixture()
     confirm(context,record,source,'м','user','Уточнение единицы')
-    alias=dict(deepcopy(source),id='shared:39:logical',physical_source_id=source['id'])
+    from normative_source_identity import shared_source
+    alias=shared_source(source,39)
     if change=='changed_text':
         alias['text']+=' другая колонка'
     elif change=='changed_rects':
@@ -100,3 +101,101 @@ def test_quantity_is_rechecked_independently_after_unit_confirmation(declared,un
     resolved=attach(context,record,result)
     after=next(c for c in build_cards(position,resolved,{0:position},{}) if c['id']=='quantity')
     assert after['state']==expected
+
+
+@pytest.mark.parametrize("change", ["unattested_alias", "wrong_canonical", "changed_alias_content"])
+def test_forged_alias_cannot_reuse_a_human_unit_confirmation(change):
+    from normative_source_identity import shared_source
+    context, record, source = fixture()
+    confirm(context, record, source, "м", "user", "Контекст таблицы")
+    resolved = attach(context, record, dict(sources=[source]))["sources"][0]
+    if change == "unattested_alias":
+        alias = dict(deepcopy(resolved), id="shared:39:logical", physical_source_id=source["id"])
+    else:
+        alias = shared_source(resolved, 39)
+        if change == "wrong_canonical":
+            alias["physical_source_id"] = "agent:p92:cell:another"
+        else:
+            alias["rects"] = [[.5, .6, .7, .8]]
+    assert binding(alias) is None
+    assert not unit_confirmed(alias, "м")
+    assert not unit_confirmed(attach(context, record, dict(sources=[alias]))["sources"][0], "м")
+    with pytest.raises(ValueError, match="canonical"):
+        identity(record["project_id"], alias)
+    with pytest.raises(ValueError, match="requires"):
+        confirm(context, record, alias, "м", "user", "Не доверять alias")
+
+
+def test_direct_historical_confirmation_identity_remains_unchanged():
+    context, record, source = fixture()
+    legacy_binding = {key: deepcopy(source.get(key)) for key in
+        ("id", "version_id", "page", "text", "rects", "origin", "numeric_verified", "unit", "unit_verified")}
+    legacy_identity = dict(schema=1, stage="confirmed_source_unit", project_id=record["project_id"],
+        version_id=source["version_id"], source_sha256=digest(legacy_binding))
+    assert binding(source) == legacy_binding
+    assert identity(record["project_id"], source) == legacy_identity
+
+
+def test_late_context_and_preexisting_context_both_survive_attested_aliases():
+    from normative_source_identity import canonical_source_id, shared_source
+    context, record, source = fixture()
+    confirm(context, record, source, "м", "user", "Контекст таблицы")
+    alias_before = shared_source(source, 39)
+    late = attach(context, record, dict(sources=[alias_before]))["sources"][0]
+    assert canonical_source_id(late) == source["id"]
+    assert unit_confirmed(late, "м")
+    assert attach(context, record, dict(sources=[late]))["sources"][0] == late
+    direct = attach(context, record, dict(sources=[source]))["sources"][0]
+    alias_after = shared_source(direct, 39)
+    assert canonical_source_id(alias_after) == source["id"]
+    assert unit_confirmed(alias_after, "м")
+    assert attach(context, record, dict(sources=[alias_after]))["sources"][0] == alias_after
+
+
+@pytest.mark.parametrize("change", ["binding", "actor", "reason", "key", "unit", "text", "rects", "flags", "unit_flags", "context_hash"])
+def test_late_context_does_not_relax_alias_or_unit_binding(change):
+    from normative_source_identity import canonical_source_id, shared_source
+    context, record, source = fixture()
+    confirm(context, record, source, "м", "user", "Контекст таблицы")
+    alias = attach(context, record, dict(sources=[shared_source(source, 39)]))["sources"][0]
+    if change == "binding":
+        alias["confirmed_unit_context"]["binding"]["id"] = "another"
+    elif change in {"actor", "reason", "key", "unit"}:
+        alias["confirmed_unit_context"][change] = {"actor": "different actor", "reason": "different reason",
+            "key": "0" * 64, "unit": "шт"}[change]
+    elif change == "context_hash":
+        alias["source_alias"]["unit_context_sha256"] = "0" * 64
+    elif change == "text":
+        alias["text"] += " another column"
+    elif change == "rects":
+        alias["rects"] = [[.5, .6, .7, .8]]
+    elif change == "flags":
+        alias["numeric_verified"] = False
+    else:
+        alias["unit_verified"] = True
+    assert canonical_source_id(alias) is None
+    assert not unit_confirmed(alias, "м")
+
+
+@pytest.mark.parametrize("field", ["unit", "actor", "reason", "key", "binding"])
+def test_malformed_late_context_is_rejected_without_a_type_error(field):
+    from normative_source_identity import canonical_source_id, shared_source
+    context, record, source = fixture()
+    confirm(context, record, source, "м", "user", "Контекст таблицы")
+    alias = attach(context, record, dict(sources=[shared_source(source, 39)]))["sources"][0]
+    alias["confirmed_unit_context"][field] = []
+    assert canonical_source_id(alias) is None
+    assert not unit_confirmed(alias, "м")
+
+
+def test_content_checked_legacy_shared_alias_acquires_late_unit_context_safely():
+    from normative_source_identity import canonical_source_id
+    context, record, source = fixture()
+    confirm(context, record, source, "м", "user", "Контекст таблицы")
+    alias = dict(deepcopy(source), id="shared:39:" + digest(source)[:24], physical_source_id=source["id"])
+    frozen = deepcopy(alias)
+    resolved = attach(context, record, dict(sources=[alias]))["sources"][0]
+    assert resolved["id"] == alias["id"]
+    assert canonical_source_id(resolved) == source["id"]
+    assert unit_confirmed(resolved, "м")
+    assert alias == frozen

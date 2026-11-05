@@ -52,7 +52,8 @@ def validated_parent(source):
     binding=context.get('binding')or{}
     pair=source.get('paired_measurement_context')or{}
     from normative_paired_quantities import source_id
-    if source.get('id')!=source_id(source.get('version_id'),source.get('page'),pair.get('table_id'),
+    from normative_source_identity import canonical_source_id
+    if canonical_source_id(source)!=source_id(source.get('version_id'),source.get('page'),pair.get('table_id'),
             pair.get('unit_cell_id'),pair.get('value_cell_id'),parent_context=context):
         return None
     if (context.get('version')!=VERSION or context.get('scope_verified')is not False
@@ -113,6 +114,18 @@ def scope_issue(source,work):
     if parent is None:
         return None
     parent_text=parent['description']['cell']['text'].casefold()
+    def rail_designations(value):
+        return {prefix.translate(str.maketrans({'p':'р','t':'т'}))+digits for prefix,digits in
+            re.findall(r'(?<!\w)(рт|р|pt|p)\s*[-–]?\s*(\d{2,3})(?!\w)',value.casefold())}
+    # A numbered hierarchy is navigation, not authority to override an explicit
+    # contradictory designation in either the parent work or child material.
+    parent_rails=rail_designations(parent_text)
+    child_rails=rail_designations(text)
+    expected_rails=rail_designations(work)
+    if parent_rails and child_rails and parent_rails.isdisjoint(child_rails):
+        return 'Обозначения рельсов в родительской работе и дочерней строке ПД противоречат друг другу; требуется подтверждение инженерной принадлежности.'
+    if expected_rails and (parent_rails|child_rails) and expected_rails.isdisjoint(parent_rails|child_rails):
+        return 'Количество относится к другому обозначению рельсов в ПД; РТ62 и Р65 нельзя подменять без инженерного основания.'
     def alignment(value):
         return {kind for pattern,kind in ((r'\bкрив\w*','curve'),(r'\bпрям\w*','straight'))if re.search(pattern,value)}
     expected,observed=alignment(work.casefold()),alignment(parent_text)

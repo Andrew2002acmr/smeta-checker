@@ -77,3 +77,12 @@ def test_stale_corpus_cannot_receive_saved_readings():
     index.metadata['pdf_sha256'] = 'd' * 64
     with pytest.raises(ValueError):
         apply(context, record, VERSION, index)
+
+
+def test_legacy_snapshot_without_overlay_is_not_blocked_by_drawing_contract():
+    context, record, index, reading, _ = fixture()
+    index.metadata.pop('document_version_id')
+    assert apply(context, record, VERSION, index) is index
+    save(context, record, VERSION, reading, index)
+    with pytest.raises(ValueError, match='version mismatch'):
+        apply(context, record, VERSION, index)
