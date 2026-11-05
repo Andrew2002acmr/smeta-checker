@@ -1537,6 +1537,17 @@
             "title": "Unit Verified",
             "type": "boolean"
           },
+          "verified_parameters": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "maxItems": 16,
+            "title": "Verified Parameters",
+            "type": "array"
+          },
           "version_id": {
             "anyOf": [
               {
@@ -2259,6 +2270,15 @@
             "title": "Scope Quote",
             "type": "string"
           },
+          "scope_relation": {
+            "default": "same_layer",
+            "enum": [
+              "same_layer",
+              "technological_part"
+            ],
+            "title": "Scope Relation",
+            "type": "string"
+          },
           "scope_state": {
             "default": "unresolved",
             "enum": [
@@ -2270,7 +2290,7 @@
           },
           "source_id": {
             "default": "",
-            "maxLength": 80,
+            "maxLength": 200,
             "title": "Source Id",
             "type": "string"
           },
