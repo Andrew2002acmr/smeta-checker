@@ -507,7 +507,7 @@ onBeforeUnmount(() => {
           <p>По запросу «{{ query }}» нет проектов или ведомостей.</p>
           <UButton color="neutral" variant="outline" @click="query = ''">Сбросить поиск</UButton>
         </div>
-        <div v-else class="dashboard-grid" role="list">
+        <div v-else class="dashboard-grid" role="list" aria-label="Список проектов">
           <UPageCard
             v-for="project in filtered"
             :key="project.id"
