@@ -13,18 +13,19 @@ import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-VERSION = "physical-cells-v10-frame-recovery"
+VERSION = "physical-cells-v11-rejected-geometry-guards"
 
 
 def recover_unit_headers(tables, words):
     """Recover literal unit labels from independent OCR inside physical headers."""
     import unicodedata
+    from pdf_geometry_contract import usable_box
     for table in tables:
         for cell in table['cells']:
-            if cell.get('role') != 'header' or cell.get('colspan',1) != 1:
+            if cell.get('role') != 'header' or cell.get('colspan',1) != 1 or not usable_box(cell):
                 continue
             x0,y0,x1,y1=cell['bbox']
-            observations=[w for w in words if w.get('conf',0)>=75
+            observations=[w for w in words if w.get('conf',0)>=75 and usable_box(w)
                 and x0 <= (w['bbox'][0]+w['bbox'][2])/2 <= x1
                 and y0 <= (w['bbox'][1]+w['bbox'][3])/2 <= y1]
             inside=[w['text'] for w in observations]

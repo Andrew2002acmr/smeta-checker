@@ -366,6 +366,10 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
             return c
         c.update(found_value=p['value'], found_unit=p['unit'], source_ids=[p['source_id']], quote=p['quote'],
             source_anchors=[dict(source_id=p['source_id'], quote=p['quote'], rects=source.get('rects', []))])
+        from normative_source_roles import ocr_cell_quantity_unit_supported, OCR_CELL_UNIT_MESSAGE
+        if kind == 'quantity' and not ocr_cell_quantity_unit_supported(p, source):
+            c['reason'] = OCR_CELL_UNIT_MESSAGE
+            return c
         from normative_source_roles import unread_visual_source, UNREAD_VISUAL_MESSAGE
         if (source['origin'].startswith('ocr') and not source.get('numeric_verified')) or source['origin'] == 'uncertain_table' or unread_visual_source(source):
             c['reason'] = (UNREAD_VISUAL_MESSAGE if unread_visual_source(source)

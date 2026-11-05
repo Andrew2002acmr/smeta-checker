@@ -163,6 +163,9 @@ def _proposal_dependencies(proposal,sources):
         return []
     operands=proposal.get('operand_source_ids') or []
     if proposal.get('operation','direct')=='direct':
+        from normative_source_roles import ocr_cell_quantity_unit_supported
+        if not ocr_cell_quantity_unit_supported(proposal, source):
+            return []
         from normative_source_identity import row_proposal_matches
         if proposal.get('parameter') == 'quantity' and not row_proposal_matches(proposal, source):
             return []

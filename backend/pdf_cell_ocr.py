@@ -13,6 +13,8 @@ from functools import lru_cache
 from statistics import median
 from typing import Any
 
+from pdf_geometry_contract import usable_box
+
 VERSION = 'cell-ocr-v1'
 NUMERIC_RECOVERY_VERSION = 'numeric-crop-recovery-v1'
 BODY_PREPARATION_VERSION = 'physical-body-numbers-v5'
@@ -108,7 +110,8 @@ def literal_unit(words):
 def column_axis(table):
     shifts = []
     for row in sorted({c['row'] for c in table['cells'] if c.get('role') == 'cell'})[:8]:
-        cells = sorted((c for c in table['cells'] if c['row'] == row and c.get('colspan',1) == 1), key=lambda c:c['column'])
+        cells = sorted((c for c in table['cells'] if c['row'] == row and c.get('colspan',1) == 1
+            and usable_box(c)), key=lambda c:c['column'])
         for a,b in zip(cells,cells[1:], strict=False):
             if b['column'] != a['column']+1:
                 continue
@@ -117,8 +120,10 @@ def column_axis(table):
 
 
 def subcolumn_box(table, header, column, axis):
+    if not usable_box(header):
+        return None
     cells = [c for c in table['cells'] if c.get('role') == 'cell' and c['column'] == column
-        and c.get('colspan',1) == 1 and c['row'] > header['row']]
+        and c.get('colspan',1) == 1 and c['row'] > header['row']and usable_box(c)]
     if not cells:
         return None
     box = list(header['bbox'])

@@ -86,6 +86,9 @@ def literal_parameter_issues(proposal, source):
                 or measure('1',proposal.unit)!=measure('1',source['unit']))):
         return [prefix+'единица не совпадает с независимо подтверждённой единицей физического столбца; '
             'упоминание другой единицы в заголовке не меняет измеритель этой ячейки.'+hint]
+    from normative_source_roles import ocr_cell_quantity_unit_supported, OCR_CELL_UNIT_MESSAGE
+    if not ocr_cell_quantity_unit_supported(proposal.model_dump(), source):
+        return [prefix + OCR_CELL_UNIT_MESSAGE + hint]
     scope = proposal.scope_quote
     if (scope and (clean(scope) not in clean(source['text'])
             or not quoted(proposal.value, proposal.quote, scope))):

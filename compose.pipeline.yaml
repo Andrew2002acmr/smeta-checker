@@ -13,20 +13,20 @@ x-offline-model: &offline-model
   ROUTERAI_BASE_URL: http://127.0.0.1:9/v1
 services:
   api:
-    image: smeta-home-v31-backend:engineering-v27-20261106
+    image: smeta-home-v31-backend:engineering-v27-final-20261106
     environment: *offline-model
   migrate:
-    image: smeta-home-v31-backend:engineering-v27-20261106
+    image: smeta-home-v31-backend:engineering-v27-final-20261106
     environment: *offline-model
   worker-pdf:
-    image: smeta-home-v31-backend:engineering-v27-20261106
+    image: smeta-home-v31-backend:engineering-v27-final-20261106
     environment: *offline-model
   worker-llm:
-    image: smeta-home-v31-backend:engineering-v27-20261106
+    image: smeta-home-v31-backend:engineering-v27-final-20261106
     environment: *offline-model
   worker-normative:
-    image: smeta-home-v31-backend:engineering-v27-20261106
+    image: smeta-home-v31-backend:engineering-v27-final-20261106
     environment: *offline-model
   task-relay:
-    image: smeta-home-v31-backend:engineering-v27-20261106
+    image: smeta-home-v31-backend:engineering-v27-final-20261106
     environment: *offline-model

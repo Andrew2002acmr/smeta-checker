@@ -5,6 +5,15 @@ from typing import Any
 VERSION = 'pdf-visible-table-geometry-v1'
 
 
+def usable_box(item):
+    """A rejected region cannot contribute crop or column geometry."""
+    box=item.get('bbox')or[]
+    return bool(isinstance(box,(list,tuple))and len(box)==4
+        and all(type(value)in (int,float)and math.isfinite(value)for value in box)
+        and box[0]<box[2]and box[1]<box[3]
+        and not(item.get('geometry_validation')or{}).get('requires_source_review'))
+
+
 def validate_tables(page, tables: list[dict[str, Any]], **_):
     import pymupdf
     bounds = pymupdf.Rect(page.rect.x0, page.rect.y0, page.rect.x1, page.rect.y1)
