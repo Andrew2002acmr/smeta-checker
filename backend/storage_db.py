@@ -17,8 +17,8 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import create_engine, func, select, or_, delete, cast
-from sqlalchemy.dialects.postgresql import insert, JSONPATH
+from sqlalchemy import create_engine, func, select, or_, delete, cast, case, literal
+from sqlalchemy.dialects.postgresql import insert, JSONPATH, JSONB
 from sqlalchemy.orm import Session
 
 from storage_blobs import BlobStore
@@ -186,6 +186,21 @@ class Repository:
         if saved is None or saved['identity']!=identity:
             raise ValueError('Reusable analysis artifact identity mismatch')
         return saved['payload']
+
+    def compatible_prepared_artifact(self,project_id,inputs):
+        """Only raw extraction with exactly the same explicit source contract."""
+        from analysis_replay import digest
+        with Session(self._engine) as session:
+            row=session.scalar(select(AnalysisArtifact).where(
+                AnalysisArtifact.project_id==UUID(str(project_id)),
+                AnalysisArtifact.stage=='prepared_pdf',AnalysisArtifact.identity['inputs']==inputs
+            ).order_by(AnalysisArtifact.created_at.desc(),AnalysisArtifact.key).limit(1))
+            if row is None:
+                return None
+            ident,payload=dict(row.identity),dict(row.payload)
+            if digest(ident)!=row.key or digest(payload)!=row.sha256:
+                raise ValueError('Reusable preparation artifact hash mismatch')
+            return dict(identity=ident,payload=payload)
 
     def __init__(self, database_url: str, blob_store: BlobStore) -> None:
         self._database_url = database_url
@@ -892,6 +907,20 @@ class Repository:
                 created_at=run.created_at,
             )
 
+    def pin_normative_corpus(self, run_id: UUID, identity: dict[str, Any]) -> dict[str, Any]:
+        """Concurrent first positions agree on one immutable normative release."""
+        from copy import deepcopy
+        with Session(self._engine) as session:
+            run=session.scalar(select(Run).where(Run.id==run_id).with_for_update())
+            if run is None:
+                raise KeyError(str(run_id))
+            pin=(run.config or {}).get('normative_kb_pin')
+            if pin is None:
+                pin=deepcopy(identity)
+                run.config={**dict(run.config or {}),'normative_kb_pin':pin}
+                session.commit()
+            return deepcopy(pin)
+
     def run_pinned_versions(self, run_id: UUID) -> dict[str, UUID]:
         with Session(self._engine) as session:
             return {str(row.source_key): row.version_id for row in session.scalars(
@@ -1020,15 +1049,23 @@ class Repository:
 
     def reserve_deliveries(self, *, limit: int = 100) -> list[dict[str, Any]]:
         """Recover expired execution leases even when the worker hostname is alive."""
-        now = datetime.now(timezone.utc)
         deliveries = []
         with Session(self._engine) as session:
+            # Two relays must not reserve different research/dependency tasks
+            # for the same position concurrently or exceed normative slots.
+            session.execute(select(func.pg_advisory_xact_lock(736238014)))
+            # available_at defaults to the database clock. A dispatcher host
+            # can lag Docker/PostgreSQL or spend time waiting for the lock.
+            now = session.scalar(select(func.clock_timestamp()))
             in_flight = session.scalar(select(func.count()).select_from(TaskOutbox).where(
                 TaskOutbox.task_name != "audit_tasks.normative_position",
                 TaskOutbox.status.in_(["dispatched", "running"]))) or 0
             normative_in_flight = session.scalar(select(func.count()).select_from(TaskOutbox).where(
                 TaskOutbox.task_name == "audit_tasks.normative_position",
                 TaskOutbox.status.in_(["dispatched", "running"]))) or 0
+            busy_positions = {(t.run_id,t.payload.get('position_index')) for t in session.scalars(
+                select(TaskOutbox).where(TaskOutbox.task_name == 'audit_tasks.normative_position',
+                    TaskOutbox.status.in_(['dispatched','running'])))}
             eligible = select(TaskOutbox).where(
                 TaskOutbox.status.in_(["pending", "dispatched", "running"]),
                 TaskOutbox.available_at <= now,
@@ -1040,6 +1077,8 @@ class Repository:
                 .limit(limit).with_for_update(skip_locked=True)).all())
             for row in rows:
                 normative = row.task_name == "audit_tasks.normative_position"
+                if normative and row.status == 'pending' and (row.run_id,row.payload.get('position_index')) in busy_positions:
+                    continue
                 if row.status == "pending" and (normative_in_flight >= 2 if normative else in_flight >= 32):
                     continue
                 run = session.get(Run, row.run_id)
@@ -1052,6 +1091,7 @@ class Repository:
                 if row.status == "pending":
                     if normative:
                         normative_in_flight += 1
+                        busy_positions.add((row.run_id,row.payload.get('position_index')))
                     else:
                         in_flight += 1
                 if row.status != "dispatched":
@@ -1189,12 +1229,15 @@ class Repository:
 
     def normative_stage(self, run_id, index):
         with Session(self._engine) as session:
-            row = session.scalar(select(TaskOutbox).where(TaskOutbox.run_id == run_id,
-                TaskOutbox.task_key == f"normative:{index}"))
-            if not row:
+            from normative_delivery_status import stages
+            rows = list(session.scalars(select(TaskOutbox).where(TaskOutbox.run_id == run_id,
+                TaskOutbox.task_name == 'audit_tasks.normative_position',
+                TaskOutbox.payload['position_index'].as_integer() == index)))
+            status = stages(rows).get((run_id,index))
+            if status is None:
                 return None
-            return dict(status=row.status, attempts=row.attempts,
-                message="Нормативный этап прерван; автоматический платный повтор отключён." if row.status == "failed" else "")
+            return dict(status=status, attempts=max(r.attempts for r in rows),
+                message="Нормативный этап прерван; автоматический платный повтор отключён." if status == "failed" else "")
 
     def schedule_local_normative_refresh(self, run_id, revision):
         """Versioned local-only upgrades reuse position slots; no new model calls."""
@@ -1232,16 +1275,81 @@ class Repository:
             session.commit()
             return scheduled
 
+    @staticmethod
+    def _material_replay_source_ids(items, cards, proofs, proposals):
+        """Referenced proof operands/anchors only; never the full source registry."""
+        ids=set()
+        list_keys={'project_source_ids','normative_source_ids','source_ids',
+            'root_source_ids','operand_source_ids'}
+        scalar_keys={'source_id','base_source_id','adjustment_source_id','norm_source_id'}
+        def visit(value):
+            if isinstance(value,dict):
+                for key,child in value.items():
+                    if key in list_keys and isinstance(child,list):
+                        ids.update(v for v in child if isinstance(v,str))
+                    elif key in scalar_keys and isinstance(child,str):
+                        ids.add(child)
+                    elif key=='source_sha256' and isinstance(child,dict):
+                        ids.update(k for k in child if isinstance(k,str))
+                    visit(child)
+            elif isinstance(value,list):
+                for child in value:
+                    visit(child)
+        visit([items,cards,proofs,proposals])
+        return sorted(ids)
+
+
     def normative_validation_context(self, run_id, indices=None):
         """Batch-read verdict fields and replayable proofs, without OCR snapshots."""
         wanted = set(indices) if indices is not None else None
         with Session(self._engine) as session:
-            outbox = select(TaskOutbox).where(
-                TaskOutbox.run_id == run_id, TaskOutbox.task_name == 'audit_tasks.normative_position')
-            result: dict[int, dict[str, Any]] = {r.payload['position_index']: {'stage': r.status}
-                for r in session.scalars(outbox)
-                if type(r.payload.get('position_index')) is int and r.payload['position_index'] >= 0
-                and (wanted is None or r.payload['position_index'] in wanted)}
+            from normative_delivery_status import stages
+            result: dict[int, dict[str, Any]] = {index: {'stage': status}
+                for (_,index),status in stages(session.scalars(select(TaskOutbox).where(
+                    TaskOutbox.run_id == run_id, TaskOutbox.task_name == 'audit_tasks.normative_position'))).items()
+                if wanted is None or index in wanted}
+            material_trace=func.jsonb_path_exists(
+                NormativeReview.payload['position_check']['evidence_trace'],
+                cast('$[*] ? (@.kind.type() == "string" && '
+                    '(@.kind == "planned_material_allocation_v1" || @.kind == "workbook_area_rate_v1" || '
+                    '@.kind == "parent_geometry_dependency_v1" || '
+                    '@.kind == "single_base_price_application_v1"))',JSONPATH))
+            material_parameters=func.jsonb_path_query_array(
+                NormativeReview.payload['position_check']['parameter_proposals'],
+                cast('$[*] ? (@.parameter.type() == "string" && (@.parameter == "quantity" || '
+                    '@.parameter == "thickness" || @.parameter == "coefficient" || @.parameter == "unit_scale"))',JSONPATH))
+            # Preserve every original typed pricing choice for this proof class:
+            # a conflicting third proposal must remain a replay failure. Other
+            # review classes and tool/OCR events keep their smaller projection.
+            price_trace=func.jsonb_path_exists(
+                NormativeReview.payload['position_check']['evidence_trace'],
+                cast('$[*] ? (@.kind.type() == "string" && '
+                    '@.kind == "single_base_price_application_v1")',JSONPATH))
+            price_choices=case((price_trace,func.jsonb_path_query_array(
+                    NormativeReview.payload['position_check']['evidence_trace'],
+                    cast('$[*] ? (@.kind.type() == "string" && '
+                        '@.kind == "norm_thickness_adjustment_proposal_v1")',JSONPATH))),
+                else_=literal([],type_=JSONB))
+            # Rebuild a dimensioned resource rate from its original typed rows.
+            # Keep every row/event for the proved norm and all other selected
+            # norms, so a conflicting candidate cannot disappear in a batch.
+            rate_trace=func.jsonb_path_exists(
+                NormativeReview.payload['position_check']['evidence_trace'],
+                cast('$[*] ? (@.kind == "workbook_area_rate_v1" && '
+                    'exists(@.resource_rate_basis))',JSONPATH))
+            rate_norms=func.jsonb_path_query_array(
+                NormativeReview.payload['position_check']['evidence_trace'],
+                cast('$[*] ? (@.kind == "workbook_area_rate_v1").resource_rate_basis.norm_id',JSONPATH))
+            rate_sources=func.jsonb_path_query_array(
+                NormativeReview.payload['position_check']['items'],
+                cast('$[*] ? (@.state == "confirmed" && '
+                    '@.claim_ids[*] == "normative:applicability").normative_source_ids[*]',JSONPATH))
+            rate_candidates=case((rate_trace,func.jsonb_path_query_array(
+                NormativeReview.payload['position_check']['evidence_trace'],
+                cast('$[*] ? (@.kind == "normative_resource_consumption_candidates" && '
+                    '(@.norm_id == $norms[*] || @.norm_source_id == $sources[*]))',JSONPATH),
+                func.jsonb_build_object('norms',rate_norms,'sources',rate_sources))),
+                else_=literal([],type_=JSONB))
             rows = session.execute(select(NormativeReview.id, NormativeReview.position_index,
                 NormativeReview.payload['position_key'].as_string(),
                 NormativeReview.payload['position_check']['items'],
@@ -1260,28 +1368,52 @@ class Repository:
                     '(@.kind == "claim-parser-corrections-v1" || '
                     '@.kind == "workbook_arithmetic_proof_v1" || '
                     '@.kind == "explicit_curb_column_quantity_v1" || '
-                    '@.kind == "parent_geometry_dependency_v1"))', JSONPATH))).where(
+                    '@.kind == "parent_geometry_dependency_v1" || '
+                    '@.kind == "planned_material_allocation_v1" || '
+                    '@.kind == "workbook_area_rate_v1" || '
+                    '@.kind == "single_base_price_application_v1"))', JSONPATH)).op('||')(price_choices).op('||')(rate_candidates),
+                case((material_trace,material_parameters),else_=None),
+                case((material_trace,NormativeReview.payload['position_check']['coverage']['coefficient_policy'].as_string()),
+                    else_=None)).where(
                     NormativeReview.run_id == run_id, NormativeReview.kind == 'check',
                     *((NormativeReview.position_index.in_(sorted(wanted)),) if wanted is not None else ()))
                 .distinct(NormativeReview.position_index)
                 .order_by(NormativeReview.position_index, NormativeReview.created_at.desc(), NormativeReview.id.desc()))
             scoped_reviews={}
-            for review_id, index, key, items, summary, cards, schema, execution, revision, pipeline, proofs in rows:
+            material_reviews={}
+            for review_id, index, key, items, summary, cards, schema, execution, revision, pipeline, proofs, parameters, policy in rows:
                 result.setdefault(index, {})['review'] = dict(position_key=key, items=items or [], summary=summary or '',
                     execution_state=execution or 'complete',
                     parameter_cards=cards or [], parameter_schema_version=schema or 0, local_rules_version=revision or 0,
                     pipeline_version=pipeline or 0, evidence_trace=proofs or [])
                 if any(p.get('kind') in {'explicit_curb_column_quantity_v1','parent_geometry_dependency_v1'} for p in proofs or []):
                     scoped_reviews[review_id]=index
+                if any(p.get('kind') in {'planned_material_allocation_v1','workbook_area_rate_v1','parent_geometry_dependency_v1','single_base_price_application_v1'} for p in proofs or []):
+                    scoped_reviews[review_id]=index
+                    material_reviews[review_id]=self._material_replay_source_ids(items,cards,proofs,parameters)
+                    result[index]['review'].update(parameter_proposals=parameters or [],
+                        coverage={'coefficient_policy':policy} if policy is not None else {})
             if scoped_reviews:
-                # Only certified column conflicts need literal project sources
-                # and quantity proposals. Do not load full OCR/tool snapshots
-                # or every review's source registry into the result list.
-                details=session.execute(select(NormativeReview.id,
-                    func.jsonb_path_query_array(NormativeReview.payload['position_check']['sources'],
-                        cast('$[*] ? (@.kind == "project")',JSONPATH)),
-                    func.jsonb_path_query_array(NormativeReview.payload['position_check']['parameter_proposals'],
-                        cast('$[*] ? (@.parameter == "quantity" || @.parameter == "thickness")',JSONPATH)))
+                # Material replay needs raw operands and its SP/norm anchors.
+                # Other rows retain the earlier project-only bounded projection.
+                project_sources=func.jsonb_path_query_array(NormativeReview.payload['position_check']['sources'],
+                    cast('$[*] ? (@.kind == "project")',JSONPATH))
+                source_projection=project_sources
+                proposal_projection=func.jsonb_path_query_array(
+                    NormativeReview.payload['position_check']['parameter_proposals'],
+                    cast('$[*] ? (@.parameter == "quantity" || @.parameter == "thickness")',JSONPATH))
+                if material_reviews:
+                    variables=case(*[(NormativeReview.id==rid,literal({'ids':ids},type_=JSONB))
+                        for rid,ids in material_reviews.items()],else_=literal({'ids':[]},type_=JSONB))
+                    referenced_sources=func.jsonb_path_query_array(
+                        NormativeReview.payload['position_check']['sources'],
+                        cast('$[*] ? (@.id.type() == "string" && @.kind.type() == "string" && @.id == $ids[*] && '
+                            '(@.kind == "project" || @.kind == "normative"))',JSONPATH),variables)
+                    source_projection=case((NormativeReview.id.in_(material_reviews),referenced_sources),
+                        else_=project_sources)
+                    proposal_projection=case((NormativeReview.id.in_(material_reviews),material_parameters),
+                        else_=proposal_projection)
+                details=session.execute(select(NormativeReview.id,source_projection,proposal_projection)
                     .where(NormativeReview.id.in_(scoped_reviews)))
                 for review_id,sources,proposals in details:
                     result[scoped_reviews[review_id]]['review'].update(sources=sources or [],
@@ -1305,9 +1437,18 @@ class Repository:
         import json
         fingerprint = hashlib.sha256(json.dumps([str(run_id), index, kind, payload, actor], sort_keys=True, ensure_ascii=False).encode()).hexdigest()
         with Session(self._engine) as session:
+            # Serialize append+dependency scheduling for one run. No provider
+            # calls occur inside this short transaction.
+            session.execute(select(func.pg_advisory_xact_lock(int.from_bytes(run_id.bytes[:7], 'big'))))
+            previous = session.scalar(select(NormativeReview).where(NormativeReview.run_id == run_id,
+                NormativeReview.position_index == index, NormativeReview.kind == kind)
+                .order_by(NormativeReview.created_at.desc(), NormativeReview.id.desc()).limit(1))
             session.execute(insert(NormativeReview).values(id=uuid4(), run_id=run_id, position_index=index,
                 kind=kind, payload=payload, actor=actor, fingerprint=fingerprint)
                 .on_conflict_do_nothing(index_elements=[NormativeReview.fingerprint]))
+            if kind == 'check':
+                from normative_followup_outbox import after_review
+                after_review(self,session,run_id,index,payload,previous.payload if previous else None)
             session.commit()
             row = session.scalar(select(NormativeReview).where(NormativeReview.fingerprint == fingerprint))
             return dict(id=str(row.id), kind=row.kind, actor=row.actor, created_at=row.created_at, payload=dict(row.payload))
@@ -1593,11 +1734,12 @@ class Repository:
                     if row["queue"] == "pdf":
                         record["pdf_jobs"] += row["job_count"]
             if records:
-                for run_key, task_status, count in session.execute(select(
-                    TaskOutbox.run_id, TaskOutbox.status, func.count()).where(
+                from normative_delivery_status import stages
+                for (run_key,_), task_status in stages(session.scalars(select(TaskOutbox).where(
                     TaskOutbox.run_id.in_(list(records)), TaskOutbox.task_name == "audit_tasks.normative_position"
-                ).group_by(TaskOutbox.run_id, TaskOutbox.status)):
-                    records[run_key].setdefault("normative_counts", {})[task_status] = count
+                ))).items():
+                    counts = records[run_key].setdefault("normative_counts", {})
+                    counts[task_status] = counts.get(task_status,0)+1
             return list(records.values())
 
     def count_runs(self, project_id: UUID) -> int:

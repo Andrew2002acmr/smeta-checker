@@ -17,7 +17,7 @@ COPY alembic ./alembic
 COPY scripts ./scripts
 COPY *.py ./
 RUN useradd --create-home --uid 10001 app \
-  && mkdir -p /srv/smeta/.audit_blobs /srv/smeta/.audit_cache \
+  && mkdir -p /srv/smeta/.audit_blobs /srv/smeta/.audit_cache /srv/smeta/.normative-sqlite-cache \
   && chown -R app:app /srv/smeta
 ENV PATH="/srv/smeta/.venv/bin:$PATH" \
     BLOB_STORE_URL="file:///srv/smeta/.audit_blobs"

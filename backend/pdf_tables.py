@@ -604,12 +604,21 @@ def raster_tables(page, *, rotation=0, timeout=90):
         image_path = Path(directory) / "page.png"
         result_path = Path(directory) / "tables.json"
         image.save(image_path)
-        subprocess.run(
-            [sys.executable, "-m", "pdf_tables", str(image_path), str(result_path)],
-            check=True,
-            capture_output=True,
-            timeout=timeout,
-        )
+        # A cold OCR/table model on a complex sheet can exceed the first
+        # budget. Retry once on that technical failure only, reusing the same
+        # rendered image. A second timeout remains an explicit page error.
+        for attempt, budget in enumerate((timeout, timeout * 2)):
+            try:
+                subprocess.run(
+                    [sys.executable, "-m", "pdf_tables", str(image_path), str(result_path)],
+                    check=True,
+                    capture_output=True,
+                    timeout=budget,
+                )
+                break
+            except subprocess.TimeoutExpired:
+                if attempt:
+                    raise
         tables = json.loads(result_path.read_text())
 
     def mapped(box):

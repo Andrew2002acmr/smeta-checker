@@ -162,7 +162,12 @@ def resolve_pdf_name(ref, pool_keys):
     return None, NOT_FOUND
 
 
-def resolve_position_pdfs(refs, pool_keys, basis_code="", bindings=None):
+def multi_pdf_context_enabled():
+    import os
+    return os.environ.get('AUDIT_MULTI_PDF_CONTEXT','0') == '1'
+
+
+def resolve_position_pdfs(refs, pool_keys, basis_code="", bindings=None, *, allow_multiple=False):
     """Resolve a position once for both preflight and execution.
 
     Returns (matched keys, missing references, ambiguity details, error).
@@ -200,7 +205,7 @@ def resolve_position_pdfs(refs, pool_keys, basis_code="", bindings=None):
     if missing or ambiguous:
         details = [f"'{ref}' отсутствует" for ref in missing] + ambiguous
         return matched, missing, ambiguous, "Не удалось привязать PDF: " + "; ".join(details)
-    if len(matched) > 1:
+    if len(matched) > 1 and not allow_multiple:
         return (matched, [], [],
                 "Позиция ссылается на несколько PDF (" + ", ".join(matched) + "); "
                 "проверка нескольких документов не поддерживается — укажите один файл")

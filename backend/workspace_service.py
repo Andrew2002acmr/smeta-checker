@@ -195,8 +195,10 @@ def present_results(context, record, only=None) -> list[ResultDTO]:
         )
     from normative_verdict import apply_parent_verdicts
     from normative_parent_basis import verified_geometry_dependency
+    from normative_verdict import verified_allocation_dependency
     verified_dependencies={index for index, entry in validation.items() if index in links
-        and verified_geometry_dependency(entry.get('review') or {},positions.get(index))}
+        and (verified_geometry_dependency(entry.get('review') or {},positions.get(index))
+            or verified_allocation_dependency(entry.get('review') or {},positions.get(index)))}
     return apply_parent_verdicts(result, enabled=bool(record['config'].get('normative_after_match')) or bool(validation),
         running=record['status'] == 'running',verified_dependencies=verified_dependencies)
 

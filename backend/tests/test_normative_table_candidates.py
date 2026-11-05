@@ -56,6 +56,19 @@ def test_known_construction_parameters_are_constraints_not_just_ranking_hints():
     assert grouped_totals(value,'Смесь 0/31,5',height_cm='18')==[]
 
 
+def test_parenthesized_depth_and_material_family_constrain_retrieval_without_vor_amount():
+    value=table()
+    for c in value['cells']:
+        if c['cell_id'] in {'m0','m2'}:
+            c['text']='Верхний слой основания ЩПС (25см)'
+    assert grouped_totals(value,'Устройство основания ЩПС',height_cm='25')
+    assert grouped_totals(value,'Устройство основания ЩПС',height_cm='18')==[]
+    for c in value['cells']:
+        if c['cell_id'] in {'m0','m2'}:
+            c['text']='Верхний слой покрытия А16Вл (6см)'
+    assert grouped_totals(value,'Устройство основания ЩПС')==[]
+
+
 def test_single_total_column_is_a_direct_candidate_not_a_synthetic_sum():
     value = table()
     value['cells'] = [c for c in value['cells'] if c['cell_id'] not in {'s2','m2','u2','u3','v2','v3'}]

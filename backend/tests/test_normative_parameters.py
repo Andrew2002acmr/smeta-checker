@@ -1,6 +1,15 @@
 from copy import deepcopy
 from types import SimpleNamespace
-from normative_parameters import build_cards, quoted, conditions
+from normative_parameters import build_cards, quoted, conditions, unit_quoted
+
+
+def test_attached_physical_units_are_literal_numeric_boundaries_not_word_suffixes():
+    for value,unit,text in [('25','см','h=25см'),('0.24','м','h=0,24м'),('431','м2','Площадь 431м²'),
+            ('2.09','т','Масса 2,09т')]:
+        assert quoted(value,text,text)
+        assert unit_quoted(unit,text)
+    for text in ['Код А25см','25смета','125см','25смесь','0,25м']:
+        assert not quoted('25',text,text)
 
 
 def position(index=0, volume='431.61', unit='м2', **extra):

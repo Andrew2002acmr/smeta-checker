@@ -2,6 +2,7 @@
 from copy import deepcopy
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -133,3 +134,94 @@ def test_actual_numeric_cards_survive_full_enrich_while_applicability_stays_unkn
     assert next(c for c in checked['parameter_cards'] if c['id']=='thickness')['state']=='confirmed'
     assert all(i['state']=='needs_facts' for i in checked['items'] if 'normative:applicability' in i.get('claim_ids',[]))
     assert enrich(position,checked,{position.index:position},{})==checked
+
+
+def expert_fixture(position,result,maximum='6'):
+    from analysis_replay import digest
+    from normative_laying_width_scope import confirm_pass_width,supply_pass_width
+    class Repository:
+        supports_analysis_replay=True
+        def __init__(self):self.artifacts={}
+        def save_analysis_artifact(self,project,ident,payload):
+            return deepcopy(self.artifacts.setdefault(digest(ident),dict(identity=ident,payload=payload))['payload'])
+        def analysis_artifact(self,project,key):return deepcopy(self.artifacts.get(key))
+    proposal=next(p for p in result['parameter_proposals'] if p['parameter']=='thickness')
+    source=next(s for s in result['sources'] if s['id']==proposal['source_id'])
+    version=source['version_id']
+    record=dict(project_id='project',vor_version_id='vor',config=dict(pdf_versions={'pd':version},
+        position_inputs=[position.model_dump(mode='json')]))
+    ctx=SimpleNamespace(repository=Repository())
+    receipt=confirm_pass_width(ctx,record,maximum,'user','Принятый способ работ этой ВОР','Да, проходами до 6 м')
+    def add(s):
+        result['sources'].append(s)
+        return dict(source_id=s['id'])
+    tools=SimpleNamespace(version=version,_add=add,preferred=[])
+    supply_pass_width(ctx,record,position,tools)
+    if tools.preferred:
+        for item in result['items']:
+            if 'normative:applicability' in item.get('claim_ids',[]):
+                item['project_source_ids']+=tools.preferred
+    return ctx,record,receipt,tools
+
+
+def test_explicit_expert_width_discharges_only_width_guard():
+    position,result=actual()
+    original=deepcopy(result)
+    expert_fixture(position,result)
+    assert not findings(position,result)
+    assert result['parameter_cards']==original['parameter_cards']
+    assert result['parameter_proposals']==original['parameter_proposals']
+    assert all(a['state']==b['state'] for a,b in zip(result['items'],original['items'],strict=True))
+    assert result['sources'][:-1]==original['sources']
+
+
+@pytest.mark.parametrize('change',['over_limit','uncited','wrong_work','wrong_version','wrong_stage',
+    'no_author','no_quote','wrong_assertion','unconfirmed_thickness','unresolved_scope'])
+def test_expert_width_requires_exact_work_pins_and_independent_pd_thickness(change):
+    from analysis_replay import digest
+    position,result=actual()
+    expert_fixture(position,result,maximum='7' if change=='over_limit' else '6')
+    source=result['sources'][-1]
+    proof=source['expert_laying_width']
+    if change=='uncited':
+        for item in result['items']:
+            item['project_source_ids']=[sid for sid in item['project_source_ids'] if sid!=source['id']]
+    elif change=='wrong_work':
+        proof['scope']='other'
+    elif change=='wrong_version':
+        source['version_id']='other'
+    elif change=='wrong_stage':
+        proof['identity']['stage']='other'
+    elif change=='no_author':
+        proof['fact']['actor']=''
+    elif change=='no_quote':
+        proof['fact']['user_quote']=''
+    elif change=='wrong_assertion':
+        proof['fact']['assertion']='as_built'
+    elif change=='unconfirmed_thickness':
+        next(c for c in result['parameter_cards'] if c['id']=='thickness')['state']='needs_facts'
+    elif change=='unresolved_scope':
+        next(p for p in result['parameter_proposals'] if p['parameter']=='thickness')['scope_state']='unresolved'
+    if change not in ('uncited','over_limit','unconfirmed_thickness','unresolved_scope'):
+        old=source['id']
+        source['id']='expert:laying-width:'+digest(proof)[:32]
+        for item in result['items']:
+            item['project_source_ids']=[source['id'] if sid==old else sid for sid in item['project_source_ids']]
+    assert findings(position,result)
+
+
+@pytest.mark.parametrize('field',['project_id','vor_version_id','pdf_versions','work'])
+def test_expert_fact_is_not_loaded_for_changed_inputs(field):
+    from normative_laying_width_scope import supply_pass_width
+    position,result=actual()
+    ctx,record,_,tools=expert_fixture(position,result)
+    if field=='pdf_versions':
+        record['config'][field]={'pd':'different'}
+    elif field=='work':
+        position=position.model_copy(update={'comment':'changed'})
+        record['config']['position_inputs']=[position.model_dump(mode='json')]
+    else:
+        record[field]='different'
+    tools.preferred=[]
+    supply_pass_width(ctx,record,position,tools)
+    assert not tools.preferred

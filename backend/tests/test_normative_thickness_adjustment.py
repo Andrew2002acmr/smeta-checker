@@ -156,6 +156,26 @@ def test_false_green_74_is_demoted_without_accusing_vor_or_changing_geometry():
     assert result == original
 
 
+def test_verified_physical_header_geometry_still_requires_norm_thickness_adjustment():
+    position,result=asphalt_case()
+    pd=next(s for s in result['sources'] if s['id']=='pd')
+    pd.update(origin='ocr_verified_header',numeric_verified=True,
+        verified_parameters=[dict(parameter='thickness',value='5',unit='см')])
+    assert check(position,result)
+    selected_adjustment(result)
+    assert not check(position,result)
+
+
+def test_preceding_material_paragraph_does_not_contaminate_selected_literal_layer():
+    position,result=asphalt_case()
+    position.work_name=position.work_name.replace('верхнего слоя усиления','слоя покрытия')
+    pd=next(s for s in result['sources'] if s['id']=='pd')
+    pd['text']='Нижний слой основания — ЩПС, h=20 см.\n'+pd['text']
+    result['parameter_proposals'][1]['scope_quote']=pd['text']
+    selected_adjustment(result)
+    assert not check(position,result)
+
+
 def test_literal_cross_table_step_and_signed_arithmetic_pass_without_promoting_any_claim():
     position, result = asphalt_case()
     selected_adjustment(result)

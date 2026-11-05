@@ -23,7 +23,9 @@ _PROPERTIES = {
 }
 _LABEL_RE = re.compile("|".join(f"(?P<{key}>{value})" for key, value in _PROPERTIES.items()), re.I)
 _STANDARD_RE = re.compile(r"\b(?:ГОСТ|СП|ТУ)\s*[\d][\d.\-–]*(?:\s*[-–]\s*\d+)?", re.I)
-_CODE_RE = re.compile(r"(?<!\w)(?:М\s*\d{2,4}|В\s*\d{1,3}|ПБЗГУ[®\-\s]*\d+|ГБП[-–\d\wА-Яа-яЁё]+|Т[-–]\d+[-–][А-ЯA-Z]+|DIN\s*\d+|Акер)(?!\w)", re.I)
+_CODE_RE = re.compile(r"(?<!\w)(?:[МM]\s*\d{2,4}|В\s*\d{1,3}|ПБЗГУ[®\-\s]*\d+|ГБП[-–\d\wА-Яа-яЁё]+|Т[-–]\d+[-–][А-ЯA-Z]+|DIN\s*\d+|Акер)(?!\w)", re.I)
+_INDEPENDENT_NOTE = re.compile(r'(?:\n|;)[ \t]*(?=(?:Устройство|Уплотнение|Укладка|Монтаж|Демонтаж|'
+    r'Расход|Коэффициент|Плотность|Мощность|Температура|Требуется|Необходимо)\b)',re.I)
 
 
 def normalize(text):
@@ -160,7 +162,8 @@ def technical_specs(name, comment, position_type, cells, formula=""):
             result.append(ClaimSpec(claim_id='attribute:comment:condition', kind=ClaimKind.ATTRIBUTE,
                 label=text, cells=cells, expected_text=text, predicate='advisory', required=False))
             result.append(ClaimSpec(claim_id='method:comment:equipment:1', kind=ClaimKind.METHOD,
-                label=typed_method, cells=cells, expected_text=typed_method, predicate='text', required=True))
+                label=typed_method, cells=cells, expected_text=typed_method, predicate='text',
+                property_label='equipment_function',required=True))
             continue
         if origin == 'comment' and paver_class_condition(text):
             # A later width/power predicate must not swallow the class or an
@@ -173,7 +176,8 @@ def technical_specs(name, comment, position_type, cells, formula=""):
                 label=text,cells=cells,expected_text=text,predicate='advisory',required=False))
             for number,equipment in enumerate(metadata,1):
                 result.append(ClaimSpec(claim_id=f'method:comment:equipment:{number}',kind=ClaimKind.METHOD,
-                    label=equipment,cells=cells,expected_text=equipment,predicate='text',required=True))
+                    label=equipment,cells=cells,expected_text=equipment,predicate='text',
+                    property_label='equipment_function',required=True))
             continue
         if origin=='comment':
             remainder,machines=comment_machine_clauses(text)
@@ -183,15 +187,23 @@ def technical_specs(name, comment, position_type, cells, formula=""):
                     expected_text='\n'.join(clause for clause,_ in machines),predicate='advisory',required=False))
                 for number,(_,method) in enumerate(machines,1):
                     result.append(ClaimSpec(claim_id=f'method:comment:equipment:{number}',kind=ClaimKind.METHOD,
-                        label=method,cells=cells,expected_text=method,predicate='text',required=True))
+                        label=method,cells=cells,expected_text=method,predicate='text',
+                        property_label='equipment_function',required=True))
                 text=remainder
         labels = list(_LABEL_RE.finditer(text))
         covered = []
+        separated_notes = []
         for number, label in enumerate(labels):
             end = labels[number + 1].start() if number + 1 < len(labels) else len(text)
+            boundary=_INDEPENDENT_NOTE.search(text,label.end(),end)
+            if boundary:
+                # A new physical note is not part of the preceding property.
+                # Keep it as a separate mandatory condition, not discarded text.
+                separated_notes.append(text[boundary.end():end].strip())
+                end=boundary.start()
             clause = text[label.start():end].strip(" ,;.\n")
             prop = label.lastgroup or ''
-            tail = clause[label.end() - label.start():].strip(" :=,()")
+            tail = clause[label.end() - label.start():].strip(" :=,()\n\r\t")
             measurements = iter_measurements(tail)
             if prop=='area' and len(measurements)==1 and measurements[0].dimension!='area':
                 height=re.search(r'(?<!\w)h\s*=\s*(\d+(?:[.,]\d+)?)\s*(мм|см|м)\b',tail,re.I)
@@ -224,11 +236,20 @@ def technical_specs(name, comment, position_type, cells, formula=""):
                 predicate = "measurement"
             else:
                 value, predicate = tail, "unsupported"
+            normative_instruction=prop=='consumption' and re.fullmatch(r'нормир\w*',label.group(),re.I)
+            if normative_instruction:
+                # Retain the legacy claim handle for frozen reviews. Its exact
+                # semantic definition, not that opaque handle, controls the task.
+                value,predicate=tail,'text'
             result.append(ClaimSpec(
                 claim_id=f"{kind.value}:{origin}:{prop}:{number + 1}", kind=kind,
                 label=clause, cells=cells, expected_text=value,
-                predicate=predicate, property_label=prop, required=True))
+                predicate=predicate, property_label='normative_instruction' if normative_instruction else prop, required=True))
             covered.append((label.start(), end))
+        if separated_notes:
+            result.append(ClaimSpec(claim_id=f'attribute:{origin}:separate_notes',kind=ClaimKind.ATTRIBUTE,
+                label='\n'.join(separated_notes),expected_text='\n'.join(separated_notes),
+                cells=cells,predicate='text',required=True))
         for regex, predicate in ((_STANDARD_RE, "designation"), (_CODE_RE, "designation")):
             for match in regex.finditer(text):
                 result.append(ClaimSpec(

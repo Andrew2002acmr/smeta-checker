@@ -167,6 +167,7 @@ class NormativeContextAnalysis(DTO):
 
 
 class NormativeCheckSource(DTO):
+    verified_parameters: list[dict[str, str]] = Field(default_factory=list, max_length=16)
     numeric_verified: bool = False
     unit_verified: bool = False
     unit: str = ''
@@ -203,6 +204,7 @@ class NormativeNumericCondition(DTO):
 
 
 class NormativeParameterProposal(DTO):
+    scope_relation: Literal['same_layer', 'technological_part'] = 'same_layer'
     operation: Literal['direct', 'sum'] = 'direct'
     operand_source_ids: list[str] = Field(default_factory=list, max_length=12)
     scope_state: Literal['verified', 'unresolved'] = 'unresolved'
@@ -210,7 +212,7 @@ class NormativeParameterProposal(DTO):
     parameter: Literal['quantity', 'thickness', 'coefficient', 'unit_scale']
     value: str = Field(max_length=40)
     unit: str = Field(max_length=30)
-    source_id: str = Field(default='', max_length=80)
+    source_id: str = Field(default='', max_length=200)
     quote: str = Field(default='', max_length=900)
     conditions: list[NormativeNumericCondition] = Field(default_factory=list, max_length=6)
 

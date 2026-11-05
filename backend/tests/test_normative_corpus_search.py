@@ -55,3 +55,13 @@ def test_explicit_old_edition_is_not_replaced_by_current_edition(corpus):
 def test_empty_rate_scope_is_valid_and_does_not_assume_electrical_collection(corpus):
     assert corpus.gesn_scope == []
     assert corpus.search('01-01-001-01',kind='GESN') == []
+
+
+def test_numbered_section_survives_missing_clause_label_without_cross_document_or_prefix_match(corpus):
+    with sqlite3.connect(corpus.path) as db:
+        for sid,label,text in [('old','page-4-offset-0','Header\n  5.2 Определение свойства.'),
+                               ('new','page-4-offset-0','Header\n  5.20 Другое свойство.')]:
+            db.execute('UPDATE clauses SET label=?,text=? WHERE id=?',(label,text,sid))
+    result=corpus.search('ГОСТ Р 52056-2003 пункт 5.2',kind='ALL',limit=1)
+    assert len(result)==1 and result[0]['id']=='old' and result[0]['exact_code']
+    assert not any(r['exact_code'] for r in corpus.search('ГОСТ Р 52056-2025 пункт 5.2',kind='ALL'))

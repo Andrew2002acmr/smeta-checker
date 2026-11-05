@@ -21,21 +21,34 @@ def _unit(value):
 
 def _layer(work):
     stage = re.search(r'двухслойн[^)]*?слой\s*([12])\b', work, re.I)
+    if stage is None:
+        stage = re.search(r'\(\s*слой\s*([12])\s*\)',work,re.I)
     height = re.search(r'\bh\s*=\s*(\d+(?:[.,]\d+)?)\s*см', work, re.I)
     kind = next((v for v in ('нижнего', 'среднего', 'верхнего') if v+' слоя' in work.casefold()), None)
-    if not stage or not height or not kind:
+    generic_kind=next((v for v in ('основания','покрытия') if 'слоя '+v in work.casefold()),None)
+    if not stage or not height or not (kind or generic_kind):
         return None
     signature = re.sub(r'\([^)]*двухслойн[^)]*\)', '', work, flags=re.I)
+    signature = re.sub(r'\(\s*слой\s*[12]\s*\)', '', signature, flags=re.I)
     signature = re.sub(r'\bh\s*=\s*\d+(?:[.,]\d+)?\s*см', '', signature, flags=re.I)
     signature = re.sub(r'[^\w]+', '', signature.casefold())
-    return dict(stage=int(stage[1]), height=decimal(height[1]), kind=kind, signature=signature)
+    return dict(stage=int(stage[1]), height=decimal(height[1]), kind=kind or generic_kind,
+        generic=kind is None,signature=signature)
 
 
-def layer_group(position, related) -> dict[str, Any] | None:
+def layer_group(position, related, positions=None) -> dict[str, Any] | None:
     own = _layer(position.work_name)
     quantity = decimal(position.volume)
     if not own or not own['height'] or not quantity or _unit(position.unit) != 'м2':
         return None
+    if own['generic']:
+        if positions is None:
+            return None  # Unlocated lookalike rows cannot establish the assembly.
+        from normative_layer_assembly import layer_assembly
+        assembly=layer_assembly(position,positions)
+        if not assembly or any(decimal(v)!=quantity for v in assembly['operation_quantities']):
+            return None
+        return dict(assembly,quantity=quantity)
     matches = []
     for row in related:
         layer = _layer(row['work'])
