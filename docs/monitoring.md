@@ -42,7 +42,7 @@ docker compose -f compose.yaml -f compose.monitoring.yaml stop grafana prometheu
 ### Аудиты (бизнес-метрики)
 - Количество запусков и их статусы (`running`/`done`/`failed`) — SQL по таблице `runs`.
 - Длительность подготовки PDF и позиций — логи `audit_tasks`.
-- Ошибки LLM/OCR — логи воркеров и Langfuse.
+- Ошибки LLM/OCR — логи воркеров, трейсы Phoenix, события GlitchTip.
 
 ### Безопасность и вход (AD)
 - Неудачные попытки входа (401/403) в логах Nuxt.
@@ -73,13 +73,28 @@ Grafana поддерживает LDAP. Пример конфигурации —
 - cAdvisor (id 14282) — контейнеры.
 - Blackbox (id 7587) — доступность.
 
-## Langfuse и конфиденциальность
+## GlitchTip + Phoenix
 
-Трейсинг опционален: задайте `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` и
-`LANGFUSE_BASE_URL`; секретный ключ храните вне Git. При пустых ключах трейсинг
-отключён. `LANGFUSE_ENVIRONMENT` разделяет окружения; в Compose по умолчанию
-`production`. Session объединяет проверки позиций одного запуска; по
-`audit_run_id` и `request_id` можно сопоставить HTTP-запрос и обработку.
+Ошибки API/воркеров/Nuxt уходят в GlitchTip (Sentry-совместимый DSN),
+LLM-трейсы, промпты и evals — в Arize Phoenix (OTLP). Оба стека опциональны
+и поднимаются отдельными compose-файлами поверх основного:
+
+```bash
+docker compose -f compose.yaml -f compose.monitoring.yaml \
+  -f compose.glitchtip.yaml -f compose.phoenix.yaml up -d
+# или: make observability
+```
+
+GlitchTip: после первого запуска откройте его UI (по умолчанию
+`http://127.0.0.1:8001`), создайте организацию и проект, скопируйте DSN
+в `GLITCHTIP_DSN` в `.env` и перезапустите `api`/`workspace`. Frontend
+использует тот же DSN через `NUXT_PUBLIC_SENTRY_DSN`.
+
+Phoenix: задайте `PHOENIX_COLLECTOR_ENDPOINT` (по умолчанию
+`http://phoenix:6006` внутри Docker-сети), `PHOENIX_PROJECT_NAME` и
+`PHOENIX_ENVIRONMENT`. При пустом endpoint трейсинг отключён.
+
+## Телеметрия и конфиденциальность
 
 Во внешнюю телеметрию могут попадать сведения ВОР, фрагменты ПД, промпты,
 ответы и цитаты. Используйте только разрешённые для передачи документы;
@@ -94,5 +109,24 @@ LLM-провайдеру. Код поддерживает `AUDIT_TELEMETRY_REDAC
 организуйте явную передачу в нужные контейнеры и проверьте фактическую
 конфигурацию до использования чувствительных документов; иначе отключите
 внешнюю телеметрию. Доставка асинхронная, поэтому вызов `flush()` не является
-подтверждением появления observations в Langfuse. Ошибка телеметрии не
+подтверждением появления трейса в Phoenix. Ошибка телеметрии не
 доказывает ошибку аудита, а наличие цитаты — корректность вывода модели.
+
+## Развёртывание observability на VPS
+
+Полный стек (Grafana/Prometheus/Loki + GlitchTip + Phoenix) можно поднять
+на отдельном VPS и подключать к нему каждое приложение:
+
+1. Скопируйте на VPS `compose.yaml`, `compose.monitoring.yaml`,
+   `compose.glitchtip.yaml`, `compose.phoenix.yaml`, каталог `monitoring/`
+   и заполните `.env`.
+2. Поставьте reverse proxy с TLS (Caddy/Traefik/nginx) перед UI:
+   Grafana (3000), Prometheus (9090), Loki (3100), GlitchTip (8000),
+   Phoenix (6006). Все `*_BIND` по умолчанию `127.0.0.1`: открывайте
+   наружу только через proxy, а не публикацией портов.
+3. Phoenix: добавьте auth на уровне proxy (basic auth, OIDC или VPN) —
+   у самого Phoenix встроенного логина может не быть.
+4. В каждом приложении укажите удалённые endpoints вместо локальных:
+   `GRAFANA_ROOT_URL`, `PHOENIX_COLLECTOR_ENDPOINT=https://<vps>/phoenix`,
+   `PHOENIX_PUBLIC_URL=https://<vps>/phoenix`, `GLITCHTIP_DSN` из UI GlitchTip.
+5. Ограничьте firewall: снаружи только 443 (и 22 для себя).

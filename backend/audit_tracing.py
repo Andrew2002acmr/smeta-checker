@@ -3,7 +3,7 @@
 The public surface mirrors the previous tracer so callers and tests can switch
 backends without rewriting audit code.  When no collector endpoint is configured
 the tracer is disabled and every observation becomes a no-op, exactly like the
-previous optional Langfuse tracer.
+previous optional tracer.
 """
 
 from __future__ import annotations
