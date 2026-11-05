@@ -1,8 +1,0 @@
-{
-  "file": "C:\\Users\\Андрей\\Documents\\ChatGPT\\KemDorFondProject\\.audit_cache\\checkpoint-20261105-v29\\pipeline-artifacts-v29.zip",
-  "bytes": 87284262,
-  "sha256": "14d29806cb2cd1c7382c94671b5f087edd6e042e18813d950507d5c1e76e076e",
-  "files": 376,
-  "crc_verified": true,
-  "scope": "v27-v29 new artifacts, code freezes, inactive v9 DB+pin and new normative PDFs/HTML. Original documents and historical prepared blob store remain under fact-pipeline-inputs and the earlier artifact directories/checkpoints."
-}
