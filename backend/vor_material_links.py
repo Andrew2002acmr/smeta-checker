@@ -17,6 +17,8 @@ def _number(value):
 
 def _family(name):
     name = str(name).lower().replace("ё", "е")
+    if re.search(r"бортов\w*\s+кам[её]?н|кам\w*\s+бортов", name):
+        return "бортовой камень"
     if "щпс" in name or re.search(r"щебеночн\w*[\s-]+песчан", name):
         return "щпс"
     for family in ("асфальтобетон", "бетон", "щебен", "песок"):
@@ -38,6 +40,8 @@ def _compatible_family(work, material):
 
 
 def material_links(tasks):
+    from vor_material_ownership import material_owners
+    structural=material_owners(tasks)
     links = {}
     by_sheet = {}
     for task in tasks:
@@ -64,7 +68,15 @@ def material_links(tasks):
             # Nearest preceding work; material siblings may occur between rows.
             parent = next((t for t in reversed(ordered[:i])
                            if str(t.get("position_type", "")).casefold() == "работа"), None)
-            if parent is None or not _compatible_family(_family(parent.get("w_name")), family):
+            if parent is None:
+                continue
+            parent_family=_family(parent.get('w_name'))
+            owner=structural.get(task.get('idx')) or {}
+            generic_base=(not parent_family and owner.get('index')==parent.get('idx')
+                and re.match(r'^\s*Устройство\s+(?:слоя\s+)?основания\b',parent.get('w_name',''),re.I)
+                and str(parent.get('w_unit','')).strip() in {'м2','м²'}
+                and str(task.get('w_unit','')).strip() in {'м3','м³'})
+            if not _compatible_family(parent_family,family) and not generic_base:
                 continue
             source, parent_source = task["position_source"], parent["position_source"]
             if source.get("sections") != parent_source.get("sections"):
@@ -78,11 +90,15 @@ def material_links(tasks):
                 continue
             area_to_asphalt_mass = (family == 'асфальтобетон' and parent_unit == 'м2'
                                     and material_unit in {'т', 'кг'})
-            if parent_unit != material_unit and not area_to_asphalt_mass:
+            linear_curb = (family == parent_family == 'бортовой камень'
+                and parent_unit == 'м' and material_unit == 'м3'
+                and owner.get('index') == parent.get('idx'))
+            if parent_unit != material_unit and not area_to_asphalt_mass and not linear_curb:
                 thickness = re.search(r"\bh\s*=\s*(\d+(?:[.,]\d+)?)\s*(мм|см|м)\b", parent.get("w_name", ""), re.I)
                 if parent_unit != "м2" or material_unit != "м3" or not thickness:
                     continue
-                if _number(thickness[1]) <= 0:
+                depth=_number(thickness[1])
+                if depth is None or depth<=0:
                     continue
             links[task.get("idx")] = {
                 "index": parent.get("idx"),
@@ -90,4 +106,11 @@ def material_links(tasks):
                 "row": parent_source["row"], "sheet": parent_source["sheet"],
                 "expression": calc.get("expression", ""),
             }
+            if generic_base:
+                links[task.get('idx')]['relation_basis']='explicit_workbook_owner_generic_base'
+                links[task.get('idx')]['material_compatibility_verified']=False
+            if linear_curb:
+                links[task.get('idx')].update(
+                    relation_basis='explicit_workbook_owner_linear_curb',
+                    material_compatibility_verified=False, conversion_verified=False)
     return links

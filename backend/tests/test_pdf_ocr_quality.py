@@ -167,9 +167,10 @@ class FakePixmapPage:
     rotation = 0
     derotation_matrix = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
 
-    def get_pixmap(self, dpi=200, alpha=False):
+    def get_pixmap(self, dpi=200, alpha=False, clip=None):
         class Pix:
             width, height, n = 100, 140, 3
+            x = y = 0
             samples = bytes(100 * 140 * 3)
         return Pix()
 

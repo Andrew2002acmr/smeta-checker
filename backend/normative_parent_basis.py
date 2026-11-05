@@ -1,6 +1,7 @@
 """Bind a derived material to verified parent geometry, preserving its own rate check."""
 from copy import deepcopy
 import hashlib
+import json
 
 
 GEOMETRY_TOPIC='Подтверждённый параметр родительской работы'
@@ -76,17 +77,49 @@ def _clear_geometry(result,parent_index):
     """Remove only this binder's earlier partial contribution before replay."""
     output=deepcopy(result)
     prefix=f'parent-{parent_index}:geometry:'
+    from normative_fact_contract import PROJECTION
+    def generated(item):
+        ids=item.get('project_source_ids') or []
+        return bool(item.get('topic','').startswith(GEOMETRY_TOPIC)
+            and item.get('state')=='confirmed' and not item.get('normative_source_ids')
+            and item.get('claim_ids') in (['quantity'],['geometry:thickness'])
+            and ids and all(sid.startswith(prefix) for sid in ids))
+    projections=[e for e in output.get('evidence_trace',[])
+        if e.get('kind')==PROJECTION and generated(e.get('original') or {})]
+    def removable(item):
+        return generated(item) or any(item==e.get('projected') for e in projections)
     if (not any(s['id'].startswith(prefix) for s in output['sources'])
-            and not any(e.get('kind') in {GEOMETRY_TRACE,DEPENDENCY_TRACE,'parent_sum_supersedes_parts_v1'}
-                and e.get('position_index')==parent_index for e in output.get('evidence_trace',[]))):
+            and not any(e.get('kind') in {GEOMETRY_TRACE,DEPENDENCY_TRACE,'parent_sum_supersedes_parts_v1','parent_geometry_supersedes_duplicate_v1'}
+                and e.get('position_index')==parent_index for e in output.get('evidence_trace',[]))
+            and not projections):
         return output
-    output['sources']=[s for s in output['sources'] if not s['id'].startswith(prefix)]
+    output['items']=[i for i in output.get('items',[]) if not removable(i)]
+    # Retire an alias still cited by another (e.g. coefficient) projection only
+    # when the original literal envelope is present and exactly unchanged.
+    # Otherwise preserve that citation/dispute rather than invent a new source.
+    lookup={source['id']:source for source in output['sources']}
+    remap={}
+    def physical(source):
+        return {key:value for key,value in source.items() if key not in {'id','physical_source_id'}}
+    for event in output.get('evidence_trace',[]):
+        if event.get('kind')!=GEOMETRY_TRACE or event.get('position_index')!=parent_index:
+            continue
+        for original,alias in event.get('source_mapping',{}).items():
+            if (alias.startswith(prefix) and original in lookup and alias in lookup
+                    and physical(lookup[original])==physical(lookup[alias])):
+                remap[alias]=original
+    for item in output['items']:
+        item['project_source_ids']=list(dict.fromkeys(remap.get(sid,sid)
+            for sid in item.get('project_source_ids',[])))
+    # A new model dispute is not the binder's old derived downgrade. Retain
+    # its literal citation even when the surrounding server alias is retired.
+    retained={sid for i in output['items'] for sid in i.get('project_source_ids',[])}
+    output['sources']=[s for s in output['sources'] if not s['id'].startswith(prefix) or s['id'] in retained]
     output['parameter_proposals']=[p for p in output.get('parameter_proposals',[])
         if not p.get('source_id','').startswith(prefix)]
-    output['items']=[i for i in output.get('items',[]) if not i.get('topic','').startswith(GEOMETRY_TOPIC)]
     available={s['id'] for s in output['sources']}
     for event in output.get('evidence_trace',[]):
-        if event.get('kind')!='parent_sum_supersedes_parts_v1' or event.get('position_index')!=parent_index:
+        if event.get('kind') not in {'parent_sum_supersedes_parts_v1','parent_geometry_supersedes_duplicate_v1'} or event.get('position_index')!=parent_index:
             continue
         for original in event.get('original_parameters',[]):
             if (original.get('source_id') in available
@@ -94,7 +127,7 @@ def _clear_geometry(result,parent_index):
                     and original not in output['parameter_proposals']):
                 output['parameter_proposals'].append(deepcopy(original))
     output['evidence_trace']=[e for e in output.get('evidence_trace',[])
-        if not (e.get('kind') in {GEOMETRY_TRACE,DEPENDENCY_TRACE,'parent_sum_supersedes_parts_v1'} and e.get('position_index')==parent_index)]
+        if e not in projections and not (e.get('kind') in {GEOMETRY_TRACE,DEPENDENCY_TRACE,'parent_sum_supersedes_parts_v1','parent_geometry_supersedes_duplicate_v1'} and e.get('position_index')==parent_index)]
     return output
 
 
@@ -180,6 +213,33 @@ def _reuse_geometry(result,parent,basis,positions,parent_relation,row,child=None
             needed.update(dependencies)
     if not selected:
         return output if output!=result else result
+    # Replacing a certified fact's alias must not fabricate a second reading.
+    # Require the entire physical dependency envelope, not equal numbers.
+    def envelopes(proposal, lookup):
+        if proposal.get('source_id') not in lookup:
+            return None
+        dependencies = _proposal_dependencies(proposal, lookup)
+        if not dependencies:
+            return None
+        fields = ('version_id','page','rects','text','unit','origin','numeric_verified','unit_verified')
+        physical=[]
+        for sid in dependencies:
+            envelope={key:lookup[sid].get(key) for key in fields}
+            envelope['rects']=sorted(tuple(rect) for rect in (envelope['rects'] or []))
+            physical.append(json.dumps(envelope,sort_keys=True))
+        return sorted(physical)
+    current_sources = {s['id']:s for s in output['sources']}
+    duplicates = [proposal for proposal in output.get('parameter_proposals', [])
+        if proposal.get('scope_state') == 'verified' and any(
+            proposal['parameter'] == kind
+            and measure(proposal['value'],proposal['unit']) == measure(original['value'],original['unit'])
+            and envelopes(proposal,current_sources) is not None
+            and envelopes(proposal,current_sources) == envelopes(original,sources)
+            for kind,(_,proposals) in selected.items() for original in proposals)]
+    if duplicates:
+        output['parameter_proposals'] = [p for p in output['parameter_proposals'] if p not in duplicates]
+        output.setdefault('evidence_trace', []).append(dict(kind='parent_geometry_supersedes_duplicate_v1',
+            position_index=parent.index, original_parameters=deepcopy(duplicates)))
     # A whole-work sum supersedes the child's earlier direct readings of its
     # exact operands. Keeping both parts and their sum fabricates ambiguity.
     from normative_quantity_anchors import sum_supersedes_operand
@@ -196,7 +256,8 @@ def _reuse_geometry(result,parent,basis,positions,parent_relation,row,child=None
                 position_index=parent.index, original_parameters=deepcopy(covered)))
     mapping={sid:f'parent-{parent.index}:geometry:'+hashlib.sha256(sid.encode()).hexdigest()[:24]
         for sid in needed}
-    output['sources'] += [{**deepcopy(s),'id':mapping[s['id']]} for s in basis['sources'] if s['id'] in needed]
+    output['sources'] += [{**deepcopy(s),'id':mapping[s['id']],
+        'physical_source_id':s.get('physical_source_id',s['id'])} for s in basis['sources'] if s['id'] in needed]
     for kind,(card,proposals) in selected.items():
         for original in proposals:
             proposal=deepcopy(original)
@@ -213,7 +274,8 @@ def _reuse_geometry(result,parent,basis,positions,parent_relation,row,child=None
             project_source_ids=[mapping[sid] for sid in card['source_ids']],normative_source_ids=[],
             explanation=f'{statement} источниками ПД для работы №{parent.number or parent.index+1}. '
                 'Технология работы, нормативная применимость и расход материала проверяются отдельно.'))
-    output.setdefault('evidence_trace',[]).append(dict(kind=GEOMETRY_TRACE,review_id=row['id'],position_index=parent.index,
+    provenance={'review_id':row['id']} if row is not None else {'basis':'current_material_literal_geometry'}
+    output.setdefault('evidence_trace',[]).append(dict(kind=GEOMETRY_TRACE,**provenance,position_index=parent.index,
         parameters=sorted(selected),source_mapping=mapping))
     required={key for key in fresh if key in {'quantity','thickness'}}
     if child is not None and 'quantity' in required and required<=selected.keys():
@@ -232,8 +294,40 @@ def _reuse_geometry(result,parent,basis,positions,parent_relation,row,child=None
             first,last=min(assembly['work_indices']),max(assembly['work_indices'])
             proof['assembly_positions']=[p.model_dump(mode='json') for i,p in sorted(positions.items()) if first<=i<=last]
         output['evidence_trace'].append(dict(kind=DEPENDENCY_TRACE,position_index=parent.index,
-            review_id=row['id'],proof=proof,sha256=digest(proof)))
+            **provenance,proof=proof,sha256=digest(proof)))
     return output
+
+
+
+def _current_material_geometry(result,parent,child,positions,record):
+    """Rebuild literal current inputs when no parent review can supply geometry.
+
+    Explicit VOR ownership only selects the work whose cards must be rebuilt;
+    it never proves a material output, allocation, rate or normative condition.
+    """
+    from normative_parameters import build_cards
+    from vor_material_ownership import material_owners
+    from analysis_replay import digest
+    if (child is None or child.index not in positions
+            or digest(child.model_dump(mode='json'))!=digest(positions[child.index].model_dump(mode='json'))
+            or not record.get('vor_version_id')):
+        return result
+    owner=material_owners([p.legacy_task() for p in positions.values()]).get(child.index)
+    if not owner or owner['index']!=parent.index:
+        return result
+    pinned=set((record.get('config',{}).get('pdf_versions') or {}).values())
+    # Keep only current, pinned project inputs; normative/coefficient proposals
+    # remain in the child result and cannot become geometric evidence here.
+    sources=[deepcopy(s) for s in result.get('sources',[])
+        if s.get('kind')=='project' and s.get('version_id') in pinned]
+    ids={s['id'] for s in sources}
+    proposals=[deepcopy(p) for p in result.get('parameter_proposals',[])
+        if p.get('parameter') in {'quantity','thickness'} and p.get('source_id') in ids
+        and all(sid in ids for sid in p.get('operand_source_ids',[]))]
+    basis=dict(pipeline_version=result.get('pipeline_version',4),sources=sources,
+        parameter_proposals=proposals,items=[],related_positions=deepcopy(result.get('related_positions',[])))
+    basis['parameter_cards']=build_cards(parent,basis,positions,{})
+    return _reuse_geometry(result,parent,basis,positions,{},None,child)
 
 
 def bind_parent_basis(context,record,result,positions,relation,*,expected_kb=None,position=None):
@@ -252,29 +346,42 @@ def bind_parent_basis(context,record,result,positions,relation,*,expected_kb=Non
             or str(child.position_type).casefold()!='материал'
             or str(parent.position_type).casefold()!='работа'):
         return clean
+    # This recipe uses a complete PD resource total and declared allocation,
+    # not the work's area or physical depth of an individual operation.
+    from normative_layer_assembly import material_allocation_proof
+    allocation=material_allocation_proof(child,clean,positions,relation) if child is not None else None
+    if allocation:
+        pinned=set((record.get('config',{}).get('pdf_versions') or {}).values())
+        lookup={source['id']:source for source in clean['sources']}
+        if all(lookup[sid].get('version_id') in pinned for sid in allocation['root_source_ids']):
+            return clean
     row=next((r for r in context.repository.normative_reviews(record['id'],parent_index) if r['kind']=='check'),None)
     if row is None:
-        return clean
+        return _current_material_geometry(clean,parent,child,positions,record)
     data=row['payload']
     basis=data.get('position_check') or {}
     if result.get('pipeline_version', 0) >= 5 and basis.get('pipeline_version', 0) < 5:
-        return clean  # A legacy locally assembled verdict is not a new agent decision.
+        return _current_material_geometry(clean,parent,child,positions,record)  # A legacy locally assembled verdict is not a new agent decision.
     if (data.get('position_key')!=service.position_key(parent) or data.get('vor_version_id')!=str(record['vor_version_id'])
             or basis.get('execution_state')!='complete' or basis.get('pipeline_version',0)<3):
-        return clean
+        return _current_material_geometry(clean,parent,child,positions,record)
     pinned=set((record['config'].get('pdf_versions') or {}).values())
     if any(s.get('version_id') not in pinned for s in basis['sources'] if s['kind']=='project'):
-        return clean
+        return _current_material_geometry(clean,parent,child,positions,record)
     raw=next((r['result'] for r in record['indexed_results'] if r['position_index']==parent_index),None)
     if raw is None:
-        return clean
+        return _current_material_geometry(clean,parent,child,positions,record)
     same_kb=data.get('kb')==(expected_kb if expected_kb is not None else
         service.corpus(profile=service.profile_for(record)).identity)
     if not same_kb:
         # Project geometry is pinned to VOR and PDF, not a normative edition.
         # This path transfers only independently rebuilt project facts; no norm
         # choice, measure, rate or applicability can cross the release boundary.
-        return _reuse_geometry(result,parent,basis,positions,data.get('work_relations') or {},row,child)
+        reused=_reuse_geometry(result,parent,basis,positions,data.get('work_relations') or {},row,child)
+        if any(e.get('kind')==DEPENDENCY_TRACE for e in reused.get('evidence_trace',[])):
+            return reused
+        current=_current_material_geometry(clean,parent,child,positions,record)
+        return current if any(e.get('kind')==DEPENDENCY_TRACE for e in current.get('evidence_trace',[])) else reused
     from normative_conditional_selection import apply_guard
     # A stale green norm selection cannot establish a child's full work basis.
     # The existing partial branch can still retain independently proved PD geometry.
@@ -284,11 +391,16 @@ def bind_parent_basis(context,record,result,positions,relation,*,expected_kb=Non
     report=publish({'Статус аудита':'ОК' if stored.get('status')=='ОК' else 'Требуется ручная проверка','Что не так':''},
         stored,data['position_key'],{'stage':'done','review':{**basis,'position_key':data['position_key']}},enabled=True)
     if report['Статус аудита']!='ОК':
-        return _reuse_geometry(result,parent,basis,positions,data.get('work_relations') or {},row,child)
+        reused=_reuse_geometry(result,parent,basis,positions,data.get('work_relations') or {},row,child)
+        if any(e.get('kind')==DEPENDENCY_TRACE for e in reused.get('evidence_trace',[])):
+            return reused
+        current=_current_material_geometry(clean,parent,child,positions,record)
+        return current if any(e.get('kind')==DEPENDENCY_TRACE for e in current.get('evidence_trace',[])) else reused
     output=_clear_geometry(result,parent_index)
     mapping={s['id']:f'parent-{parent_index}:'+s['id'] for s in basis['sources']}
     output['sources']=[s for s in output['sources'] if s['id'] not in mapping.values()]
-    output['sources'] += [{**deepcopy(s),'id':mapping[s['id']]} for s in basis['sources']]
+    output['sources'] += [{**deepcopy(s),'id':mapping[s['id']],
+        'physical_source_id':s.get('physical_source_id',s['id'])} for s in basis['sources']]
     output['parameter_proposals']=[p for p in output.get('parameter_proposals',[]) if p['parameter']=='coefficient']
     for p in basis.get('parameter_proposals',[]):
         if p['parameter'] not in {'quantity','thickness','unit_scale'} or p['source_id'] not in mapping:

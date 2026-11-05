@@ -15,7 +15,7 @@ from typing import Any, Literal
 import openai
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-PIPELINE_VERSION = 5
+PIPELINE_VERSION = 24
 MAX_ROUNDS = 3
 MAX_CONTEXT = 58000
 
@@ -54,6 +54,7 @@ def cell_source_id(version, page, table_id, cell_id):
 class EvidenceRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     tool: Literal['search_project', 'search_tables', 'read_page', 'read_source', 'read_table', 'search_norms', 'sum_cells']
+    document_version_id: str = Field(default='',max_length=80)
     query: str = Field(default='', max_length=300)
     page: int = Field(default=1, ge=1)
     table_id: str = Field(default='', max_length=200)
@@ -66,6 +67,20 @@ class EvidenceRequest(BaseModel):
 
 
 TOOLS = """
+expert_laying_width — отдельное экспертное основание принятой ширины прохода
+для точных закреплённых работ текущей ВОР. Это не цитата ПД и не исполнительный
+замер. Его можно использовать только для условия ширины выбранной нормы;
+толщину, площадь, принадлежность конструкции и расход доказывай отдельно.
+confirmed_unit_context — отдельное явное экспертное подтверждение единицы именно
+этой физической ячейки, привязанное к её исходному тексту и версии ПД. Оно не
+добавляет единицу в буквальный текст и не подтверждает принадлежность ячейки
+конструкции. При наличии такого основания используй его unit; не объявляй
+единицу неизвестной только из-за отсутствующего обозначения в заголовке.
+Если coverage.supporting_documents непустой, позиция ссылается на несколько PDF.
+search_project/search_tables ищут во всех явно привязанных документах. У найденных
+страниц указан document_version_id: передавай его в read_page/read_table. Без него
+читается основной PDF. Одинаковые номера страниц разных PDF не равны. ПД задаёт
+конструкцию/объём, ПОС может подтверждать условия и организацию работ.
 Ты работаешь как агент проверки. Если источников недостаточно, верни requests
 и пустые items/parameters; не завершай проверку только потому, что первоначальная
 выдержка не содержит таблицу. До 4 requests за шаг:
@@ -111,18 +126,23 @@ row_ids — не более 12, column_ids — не более 32; выбира�
 Разные аспекты разнеси по items; не повторяй весь каталог источников в каждом item.
 source_id копируй точно из sources.id или результата инструмента source_id.
 Не используй ID нормативного PDF вместо ID конкретной выдержки.
-normative_work_owner задаёт работу, для которой выбирается норма и её измеритель:
-у расчётного материала это родительская работа, её единица может отличаться от единицы материала.
-Для parameter=unit_scale используй только буквальную строку «Измеритель» выбранной
-нормы этой работы из источника kind=normative. Единица ресурса и число в ПД не являются
-измерителем нормы. Найди эту строку через read_source; при отсутствии не подставляй 1.
-Расход материала ищи в ресурсах той же применимой нормы по наименованию, виду и
+Если количество или расход проверяются по рабочей норме с несколькими условными ветвями, сопоставь роль, материал
+и назначение проектного слоя с конкретной ветвью источника. Одного совпадения
+толщины или числа технологических операций недостаточно. Если связь не доказана,
+оставь применимость этой рабочей нормы needs_facts; для материала оцени его собственный
+предмет normative:applicability и сохрани независимую геометрию.
+Если расход материала взят из рабочей нормы, ищи его в ресурсах этой применимой нормы по наименованию, виду и
 характеристикам материала, а не по совпадению числа с формулой ВОР. Укажи точную строку
 ресурса, его единицу и расход на измеритель нормы в отдельном item с разрешённым
 claim_id: derived:rate для текущего материала, related:<index>:rate для дочернего. Размерный расход
 т/1000 м2 не является безразмерным coefficient. Найденный, но ещё не проверенный расход
 опиши как неподтверждённое основание с источником; не называй его отсутствующим.
 """
+
+
+from normative_verification_contract import NORMATIVE_SCOPE_INSTRUCTIONS, UNIT_SCALE_INSTRUCTIONS
+
+TOOLS += NORMATIVE_SCOPE_INSTRUCTIONS + UNIT_SCALE_INSTRUCTIONS
 
 
 def resource_sources(item, prefix, *, evidence_trace=None):
@@ -188,7 +208,7 @@ def model_result(result, budget=10000):
     return output
 
 
-def compact(inputs, sources, preferred=(), *, planning=False, measure=None):
+def compact(inputs, sources, preferred=(), *, planning=False, measure=None, read_source_ids=()):
     """Exclude bulky untrusted fact graphs, retaining claim identity and state."""
     value = deepcopy(inputs)
     value['matching_checks'] = [
@@ -198,8 +218,15 @@ def compact(inputs, sources, preferred=(), *, planning=False, measure=None):
     if 'prepared_quantity_tables' in value:
         value['prepared_quantity_tables'] = model_result(value['prepared_quantity_tables'],6000)
     value['pipeline_version'] = PIPELINE_VERSION
+    if 'work_scope_graph' in value:
+        from normative_context_window import window
+        # Reserve the registry catalogue too: pack_sources appends it after
+        # windowing, otherwise resumed evidence can overflow before any text.
+        value['archived_source_ids']=[s['id'] for s in sources]
+        value=window(value,sources,limit=MAX_CONTEXT,measure=measure,read_source_ids=read_source_ids)
     from normative_context_packing import pack_sources
-    return pack_sources(value,sources,preferred,limit=MAX_CONTEXT,planning=planning,measure=measure)
+    return pack_sources(value,sources,preferred,limit=MAX_CONTEXT,planning=planning,measure=measure,
+        read_source_ids=read_source_ids)
 
 
 def model_source_aliases(supplied, sources):
@@ -220,8 +247,23 @@ def model_source_aliases(supplied, sources):
     return visit(supplied), {v:k for k,v in to_model.items()}
 
 
-def restore_source_ids(answer, aliases):
+def restore_source_ids(answer, aliases, sources=()):
+    # Prose aliases belong to this exact dispatch, too. A resumed review may
+    # reorder its registry; resolving s65 later against that list mislabels PD
+    # as a normative source while structured citation IDs remain correct.
+    lookup={s['id']:s for s in sources}
+    def prose(text):
+        def replace(match):
+            source=lookup.get(aliases.get(match[0]))
+            if source is None:
+                return match[0]
+            label=('ПД' if source.get('kind')=='project' and source.get('origin')!='explicit_expert_method_basis'
+                else source.get('label','Норматив'))
+            return label+(f", стр. {source['page']}" if source.get('page') else '')
+        return re.sub(r'(?<!\w)s\d+(?!\w)',replace,text)
+    answer.summary=prose(answer.summary)
     for item in getattr(answer,'items',[]):
+        item.explanation=prose(item.explanation)
         item.project_source_ids=[aliases.get(s,s) for s in item.project_source_ids]
         item.normative_source_ids=[aliases.get(s,s) for s in item.normative_source_ids]
     for proposal in getattr(answer,'parameters',[]):
@@ -299,6 +341,14 @@ class EvidenceTools:
             error_pages=[int(p)+1 for p in self.index.errors],
             available_tables=catalogue[:80], available_table_count=len(catalogue),
             table_catalog_truncated=len(catalogue)>80)
+        self.coverage['inline_raster'] = {
+            str(page + 1): quality['inline_raster'] for page, quality in self.index.quality.items()
+            if quality.get('inline_raster', {}).get('detected')}
+        self.coverage['inline_raster_coverage_measured'] = self.index.metadata.get('preparation_version', 0) >= 2
+        from pdf_page_routing import deferred_drawing_errors
+        self.coverage['deferred_visual_pages'] = list(deferred_drawing_errors(self.index).values())
+        from normative_multidoc import attach
+        attach(self,payload)
 
     def _add(self, source):
         context = getattr(self, 'context', None)
@@ -311,7 +361,8 @@ class EvidenceTools:
         if existing is None:
             if len(self.sources) >= 1024:
                 return {'error': 'source_budget_exhausted'}
-            self.sources.append(source)
+        from normative_source_registry import merge
+        merge(self.sources,[source])
         return {'source_id': source['id']}
 
     def quantity_candidates(self, query, *, unit='', height_cm=None, section_context='') -> list[dict[str, Any]]:
@@ -326,6 +377,7 @@ class EvidenceTools:
         # Drawing frames can fill that preview before quantity schedules at
         # the end of a large PDF. Search every prepared table exactly once.
         for page, tables in enumerate(self.index.tables or []):
+            tables = self._verified_tables(page+1,tables)
             for table in tables:
                 captions = [c['text'] for c in table['cells'] if c.get('role')=='header'
                     and c.get('colspan',1)>=table['col_count'] and c.get('text','').strip()]
@@ -364,7 +416,12 @@ class EvidenceTools:
                         unit=unit,scope_verified=False))
         return ranked[:4]
 
-    def execute(self, request):
+    def execute(self, request) -> dict[str, Any]:
+        from normative_multidoc import route
+        routed=route(self,request)
+        return routed if routed is not None else self._execute_single(request)
+
+    def _execute_single(self, request):
         if request.tool == 'read_source':
             source = next((s for s in self.sources if s['id'] == request.source_id), None)
             if source is None:
@@ -380,16 +437,21 @@ class EvidenceTools:
             return self._sum(request)
         if request.tool == 'search_norms':
             from normative_service import candidate
+            from normative_source_registry import full_text_handle
             results = []
             for hit in search_evidence(self.kb, request.query, self.facts, limit=3):
                 item = candidate(self.kb, hit, self.facts)
                 if not item['citations']:
                     continue
                 ref = item['citations'][0]
-                source = dict(id='agent:n:'+str(item['id']), kind='normative',
+                source = dict(id=full_text_handle('agent:n:'+str(item['id']),item['text']), kind='normative',
                     source_id=ref['source_id'], page=ref['page'], label=item['designation']+' · '+item['code'],
-                    origin=item['extraction_status'], text=item['text'][:2800])
+                    origin=item['extraction_status'], text=item['text'])
                 results.append(self._add(source))
+                # A deliberately requested new source must survive packing.
+                # Otherwise a late raster label can disappear again behind the
+                # generic 1300-character normative preview after being found.
+                self.preferred.append(source['id'])
                 results.extend(self._add(resource) for resource in resource_sources(item,source['id'],evidence_trace=self.events))
             return {'results': results}
         if self.index is None or not self.version:
@@ -429,6 +491,32 @@ class EvidenceTools:
         selected = [c for c in cells if (c['row'] in request.row_ids if request.row_ids else request.offset <= c['row'] < request.offset+4)
             and (not request.column_ids or c['column'] in request.column_ids)]
         output = []
+        header_parameters=[]
+        from pdf_saved_evidence import header_geometry
+        for header in cells:
+            if header.get('role')!='header':
+                continue
+            facts=header_geometry(header)
+            if not facts:
+                continue
+            ancestors=[h['text'] for h in cells if h['cell_id'] in header.get('header_ids',[])]
+            text=' | '.join([*ancestors,header['text']])
+            if len(text)>900:
+                continue
+            source_id=cell_source_id(self.version,request.page,table['table_id'],header['cell_id']).replace(':cell:',':header:')
+            header_rects=[]
+            geometry=(getattr(self.index,'metadata',{}).get('page_geometry') or {}).get(str(request.page-1))
+            if geometry and header.get('bbox'):
+                from ocr_engine import _apply_matrix
+                box=_apply_matrix(header['bbox'],geometry['matrix'])
+                header_rects=[[max(0,min(1,box[0]/geometry['width'])),max(0,min(1,box[1]/geometry['height'])),
+                    max(0,min(1,box[2]/geometry['width'])),max(0,min(1,box[3]/geometry['height']))]]
+            self._add(dict(id=source_id,kind='project',version_id=self.version,page=request.page,
+                label=self.filename,text=text,origin='ocr_verified_header',numeric_verified=True,
+                verified_parameters=facts,rects=header_rects))
+            header_parameters.extend(dict(**{k:v for k,v in f.items() if k!='version'},source_id=source_id,
+                scope_quote=text,scope_state='unresolved') for f in facts)
+            self.preferred.append(source_id)
         for cell in selected:
             header_text = ' | '.join(str(h['text']) for h in cells if h['cell_id'] in cell.get('header_ids', []))
             from pdf_row_sections import row_scope_context
@@ -443,6 +531,8 @@ class EvidenceTools:
             row = sorted((c for c in cells if c['row'] == cell['row'] and c['column'] < 2), key=lambda c: c['column'])
             text += '\n' + ' | '.join(str(c['text']) for c in row) + '\n' + cell['text']
             cell_id = cell_source_id(self.version, request.page, table['table_id'], cell['cell_id'])
+            from normative_table_headers import table_scope_context
+            scope_context=table_scope_context(table,cell,cell_id,self.version,request.page)
             self.cells[cell_id] = dict(cell=cell, headers=text, header_text=header_text, page=request.page,unit=resolved_unit,
                 version_id=self.version,table_id=table['table_id'])
             geometry = (getattr(self.index, 'metadata', {}).get('page_geometry') or {}).get(str(request.page-1))
@@ -453,8 +543,10 @@ class EvidenceTools:
                 rects = [[max(0,min(1,box[0]/geometry['width'])),max(0,min(1,box[1]/geometry['height'])),
                     max(0,min(1,box[2]/geometry['width'])),max(0,min(1,box[3]/geometry['height']))]]
             output.append(self._add(dict(id=cell_id, kind='project',
+                **({'table_scope_context':scope_context} if scope_context else {}),
                 version_id=self.version, page=request.page, label=self.filename,
                 text=text, rects=rects, numeric_verified=bool(cell.get('numeric_verified')),
+                verified_parameters=[f for h in cells if h['cell_id'] in cell.get('header_ids',[]) for f in header_geometry(h)],
                 unit_verified=bool(resolved_unit),unit=resolved_unit,
                 origin=(cell.get('origin', 'native') if cell.get('quality', 'usable') == 'usable' else 'uncertain_table'))))
             if request.row_ids and request.column_ids:
@@ -462,15 +554,38 @@ class EvidenceTools:
         from normative_retrieval import terms
         wanted = terms(request.query)
         matching_rows = sorted({c['row'] for c in cells if wanted & terms(c['text'])})[:20]
-        return {'cells': output, 'matching_rows': matching_rows, 'columns': table_outline(table)['columns'], 'rows': [dict(**{k: c[k] for k in ('cell_id', 'row', 'column', 'text', 'header_ids', 'bbox', 'quality', 'numeric_verified','row_scope') if k in c},
+        return {'cells': output, 'header_parameters':header_parameters, 'matching_rows': matching_rows, 'columns': table_outline(table)['columns'], 'rows': [dict(**{k: c[k] for k in ('cell_id', 'row', 'column', 'text', 'header_ids', 'bbox', 'quality', 'numeric_verified','row_scope') if k in c},
             **output[i]) for i,c in enumerate(selected)], 'next_offset': request.offset+4, 'row_count': table['row_count']}
 
     def _sum(self, request):
+        documents={s.get('version_id') for s in self.sources if s['id'] in request.operand_ids}
+        if len(documents)>1 or documents and documents!={self.version}:
+            return {'error':'cross_document_sum_requires_separate_scope_validation'}
         import hashlib
         from normative_parameters import number, measure
         ids = request.operand_ids
         if not 2 <= len(ids) <= 12 or len(set(ids)) != len(ids) or not request.unit:
             return {'error': 'distinct_numeric_operands_and_unit_required'}
+        # A continuation restores source envelopes, while the transient cell
+        # lookup starts empty. Reopen only the exact already cited cells from
+        # the pinned prepared tables; this does not perform OCR or choose any
+        # operands. _add checks that the restored envelope has not changed.
+        for sid in ids:
+            if sid in self.cells:
+                continue
+            source=next((s for s in self.sources if s['id']==sid),None)
+            if (not source or getattr(self,'index',None) is None or source.get('kind')!='project'
+                    or source.get('version_id')!=self.version
+                    or type(source.get('page')) is not int
+                    or not 1<=source['page']<=len(self.index.texts)):
+                continue
+            for table in self._tables(source['page']):
+                cell=next((c for c in table['cells']
+                    if cell_source_id(self.version,source['page'],table['table_id'],c['cell_id'])==sid),None)
+                if cell is not None:
+                    self._execute_single(EvidenceRequest(tool='read_table',page=source['page'],
+                        table_id=table['table_id'],row_ids=[cell['row']],column_ids=[cell['column']]))
+                    break
         cells = [self.cells.get(i) for i in ids]
         if any(c is None for c in cells):
             return {'error': 'unknown_cell'}
@@ -504,13 +619,15 @@ class EvidenceTools:
         text = self.index.texts[page-1]
         # Retrieve the hit itself, not always the first paragraph of a long page.
         piece = text[offset:offset+3500]
-        ref = self._add(dict(id=f'agent:p{page}:{offset}', kind='project', page=page,
+        namespace=':doc:'+str(self.version) if getattr(self,'additional_documents',None) or getattr(self,'is_supporting_document',False) else ''
+        ref = self._add(dict(id=f'agent:p{page}:{offset}'+namespace, kind='project', page=page,
             version_id=self.version, label=self.filename, text=piece,
-            origin='ocr_unverified' if (self.index.quality.get(page-1) or {}).get('origin') == 'ocr' else 'native'))
+            origin='ocr_inline_unreviewed' if (self.index.quality.get(page-1) or {}).get('inline_raster', {}).get('detected')
+                else 'ocr_unverified' if (self.index.quality.get(page-1) or {}).get('origin') == 'ocr' else 'native'))
         if exact:
             self.preferred.append(ref.get('source_id', ''))
         tables = self._tables(page)
-        return dict(**ref, page=page, next_offset=offset+3500 if offset+3500 < len(text) else None,
+        return dict(**ref, page=page, document_version_id=self.version, next_offset=offset+3500 if offset+3500 < len(text) else None,
             tables=[table_outline(t) for t in tables])
 
     def _tables(self, page):
@@ -541,10 +658,16 @@ class EvidenceTools:
         return []
 
     def _verified_tables(self,page,tables):
-        if not hasattr(self,'context'):
-            return tables
-        from normative_table_headers import apply
-        return apply(self.context,self.record,self.version,page,tables,self.events)
+        if hasattr(self,'context'):
+            from normative_table_headers import apply
+            tables = apply(self.context,self.record,self.version,page,tables,self.events)
+        from pdf_saved_evidence import replay_unit_proofs
+        tables, restored = replay_unit_proofs(tables)
+        for event in restored:
+            event.update(page=page, version_id=self.version)
+            if event not in self.events:
+                self.events.append(event)
+        return tables
 
 
 def table_outline(table):
@@ -571,12 +694,16 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
     seen_conditions=set()
     previous_invalid_parameters=set()
     late_repair=False
+    successful_rounds=0
+    from normative_claim_memory import ClaimMemory
+    claim_memory=ClaimMemory()
     for step in range(MAX_ROUNDS+1):
         if step==MAX_ROUNDS and not late_repair:
             break
         supplied = deepcopy(inputs)
         bounded_history = [dict(request=e['request'],result=model_result(e['result'],4000)) for e in history]
-        supplied.update(coverage={key:value for key,value in tools.coverage.items() if key!='model_context_packing'},
+        supplied.update(coverage={key:value for key,value in tools.coverage.items()
+            if key not in {'model_context_packing','model_metadata_sizes'}},
             tool_results=bounded_history, remaining_steps=max(0,MAX_ROUNDS-step-1))
         if feedback:
             supplied['answer_validation'] = feedback
@@ -589,15 +716,22 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
         supplied['quantity_parameter_candidates'] = quantity_parameter_candidates(
             tools.sources,getattr(tools,'cells',{}),getattr(tools,'quantity_sums',()))
         supplied['previous_literal_parameters'] = list(getattr(tools,'parameter_evidence',{}).values())
-        supplied['normative_thickness_adjustments'] = thickness_adjustments(inputs.get('position',{}).get('work',''),tools.sources)
-        stage = 'normative-evidence-plan' if step == 0 else f'normative-evidence-{step}'
+        supplied['previous_claim_citations'] = claim_memory.context()
+        owner_work=(inputs.get('normative_work_owner') or {}).get('work') or inputs.get('position',{}).get('work','')
+        supplied['normative_thickness_adjustments'] = thickness_adjustments(owner_work,tools.sources)
+        planning=successful_rounds==0
+        stage = 'normative-evidence-plan' if planning else f'normative-evidence-{step}'
         step_instructions = instructions+TOOLS
-        if step == 0 and MAX_ROUNDS > 1:
+        if planning and MAX_ROUNDS > 1:
             # Navigation is a separate bounded task, not a full audit of every
             # preliminary claim before the underlying table has been read.
-            step_instructions = TOOLS + '\nСейчас ТОЛЬКО выбери до четырёх точных чтений. Приоритет: проектная конструкция, итоговые строки ведомости с подходящими заголовками columns, затем норматив. Используй row_ids из total_rows и column_ids подходящего материала/единицы. Начало таблицы без чисел не заменяет чтение итогов. Не проверяй всю позицию на этом шаге. summary до 200 символов, items=[], parameters=[], requests. На следующем шаге выполни проверку по полученным данным.'
-            step_instructions += '\nvor_layer_group.height — сумма технологических слоёв одной конструкции ВОР в см; выбирай проектный столбец полной толщины, а не требуй отдельный столбец каждой технологической операции.'
-            step_instructions += '\nprepared_schedule_candidates — только навигация, а не подтверждённое основание. Проверь предложенные read_requests и выбери нужные чтения; запроси норматив по смыслу работы и условиям. Наличие готовой суммы доказывает только арифметику, а принадлежность конструкции и применимость норм должен установить ты по прочитанным источникам.'
+            from normative_agent_planning import navigation
+            step_instructions = navigation(inputs, instructions, TOOLS)
+        step_instructions += '\nwork_scope_graph показывает связанные работы и материалы одного участка. same_work_other_scopes — только аналогия поиска: количество с другого участка переносить запрещено. shared_project_facts — буквальные основания соседних работ, а не их вывод; самостоятельно докажи принадлежность текущей конструкции и участка.'
+        step_instructions += '\ncontext_window.deferred_sources и full_text_archived означают, что полный текст сохранён в реестре. preview — только навигация, не полный норматив. При необходимости условий выполни read_request/read_source; не объявляй отсутствие нормы из-за переноса текста из контекста.'
+        step_instructions += '\nprevious_claim_citations сохраняет ранее проверенные ссылки. Если подтверждаешь тот же аспект по той же норме, сохраняй связь с конструкцией ПД. Ссылка на ресурс машины дополняется определением соответствующей нормы и проектной конструкцией; ресурс не заменяет её область применения. Для выбора сметного способа не требуй буквального повторения машины в ПД, если применимая норма и Методика с её исключениями позволяют такой выбор. Проверяй точный expected_text: идентификация марки/модели, функция класса и пригодность конкретного экземпляра — разные вопросы. Не расширяй проверку имени до доказательства свойств, которых нет в предикате; не подтверждай фактическую пригодность без её основания.'
+        if inputs.get('evidence_followup'):
+            step_instructions += '\nЭто целевой дополнительный поиск по evidence_followup.actions. Используй сохранённые источники и previous_literal_parameters, читай конкретные недостающие основания, не начинай весь анализ сначала. previous_review_items — предыдущие выводы, не доказательства; финальный ответ должен содержать также сохранённые подтверждённые аспекты с точными ссылками. Повторный OCR запрещён.'
         if step >= MAX_ROUNDS-1:
             step_instructions += '\nЭто ОКОНЧАТЕЛЬНЫЙ шаг: requests=[] обязательно. Не ищи снова. Сохрани найденные факты, точные ID ячеек и параметры; непроверенные аспекты — needs_facts с конкретной причиной, не ошибка ВОР. summary до 600 символов, до 16 items с пояснениями до 350 символов.'
             step_instructions += '\nСохраняй отдельные выводы по собственной геометрии, нормативной применимости и related:* расходу дочернего материала. Не объединяй подтверждённую геометрию с неизвестным коэффициентом ради сокращения числа items; объедини только однородные подтверждённые аспекты или сократи пояснения.'
@@ -608,7 +742,12 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
         # All dynamic anchors, history and coverage are now known. Budget the
         # actual aliased request instead of reserving a fixed 20k beforehand.
         from normative_context_packing import serialize_context
-        supplied = compact(supplied,tools.sources,tools.preferred,planning=step==0,
+        tools.coverage.setdefault('model_metadata_sizes',[]).append(dict(stage=stage,
+            fields={key:len(serialize_context(model_source_aliases({key:value},tools.sources)[0]))
+                for key,value in supplied.items() if key!='sources'}))
+        from normative_context_packing import completed_read_ids
+        supplied = compact(supplied,tools.sources,tools.preferred,planning=planning,
+            read_source_ids=completed_read_ids(tools.events),
             measure=lambda value: len(serialize_context(model_source_aliases(value,tools.sources)[0])))
         from normative_embedded_context import packing_record
         packing = packing_record(supplied,tools.sources,stage)
@@ -621,8 +760,10 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
         step_instructions += '\nquantity_parameter_candidates содержит готовый proposal с буквальным числом, единицей и цитатами: переноси эти поля без переписывания и округления. Метаданные provenance/scope_verified не входят в parameters. scope_state=unresolved и scope_verified=false означают, что программа ещё не проверила инженерную принадлежность. Сам проверь участок, материал, конструкцию и слой; только при доказанной связи установи scope_state=verified, сохранив буквальные цитаты ПД. Для группы слоёв ВОР цитируй полную толщину конструкции ПД, не подставляй в цитату толщину отдельной операции.'
         step_instructions += '\nЕсли у источника указан text_embedded_at и embedded_text_complete=true, полный буквальный текст с тем же source_id уже передан по этому пути в контексте. Короткий sources.text — только навигационный отрывок. Прочитай полный текст и все его условия там; повторное read_source ради того же текста не требуется.'
         try:
-            answer = restore_source_ids(ask(client, credentials, step_instructions, supplied, schema, trace, stage, stats),aliases)
+            answer = restore_source_ids(ask(client, credentials, step_instructions, supplied, schema, trace, stage, stats),aliases,tools.sources)
+            packing['response_state'] = 'completed'
         except ValidationError as exc:
+            packing['response_state'] = 'invalid_schema'
             if step >= MAX_ROUNDS-1:
                 raise
             feedback = []
@@ -634,6 +775,7 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
                 feedback.append(message)
             continue
         except (openai.APIConnectionError,openai.APIStatusError,ModelProviderResponseError) as exc:
+            packing['response_state'] = 'provider_failure'
             code = exc.code if isinstance(exc, ModelProviderResponseError) else getattr(exc, 'status_code', None)
             retryable=isinstance(exc,openai.APIConnectionError) or code in {408,429,500,502,503,504}
             if not retryable or step>=MAX_ROUNDS-1:
@@ -641,15 +783,21 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
             stats.setdefault('warnings',[]).append('Временный сбой провайдера; повтор в оставшемся бюджете шагов, без повторного OCR.')
             feedback=['Предыдущий запрос не завершился из-за временного сбоя соединения. Прочитанные источники сохранены; выполни проверку по ним.']
             continue
+        except Exception:
+            packing['response_state'] = 'failed'
+            raise
+        successful_rounds+=1
         requests = getattr(answer, 'requests', [])
         if not requests:
+            claim_memory.restore(answer,tools.sources,tools.events)
             feedback = verify_answer(answer) if verify_answer is not None else []
+            claim_memory.remember(answer,tools.sources,inputs.get('allowed_claim_ids'))
             candidates: list[dict[str,Any]]=list(getattr(tools,'conditional_repair_candidates',()))
             signatures={json.dumps([c['condition_source_id'],c['condition_quote'],
                 sorted(b['code'] for b in c['allowed_base_candidates'])],ensure_ascii=False)
                 for c in candidates if c.get('project_fact_confirmed') and c.get('allowed_base_candidates')}
             fresh=signatures-seen_conditions
-            eligible=(step==MAX_ROUNDS-1 and bool(feedback) and bool(fresh)
+            eligible=(getattr(tools,'allow_late_repair',True) and step==MAX_ROUNDS-1 and bool(feedback) and bool(fresh)
                 and 'thickness' in previous_invalid_parameters
                 and 'thickness' not in getattr(tools,'invalid_project_parameter_kinds',set()))
             seen_conditions.update(signatures)

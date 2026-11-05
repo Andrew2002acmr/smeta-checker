@@ -18,7 +18,13 @@ FIXTURE = Path(__file__).parent / 'fixtures/publication59-frozen.json'
 
 
 def fixture():
-    return json.loads(FIXTURE.read_text(encoding='utf-8'))
+    data=json.loads(FIXTURE.read_text(encoding='utf-8'))
+    # The immutable legacy fixture predates the equipment_function property.
+    # Reproduce its server migration before testing current SQL projection;
+    # never accept the old parser proof merely because its retired IDs agree.
+    from normative_claim_migration import apply_review_migration
+    apply_review_migration(VorPosition.model_validate(data['position']),data['position_check'])
+    return data
 
 
 def save(pipeline, data, *, actor='projection-regression'):
@@ -112,6 +118,19 @@ def test_latest_review_is_used_without_rewriting_older_proof(pipeline):
     assert pipeline.repo.normative_review(pipeline.run.id, 59, first['id'])['payload'] == old
 
 
+def test_position_scoped_projection_preserves_proofs_and_excludes_other_rows(pipeline):
+    data = fixture()
+    save(pipeline, data)
+    other = deepcopy(data)
+    other['position']['index'] = 60
+    save(pipeline, other, actor='other-position')
+    complete = pipeline.repo.normative_validation_context(pipeline.run.id)
+    scoped = pipeline.repo.normative_validation_context(pipeline.run.id, indices=[59])
+    assert set(scoped) == {59}
+    assert scoped[59] == complete[59]
+    assert pipeline.repo.normative_validation_context(pipeline.run.id, indices=[]) == {}
+
+
 @pytest.mark.parametrize('trace', ['missing', None, []])
 def test_legacy_missing_or_null_trace_stays_empty_and_does_not_gain_migration(pipeline, trace):
     data = fixture()
@@ -163,3 +182,12 @@ def test_pipeline_version_keeps_numeric_conflict_gate_in_batch_view(pipeline):
     legacy = deepcopy(batch['review'])
     legacy.pop('pipeline_version')
     assert result(legacy) == FIX  # Proves why the version is semantic, not decorative.
+
+
+def test_raw_legacy59_proof_is_rejected_until_server_migration_is_rebuilt():
+    raw=json.loads(FIXTURE.read_text(encoding='utf-8'))
+    before=deepcopy(raw)
+    assert verdict(raw,dict(raw['position_check'],position_key=raw['position_key']))['Статус аудита']==REVIEW
+    current=fixture()
+    assert verdict(current,dict(current['position_check'],position_key=current['position_key']))['Статус аудита']=='ОК'
+    assert raw==before

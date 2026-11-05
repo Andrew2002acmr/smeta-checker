@@ -65,3 +65,28 @@ def test_concurrent_first_writers_publish_one_output_and_project_scope_is_enforc
         connection.execute(update(AnalysisArtifact).where(AnalysisArtifact.key==digest(ident)).values(payload={'tampered':True}))
     with pytest.raises(ValueError,match='hash mismatch'):
         repo.analysis_artifact(record['project_id'],digest(ident))
+
+
+def test_validation_code_change_reuses_raw_ocr_but_changed_contract_does_not(setup):
+    from analysis_replay import algorithm,prepared_identity
+    ctx,repo,first,versions,vor,pdf=setup
+    def prepare(run):
+        return prepare_run(ctx,run.id,project='ИГДИ',vor_filename='vor.csv',vor_bytes=vor,
+            pdf_files={'project.pdf':pdf},pdf_versions=versions,worker='pdf-test',dispatch=lambda *args:None)
+    with patch('analysis_replay.algorithm',side_effect=lambda stage:'old-validator' if stage=='prepared_pdf' else algorithm(stage)):
+        prepare(first)
+    record=repo.load_run(first.id)
+    second=repo.create_run(record['project_id'],record['vor_version_id'],
+        {'model':record['config']['model'],'pdf_versions':record['config']['pdf_versions'],'vor_filename':'vor.csv'},
+        pdf_pins={name:v.id for name,v in versions.items()})
+    with (patch('analysis_replay.algorithm',side_effect=lambda stage:'new-validator' if stage=='prepared_pdf' else algorithm(stage)),
+            patch('pymupdf.open',side_effect=AssertionError('Do not re-open/recognize PDF')),
+            patch('pdf_text.PDFTextSource.__init__',side_effect=AssertionError('Do not repeat OCR'))):
+        prepare(second)
+    reused=repo.load_run(second.id)['config']['prepared_documents']['project.pdf']
+    assert reused['snapshot']==record['config']['prepared_documents']['project.pdf']['snapshot']
+    assert reused['preparation_reuse_basis']=='same_source_and_extraction_contract'
+    ident=prepared_identity(record,pdf,versions['project.pdf'].id)
+    assert repo.compatible_prepared_artifact(record['project_id'],{**ident['inputs'],'ocr_settings_key':'different'}) is None
+    other=repo.create_project('Other project')
+    assert repo.compatible_prepared_artifact(other.id,ident['inputs']) is None

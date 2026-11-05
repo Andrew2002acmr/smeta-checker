@@ -53,6 +53,59 @@ def fixture():
     return donor,record,result,positions,context
 
 
+def test_same_physical_parent_read_is_replaced_once_and_can_be_revalidated():
+    donor,record,result,positions,context=fixture()
+    basis=donor['payload']['position_check']
+    result['sources'].append(deepcopy(basis['sources'][0]))
+    result['parameter_proposals'].append(deepcopy(basis['parameter_proposals'][0]))
+    original=deepcopy(result)
+    out=invoke(donor,record,result,positions,context)
+    quantities=[p for p in out['parameter_proposals'] if p['parameter']=='quantity']
+    assert len(quantities)==1 and quantities[0]['source_id'].startswith('parent-')
+    assert result==original
+    again=invoke(donor,record,out,positions,context)
+    assert len([p for p in again['parameter_proposals'] if p['parameter']=='quantity'])==1
+
+
+def test_rectangle_order_does_not_create_a_second_physical_fact():
+    donor,record,result,positions,context=fixture()
+    basis=donor['payload']['position_check']
+    basis['sources'][0]['rects'].append([.1,.3,.5,.4])
+    donor['payload']['position_check']=enrich(positions[0],basis,positions,{})
+    source=deepcopy(basis['sources'][0])
+    source['rects'].reverse()
+    result['sources'].append(source)
+    result['parameter_proposals'].append(deepcopy(basis['parameter_proposals'][0]))
+    out=invoke(donor,record,result,positions,context)
+    assert len([p for p in out['parameter_proposals'] if p['parameter']=='quantity'])==1
+
+
+@pytest.mark.parametrize('change',['rect','version','text','value','unit','unresolved'])
+def test_equal_number_is_not_enough_to_replace_another_physical_fact(change):
+    donor,record,result,positions,context=fixture()
+    basis=donor['payload']['position_check']
+    source=deepcopy(basis['sources'][0])
+    source['id']='other'
+    proposal=deepcopy(basis['parameter_proposals'][0])
+    proposal['source_id']='other'
+    if change=='rect':
+        source['rects']=[[.6,.1,.9,.2]]
+    if change=='version':
+        source['version_id']='other-pdf'
+    if change=='text':
+        source['text']='Other construction: '+source['text']
+    if change=='value':
+        proposal['value']='11'
+    if change=='unit':
+        proposal['unit']='т'
+    if change=='unresolved':
+        proposal['scope_state']='unresolved'
+    result['sources'].append(source)
+    result['parameter_proposals'].append(proposal)
+    out=invoke(donor,record,result,positions,context)
+    assert proposal in out['parameter_proposals']
+
+
 def invoke(donor,record,result,positions,context):
     with ExitStack() as stack:
         stack.enter_context(patch('normative_service.position_key',side_effect=lambda p:f'key-{p.index}'))

@@ -29,6 +29,7 @@ def project(position,result,tools):
     if not 1<=len(pages)<=4:
         return False
     from normative_agent import EvidenceRequest
+    from normative_source_registry import SourceRegistryConflict
     # All previously located physical tables participate; never pick the pair
     # whose sum happens to match the expected VOR amount.
     for page in pages:
@@ -36,8 +37,11 @@ def project(position,result,tools):
             totals=[c['row'] for c in table.get('cells',[]) if c['column']==0
                 and re.fullmatch(r'\s*Всего\s*[:.]?\s*',c['text'],re.I)]
             if totals:
-                tools.execute(EvidenceRequest(tool='read_table',page=page,
-                    table_id=table['table_id'],row_ids=[max(totals)]))
+                try:
+                    tools.execute(EvidenceRequest(tool='read_table',page=page,
+                        table_id=table['table_id'],row_ids=[max(totals)]))
+                except SourceRegistryConflict:
+                    return False  # Preserve the review; conflicting reads cannot prove it.
     sections=getattr(position.position_source,'sections',[]) if position.position_source else []
     section=' '.join(s.get('text','') if isinstance(s,dict) else s.text for s in sections)
     candidate=prepare_quantity_pair(tools,owner_work=position.work_name,

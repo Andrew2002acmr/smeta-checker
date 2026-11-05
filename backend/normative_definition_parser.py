@@ -123,6 +123,8 @@ def parse_rows(rows: list[dict[str,Any]]):
             history=[]
             # A wrapped title remains above the composition, in the title column.
             for extra in rows[i+1:i+7]:
+                if _running_matter(extra):
+                    continue
                 if extra['page']!=row['page'] or extra['text'].startswith(('Состав работ:','Измеритель:')):
                     break
                 if extra['bbox'][0]<=row['pieces'][0]['bbox'][2]+2 or _anchor(extra):
@@ -208,6 +210,13 @@ def parse_rows(rows: list[dict[str,Any]]):
                     and anchor['code_right']+2<indent<anchor['indent']-2
                     and all(not re.fullmatch(CODE,r['pieces'][0]['text']) for r in pending))
                 if is_heading:
+                    if previous and abs(indent-previous['indent'])<=2:
+                        # Equal indentation cannot separate a wrapped previous
+                        # label from a new multi-line parent. Assigning all of
+                        # it to the next sibling silently truncates the former.
+                        bad=True
+                        detail='previous_label_and_following_heading_same_indent'
+                        break
                     while parents and parents[-1]['indent']>=indent-2:
                         parents.pop()
                     parents.append(dict(indent=indent,child_indent=anchor['indent'],rows=list(pending)))

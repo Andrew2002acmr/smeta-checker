@@ -93,6 +93,41 @@ def test_explicit_lower_condition_wins_over_generic_single_layer_and_keeps_origi
     assert findings(position,result)==[]  # No unconditional requirement to also select adjustment 08.
 
 
+def test_generic_work_title_does_not_disable_a_condition_for_verified_pd_material():
+    from normative_parameters import build_cards
+    position,result=actual_lower_layer_case()
+    cards=build_cards(position,result,{position.index:position},{})
+    position.work_name=position.work_name.replace(' из ЩПС','')
+    found=selection_findings(position,result,{position.index:position},{},cards=cards)
+    assert len(found)==1 and found[0]['allowed_base_codes']==['27-04-003-06']
+
+
+def test_material_does_not_inherit_work_cost_choice_without_selecting_that_norm():
+    position,result=actual_lower_layer_case()
+    position.position_type='Материал'
+    assert findings(position,result)  # Selecting the cost norm retains every guard.
+    for item in result['items']:
+        if 'normative:applicability' in item.get('claim_ids',[]):
+            item['normative_source_ids']=['clause']
+    original=deepcopy(result)
+    assert findings(position,result)==[] and result==original
+    position.position_type='Работа'
+    assert findings(position,result)  # A work still has to establish its own base.
+
+
+@pytest.mark.parametrize('state',['unresolved',None])
+def test_wrong_selected_base_cannot_hide_behind_omitted_measure_scope(state):
+    position,result=actual_lower_layer_case()
+    proposal=result['parameter_proposals'][-1]
+    if state is None:
+        proposal.pop('scope_state',None)
+    else:
+        proposal['scope_state']=state
+    issue=findings(position,result)
+    assert len(issue)==1 and issue[0]['reason']=='base_outside_condition'
+    assert issue[0]['allowed_base_codes']==['27-04-003-06']
+
+
 def test_rejected_alternative_reference_is_not_a_structured_selection():
     position,result=actual_lower_layer_case()
     alternative=deepcopy(result['sources'][2])

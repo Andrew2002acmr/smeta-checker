@@ -62,6 +62,39 @@ def test_actual_middle_20_cannot_be_green_from_threshold_alone():
     assert repeated==checked
 
 
+@pytest.mark.parametrize('state',['verified','unresolved',None])
+def test_omitted_model_measure_scope_cannot_disable_negative_condition_check(state):
+    position,result=actual(4)
+    for proposal in result['parameter_proposals']:
+        if proposal['parameter']=='unit_scale':
+            if state is None:
+                proposal.pop('scope_state',None)
+            else:
+                proposal['scope_state']=state
+    original=deepcopy(result)
+    found=selection_findings(position,result,{4:position},{},cards=result['parameter_cards'])
+    assert found and all(f['reason']=='construction_role_unresolved' for f in found)
+    assert all(f['layer_role']=='средн' for f in found)
+    checked=enrich(position,result,{4:position},{})
+    assert all(i['state']=='needs_facts' for i in checked['items']
+        if 'normative:applicability' in i.get('claim_ids',[]))
+    assert all(c['state']=='confirmed' for c in checked['parameter_cards']
+        if c['id'] in {'quantity','thickness'})
+    assert result==original
+
+
+@pytest.mark.parametrize('state',['unresolved',None])
+def test_unasserted_measure_scope_does_not_reject_literal_matching_lower_branch(state):
+    position,result=actual(0)
+    for proposal in result['parameter_proposals']:
+        if proposal['parameter']=='unit_scale':
+            if state is None:
+                proposal.pop('scope_state',None)
+            else:
+                proposal['scope_state']=state
+    assert selection_findings(position,result,{0:position},{},cards=result['parameter_cards'])==[]
+
+
 @pytest.mark.parametrize('cited',[False,True])
 def test_single_branch_cannot_close_layer_proof_through_either_source_route(cited):
     from test_normative_referenced_layer_condition import fixture

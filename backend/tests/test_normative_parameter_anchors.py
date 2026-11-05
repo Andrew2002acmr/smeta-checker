@@ -1,11 +1,69 @@
 from normative_parameter_anchors import parameter_candidates,resolve_anchors
 from workspace_models import NormativeParameterProposal
 from normative_position_check import AgentAnswer,validate_items
+import pytest
 
 
 def sources():
     return [dict(id='p',kind='project',origin='native',text='Средний слой основания — Смесь 0/63 h=20 см.\nНижний слой основания — Смесь 0/31,5 h=24 см.'),
         dict(id='n',kind='normative',origin='native',text='Работа. Измеритель: 1000 м2')]
+
+
+def test_pavement_thickness_candidates_retain_own_literal_layer():
+    text='Нижний слой покрытия (слой усиления) — А22Нт h=7 см;\nВерхний слой покрытия — ЩМА-16 h=5 см;'
+    found=parameter_candidates([dict(id='pd',kind='project',origin='native',text=text)])
+    assert [(p['value'],p['scope_quote']) for p in found]==[
+        ('7','Нижний слой покрытия (слой усиления) — А22Нт h=7 см'),
+        ('5','Верхний слой покрытия — ЩМА-16 h=5 см')]
+
+
+def test_unqualified_native_layer_label_exposes_a_literal_anchor_not_a_new_layer_role():
+    text='Тип V — тротуар\nПокрытие — А5Вл h=5 см;\nОснование — ЩПС фр. 0/31,5 h=20 см;'
+    found=parameter_candidates([dict(id='pd',kind='project',origin='native',text=text)])
+    assert [(p['value'],p['scope_quote']) for p in found]==[
+        ('5','Покрытие — А5Вл h=5 см'),('20','Основание — ЩПС фр. 0/31,5 h=20 см')]
+    assert all('Нижний' not in p['scope_quote'] and 'Верхний' not in p['scope_quote'] for p in found)
+
+
+def test_generated_resource_handle_survives_anchor_without_confirming_applicability():
+    from pydantic import ValidationError
+    sid='agent:n:norm-'+'a'*32+':full:'+'b'*20+':resources:11'
+    assert len(sid)>80
+    source=dict(id=sid,kind='normative',origin='native',text='Ресурсы нормы 09-01-015-01; Измеритель: 1 т')
+    answer=AgentAnswer(summary='Область пока не установлена.',parameters=[],items=[dict(
+        topic='Применимость',state='needs_facts',claim_ids=['normative:applicability'],
+        explanation='Измеритель найден, конструктивная связь не доказана.',
+        project_source_ids=[],normative_source_ids=[sid])])
+    proposals=resolve_anchors(answer.parameters,[source],answer.items,owner_unit='т')
+    assert len(proposals)==1 and proposals[0].source_id==sid
+    assert proposals[0].quote=='Измеритель: 1 т'
+    assert answer.items[0].state=='needs_facts'
+    with pytest.raises(ValidationError):
+        NormativeParameterProposal(parameter='unit_scale',value='1',unit='т',quote='Измеритель: 1 т',source_id='x'*201)
+
+
+@pytest.mark.parametrize('change',['valid','wrong_layer','wrong_value','unresolved','two_constructions'])
+def test_wide_construction_context_can_narrow_only_an_explicit_literal_layer(change):
+    quote='Нижний слой основания — Смесь фр. 0/45 h=27 см.'
+    scope='Тип IX — Конструкция ровиков:\nВерхний слой основания — Смесь фр. 0/80 h=19 см.\n'+quote
+    if change=='two_constructions':
+        scope='Тип I — Конструкция дороги.\n'+scope
+    source=dict(id='pd',kind='project',origin='native',text=scope)
+    p=NormativeParameterProposal(parameter='thickness',value='27',unit='см',source_id='pd',
+        quote=quote,scope_quote=scope,scope_state='verified')
+    if change=='wrong_value':
+        p.value='28'
+    if change=='unresolved':
+        p.scope_state='unresolved'
+    work='Нижний слой основания из смеси фр. 0/45'
+    if change=='wrong_layer':
+        work='Средний слой основания из смеси фр. 0/80'
+    events=[]
+    resolve_anchors([p],[source],[],work_scope=work,height_cm='27',evidence_trace=events)
+    if change=='valid':
+        assert p.scope_quote==quote and events[0]['original_proposal']['scope_quote']==scope
+    else:
+        assert p.scope_quote==scope and not events
 
 
 def test_thickness_adjustment_uses_literal_base_step_and_requested_thickness():

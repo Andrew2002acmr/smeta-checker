@@ -74,9 +74,16 @@ def literal_unit(words):
     if base is None or power is None:
         return None
     digit, exponent = power
-    if (exponent['left']+exponent['width']/2 > base['left']+base['width']/2
+    gap = exponent['left']-base['left']-base['width']
+    adjacent = -.25*base['width'] <= gap <= max(base['width'],base['height'])*.8
+    # A lowercase m has a short x-height. A clearly raised digit can be
+    # almost as tall as m; requiring a 10% smaller box rejects real units.
+    # Accept that case only when its bottom is at the top of the base glyph.
+    raised = (exponent['height'] <= base['height']*1.05
+        and exponent['top']+exponent['height'] <= base['top']+base['height']*.15)
+    if (adjacent and exponent['left']+exponent['width']/2 > base['left']+base['width']/2
             and exponent['top']+exponent['height']/2 < base['top']+base['height']/2
-            and exponent['height'] <= base['height']*.9):
+            and (exponent['height'] <= base['height']*.9 or raised)):
         return 'м'+digit
     return None
 
@@ -225,7 +232,7 @@ def _recover_numeric(image, cell, proof, read, deadline):
         cell['quality']='usable'
 
 
-def refine_tables(page, tables, *, rotation=0, cache_dir=None, store_image=None, seconds=25, max_numbers=12, max_columns=32):
+def refine_tables(page, tables, *, rotation=0, cache_dir=None, store_image=None, seconds:float=25, max_numbers=12, max_columns=32):
     """Refine uncertain totals and unit headers; preserve the source's raw OCR."""
     import pymupdf
     import ocr_engine

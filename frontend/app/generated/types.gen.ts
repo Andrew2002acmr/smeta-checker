@@ -956,6 +956,12 @@ export type NormativeCheckSource = {
      */
     unit_verified?: boolean;
     /**
+     * Verified Parameters
+     */
+    verified_parameters?: Array<{
+        [key: string]: string;
+    }>;
+    /**
      * Version Id
      */
     version_id?: string | null;
@@ -1365,6 +1371,10 @@ export type NormativeParameterProposal = {
      * Scope Quote
      */
     scope_quote?: string;
+    /**
+     * Scope Relation
+     */
+    scope_relation?: 'same_layer' | 'technological_part';
     /**
      * Scope State
      */

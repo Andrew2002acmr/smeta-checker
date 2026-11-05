@@ -1359,6 +1359,18 @@ class PDFTextSource:
         quality = dict(record.get('quality') or {}) if record else dict(
             state='failed' if errors else 'usable', origin='native')
         quality.pop('words', None)
+        from pdf_inline_evidence import prepare_inline, inline_text, coverage as inline_coverage
+        inline = prepare_inline(self._doc[idx], self._pdf_hash, language=self.language)
+        quality['inline_raster'] = inline_coverage(inline)
+        if inline:
+            text += '\n' + inline_text(inline)
+            locators.extend(dict(region, document_id='pdf-%s' % self._pdf_hash[:12],
+                table_id='', row_id='', column_id='', header_ids=[], group_id='',
+                scope_key='', role='inline_image', rotation=0) for region in inline)
+            # Native paragraphs remain usable individually; a whole-page claim
+            # cannot silently certify an unreadable image inside that paragraph.
+            if quality.get('state') == 'usable':
+                quality['state'] = 'uncertain'
         if errors and quality.get('state') == 'usable':
             quality['state'] = 'uncertain'
         origin = 'native' if native.strip() else ('ocr' if record else 'native')

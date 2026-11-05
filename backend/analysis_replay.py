@@ -61,7 +61,9 @@ def put(context,ident,value):
 
 def prepared_identity(record,data,version):
     from pdf_text import PDFTextSource,TABLE_OUTPUT,MAX_TABLE_CELL_CHARS
+    from document_preparation import VERSION
     return identity('prepared_pdf',record,dict(pdf_sha256=hashlib.sha256(bytes(data)).hexdigest(),
+        preparation_version=VERSION,
         version_id=str(version),extraction_key=PDFTextSource._extraction_key_for(TABLE_OUTPUT),
         ocr_settings_key=PDFTextSource._settings_key_for('rus+eng',200,12000000,4096),
         table_key=hashlib.sha256((PDFTextSource._table_key_for(MAX_TABLE_CELL_CHARS)+':full-document-v1').encode()).hexdigest()))
@@ -73,11 +75,42 @@ def store_prepared(context,ident,state):
     index=load_snapshot(context.blob_store,state['snapshot'])
     if not index.metadata.get('preparation_complete') or index.pending_ocr:
         raise ValueError('Incomplete document cannot enter reusable artifact storage')
-    if index.metadata.get('document_version_id')!=ident['inputs']['version_id'] or native.get('pdf_sha256')!=index.metadata.get('pdf_sha256'):
+    if (index.metadata.get('document_version_id')!=ident['inputs']['version_id']
+            or native.get('pdf_sha256')!=index.metadata.get('pdf_sha256')):
         raise ValueError('Reusable preparation belongs to another document')
+    # Native/snapshot hashes identify PyMuPDF's canonical PDF serialization.
+    # ident.inputs.pdf_sha256 identifies the original uploaded bytes. They are
+    # intentionally different domains; the immutable artifact binds both.
     if any(native.get(k)!=ident['inputs'][k] for k in ('extraction_key','ocr_settings_key','table_key')):
         raise ValueError('Prepared document processing settings changed')
     return put(context,ident,dict(state=state))['state']
+
+
+def replay_prepared(context,ident):
+    """Reuse raw OCR across validation-code changes, with unchanged extraction contracts.
+
+    PDF bytes, document version, engine/language/settings and table schema
+    must all match. New validators consume the immutable raw readings; this
+    never reuses a normative verdict or asserts that all cells are verified.
+    """
+    cached=get(context,ident)
+    if cached is not None:
+        return cached
+    lookup=getattr(context.repository,'compatible_prepared_artifact',None)
+    if not callable(lookup):
+        return None
+    old=lookup(ident['project_id'],ident['inputs'])
+    if old is None:
+        return None
+    if not isinstance(old,dict):
+        raise ValueError('Invalid preparation artifact')
+    previous=old['identity']
+    if (previous.get('stage')!='prepared_pdf' or previous.get('project_id')!=ident['project_id']
+            or previous.get('inputs')!=ident['inputs']):
+        raise ValueError('Raw preparation contracts do not match')
+    state=dict(old['payload']['state'],reused_from_artifact=digest(previous),
+        preparation_reuse_basis='same_source_and_extraction_contract')
+    return dict(state=store_prepared(context,ident,state))
 
 
 def matching_identity(context,record,payload):
@@ -143,7 +176,8 @@ def normative_identity(context,record,index,payload):
     revision=getattr(context.repository,'analysis_human_revision',None)
     human_revision=revision(record['project_id'],record['vor_version_id'],list((record['config'].get('pdf_versions') or {}).values())) if revision else ''
     inputs=dict(matching=digest(matching),matching_facts=digest(matching_facts(raw)),
-        kb=service.corpus(profile=service.profile_for(record)).identity,
+        coefficient_policy=record.get('config', {}).get('normative_coefficient_policy', 'estimator_value_normative_conditions'),
+        kb=service.corpus(pin=record['config'].get('normative_kb_pin'),profile=service.profile_for(record)).identity,
         # The matching job stays frozen when table preparation is corrected.
         # Normative retrieval, however, reads this newer document snapshot.
         # Reusing an answer from the old grid would silently undo that repair.
@@ -155,6 +189,8 @@ def normative_identity(context,record,index,payload):
 
 
 def replay_normative(context,record,index,payload,actor):
+    if record.get('config',{}).get('normative_fresh_model') is True:
+        return None  # Independent model sampling; prepared PDF reuse is unaffected.
     if not enabled(context):
         return None
     ident=normative_identity(context,record,index,payload)
@@ -172,6 +208,8 @@ def replay_normative(context,record,index,payload,actor):
 
 
 def store_normative(context,record,index,payload,saved):
+    if record.get('config',{}).get('normative_fresh_model') is True:
+        return saved  # Never replace a new sampled answer with the first cached one.
     if not enabled(context) or saved['payload']['position_check'].get('execution_state')!='complete':
         return saved
     ident=normative_identity(context,record,index,payload)

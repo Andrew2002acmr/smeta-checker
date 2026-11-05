@@ -81,6 +81,25 @@ def test_non_method_or_advisory_claims_do_not_even_read_corpus(corpus, claims):
     assert corpus.reads == []
 
 
+def test_material_basis_reads_exact_project_quantity_clause_and_collection_restrictions(corpus):
+    metadata=json.loads(FIXTURE.read_text(encoding='utf-8'))
+    label,key,pages,_=method.MATERIAL_CLAUSES[1]
+    clause=next(c for c in metadata['reviewed_clauses'] if c['label']==label)
+    corpus.entities[key]=dict(id=key,entity_kind='clause',source_id=method.SOURCE_ID,
+        source_kind='METHODOLOGY',designation=method.DESIGNATION,label=label,text=clause['text'],
+        status=method.REVIEW_STATUS,edition=metadata,citations=[dict(source_id=method.SOURCE_ID,
+            physical_page=p,source_sha256=method.SOURCE_SHA256,text_provenance=method.TRANSCRIPTION) for p in pages])
+    result=method.methodology_context(corpus,[dict(claim_id='basis:comment:consumption:1')],
+        expected_pin=PIN,material=True)
+    assert result['reason']=='reviewed_literal_context'
+    assert [c['clause'] for c in result['context']['literal_clauses']]==['7','12']
+    assert result['context']['scope']=='material_quantity_basis_only'
+    assert 'трудноустранимых потерь' in result['context']['literal_clauses'][1]['quote']
+    assert all('state' not in s for s in result['sources'])
+    corpus.entities[key]['text']+=' altered'
+    assert not method.methodology_context(corpus,[],expected_pin=PIN,material=True)['sources']
+
+
 @pytest.mark.parametrize('field,value', [('sha256', '0' * 64), ('release_id', 'another-release'),
     ('database', 'releases/another/knowledge.sqlite'), ('profile', 'electrical')])
 def test_wrong_expected_corpus_pin_rejects_before_reading(corpus, field, value):
@@ -155,14 +174,14 @@ def test_metadata_cannot_hide_reassigned_source_row(corpus, column, value):
 
 
 def test_literal_context_survives_exhausted_source_budget_and_aliases_resolve(corpus, monkeypatch):
-    from normative_agent import compact, model_source_aliases
+    from normative_agent import compact, model_source_aliases,PIPELINE_VERSION
     from normative_context_packing import serialize_context
     result = method.methodology_context(corpus, CLAIMS, expected_pin=PIN)
     sources = [dict(id='p', kind='project', text='Проектная конструкция'), *result['sources']]
     inputs = dict(methodology_context=result['context'], untrusted_other_data='x' * 38000)
     # Exhaust the actual measured budget, independently of preview policy. The
     # former fixed 20k reserve must not return to make this test pass.
-    metadata = dict(inputs, sources=[], archived_source_ids=['p'], matching_checks=[], pipeline_version=4)
+    metadata = dict(inputs, sources=[], archived_source_ids=['p'], matching_checks=[], pipeline_version=PIPELINE_VERSION)
     monkeypatch.setattr('normative_agent.MAX_CONTEXT', len(serialize_context(metadata)))
     supplied = compact(inputs, sources, result['preferred_source_ids'])
     assert supplied['methodology_context'] == result['context']
