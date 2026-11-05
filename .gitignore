@@ -32,3 +32,7 @@ report_drawing.py
 /.ruff_cache/
 /backend/.pytest_cache/
 /backend/.ruff_cache/
+
+# Upstream demo galleries inside vendored skills (not needed at runtime)
+.agents/skills/*/assets/icons/demo/
+.agents/skills/*/assets/scenes/_demo/
