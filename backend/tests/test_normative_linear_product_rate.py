@@ -3,6 +3,7 @@ from copy import deepcopy
 import pytest
 
 from vor_material_links import material_links
+from vor_material_ownership import material_owners
 
 
 def pair():
@@ -19,11 +20,11 @@ def pair():
 def test_curb_relation_never_proves_profile_or_rate():
     tasks=pair()
     before=deepcopy(tasks)
-    link=material_links(tasks)[1]
+    assert material_links(tasks)=={}
+    link=material_owners(tasks)[1]
     assert link['index']==0
-    assert link['relation_basis']=='explicit_workbook_owner_linear_curb'
+    assert link['state']=='ownership_only'
     assert link['conversion_verified'] is False
-    assert link['material_compatibility_verified'] is False
     assert 'rate' not in link and 'confirmed' not in link
     assert tasks==before
 

@@ -295,21 +295,43 @@ def test_llm_worker_refuses_partial_document_without_reopening_or_calling_model(
     assert "подготовка ПД" in result["discrepancy_details"]
 
 
-def test_old_preparation_contract_gets_new_snapshot_without_rewriting_old_one(build,monkeypatch):
+@pytest.mark.parametrize('legacy',['preparation_version','source_bytes_contract'])
+def test_old_preparation_contract_gets_new_snapshot_without_rewriting_old_one(build,monkeypatch,legacy):
     from copy import deepcopy
-    from audit_snapshot import store_snapshot
+    from audit_snapshot import store_snapshot,load_json,store_json
     from document_preparation import VERSION
     monkeypatch.setattr('analysis_replay.enabled',lambda context:False)
     p=build(page_count=1)
     prepare(p)
     state=deepcopy(p.repo.load_run(p.run.id)['config']['prepared_documents']['project.pdf'])
     index=load_snapshot(p.context.blob_store,state['snapshot'])
-    index.metadata['preparation_version']=VERSION-1
+    if legacy=='preparation_version':
+        index.metadata['preparation_version']=VERSION-1
+        state['version']=VERSION-1
+    else:
+        native=load_json(p.context.blob_store,state['native'])
+        native.update(pdf_sha256='legacy-canonical-source',extraction_key='legacy-extraction')
+        state['native']=store_json(p.context.blob_store,native)
+        index.metadata.update(pdf_sha256=native['pdf_sha256'],extraction_key=native['extraction_key'])
     old_ref=store_snapshot(p.context.blob_store,index)
-    state.update(version=VERSION-1,snapshot=old_ref)
+    state['snapshot']=old_ref
+    old_state=deepcopy(state)
+    old_snapshot_bytes=p.context.blob_store.get(old_ref['snapshot_key'])
+    saved_review=p.repo.save_normative_review(p.run.id,0,'check',dict(position_check=dict(
+        pipeline_version=5,state='confirmed',execution_state='complete',sources=[],items=[])),'historical-test-only')
+    previous_result=dict(status='ОК',test_marker='historical result must stay unchanged')
+    p.repo.save_position_result(p.run.id,0,previous_result)
     p.repo.update_run_config(p.run.id,{'prepared_documents':{'project.pdf':state}})
     prepare(p)
-    current=p.repo.load_run(p.run.id)['config']['prepared_documents']['project.pdf']
+    record=p.repo.load_run(p.run.id)
+    current=record['config']['prepared_documents']['project.pdf']
     assert current['version']==VERSION and current['snapshot']!=old_ref
     assert load_snapshot(p.context.blob_store,current['snapshot']).metadata['preparation_version']==VERSION
-    assert load_snapshot(p.context.blob_store,old_ref).metadata['preparation_version']==VERSION-1
+    assert p.context.blob_store.get(old_ref['snapshot_key'])==old_snapshot_bytes
+    assert load_snapshot(p.context.blob_store,old_ref).metadata==index.metadata
+    history=deepcopy(record['config']['preparation_history'])
+    assert len(history)==1 and history[0]['previous_state']==old_state
+    assert p.repo.normative_review(p.run.id,0,saved_review['id'])==saved_review
+    assert next(r['result']for r in record['indexed_results']if r['position_index']==0)==previous_result
+    prepare(p)
+    assert p.repo.load_run(p.run.id)['config']['preparation_history']==history

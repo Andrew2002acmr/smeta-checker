@@ -66,7 +66,7 @@ def execute(tools, request):
         return {'error': 'engineering_graph_unavailable'}
     from normative_engineering_relations import related
     try:
-        result = related(graph, request.entity_id, offset=request.offset)
+        result = related(graph, request.entity_id, offset=request.offset, entity_kind=request.entity_kind)
     except KeyError:
         return {'error': 'unknown_engineering_entity'}
     tools.events.append(dict(kind='engineering_navigation_v1', entity_id=request.entity_id,

@@ -163,6 +163,9 @@ def _proposal_dependencies(proposal,sources):
         return []
     operands=proposal.get('operand_source_ids') or []
     if proposal.get('operation','direct')=='direct':
+        from normative_source_identity import row_proposal_matches
+        if proposal.get('parameter') == 'quantity' and not row_proposal_matches(proposal, source):
+            return []
         return [source['id']] if not operands and source['origin']!='calculated_from_cells' else []
     if (source['origin']!='calculated_from_cells' or not source.get('numeric_verified')
             or not 2<=len(operands)<=12 or len(set(operands))!=len(operands)):

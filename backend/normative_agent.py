@@ -161,12 +161,19 @@ TOOLS += ('\nread_table.row_measurements связывает составные �
     'raw_values/raw_units остаются буквальными, source_anchors и read_request адресуют обе ячейки. '
     'Это не доказательство принадлежности позиции ВОР. При recognition_verified=false чтение OCR ещё не проверено; '
     'не превращай его в подтверждение. Расход вроде кг/м2 не является парой альтернативных измерителей.')
+TOOLS += ('\nrow_measurements.measurement_kind=native_scalar_row — отдельное буквальное количество '
+    'из нативной строки с явными физическими заголовками единицы и количества. value/unit связаны '
+    'с адресами обеих ячеек; это не OCR и не подтверждение инженерной принадлежности. '
+    'Используй готовый quantity_parameter_candidates.proposal и отдельно докажи scope.')
 TOOLS += ('\nsearch_project также возвращает engineering_entities: краткие сущности с устойчивыми ID. '
     'search_project(query,entity_kind="Construction"|"Work"|"Material"|"Fact"|"ProjectArea"|"Evidence") '
     'ищет только каталог сущностей, без страниц PDF. '
     'Для следующих сущностей используй entity_offset из next_offset этого каталога. '
-    'read_source(entity_id, offset) возвращает связанные работы, участки, материалы, факты и доказательства; '
-    'next_offset дочитывает отношения. candidate/rejected/stale не являются verified. '
+    'read_source(entity_id, offset,entity_kind) возвращает связанные работы, участки, материалы, факты и доказательства; '
+    'entity_kind="Material"/"Fact"/"Work"/"ProjectArea"/"Evidence" выбирает только нужный тип до пагинации. '
+    'next_offset дочитывает отношения с тем же фильтром. candidate/rejected/stale не являются verified. '
+    'path_state=unresolved означает, что хотя бы одна связь всего пути ещё не подтверждена; '
+    'отдельная verified связь не подтверждает принадлежность всей конструкции. '
     'По read_request дочитай физический источник; граф не заменяет проверку принадлежности. '
     'read_page(document_version_id,page,bbox=[x0,y0,x1,y1],scale) получает локальный фрагмент '
     'чертежа в координатах PDF без поворота. Это только изображение, без автоматического распознавания; '
@@ -388,7 +395,12 @@ class EvidenceTools:
         if refreshed:
             latest = load_snapshot(context.blob_store, refreshed)
             if latest.metadata.get('pdf_sha256') != self.index.metadata.get('pdf_sha256'):
-                raise ValueError('Prepared normative corpus belongs to another PDF')
+                from normative_preparation_lineage import transition
+                self.events.append(transition(context,record,payload,self.filename,self.version,
+                    self.index,latest,refreshed))
+                # Cross-contract fallback must not reintroduce old tables on
+                # a page where the new producer recorded missing evidence.
+                self.snapshot_refs=[]
             self.index = latest
             self.snapshot_refs.insert(0, refreshed)
         from pdf_drawing_readings import apply as apply_drawing_readings
@@ -738,6 +750,12 @@ class EvidenceTools:
             parent=preview(paired_source)
             if parent:
                 measurement['parent_observation']=parent
+        from normative_scalar_rows import observations as scalar_rows
+        for row in scalar_rows(self.index, self.version, request.page, table, selected, self.filename):
+            registered = self._add(row['source'])
+            if 'source_id' in registered:
+                row_measurements.append(dict(row['preview'], source_id=registered['source_id'],
+                    measurement_kind='native_scalar_row'))
         return {'row_measurements':row_measurements,'header_observations':observations,'cells': output, 'header_parameters':header_parameters, 'matching_rows': matching_rows, 'columns': table_outline(table)['columns'], 'rows': [dict(**{k: c[k] for k in ('cell_id', 'row', 'column', 'text', 'header_ids', 'bbox', 'quality', 'numeric_verified','row_scope') if k in c},
             **output[i]) for i,c in enumerate(selected)], 'next_offset': request.offset+4, 'row_count': table['row_count']}
 

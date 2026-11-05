@@ -1,6 +1,7 @@
 """Full, resumable document preparation barrier before any paid position task."""
 
 from contextlib import closing, nullcontext
+from copy import deepcopy
 from typing import Any
 
 from audit_core import PageTextIndex
@@ -8,6 +9,40 @@ from audit_snapshot import load_json, load_snapshot, store_json, store_snapshot
 from audit_tracing import span
 
 VERSION = 3
+
+
+def _resume_contract_issues(blobs,state,expected):
+    """Decide whether saved CPU state can actually resume this byte contract.
+
+    Integrity failures still raise from blob loading. A well-formed legacy
+    state with obsolete settings is retained in history and prepared afresh.
+    """
+    if not state:
+        return []
+    issues=[]
+    if state.get('version')!=VERSION:
+        issues.append('preparation_version_changed')
+    if state.get('version_id')!=expected['version_id']:
+        issues.append('document_version_changed')
+    if issues:
+        return issues
+    native=load_json(blobs,state['native'])if state.get('native')else None
+    if native is not None:
+        for key in ('pdf_sha256','extraction_key','ocr_settings_key','table_key'):
+            if native.get(key)!=expected[key]:
+                issues.append('native_'+key+'_changed')
+    elif state.get('pages')or state.get('snapshot'):
+        issues.append('native_checkpoint_missing')
+    if state.get('snapshot'):
+        index=load_snapshot(blobs,state['snapshot'])
+        for key in ('pdf_sha256','extraction_key','ocr_settings_key','document_version_id','preparation_version'):
+            wanted=expected['version_id']if key=='document_version_id'else expected[key]
+            if index.metadata.get(key)!=wanted:
+                issues.append('snapshot_'+key+'_changed')
+        geometry=index.metadata.get('page_geometry')or{}
+        if any(not geometry.get(str(p))for p in range(len(index.texts))):
+            issues.append('snapshot_page_geometry_missing')
+    return issues
 
 
 def _yield_unfinished_cells(index):
@@ -69,11 +104,22 @@ def prepare_documents(
 ):
     import pymupdf
     from pdf_text import PDFTextSource
-    from analysis_replay import enabled,replay_prepared,prepared_identity,store_prepared,digest
+    from analysis_replay import enabled,replay_prepared,prepared_identity,prepared_inputs,store_prepared,digest
 
     record = context.repository.load_run(run_id, include_results=False)
     config = record.get("config") or {}
     documents: dict[str, dict[str, Any]] = dict(config.get("prepared_documents") or {})
+    history=deepcopy(config.get('preparation_history')or[])
+
+    def restart(name,state,reasons,expected):
+        if state:
+            entry=dict(document_name=name,reason='saved_preparation_contract_changed',reasons=reasons,
+                previous_state=deepcopy(state),required_contract=deepcopy(expected),
+                previous_normative_corpus=deepcopy((config.get('normative_corpora')or{}).get(state.get('version_id'))))
+            entry['id']=digest(entry)
+            if not any(old.get('id')==entry['id']for old in history):
+                history.append(entry)
+        return dict(version=VERSION,version_id=expected['version_id'],pages=[])
     snapshots = {}
     reused_documents = []
     total = 0
@@ -82,19 +128,23 @@ def prepare_documents(
         if cancelled():
             return None
         state: dict[str, Any] = documents.get(name) or {}
-        if (
-            state.get("version_id") != str(pdf_versions[name].id)
-            or state.get("version") != VERSION
-        ):
-            state = dict(
-                version=VERSION, version_id=str(pdf_versions[name].id), pages=[]
-            )
+        expected=prepared_inputs(pdf_files[name],pdf_versions[name].id)
+        reasons=_resume_contract_issues(context.blob_store,state,expected)
+        if reasons:
+            state=restart(name,state,reasons,expected)
+        elif not state:
+            state=dict(version=VERSION,version_id=expected['version_id'],pages=[])
         if enabled(context) and not state.get('snapshot'):
             ident=prepared_identity(record,pdf_files[name],pdf_versions[name].id)
             cached=replay_prepared(context,ident)
             if cached:
-                state=dict(cached['state'],reused_artifact=digest(ident))
-                reused_documents.append(name)
+                candidate=dict(cached['state'],reused_artifact=digest(ident))
+                reasons=_resume_contract_issues(context.blob_store,candidate,expected)
+                if reasons:
+                    state=restart(name,candidate,['reusable_artifact_contract_changed',*reasons],expected)
+                else:
+                    state=candidate
+                    reused_documents.append(name)
         if not state.get("page_count"):
             with pymupdf.open(stream=bytes(pdf_files[name]), filetype="pdf") as doc:
                 state["page_count"] = len(doc)
@@ -104,6 +154,7 @@ def prepare_documents(
         run_id,
         {
             "prepared_documents": documents,
+            "preparation_history": history,
             "document_preparation_version": VERSION,
             "documents_prepared": False,
             "pdf_preparation": dict(
@@ -164,6 +215,7 @@ def prepare_documents(
                     native_state=native,
                     full_document=True,
                     store_image=context.blob_store.put,
+                    source_bytes=pdf_files[name],
                 )
             ) as source:
                 source._checkpoint = None

@@ -66,14 +66,20 @@ def put(context,ident,value):
     return context.repository.save_analysis_artifact(ident['project_id'],ident,value)
 
 
-def prepared_identity(record,data,version):
-    from pdf_text import PDFTextSource,TABLE_OUTPUT,MAX_TABLE_CELL_CHARS
+def prepared_inputs(data,version):
+    """Explicit raw-source contract shared by preparation and cache lookup."""
+    from pdf_text import PDFTextSource,TABLE_OUTPUT,MAX_TABLE_CELL_CHARS,SOURCE_BYTES_CONTRACT
     from document_preparation import VERSION
-    return identity('prepared_pdf',record,dict(pdf_sha256=hashlib.sha256(bytes(data)).hexdigest(),
+    return dict(pdf_sha256=hashlib.sha256(bytes(data)).hexdigest(),
+        source_bytes_contract=SOURCE_BYTES_CONTRACT,
         preparation_version=VERSION,
         version_id=str(version),extraction_key=PDFTextSource._extraction_key_for(TABLE_OUTPUT),
         ocr_settings_key=PDFTextSource._settings_key_for('rus+eng',200,12000000,4096),
-        table_key=hashlib.sha256((PDFTextSource._table_key_for(MAX_TABLE_CELL_CHARS)+':full-document-v1').encode()).hexdigest()))
+        table_key=hashlib.sha256((PDFTextSource._table_key_for(MAX_TABLE_CELL_CHARS)+':full-document-v1').encode()).hexdigest())
+
+
+def prepared_identity(record,data,version):
+    return identity('prepared_pdf',record,prepared_inputs(data,version))
 
 
 def store_prepared(context,ident,state):
@@ -97,9 +103,14 @@ def store_prepared(context,ident,state):
     if (index.metadata.get('document_version_id')!=ident['inputs']['version_id']
             or native.get('pdf_sha256')!=index.metadata.get('pdf_sha256')):
         raise ValueError('Reusable preparation belongs to another document')
-    # Native/snapshot hashes identify PyMuPDF's canonical PDF serialization.
-    # ident.inputs.pdf_sha256 identifies the original uploaded bytes. They are
-    # intentionally different domains; the immutable artifact binds both.
+    # Historical artifacts explicitly bound canonical serialization and upload
+    # bytes as two domains. New producer contracts keep exact original bytes;
+    # a legacy snapshot cannot be relabelled as that stronger source contract.
+    from pdf_text import SOURCE_BYTES_CONTRACT
+    contract=ident['inputs'].get('source_bytes_contract')
+    if contract is not None and (contract!=SOURCE_BYTES_CONTRACT
+            or native.get('pdf_sha256')!=ident['inputs']['pdf_sha256']):
+        raise ValueError('Prepared snapshot does not match original PDF bytes contract')
     if any(native.get(k)!=ident['inputs'][k] for k in ('extraction_key','ocr_settings_key','table_key')):
         raise ValueError('Prepared document processing settings changed')
     return put(context,ident,dict(state=state))['state']

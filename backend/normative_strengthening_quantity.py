@@ -29,6 +29,7 @@ def project(position,result,tools):
     if not 1<=len(pages)<=4:
         return False
     from normative_agent import EvidenceRequest
+    observed_sources=deepcopy(tools.sources)
     # All previously located physical tables participate; never pick the pair
     # whose sum happens to match the expected VOR amount.
     for page in pages:
@@ -49,6 +50,22 @@ def project(position,result,tools):
     ids=[*proposal['operand_source_ids'],proposal['source_id']]
     fresh=[s for s in tools.sources if s['id'] in ids]
     previous=[s for s in result['sources'] if s['id'] in ids]
+    from normative_source_addresses import cell_source_handles
+    from normative_source_identity import canonical_source_id
+    # Envelope protocol revisions use different handles. They do not permit
+    # ignoring a changed literal, quality flag or location at the SAME exact
+    # version/page/table/cell address. Keep both historical envelopes intact.
+    for new in fresh:
+        entry=tools.cells.get(new['id'])
+        if entry is None:
+            continue  # The calculated sum is checked through its operands.
+        handles=cell_source_handles(tools.version,entry['page'],entry['table_id'],entry['cell']['cell_id'])
+        for old in [*observed_sources,*result['sources']]:
+            if canonical_source_id(old) not in handles:
+                continue
+            if (any(old.get(k)!=new.get(k) for k in ('version_id','page','rects','origin','numeric_verified','unit','unit_verified'))
+                    or number(old['text'].rsplit('\n',1)[-1])!=number(new['text'].rsplit('\n',1)[-1])):
+                return False
     # A canonical cell cannot change its literal value, units or PDF location.
     for old in previous:
         new=next(s for s in fresh if s['id']==old['id'])

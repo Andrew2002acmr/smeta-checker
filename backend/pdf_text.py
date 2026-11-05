@@ -40,6 +40,7 @@ _MARKDOWN_BATCH = 8
 CACHE_SCHEMA_VERSION = 3
 # PyMuPDF4LLM table rendering; part of the Markdown cache key.
 TABLE_OUTPUT = "html"
+SOURCE_BYTES_CONTRACT = 'original-upload-v1'
 _MARKDOWN_KWARGS = {
     "page_chunks": True,
     "table_output": TABLE_OUTPUT,
@@ -265,6 +266,7 @@ class PDFTextSource:
         native_state=None,
         full_document=False,
         store_image=None,
+        source_bytes=None,
     ):
         self._progress = progress
         self._checkpoint = checkpoint
@@ -276,6 +278,21 @@ class PDFTextSource:
             raise ValueError(
                 "PDF-документ закрыт: переоткройте файл и повторите подготовку позиции"
             )
+        original_stream = getattr(doc, 'stream', None)
+        unchanged = not getattr(doc, 'is_dirty', False)
+        if source_bytes is not None:
+            if not isinstance(source_bytes, (bytes, bytearray, memoryview)) or not source_bytes or not unchanged:
+                raise ValueError('Original PDF bytes require an unchanged parsed document')
+            source_bytes = bytes(source_bytes)
+            if getattr(doc, 'name', ''):
+                with Path(doc.name).open('rb') as original:
+                    same = hashlib.file_digest(original, 'sha256').digest() == hashlib.sha256(source_bytes).digest()
+            else:
+                same = isinstance(original_stream, (bytes, bytearray, memoryview)) and original_stream == source_bytes
+            if not same:
+                raise ValueError('Original PDF bytes differ from the parsed document')
+        elif unchanged and isinstance(original_stream, (bytes, bytearray, memoryview)):
+            source_bytes = original_stream
         self._pdf_bytes = b""
         self._tmp_path = None
         if getattr(doc, "name", "") and not getattr(doc, "is_dirty", False):
@@ -291,7 +308,10 @@ class PDFTextSource:
             )
             try:
                 with open(fd, "wb") as tmp:
-                    tmp.write(doc.tobytes(no_new_id=True))
+                    # Re-serializing an unchanged streamed PDF can rewrite its
+                    # cross-reference layout. OCR and provenance must use the
+                    # exact uploaded bytes, not that equivalent new PDF.
+                    tmp.write(source_bytes if source_bytes is not None else doc.tobytes(no_new_id=True))
             except BaseException:
                 Path(self._tmp_path).unlink(missing_ok=True)
                 self._tmp_path = None
@@ -578,6 +598,9 @@ class PDFTextSource:
         if doc.name and not doc.is_dirty:
             with Path(doc.name).open("rb") as source:
                 return hashlib.file_digest(source, "sha256").hexdigest()
+        stream = getattr(doc, 'stream', None)
+        if not getattr(doc, 'is_dirty', False) and isinstance(stream, (bytes, bytearray, memoryview)):
+            return hashlib.sha256(stream).hexdigest()
         return hashlib.sha256(doc.tobytes(no_new_id=True)).hexdigest()
 
     @staticmethod
@@ -586,6 +609,7 @@ class PDFTextSource:
         raw = _cache_payload(
             {
                 "schema": CACHE_SCHEMA_VERSION,
+                "source_bytes_contract": SOURCE_BYTES_CONTRACT,
                 "engine": "rag-no-layout-v2",
                 "max_vector_paths": MAX_VECTOR_PATHS,
                 "pymupdf": pymupdf_version,

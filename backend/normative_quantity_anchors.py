@@ -138,6 +138,14 @@ def quantity_parameter_candidates(sources, cells, sums=(), *, limit=12, max_char
     for source in reversed(sources):
         if source.get('id')not in lookup:
             continue
+        from normative_scalar_rows import verified_components as scalar_components
+        for component in scalar_components(source):
+            proposal=_proposal(source,component['value'],component['unit'],source['text'],source['text'])
+            if proposal:
+                candidates.append(dict(proposal=proposal,scope_verified=False,
+                    provenance=dict(kind='native_scalar_row',version_id=source['version_id'],page=source['page'],
+                        **{key:source['scalar_row_context'][key] for key in
+                            ('table_id','row','unit_cell_id','value_cell_id')})))
         from normative_paired_quantities import verified_components
         for component in verified_components(source):
             proposal=_proposal(source,component['value'],component['unit'],source['text'],source['text'])

@@ -333,10 +333,15 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
             c['reason'] = 'Источник относится к другому материалу или проектной толщине; сравнение не выполнено.'
             return c
         found = measure(p['value'], p['unit'])
-        if kind=='quantity' and source.get('paired_measurement_context'):
-            from normative_paired_quantities import proposal_matches
-            if not proposal_matches(p,source):
-                c['reason']='Число и единица не образуют одну пару в физической строке таблицы.'
+        from normative_source_identity import row_source_protocol, row_proposal_matches
+        if row_source_protocol(source) == 'scalar' and kind != 'quantity':
+            c['reason']='Нативный источник количества строки не подтверждает другой числовой параметр.'
+            return c
+        if kind=='quantity' and row_source_protocol(source):
+            if not row_proposal_matches(p,source):
+                c['reason']=('Число и единица не образуют одну пару в физической строке таблицы.'
+                    if row_source_protocol(source) == 'paired' else
+                    'Число и единица не подтверждены физической строкой таблицы.')
                 return c
             from normative_paired_scope import scope_issue
             issue=scope_issue(source,work_scope)
@@ -361,8 +366,10 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
             return c
         c.update(found_value=p['value'], found_unit=p['unit'], source_ids=[p['source_id']], quote=p['quote'],
             source_anchors=[dict(source_id=p['source_id'], quote=p['quote'], rects=source.get('rects', []))])
-        if (source['origin'].startswith('ocr') and not source.get('numeric_verified')) or source['origin'] == 'uncertain_table':
-            c['reason'] = 'Распознано OCR: требуется подтверждение по изображению.'
+        from normative_source_roles import unread_visual_source, UNREAD_VISUAL_MESSAGE
+        if (source['origin'].startswith('ocr') and not source.get('numeric_verified')) or source['origin'] == 'uncertain_table' or unread_visual_source(source):
+            c['reason'] = (UNREAD_VISUAL_MESSAGE if unread_visual_source(source)
+                else 'Распознано OCR: требуется подтверждение по изображению.')
             return c
         if result.get('pipeline_version', 1) >= 3 and kind in {'quantity', 'thickness'}:
             scope = p.get('scope_quote', '')

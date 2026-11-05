@@ -56,6 +56,35 @@ def test_real_local_crop_is_addressed_but_never_a_verified_reading(drawing):
     assert result['automatic_confirmation_allowed'] is False
     assert hashlib.sha256(tools.context.blob_store.get(result['image_key'])).hexdigest() == result['image_sha256']
     assert tools.sources[0]['numeric_verified'] is False
+    assert tools.sources[0]['rects'] == [[0, 0, .5, .5]]
+
+
+def test_rotated_crop_preserves_pdf_points_and_display_highlight(drawing):
+    tools, document = drawing
+    raw = tools.context.blob_store.get(document.blob_key)
+    with fitz.open(stream=raw, filetype='pdf') as pdf:
+        pdf[0].set_rotation(90)
+        raw = pdf.tobytes()
+    ref = tools.context.blob_store.put(raw)
+    document.blob_key, document.sha256 = ref.key, ref.sha256
+    result = tools.execute(EvidenceRequest(tool='read_page', page=1, bbox=[0, 0, 150, 100], scale=2))
+    assert (result['width'], result['height']) == (300, 200)
+    assert result['page_rotation'] == 90
+    assert result['bbox'] == [0, 0, 150, 100]
+    assert tools.sources[0]['rects'] == [[.5, 0, 1, .5]]
+
+
+def test_crop_cannot_include_invisible_mediabox_area(drawing):
+    tools, document = drawing
+    raw = tools.context.blob_store.get(document.blob_key)
+    with fitz.open(stream=raw, filetype='pdf') as pdf:
+        pdf[0].set_cropbox(fitz.Rect(20, 20, 200, 150))
+        raw = pdf.tobytes()
+    ref = tools.context.blob_store.put(raw)
+    document.blob_key, document.sha256 = ref.key, ref.sha256
+    result = tools.execute(EvidenceRequest(tool='read_page', bbox=[0, 0, 290, 190]))
+    assert result['error'] == 'drawing_region_out_of_bounds'
+    assert not tools.sources
 
 
 @pytest.mark.parametrize('fields, error', [

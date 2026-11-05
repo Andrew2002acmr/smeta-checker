@@ -43,6 +43,9 @@ def test_entity_kind_search_and_addressed_read_use_actual_tool_dispatch():
     assert any(item['entity']['kind'] == 'Work' for item in read['items'])
     assert any(item['relation']['state'] == 'candidate' for item in read['items'])
     assert tools.events[-1]['kind'] == 'engineering_navigation_v1'
+    filtered=tools.execute(EvidenceRequest(tool='read_source',entity_id=entity['id'],entity_kind='Fact'))
+    assert filtered['items'] and all(item['entity']['kind']=='Fact'for item in filtered['items'])
+    assert all(item['path_state']=='unresolved'for item in filtered['items'])
 
 
 def test_explicit_entity_pagination_delivers_every_id_after_model_budgeting():
@@ -183,7 +186,7 @@ def test_main_persistence_boundary_makes_validated_mismatch_facts_addressable_in
     assert result['coverage']['fact_ledger']['count'] == 1
     assert result['coverage']['engineering_relations']['entities'] > 0
     assert {v['identity']['stage'] for v in context.repository.saved.values()} == {
-        'scoped_project_facts', 'engineering_relations_v1'}
+        'scoped_project_facts', 'engineering_relations_v2'}
     tools = toolkit()
     attach(tools, context, record)
     assert tools.sources == []

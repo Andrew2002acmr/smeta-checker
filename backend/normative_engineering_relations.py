@@ -12,8 +12,11 @@ import re
 from analysis_replay import digest
 from audit_models import position_source_dict
 
-VERSION = 1
-STAGE = 'engineering_relations_v1'
+# V1 artifacts were development prototypes with coupled observations and
+# transport-dependent identities. Preserve them, but never load/reinterpret
+# them as this canonical independent-observation/material-navigation contract.
+VERSION = 2
+STAGE = 'engineering_relations_v2'
 STATES = {'candidate', 'verified', 'rejected', 'stale'}
 
 
@@ -83,6 +86,27 @@ def _observation(fact):
         'subject_binding_state', 'comparison_state', 'comparison_states', 'scope_quote',
         'binding_issues', 'quantity_role', 'quote',
     }}
+
+
+def _material_description(source, parent):
+    """Address one literal child description; classification stays a candidate."""
+    pair=source.get('paired_measurement_context')or{}
+    cells=pair.get('row_cells')or[]
+    unit=next((c for c in cells if c.get('cell_id')==pair.get('unit_cell_id')),None)
+    child=parent['child']['cell']
+    if unit is None:
+        return None
+    descriptions=[c for c in cells if c.get('row')==pair.get('row')
+        and child['column']<c.get('column',-1)<unit['column'] and c.get('text','').strip()]
+    if len(descriptions)!=1:
+        return None
+    description=descriptions[0]
+    text=description['text'].strip()
+    action=r'^\s*(?:устройств|уклад|монтаж|демонт|разбор|установ|замен|сняти|перевоз|транспорт|очист|ремонт|погруз|выгруз)'
+    material=r'\b(?:шпал|рельс|скреплен|болт|смес|щеб|плит|камень|камн|геотекст|балласт|брус|шайб|гайк|подклад|наклад|проклад)\w*'
+    if re.search(action,text,re.I)or not re.search(material,text,re.I):
+        return None
+    return description
 
 
 def build(record, positions, *, ledgers=(), sources=(), scope_graph=None):
@@ -197,6 +221,20 @@ def build(record, positions, *, ledgers=(), sources=(), scope_graph=None):
                         page=binding['page'], table_id=binding['table_id'], row_ids=[parent_row])))
                 link('PART_OF', project_work, construction, version, [evidence_id],
                      'document_number_hierarchy', 'Нумерованный родитель прочитан; инженерная применимость не доказана.')
+                description=_material_description(source,parent)
+                if description is not None:
+                    pair=source['paired_measurement_context']
+                    columns=sorted({description['column'],*[c['column']for c in pair['row_cells']
+                        if c['cell_id']in{pair['unit_cell_id'],pair['value_cell_id']}]})
+                    material=add(_entity('Material',version,dict(page=binding['page'],table_id=binding['table_id'],
+                        row=binding['row'],cell_id=description['cell_id']),description['text'],origin='project',
+                        classification_state='candidate',evidence_ids=[evidence_id],
+                        read_request=dict(tool='read_table',document_version_id=version,page=binding['page'],
+                            table_id=binding['table_id'],row_ids=[binding['row']],column_ids=columns)))
+                    link('USES_MATERIAL',construction,material,version,[evidence_id],'literal_material_candidate',
+                         'В дочерней строке назван материал; классификация и инженерное применение ещё не подтверждены.')
+                    link('DESCRIBES',fact_id,material,version,[evidence_id],'literal_row_candidate',
+                         'Величина прочитана в этой строке; принадлежность материалу требует отдельной проверки.')
             # Literal locations remain address-specific candidates; equal
             # names on different pages are never automatically merged.
             for match in re.finditer(r'\bПК\s*\d+(?:\s*\+\s*\d+(?:[.,]\d+)?)?(?:\s*[-–]\s*(?:ПК\s*)?\d+(?:\s*\+\s*\d+(?:[.,]\d+)?)?)?',
@@ -246,6 +284,8 @@ def _validate(graph, record):
     for e in entities.values():
         if e.get('version_id') not in allowed or e['id'] != _id(e['kind'], e['version_id'], e['address']):
             raise ValueError('Engineering entity identity/version mismatch')
+        if e['kind']=='Material'and e.get('origin')=='project'and e.get('classification_state')!='candidate':
+            raise ValueError('Literal material discovery cannot verify classification')
     source_map = {s['id']: s for s in graph.get('sources', [])}
     for entity in entities.values():
         if entity['kind'] == 'Evidence':
@@ -367,7 +407,7 @@ def load_for_run(context, record):
 
 
 def _summary(entity):
-    result = {k: deepcopy(entity[k]) for k in ('id', 'kind', 'version_id', 'origin', 'source_id', 'page', 'position_index', 'read_request', 'conflict', 'source_conflict') if k in entity}
+    result = {k: deepcopy(entity[k]) for k in ('id', 'kind', 'version_id', 'origin', 'source_id', 'page', 'position_index', 'read_request', 'classification_state', 'conflict', 'source_conflict') if k in entity}
     result['label'] = entity['label'][:240]
     result['label_truncated'] = len(entity['label']) > 240
     if entity['kind'] == 'Fact':
@@ -405,9 +445,11 @@ def search(graph, query, offset=0, limit=6):
                  discovery_only=True, policy='Entity discovery does not verify engineering relations.')
 
 
-def related(graph, entity_id, offset=0, limit=6):
+def related(graph, entity_id, offset=0, limit=6, *, entity_kind=''):
     """Bounded three-hop navigation, including unresolved path relationships."""
     entities = {e['id']: e for e in graph['entities']}
+    if entity_kind not in {'','ProjectArea','Construction','Work','Material','Fact','Evidence'}:
+        raise ValueError('Unknown engineering entity kind')
     if entity_id not in entities:
         raise KeyError('Unknown engineering entity')
     rows, selected, seen = [], {entity_id: []}, set()
@@ -425,6 +467,11 @@ def related(graph, entity_id, offset=0, limit=6):
                 rows.append(dict(relation=deepcopy(relation), entity=_summary(entities[other]),
                                  via_relation_ids=path,
                                  evidence=[_summary(entities[e]) for e in relation['evidence_ids']]))
+    relation_map={r['id']:r for r in graph['relations']}
+    for row in rows:
+        unverified=[rid for rid in row['via_relation_ids']if relation_map[rid]['state']!='verified']
+        row.update(path_state='unresolved'if unverified else'verified',unverified_relation_ids=unverified)
+    rows=[row for row in rows if not entity_kind or row['entity']['kind']==entity_kind]
     rows.sort(key=lambda row: row['relation']['id'])
-    return _page(rows, offset, limit, entity=_summary(entities[entity_id]),
+    return _page(rows, offset, limit, entity=_summary(entities[entity_id]), entity_kind=entity_kind,
                  policy='Candidate/stale relations cannot establish scope or confirm quantities.')

@@ -71,6 +71,10 @@ def test_unknown_or_conflicting_scope_cannot_confirm(change):
         for c in table['cells']:
             if c.get('role') == 'header':
                 c['text'] = c['text'].replace('м2', 'м3').replace('м²', 'м³').replace('Площадь', 'Объем')
+                # A cleared derived cache is recoverable from independent
+                # unit reads. This case also removes their physical proof.
+                c.pop('header_refinement',None)
+                c.pop('visual_transcription',None)
     elif change == 'scoped_conflict':
         result['parameter_proposals'].append(dict(parameter='quantity', scope_state='verified', source_id='other', value='1'))
     else:

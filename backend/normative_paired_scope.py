@@ -103,20 +103,24 @@ def preview(source):
 
 def scope_issue(source,work):
     """Reject explicit contradictions; absence of a conflict proves nothing."""
-    if not source.get('paired_measurement_context'):
+    from normative_source_identity import row_source_protocol
+    if not row_source_protocol(source):
         return None
     text=source.get('text','')
     wanted={v.replace(',','.')for v in re.findall(r'\bшту\s*(\d+(?:[.,]\d+)+)',work.casefold())}
     found={v.replace(',','.')for v in re.findall(r'\bшту\s*(\d+(?:[.,]\d+)+)',text.casefold())}
     if wanted and found and wanted.isdisjoint(found):
         return 'Обозначение ШТУ в строке ПД отличается от позиции ВОР; совпадение количества не подтверждает материал.'
+    def rail_designations(value):
+        return {prefix.translate(str.maketrans({'p':'р','t':'т'}))+digits for prefix,digits in
+            re.findall(r'(?<!\w)(рт|р|pt|p)\s*[-–]?\s*(\d{2,3})(?!\w)',value.casefold())}
+    wanted_rails, observed_rails = rail_designations(work), rail_designations(text)
+    if wanted_rails and observed_rails and wanted_rails.isdisjoint(observed_rails):
+        return 'Обозначение рельсов в физической строке ПД отличается от работы ВОР; принадлежность не подтверждена.'
     parent=validated_parent(source)
     if parent is None:
         return None
     parent_text=parent['description']['cell']['text'].casefold()
-    def rail_designations(value):
-        return {prefix.translate(str.maketrans({'p':'р','t':'т'}))+digits for prefix,digits in
-            re.findall(r'(?<!\w)(рт|р|pt|p)\s*[-–]?\s*(\d{2,3})(?!\w)',value.casefold())}
     # A numbered hierarchy is navigation, not authority to override an explicit
     # contradictory designation in either the parent work or child material.
     parent_rails=rail_designations(parent_text)

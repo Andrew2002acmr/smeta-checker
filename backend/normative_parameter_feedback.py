@@ -59,10 +59,17 @@ def literal_parameter_issues(proposal, source):
     wanted_kind = 'project' if proposal.parameter in {'quantity', 'thickness'} else 'normative'
     if source.get('kind') != wanted_kind:
         return [prefix+'тип выбранного источника не соответствует параметру.'+hint]
-    if proposal.parameter=='quantity' and source.get('paired_measurement_context'):
-        from normative_paired_quantities import proposal_matches
-        if not proposal_matches(proposal.model_dump(),source):
-            return [prefix+'число и единица не образуют одну пару в физической строке таблицы.'+hint]
+    from normative_source_roles import unread_visual_source, UNREAD_VISUAL_MESSAGE
+    if unread_visual_source(source):
+        return [prefix + UNREAD_VISUAL_MESSAGE + hint]
+    from normative_source_identity import row_proposal_matches, row_source_protocol
+    if row_source_protocol(source) == 'scalar' and proposal.parameter != 'quantity':
+        return [prefix+'этот источник подтверждает количество строки, а не другой числовой параметр.'+hint]
+    if proposal.parameter=='quantity' and not row_proposal_matches(proposal.model_dump(), source):
+        message = ('число и единица не образуют одну пару в физической строке таблицы.'
+            if row_source_protocol(source) == 'paired' else
+            'число и единица не подтверждены физической строкой таблицы.')
+        return [prefix+message+hint]
     if not header_parameter_verified(proposal.model_dump(),source):
         return [prefix+'проверка числа физической ячейки не подтверждает толщину в её OCR-заголовке; '
             'нужен независимо проверенный заголовок или нативное описание того же слоя.'+hint]

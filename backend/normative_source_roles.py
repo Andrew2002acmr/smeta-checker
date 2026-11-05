@@ -51,3 +51,19 @@ def classification_only_basis(item, sources):
             return True
         proof.append(matches[0])
     return len(claims) != 1 or not proof[0].get('kb_identity') or proof[0]['kb_identity'] != proof[1].get('kb_identity')
+
+
+UNREAD_VISUAL_MESSAGE = ('Изображение фрагмента получено, но визуальное извлечение фактов ещё не выполнено; '
+    'оно не подтверждает утверждение или расхождение.')
+
+
+def unread_visual_source(source):
+    """An acquired crop is navigation, even when a transport drops its tag.
+
+    Existing reviewed ``drawing:`` readings use a different namespace and keep
+    their own integrity/quality validators. No flag on an unread crop promotes
+    it to a visual reading; that requires a separately validated reading.
+    """
+    return bool(source.get('origin') == 'drawing_region_unread'
+        or any(str(source.get(key, '')).startswith('drawing-region:')
+            for key in ('id', 'physical_source_id')))

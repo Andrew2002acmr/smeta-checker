@@ -54,13 +54,18 @@ def _negative_thickness_fact(result, cards):
     )
     value = measure(card.get("found_value"), card.get("found_unit"))
     scope = proposal.get("scope_quote", "")
+    verified_header = bool(source and source.get('origin')=='ocr_verified_header'
+        and source.get('numeric_verified') is True
+        and any(f.get('parameter')=='thickness' and measure(f.get('value'),f.get('unit',''))==value
+            and f.get('quote') and quoted(f.get('value'),f['quote'],source.get('text',''))
+            and unit_quoted(f.get('unit',''),f['quote']) for f in source.get('verified_parameters',[])))
     if (
         not value
         or value[0] != "length"
         or value[1] <= 0
         or not source
         or source.get("kind") != "project"
-        or not _readable(source)
+        or not (_readable(source) or verified_header)
         or not source.get("version_id")
         or not source.get("page")
         or source["id"] not in card.get("source_ids", [])
@@ -166,6 +171,12 @@ def findings(position, result, positions, relation, *, cards=None):
         )
         if not family_resolved:
             family_resolved = lawn_soil_scope(position, result, cards, fact, definition)
+        if not family_resolved and _negative_thickness_fact(result, cards) is None:
+            # An unresolved family cannot turn a weaker material-selection
+            # premise into an asserted numeric normative condition. Keep the
+            # literal/cards intact; require the same single located source as
+            # the ordinary negative-premise route.
+            continue
         selected[source["id"]] = (
             source,
             definition,

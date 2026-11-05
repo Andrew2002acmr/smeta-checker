@@ -34,7 +34,9 @@ def setup():
     tools.coverage = {}
     tables = [[] for _ in range(99)]
     tables[88] = [data["table"]]
-    tools.index = SimpleNamespace(tables=tables, texts=[""] * 99, metadata={})
+    tools.index = SimpleNamespace(tables=tables, texts=[""] * 99,
+        metadata=dict(page_geometry={'88':dict(height=841.8897705078125,width=1190.5511474609375,
+            matrix=[0.0,-1.0,1.0,0.0,0.0,841.8897705078125])}))
     return position, result, tools
 
 

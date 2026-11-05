@@ -108,7 +108,7 @@ def position_review(*, direct_pair=False, response=None):
     position=VorPosition(index=0, work_name='Основание', volume='20', unit='м2',
                          formula='=10*2', position_type='Работа')
     facts=SimpleNamespace(model_dump=lambda:{})
-    record=dict(id='run', vor_version_id='vor', config={},
+    record=dict(id='run', project_id='project', vor_version_id='vor', config={},
                 indexed_results=[dict(position_index=0,result=dict(status='ОК'))])
     original=deepcopy(record)
     kb=SimpleNamespace(profile='roads', identity={'release':'test'})

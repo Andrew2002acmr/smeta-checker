@@ -18,8 +18,14 @@ def test_compact_result_keeps_parent_fact_proof_and_its_geometry_sources(tmp_pat
         compact=repo.normative_validation_context(run.id)[1]['review']
         assert verified_geometry_dependency(review,positions[1])
         assert verified_geometry_dependency(compact,positions[1])
-        assert {p['parameter'] for p in compact['parameter_proposals']}=={'quantity','thickness'}
-        assert all(s['kind']=='project' for s in compact['sources'])
+        assert {p['parameter'] for p in compact['parameter_proposals']}=={'quantity','thickness','coefficient'}
+        coefficient=next(p for p in compact['parameter_proposals']if p['parameter']=='coefficient')
+        assert coefficient==next(p for p in review['parameter_proposals']if p['parameter']=='coefficient')
+        assert coefficient['scope_state']=='unresolved'
+        own=next(s for s in compact['sources']if s['id']==coefficient['source_id'])
+        assert own['kind']=='normative'
+        assert own==next(s for s in review['sources']if s['id']==own['id'])
+        assert any(s['kind']=='project'for s in compact['sources'])
         assert not any(e.get('kind')=='unneeded_tool_snapshot' for e in compact['evidence_trace'])
     finally:
         repo._engine.dispose()

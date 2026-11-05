@@ -42,6 +42,7 @@ class Repository:
 
     def engineering_relation_artifacts(self, project_id, vor_version_id, pdf_versions):
         return [v for v in self.saved.values() if v['identity']['project_id'] == project_id
+                and v['identity']['stage'] == relations.STAGE
                 and v['identity']['vor_version_id'] == vor_version_id
                 and v['identity']['pdf_versions'] == sorted(pdf_versions)]
 
@@ -103,6 +104,23 @@ def test_store_load_integrity_and_exact_document_pins():
     context.repository.saved[receipt['key']]['payload']['entities'][0]['label'] = 'Corrupted'
     with pytest.raises(ValueError, match='integrity'):
         relations.load(context, record, receipt['key'])
+
+
+def test_prototype_graph_contract_is_preserved_but_not_loaded_as_current():
+    record,_,_,_,graph=fixture()
+    context=SimpleNamespace(repository=Repository())
+    current=relations.store(context,record,graph)
+    old=deepcopy(graph)
+    old['schema']=1
+    identity=dict(schema=1,stage='engineering_relations_v1',project_id=record['project_id'],
+        vor_version_id=record['vor_version_id'],pdf_versions=['pdf'],graph_sha256=digest(old))
+    context.repository.save_analysis_artifact(record['project_id'],identity,old)
+    merged=relations.load_for_run(context,record)
+    assert merged['entities']==graph['entities']
+    assert len(context.repository.saved)==2
+    assert relations.load(context,record,current['key'])==graph
+    with pytest.raises(ValueError,match='integrity'):
+        relations.load(context,record,digest(identity))
 
 
 def test_merge_conflicting_proofs_never_chooses_a_confirmed_relation_by_order():
@@ -167,6 +185,40 @@ def test_search_is_stable_bounded_discovery_and_unknown_id_fails():
     assert first == relations.search(graph, 'основания', limit=1)
     with pytest.raises(KeyError):
         relations.related(graph, 'unknown')
+
+
+def test_related_kind_filter_paginates_only_matching_entities_without_changing_ids():
+    _, _, _, _, graph=fixture()
+    construction=next(e for e in graph['entities']if e['kind']=='Construction')
+    def collect(kind):
+        rows,offset=[],0
+        while True:
+            page=relations.related(graph,construction['id'],offset,limit=1,entity_kind=kind)
+            assert page['total']>=len(page['items'])
+            rows.extend(page['items'])
+            if page['next_offset']is None:
+                return rows,page['total']
+            assert page['next_offset']==offset+len(page['items'])
+            offset=page['next_offset']
+    all_rows,_=collect('')
+    for kind in ('Fact','Work','Material','ProjectArea','Evidence'):
+        actual,total=collect(kind)
+        expected=[row for row in all_rows if row['entity']['kind']==kind]
+        assert [row['relation']['id']for row in actual]==[row['relation']['id']for row in expected]
+        assert total==len(expected)
+
+
+def test_related_path_requires_every_ancestral_relation_to_be_verified():
+    _,_,_,_,graph=fixture()
+    construction=next(e for e in graph['entities']if e['kind']=='Construction')
+    rows=relations.related(graph,construction['id'],entity_kind='Fact')['items']
+    assert rows and rows[0]['relation']['state']=='verified'
+    assert rows[0]['path_state']=='unresolved'
+    assert rows[0]['unverified_relation_ids']
+    fact=next(e for e in graph['entities']if e['kind']=='Fact')
+    direct=relations.related(graph,fact['id'],entity_kind='Evidence')['items']
+    assert direct and direct[0]['path_state']=='verified'
+    assert direct[0]['unverified_relation_ids']==[]
 
 
 def test_rejects_forged_verified_workbook_edge():
@@ -275,6 +327,33 @@ def test_two_physical_child_rows_share_one_addressed_parent_without_losing_evide
     assert len([e for e in graph['entities'] if e['kind'] == 'Construction']) == 1
     assert len([r for r in graph['relations'] if r['kind'] == 'PART_OF']) == 2
     assert all(r['state'] == 'candidate' for r in graph['relations'] if r['kind'] == 'PART_OF')
+    materials=[e for e in graph['entities']if e['kind']=='Material']
+    assert len(materials)==2 and len({e['id']for e in materials})==2
+    assert len({e['label']for e in materials})==1  # Equal names never merge rows.
+    assert all(e['classification_state']=='candidate'for e in materials)
+    assert all(e['read_request']['column_ids']==[1,2,3]for e in materials)
+    links=relations.related(graph,construction['id'],entity_kind='Material')
+    assert links['total']==2
+    assert links['items'][0]['entity']['classification_state']=='candidate'
+    assert links['items'][0]['path_state']=='unresolved'
+    read=tools.execute(EvidenceRequest(**materials[0]['read_request']))
+    assert {row['column']for row in read['rows']}=={1,2,3}
+    assert len(read['row_measurements'])==1
+    assert read['row_measurements'][0]['raw_values']=='114/23,53'
+
+
+def test_action_row_with_material_noun_does_not_become_a_material_entity():
+    from normative_agent import EvidenceTools, EvidenceRequest
+    from test_normative_paired_scope import fixture as parent_fixture
+    prepared,table,_,_=parent_fixture()
+    next(c for c in table['cells']if c['row']==2 and c['column']==1)['text']='Укладка шпал ШТУ 03.02'
+    tools=EvidenceTools.from_prepared(prepared.index,'v')
+    tools.execute(EvidenceRequest(tool='read_table',page=1,table_id='table',row_ids=[2],column_ids=[2,3]))
+    source=next(s for s in tools.sources if s.get('paired_parent_context'))
+    fact=dict(id='q',value='114',unit='шт',source_id=source['id'],literal_state='verified',subject_binding_state='unresolved')
+    record=dict(project_id='p',vor_version_id='v',config=dict(pdf_versions={'pd':'v'}))
+    graph=relations.build(record,{},ledgers=[dict(facts=[fact],source_hashes={source['id']:digest(source)})],sources=[source])
+    assert not any(e['kind']=='Material'for e in graph['entities'])
 
 
 def test_input_objects_are_unchanged_and_physical_history_stays_server_side():

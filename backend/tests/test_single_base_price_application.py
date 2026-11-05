@@ -149,6 +149,20 @@ def test_native_absence_keeps_current_negative_guards_and_positive_proof_is_audi
     missing['sources'].remove(source(missing,'native'))
     assert selection_findings(position,missing,positions,{})
     assert findings(position,missing,positions,{})
+    # The located typed OCR header is an independent numeric premise; its
+    # origin tag alone cannot substitute for the actual verified parameter.
+    for change in ('unverified_number','missing_typed_fact','wrong_typed_value','nonliteral_typed_quote'):
+        invalid=deepcopy(missing)
+        head=source(invalid,'head')
+        if change=='unverified_number':
+            head['numeric_verified']=False
+        elif change=='missing_typed_fact':
+            head['verified_parameters']=[]
+        elif change=='wrong_typed_value':
+            head['verified_parameters'][0]['value']='21'
+        else:
+            head['verified_parameters'][0]['quote']='В другой конструкции 20 см'
+        assert findings(position,invalid,positions,{})==[]
     assert not apply_guard(position,result,positions,{})
     assert result['items'][0]['state']=='confirmed'
     traces=[e for e in result['evidence_trace'] if e['kind']=='single_base_price_application_v1']

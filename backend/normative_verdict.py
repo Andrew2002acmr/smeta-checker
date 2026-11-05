@@ -66,6 +66,30 @@ def absence_claim(item):
 def readable_review(review):
     """Ephemeral model handles belong in traces, not the engineer's prose."""
     result=deepcopy(review)
+    # Saved raw reviews also pass here before publication. A crop's source ID
+    # proves acquisition only, not a semantic or numerical interpretation.
+    from normative_source_roles import unread_visual_source, UNREAD_VISUAL_MESSAGE
+    unread = {s['id'] for s in result.get('sources', []) if unread_visual_source(s)}
+    visual_downgraded = False
+    for item in result.get('items', []):
+        if (item.get('state') in {'confirmed', 'possible_mismatch'}
+                and unread.intersection(item.get('project_source_ids', []) + item.get('normative_source_ids', []))):
+            result.setdefault('evidence_trace', []).append(dict(kind='unread_visual_source_downgrade_v1',
+                original_item=deepcopy(item)))
+            item['state'] = 'needs_facts'
+            if UNREAD_VISUAL_MESSAGE not in item.get('explanation', ''):
+                item['explanation'] = item.get('explanation', '') + ' ' + UNREAD_VISUAL_MESSAGE
+            visual_downgraded = True
+    for card in result.get('parameter_cards', []):
+        if card.get('state') in {'confirmed', 'possible_mismatch'} and unread.intersection(card.get('source_ids', [])):
+            result.setdefault('evidence_trace', []).append(dict(kind='unread_visual_card_downgrade_v1',
+                original_card=deepcopy(card)))
+            card.update(state='needs_facts', reason=UNREAD_VISUAL_MESSAGE)
+            visual_downgraded = True
+    if visual_downgraded:
+        result['state'] = ('possible_mismatch' if any(i.get('state') == 'possible_mismatch'
+            for i in result.get('items', [])) else 'needs_facts')
+        result['requires_engineer_review'] = True
     labels={f's{i}':('ПД' if s['kind']=='project' and s.get('origin')!='explicit_expert_method_basis' else s.get('label','Норматив'))+
         (f", стр. {s['page']}" if s.get('page') else '') for i,s in enumerate(result.get('sources',[]))}
     def readable(text):
@@ -389,6 +413,11 @@ def finalize_state(result, stored, position_key, *, derived=False, position=None
     it cannot promote an unsupported model assertion.
     """
     output = deepcopy(result)
+    from normative_source_roles import unread_visual_source
+    if any(unread_visual_source(source) for source in output.get('sources', [])):
+        # Keep persisted assertion/card states as conservative as the published
+        # view, even for a direct caller that skipped main item validation.
+        output = readable_review(output)
     if position is not None:
         from normative_workbook_conflicts import conflicts,PROOF
         output['evidence_trace']=[event for event in output.get('evidence_trace',[]) if event.get('kind')!=PROOF]

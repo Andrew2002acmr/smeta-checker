@@ -102,6 +102,12 @@ def validate_items(items, sources, known_claims=None, *, evidence_trace=None,mat
         uncertain_norms = {s['id'] for s in sources if s['kind'] == 'normative'
                            and str(s.get('origin', '')).startswith('ocr_unreviewed')}
         uncertain_inline = {s['id'] for s in sources if s.get('origin') == 'ocr_inline_unreviewed'}
+        from normative_source_roles import unread_visual_source, UNREAD_VISUAL_MESSAGE
+        unread_visual = {s['id'] for s in sources if unread_visual_source(s)}
+        if unread_visual.intersection(row['project_source_ids'] + row['normative_source_ids']):
+            row['state'] = 'needs_facts'
+            if UNREAD_VISUAL_MESSAGE not in row['explanation']:
+                row['explanation'] += ' ' + UNREAD_VISUAL_MESSAGE
         if uncertain_inline.intersection(row['project_source_ids']):
             row['state'] = 'needs_facts'
             row['explanation'] += ' В источнике есть непроверенные растровые символы; нужна сверка указанных областей.'

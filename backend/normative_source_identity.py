@@ -110,3 +110,24 @@ def source_content_sha256(source):
     """Compare complete canonical envelopes while ignoring transport wrappers."""
     canonical = canonical_source_id(source)
     return digest(_base(source, canonical)) if canonical is not None else None
+
+
+def row_source_protocol(source):
+    """A missing proof payload must not turn a typed row into generic text."""
+    handles = [str(source.get(k, '')) for k in ('id', 'physical_source_id')]
+    paired = bool(source.get('paired_measurement_context') or source.get('origin') == 'ocr_verified_pair'
+        or any(':pairrow:' in value for value in handles))
+    scalar = bool(source.get('scalar_row_context') or source.get('origin') == 'native_row_measurement'
+        or any(':scalarrow:' in value for value in handles))
+    return 'ambiguous' if paired and scalar else 'paired' if paired else 'scalar' if scalar else ''
+
+
+def row_proposal_matches(proposal, source):
+    protocol = row_source_protocol(source)
+    if protocol == 'paired':
+        from normative_paired_quantities import proposal_matches
+        return proposal_matches(proposal, source)
+    if protocol == 'scalar':
+        from normative_scalar_rows import proposal_matches
+        return proposal_matches(proposal, source)
+    return not protocol

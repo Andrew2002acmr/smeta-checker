@@ -17,7 +17,7 @@ def _number(value):
 
 def _family(name):
     name = str(name).lower().replace("ё", "е")
-    if re.search(r"бортов\w*\s+камн|кам\w*\s+бортов", name):
+    if re.search(r"бортов\w*\s+кам(?:н|ен)|кам\w*\s+бортов", name):
         return "бортовой камень"
     if "щпс" in name or re.search(r"щебеночн\w*[\s-]+песчан", name):
         return "щпс"

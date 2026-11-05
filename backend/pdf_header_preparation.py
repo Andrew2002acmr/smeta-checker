@@ -63,7 +63,7 @@ def _complete_saved_tables(blobs, data, state, index, pending, processor, stage,
     state = updated_state
     metadata = deepcopy(index.metadata)
     with pymupdf.open(stream=bytes(data), filetype='pdf') as doc, closing(
-            PDFTextSource(doc, native_state=native, full_document=True)) as source:
+            PDFTextSource(doc, native_state=native, full_document=True, source_bytes=data)) as source:
         if source._pdf_hash != metadata['pdf_sha256']:
             raise ValueError('Header completion source differs from prepared PDF')
         def persist(p, current, result):
