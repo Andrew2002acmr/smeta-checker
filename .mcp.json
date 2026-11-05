@@ -7,16 +7,13 @@
         "AGENT_BROWSER_SESSION": "smeta-check"
       }
     },
-    "langfuse-docs": {
+    "phoenix": {
       "type": "http",
-      "url": "https://langfuse.com/api/mcp"
+      "url": "${PHOENIX_MCP_URL:-http://localhost:6006/mcp}"
     },
-    "langfuse": {
+    "glitchtip": {
       "type": "http",
-      "url": "https://cloud.langfuse.com/api/public/mcp",
-      "headers": {
-        "Authorization": "Basic ${LANGFUSE_MCP_AUTH_TOKEN}"
-      }
+      "url": "${GLITCHTIP_MCP_URL:-http://localhost:8001/mcp}"
     },
     "figma-console": {
       "command": "npx",

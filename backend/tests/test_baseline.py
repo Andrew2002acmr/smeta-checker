@@ -22,8 +22,7 @@ class BaselineTests(unittest.TestCase):
     def setUpClass(cls):
         with patch.dict(os.environ):
             for key in ("YANDEX_CLOUD_API_KEY", "YANDEX_CLOUD_FOLDER",
-                        "YANDEX_CLOUD_MODEL", "LANGFUSE_PUBLIC_KEY",
-                        "LANGFUSE_SECRET_KEY"):
+                        "YANDEX_CLOUD_MODEL"):
                 os.environ.pop(key, None)
             cls.summary = run_baseline()
 

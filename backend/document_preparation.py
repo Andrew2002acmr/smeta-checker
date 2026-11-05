@@ -1,6 +1,6 @@
 """Full, resumable document preparation barrier before any paid position task."""
 
-from contextlib import closing, nullcontext
+from contextlib import closing
 from typing import Any
 
 from audit_core import PageTextIndex
@@ -158,21 +158,11 @@ def prepare_documents(
                     if cancelled():
                         return None
                     checkpoint()
-                    attributes = nullcontext()
-                    client = tracing.client if tracing else None
-                    if client is not None:
-                        from langfuse import propagate_attributes
-
-                        attributes = propagate_attributes(
-                            session_id=tracing.session_id,
-                            trace_name="prepare-pdf-page",
-                            tags=["document-preparation"],
-                        )
+                    trace_context = getattr(tracing, "context", None) if tracing is not None else None
                     with (
-                        attributes,
                         span(
                             "prepare-pdf-page",
-                            client=client,
+                            trace_context=trace_context,
                             input=dict(
                                 pdf_name=name, version_id=version, page=page + 1
                             ),

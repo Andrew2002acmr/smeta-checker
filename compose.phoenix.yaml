@@ -1,0 +1,14 @@
+# Optional self-hosted Arize Phoenix (LLM tracing).
+# Run together with the main stack:
+#   docker compose -f compose.yaml -f compose.phoenix.yaml up -d
+name: smeta-checker
+
+services:
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    restart: unless-stopped
+    ports:
+      - "${PHOENIX_BIND:-127.0.0.1}:${PHOENIX_PORT:-6006}:6006"
+    environment:
+      PHOENIX_WORKING_DIR: /phoenix
+      PHOENIX_PORT: 6006

@@ -97,7 +97,7 @@ def position_review(*, direct_pair=False):
     response=SimpleNamespace(choices=None, error={'code':503, 'message':'secret upstream 502'})
     client, credentials, _, trace=fixture(response)
     settings=SimpleNamespace(llm_credentials=lambda:credentials, allowed_llm_hosts=('routerai.ru',),
-        langfuse_public_key='', langfuse_secret_key='', langfuse_base_url='', langfuse_environment='test',
+        phoenix_collector_endpoint='', phoenix_project_name='test', phoenix_public_url='', phoenix_environment='test',
         telemetry_redact_pdf=True, telemetry_mask_prompts=True)
     repo=Mock()
     repo.save_normative_review.side_effect=lambda run,index,kind,payload,actor:dict(id='saved',payload=payload)
