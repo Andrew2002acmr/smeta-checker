@@ -168,7 +168,7 @@ class ApiTests(unittest.TestCase):
         data = {"project_id": resolved_project, "kind": kind}
         if department_id:
             data["department_id"] = department_id
-        elif not document_id and new_document:
+        elif not document_id and new_document is not False:
             departments = client.get(f"/api/v1/projects/{resolved_project}/departments")
             self.assertEqual(departments.status_code, 200, departments.text)
             data["department_id"] = departments.json()[0]["id"]

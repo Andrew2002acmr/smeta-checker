@@ -16,16 +16,18 @@ from storage_db import open_repository
 def seed(root, repo, blobs, *, road=False):
     old = repo.load_run(UUID((root / "run-id.txt").read_text().strip()))
     project_id = old["project_id"]
+    department_id = repo.version_department_id(old["vor_version_id"])
     replacements = {}
     if road:
         project_id = repo.create_project("Синтетический дорожный проект").id
+        department_id = UUID(repo.list_departments(project_id)[0]["id"])
         replacements[str(old["project_id"])] = str(project_id)
         for version_id in old["config"]["pdf_versions"].values():
             ref = repo.load_version(UUID(version_id))
             copied = repo.add_document_version(
                 project_id, blobs.get(ref.blob_key), filename=ref.filename,
                 kind="pdf", new_document=True,
-                department_id=repo.list_departments(project_id)[0]["id"],
+                department_id=department_id,
             )
             replacements[version_id] = str(copied.id)
 
@@ -60,9 +62,8 @@ def seed(root, repo, blobs, *, road=False):
     book.save(output)
     book.close()
     project_uuid = project_id.id if hasattr(project_id, "id") else UUID(str(project_id))
-    dept_id = repo.list_departments(project_uuid)[0]["id"]
     version = repo.add_document_version(project_uuid, output.getvalue(), filename="layout.xlsx", kind="vor", new_document=True,
-                                        department_id=dept_id)
+                                        department_id=department_id)
     config = {**remap(old["config"]), "position_inputs": positions, "prepare_seconds": 0.1}
     run = repo.create_run(project_uuid, version.id, config,
                           pdf_pins={k: UUID(v) for k, v in config["pdf_versions"].items()})
