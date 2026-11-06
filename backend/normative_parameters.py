@@ -756,7 +756,11 @@ def enrich(position, result, positions, relation):
         append_quantity_bridge(position, output, positions, relation)
     from normative_coefficient_policy import apply as apply_coefficient_policy
     from normative_material_search import apply_specification_compatibility
-    return apply_specification_compatibility(position,apply_coefficient_policy(position,output))
+    output = apply_specification_compatibility(position,apply_coefficient_policy(position,output))
+    from normative_unit_measure import literal_definition_card
+    if (literal_card := literal_definition_card(output, position)) is not None:
+        output['parameter_cards'].append(literal_card)
+    return output
 
 
 def numeric_card_keys(claims):

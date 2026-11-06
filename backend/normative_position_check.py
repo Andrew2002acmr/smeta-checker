@@ -1329,8 +1329,6 @@ def validate_agent_saved(context, record, index, row, actor, *, register=True):
     # the actual proposals consumed by enrich/publish, not an earlier envelope.
     result = bind_parent_basis(context, record, result, positions, relation,expected_kb=kb.identity,position=position)
     result=readable_review(enrich(position,result,positions,relation))
-    raw=next(r['result'] for r in record['indexed_results'] if r['position_index']==index)
-    matching=review_source(raw,{**position.legacy_task(),'derived_material':relation.get('parent')})
     from normative_equipment_class_proof import apply_equipment_class_proof
     result=apply_equipment_class_proof(position,result,kb=kb,expected_pin=data['kb'],
         project_versions=pins,matching=matching)

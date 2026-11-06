@@ -358,6 +358,7 @@ def apply_guard(position,result,positions,relation,*,cards=None):
     operation_changed=apply_operation_guard(position,result,positions,relation,cards)
     findings=selection_findings(position,result,positions,relation,cards=cards)
     if not findings:
+        result['evidence_trace']=[e for e in result.get('evidence_trace',[]) if e.get('kind')!=TRACE]
         return adjustment_changed or operation_changed
     from normative_laying_width_scope import REASON as WIDTH_REASON,explanation as width_explanation
     unresolved_role=any(f['reason'] in {'construction_role_unresolved',WIDTH_REASON} for f in findings)
