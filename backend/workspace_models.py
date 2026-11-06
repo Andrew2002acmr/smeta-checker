@@ -477,7 +477,7 @@ class DepartmentDTO(DTO):
     project_id: str
     name: str
     icon: str
-    archived: bool = False
+    is_system: bool = False
     created_at: datetime | None = None
     vor_count: int = 0
     pdf_count: int = 0
@@ -490,8 +490,7 @@ class DepartmentCreate(DTO):
 
 
 class DepartmentUpdate(DTO):
-    name: str | None = Field(default=None, min_length=1, max_length=256)
-    archived: bool | None = None
+    name: str = Field(min_length=1, max_length=256)
 
 
 class ProjectCreate(DTO):

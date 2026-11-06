@@ -25,6 +25,7 @@ def seed(root, repo, blobs, *, road=False):
             copied = repo.add_document_version(
                 project_id, blobs.get(ref.blob_key), filename=ref.filename,
                 kind="pdf", new_document=True,
+                department_id=repo.list_departments(project_id)[0]["id"],
             )
             replacements[version_id] = str(copied.id)
 
@@ -58,9 +59,12 @@ def seed(root, repo, blobs, *, road=False):
     output = io.BytesIO()
     book.save(output)
     book.close()
-    version = repo.add_document_version(project_id, output.getvalue(), filename="layout.xlsx", kind="vor", new_document=True)
+    project_uuid = project_id.id if hasattr(project_id, "id") else UUID(str(project_id))
+    dept_id = repo.list_departments(project_uuid)[0]["id"]
+    version = repo.add_document_version(project_uuid, output.getvalue(), filename="layout.xlsx", kind="vor", new_document=True,
+                                        department_id=dept_id)
     config = {**remap(old["config"]), "position_inputs": positions, "prepare_seconds": 0.1}
-    run = repo.create_run(project_id, version.id, config,
+    run = repo.create_run(project_uuid, version.id, config,
                           pdf_pins={k: UUID(v) for k, v in config["pdf_versions"].items()})
     result = remap(old["indexed_results"][0]["result"])
     payload = remap(repo.load_position_job(old["id"], 0).payload)

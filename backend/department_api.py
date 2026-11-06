@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import Depends, Query
+from fastapi import Depends
 from sqlalchemy.exc import IntegrityError
 
 from workspace_models import DepartmentCreate, DepartmentDTO, DepartmentUpdate
@@ -12,7 +12,6 @@ def department_scope(context, project_id: UUID, raw: str | None) -> UUID | None:
     if not raw:
         return None
     from api import ApiError, _parse_uuid
-
     value = _parse_uuid(raw, field="department_id")
     try:
         context.repository.load_department(project_id, value)
@@ -37,9 +36,9 @@ def register_department_routes(router, guarded, project):
     base = "/api/v1/projects/{project_id}/departments"
 
     @router.get(base, response_model=list[DepartmentDTO])
-    def departments(project_id: str, archived: bool = Query(False), context=Depends(guarded)):
+    def departments(project_id: str, context=Depends(guarded)):
         owner = project(context, project_id)
-        return context.repository.list_departments(owner.id, archived=archived)
+        return context.repository.list_departments(owner.id)
 
     @router.post(base, response_model=DepartmentDTO, status_code=201)
     def create_department(project_id: str, payload: DepartmentCreate, context=Depends(guarded)):
@@ -48,18 +47,27 @@ def register_department_routes(router, guarded, project):
 
     @router.get(base + "/{department_id}", response_model=DepartmentDTO)
     def department(project_id: str, department_id: str, context=Depends(guarded)):
+        from api import ApiError
         owner = project(context, project_id)
         value = department_scope(context, owner.id, department_id)
+        if value is None:
+            raise ApiError(400, 'department_required', 'Укажите отдел')
         return call(lambda: context.repository.load_department(owner.id, value))
 
     @router.patch(base + "/{department_id}", response_model=DepartmentDTO)
     def update_department(project_id: str, department_id: str, payload: DepartmentUpdate, context=Depends(guarded)):
+        from api import ApiError
         owner = project(context, project_id)
         value = department_scope(context, owner.id, department_id)
-        return call(lambda: context.repository.update_department(owner.id, value, name=payload.name, archived=payload.archived))
+        if value is None:
+            raise ApiError(400, 'department_required', 'Укажите отдел')
+        return call(lambda: context.repository.update_department(owner.id, value, name=payload.name))
 
     @router.delete(base + "/{department_id}", response_model=DepartmentDTO)
     def delete_department(project_id: str, department_id: str, context=Depends(guarded)):
+        from api import ApiError
         owner = project(context, project_id)
         value = department_scope(context, owner.id, department_id)
+        if value is None:
+            raise ApiError(400, 'department_required', 'Укажите отдел')
         return call(lambda: context.repository.delete_department(owner.id, value))

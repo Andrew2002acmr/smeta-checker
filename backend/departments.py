@@ -9,4 +9,3 @@ DEFAULT_DEPARTMENTS = (
     ("Служба проектирования автомобильных дорог и мостов", "route"),
     ("Служба изысканий", "map-pinned"),
 )
-LEGACY_DEPARTMENT_NAME = "Служба изысканий"

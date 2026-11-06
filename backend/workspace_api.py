@@ -174,22 +174,6 @@ def workspace_router(get_context) -> APIRouter:
             raise ApiError(400, "project_invalid", str(exc)) from exc
         return presented
 
-    @router.delete("/api/v1/projects/{project_id}", response_model=ProjectDTO)
-    def delete_project(project_id: str, context=Depends(guarded)):
-        try:
-            row = project(context, project_id)
-            context.repository.delete_project(row.id)
-        except KeyError as exc:
-            raise ApiError(404, "project_not_found", "Проект не найден") from exc
-        except LookupError as exc:
-            raise ApiError(409, "project_in_use", str(exc)) from exc
-        return {
-            "id": str(row.id),
-            "name": row.name,
-            "archived": row.archived,
-            "created_at": row.created_at,
-        }
-
     @router.get(
         "/api/v1/projects/{project_id}/documents", response_model=list[VersionDTO]
     )

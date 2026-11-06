@@ -27,18 +27,21 @@ def build(tmp_path, monkeypatch):
 
     def make(*, multiple=False, page_count=3):
         project = repo.create_project("document barrier")
+        department_id = repo.list_departments(project.id)[0]["id"]
         vor_bytes = _fake_vor_bytes(
             ("1;Copper cable;45;m;;project.pdf;1", "2;Copper cable;45;m;;project.pdf;1")
         )
         vor = repo.add_document_version(
-            project.id, vor_bytes, filename="vor.csv", kind="vor", new_document=True
+            project.id, vor_bytes, filename="vor.csv", kind="vor", new_document=True,
+            department_id=department_id,
         )
         files = {"project.pdf": pdf_bytes(page_count=page_count)}
         if multiple:
             files["second.pdf"] = pdf_bytes("B")
         versions = {
             name: repo.add_document_version(
-                project.id, data, filename=name, kind="pdf", new_document=True
+                project.id, data, filename=name, kind="pdf", new_document=True,
+                department_id=department_id,
             )
             for name, data in files.items()
         }

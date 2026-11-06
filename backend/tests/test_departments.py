@@ -1,4 +1,4 @@
-"""Department lifecycle, isolation and lossless migration on a dedicated test DB."""
+"""Department lifecycle, isolation and scoped queries on a dedicated test DB."""
 
 import tempfile
 import unittest
@@ -31,31 +31,41 @@ class DepartmentTests(unittest.TestCase):
         filename, data, mime = ("vor.csv", fixtures._fake_vor_bytes(), "text/csv") if kind == "vor" else ("project.pdf", fixtures._fake_pdf_bytes(), "application/pdf")
         return client.post("/api/v1/documents", data=payload, files={"file": (filename, data, mime)})
 
-    def test_default_departments_and_lifecycle(self):
+    def test_default_departments_and_rename_lifecycle(self):
         with tempfile.TemporaryDirectory() as tmp:
             client, _ = self._open_app(tmp)
             project = self.project(client)
             items = self.departments(client, project)
             self.assertEqual([item["name"] for item in items], [name for name, _ in DEFAULT_DEPARTMENTS])
+            self.assertTrue(all(item["is_system"] for item in items))
             other = self.departments(client, self.project(client, "Другой проект"))
             self.assertTrue({item["id"] for item in items}.isdisjoint({item["id"] for item in other}))
             base = f"/api/v1/projects/{project}/departments"
+            # Department archive is gone: listing ignores legacy archived flags.
+            self.assertEqual(client.get(base + "?archived=true").status_code, 200)
             self.assertEqual(client.post(base, json={"name": "   "}).status_code, 409)
             reply = client.post(base, json={"name": "Новый отдел"})
             self.assertEqual(reply.status_code, 201, reply.text)
+            self.assertFalse(reply.json()["is_system"])
             identity = reply.json()["id"]
             path = f"{base}/{identity}"
             self.assertEqual(client.post(base, json={"name": "новый отдел"}).status_code, 409)
             self.assertEqual(client.patch(path, json={"name": "Переименованный отдел"}).json()["name"], "Переименованный отдел")
+            # Renaming onto an existing department name is a conflict.
+            self.assertEqual(client.patch(path, json={"name": "Сметный отдел"}).status_code, 409)
+            # Archived payload keys are rejected by the DTO contract.
+            self.assertEqual(client.patch(path, json={"archived": True}).status_code, 422)
             direct = client.post(base, json={"name": "Удаляемый отдел"}).json()
             self.assertEqual(client.delete(f"{base}/{direct['id']}").status_code, 200)
-            self.assertEqual(client.patch(path, json={"archived": True}).status_code, 200)
-            self.assertNotIn(identity, [item["id"] for item in self.departments(client, project)])
-            self.assertEqual(client.get(base + "?archived=true").json()[0]["id"], identity)
-            self.assertEqual(client.patch(path, json={"archived": False}).status_code, 200)
-            self.assertEqual(client.patch(path, json={"archived": True}).status_code, 200)
-            self.assertEqual(client.delete(path).status_code, 200)
-            self.assertEqual(client.get(path).status_code, 404)
+            self.assertEqual(client.get(path).status_code, 200)
+
+    def test_system_departments_cannot_be_deleted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            client, _ = self._open_app(tmp)
+            project = self.project(client)
+            system = self.departments(client, project)[0]
+            self.assertTrue(system["is_system"])
+            self.assertEqual(client.delete(f"/api/v1/projects/{project}/departments/{system['id']}").status_code, 409)
 
     def test_documents_pdf_selection_and_run_history_stay_in_department(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -88,23 +98,21 @@ class DepartmentTests(unittest.TestCase):
             self.assertEqual(counts[a]["vor_count"], 1)
             self.assertEqual(counts[b]["run_count"], 0)
 
-    def test_archive_and_cross_project_validation(self):
+    def test_upload_requires_explicit_department(self):
         with tempfile.TemporaryDirectory() as tmp:
             client, _ = self._open_app(tmp)
             project = self.project(client)
             a, b = [item["id"] for item in self.departments(client, project)[:2]]
-            other = self.project(client, "Чужой проект")
-            self.assertEqual(client.get(f"/api/v1/projects/{other}/departments/{a}").status_code, 404)
-            self.assertEqual(client.get(f"/api/v1/projects/{other}/catalog?department_id={a}").status_code, 404)
-            wrong_project = self.upload(client, other, a)
-            self.assertEqual(wrong_project.status_code, 400, wrong_project.text)
+            payload = {"project_id": project, "kind": "vor", "new_document": "true"}
+            reply = client.post("/api/v1/documents", data=payload, files={"file": ("vor.csv", fixtures._fake_vor_bytes(), "text/csv")})
+            self.assertEqual(reply.status_code, 400, reply.text)
+            self.assertIn("отдел", reply.text.lower())
             uploaded = self.upload(client, project, a).json()
             self.assertEqual(self.upload(client, project, b, document_id=uploaded["document_id"]).status_code, 400)
-            path = f"/api/v1/projects/{project}/departments/{a}"
-            self.assertEqual(client.patch(path, json={"archived": True}).status_code, 200)
-            self.assertEqual(self.upload(client, project, a).status_code, 400)
-            self.assertEqual(client.delete(path).status_code, 409)
-            self.assertEqual(client.patch(path, json={"archived": False}).status_code, 200)
+            self.assertEqual(self.upload(client, project, a).status_code, 200)
+            self.assertEqual(client.get(f"/api/v1/projects/00000000-0000-0000-0000-000000000000/catalog?department_id={a}").status_code, 404)
+            other = self.project(client, "Чужой проект")
+            self.assertEqual(self.upload(client, other, a).status_code, 400, reply.text)
             self.assertEqual(self.upload(client, project, a).status_code, 200)
 
     def test_migration_preserves_documents_runs_and_pdf_pins_in_surveys(self):
@@ -120,6 +128,7 @@ class DepartmentTests(unittest.TestCase):
             downgrade(context.settings.database_url, "0011_analysis_artifacts")
             migrate(context.settings.database_url)
             surveys = next(item for item in self.departments(client, project) if item["name"] == "Служба изысканий")
+            self.assertTrue(surveys["is_system"])
             docs = client.get(f"/api/v1/projects/{project}/catalog?department_id={surveys['id']}")
             self.assertEqual(docs.status_code, 200, docs.text)
             self.assertEqual({doc["id"] for doc in docs.json()}, {vor["document_id"], pdf["document_id"]})

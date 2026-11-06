@@ -22,7 +22,7 @@ from sqlalchemy.dialects.postgresql import insert, JSONPATH, JSONB
 from sqlalchemy.orm import Session
 
 from storage_blobs import BlobStore
-from department_storage import DepartmentRepositoryMixin, default_department_id, seed_departments
+from department_storage import DepartmentRepositoryMixin, seed_departments
 from storage_models import (
     Base,
     Document,
@@ -544,64 +544,6 @@ class Repository(DepartmentRepositoryMixin):
             version.format_status = dict(status or {})
             session.commit()
 
-    def persist_vor_run(
-        self,
-        *,
-        vor_name: str,
-        vor_source: Any,
-        pdf_pool: dict[str, Any],
-        tasks: list[dict[str, Any]],
-        tracking: list[dict[str, Any]],
-        results: list[dict[str, Any]],
-        word_bytes: bytes,
-        model_name: str,
-        project_name: str = "default",
-        pdf_sources: dict[str, Any] | None = None,
-        provider: str = "Yandex Cloud (Qwen)",
-    ) -> UUID:
-        """Persist one VOR audit as a new run; returns the run id.
-
-        Each upload gets an independent document identity; blobs dedupe by
-        content address. VOR bytes are read without disturbing the caller's
-        stream position.
-        """
-        project = self.get_or_create_project(project_name)
-        vor_version = self.add_document_version(
-            project.id, _read_source_bytes(vor_source), filename=vor_name, kind="vor",
-            new_document=True,
-        )
-        pdf_versions: dict[str, DocumentVersionRow] = {}
-        for key, doc in (pdf_pool or {}).items():
-            source = (pdf_sources or {}).get(key)
-            if source is None:
-                pdf_bytes = bytes(doc.tobytes())
-            else:
-                pdf_bytes = _read_source_bytes(source)
-            pdf_versions[key] = self.add_document_version(
-                project.id, pdf_bytes, filename=key, kind="pdf",
-                new_document=True,
-            )
-        run = self.create_run(
-            project.id,
-            vor_version.id,
-            {
-                "model": model_name,
-                "provider": provider,
-                "pdf_versions": {
-                    key: str(version.id) for key, version in pdf_versions.items()
-                },
-            },
-        )
-        self.save_vor_run_payload(
-            run.id,
-            tasks=tasks,
-            tracking=tracking,
-            results=results,
-            word_bytes=bytes(word_bytes),
-            pdf_versions=pdf_versions,
-        )
-        self.finish_run(run.id, "done")
-        return run.id
 
     def save_vor_run_payload(
         self,
@@ -759,17 +701,21 @@ class Repository(DepartmentRepositoryMixin):
                 # New-document default: never auto-merge by filename. Internal
                 # legacy callers pass explicit new_document=True as well; the
                 # HTTP layer always sends document_id or new_document=true.
+                # Department is mandatory for new documents; there is no
+                # implicit fallback department.
                 if not new_document:
                     raise ValueError("explicit document_id or new_document required")
-                department_id = department_id or default_department_id(session, project_id)
+                if department_id is None:
+                    raise ValueError("Укажите отдел для нового документа")
+                department = session.get(Department, department_id)
+                if department is None or department.project_id != project_id:
+                    raise ValueError("Отдел не найден в этом проекте")
                 document = Document(project_id=project_id, department_id=department_id, kind=kind, title="")
                 session.add(document)
             with session.no_autoflush:
                 department = session.get(Department, department_id)
             if department is None or department.project_id != project_id:
                 raise ValueError("Отдел не найден в этом проекте")
-            if department.archived:
-                raise ValueError("Сначала восстановите отдел из архива")
             session.flush()
             row = self._append_version(session, document, payload,
                                        filename=filename, metadata=metadata)
@@ -843,36 +789,68 @@ class Repository(DepartmentRepositoryMixin):
             session.commit()
             return True
 
-    def delete_project(self, project_id: UUID) -> bool:
-        """Hard-delete a project with every owned row.
+    def persist_vor_run(
+        self,
+        *,
+        vor_name: str,
+        vor_source: Any,
+        pdf_pool: dict[str, Any],
+        tasks: list[dict[str, Any]],
+        tracking: list[dict[str, Any]],
+        results: list[dict[str, Any]],
+        word_bytes: bytes,
+        model_name: str,
+        project_name: str = "default",
+        pdf_sources: dict[str, Any] | None = None,
+        provider: str = "Yandex Cloud (Qwen)",
+    ) -> UUID:
+        """Persist one VOR audit as a new run; returns the run id.
 
-        Runs, position jobs/results, artifacts and PDF pins go first
-        (children cascade from runs); versions, documents and the project
-        follow. Blobs are content-addressed and stay in the store.
+        Legacy headless path (tests and offline scripts): resolves the
+        department explicitly to the project's first seeded department
+        instead of relying on any implicit storage fallback.
         """
-        with Session(self._engine) as session:
-            project = session.get(Project, project_id)
-            if project is None:
-                raise KeyError(str(project_id))
-            documents = session.scalars(select(Document).where(
-                Document.project_id == project.id)).all()
-            runs = session.scalars(select(Run).where(
-                Run.project_id == project.id)).all()
-            for run in runs:
-                for pin in session.scalars(select(RunPdfVersion).where(
-                        RunPdfVersion.run_id == run.id)).all():
-                    session.delete(pin)
-                session.delete(run)
-            session.flush()
-            for document in documents:
-                for version in session.scalars(select(DocumentVersion).where(
-                        DocumentVersion.document_id == document.id)).all():
-                    session.delete(version)
-                session.delete(document)
-            session.delete(project)
-            session.commit()
-            return True
-
+        project = self.get_or_create_project(project_name)
+        departments = self.list_departments(project.id)
+        if not departments:
+            raise ValueError("В проекте нет отделов для сохранения проверки")
+        department_id = departments[0]["id"]
+        vor_version = self.add_document_version(
+            project.id, _read_source_bytes(vor_source), filename=vor_name, kind="vor",
+            new_document=True, department_id=department_id,
+        )
+        pdf_versions: dict[str, DocumentVersionRow] = {}
+        for key, doc in (pdf_pool or {}).items():
+            source = (pdf_sources or {}).get(key)
+            if source is None:
+                pdf_bytes = bytes(doc.tobytes())
+            else:
+                pdf_bytes = _read_source_bytes(source)
+            pdf_versions[key] = self.add_document_version(
+                project.id, pdf_bytes, filename=key, kind="pdf",
+                new_document=True, department_id=department_id,
+            )
+        run = self.create_run(
+            project.id,
+            vor_version.id,
+            {
+                "model": model_name,
+                "provider": provider,
+                "pdf_versions": {
+                    key: str(version.id) for key, version in pdf_versions.items()
+                },
+            },
+        )
+        self.save_vor_run_payload(
+            run.id,
+            tasks=tasks,
+            tracking=tracking,
+            results=results,
+            word_bytes=bytes(word_bytes),
+            pdf_versions={key: version for key, version in pdf_versions.items()},
+        )
+        self.finish_run(run.id, "done")
+        return run.id
 
     def create_run(
         self, project_id: UUID, vor_version_id: UUID, config: dict[str, Any],

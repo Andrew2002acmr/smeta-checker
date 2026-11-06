@@ -89,13 +89,16 @@ class RepositoryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="smeta-blobs-") as tmp:
             repo = self._open(FileBlobStore(tmp))
             project = repo.create_project("ИГДИ")
+            department_id = repo.list_departments(project.id)[0]["id"]
             vor_version = repo.add_document_version(
                 project.id, b"vor-bytes", filename="vor.xlsx", kind="vor",
                 new_document=True,
+                department_id=department_id,
             )
             pdf_version = repo.add_document_version(
                 project.id, b"pdf-bytes", filename="project.pdf", kind="pdf",
                 new_document=True,
+                department_id=department_id,
             )
             run = repo.create_run(
                 project.id,
@@ -128,9 +131,11 @@ class RepositoryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="smeta-blobs-") as tmp:
             repo = self._open(FileBlobStore(tmp))
             project = repo.create_project("ИГДИ")
+            department_id = repo.list_departments(project.id)[0]["id"]
             vor_version = repo.add_document_version(
                 project.id, b"vor-bytes", filename="vor.xlsx", kind="vor",
                 new_document=True,
+                department_id=department_id,
             )
             first = repo.create_run(project.id, vor_version.id, {})
             repo.save_position_result(first.id, 0, _ok_result())
@@ -148,9 +153,11 @@ class RepositoryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="smeta-blobs-") as tmp:
             repo = self._open(FileBlobStore(tmp))
             project = repo.create_project("ИГДИ")
+            department_id = repo.list_departments(project.id)[0]["id"]
             first = repo.add_document_version(
                 project.id, b"bytes-v1", filename="vor.xlsx", kind="vor",
                 new_document=True,
+                department_id=department_id,
             )
             same = repo.add_document_version(
                 project.id, b"bytes-v1", filename="vor.xlsx", kind="vor",
@@ -171,13 +178,16 @@ class RepositoryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="smeta-blobs-") as tmp:
             repo = self._open(FileBlobStore(tmp))
             project = repo.create_project("ИГДИ")
+            department_id = repo.list_departments(project.id)[0]["id"]
             first = repo.add_document_version(
                 project.id, b"same-bytes", filename="a/vor.xlsx", kind="vor",
                 new_document=True,
+                department_id=department_id,
             )
             second = repo.add_document_version(
                 project.id, b"same-bytes", filename="b/vor.xlsx", kind="vor",
                 new_document=True,
+                department_id=department_id,
             )
             self.assertNotEqual(first.document_id, second.document_id)
             self.assertEqual(first.sha256, second.sha256)

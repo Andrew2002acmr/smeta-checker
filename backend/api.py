@@ -535,10 +535,10 @@ def _check_active_versions(context: ApiContext, project_id: UUID,
         document = context.repository.load_document(ref.document_id)
         if bool(document.get("archived")):
             raise ApiError(400, "version_archived", "Версия принадлежит архиву")
-        if document.get("department_id"):
-            department = context.repository.load_department(project_id, UUID(document["department_id"]))
-            if department["archived"]:
-                raise ApiError(400, "department_archived", "Сначала восстановите отдел из архива")
+        try:
+            context.repository.version_department_id(version_id)
+        except KeyError as exc:
+            raise ApiError(404, "department_not_found", "Отдел не найден в этом проекте") from exc
     try:
         project = context.repository.load_project(project_id)
     except KeyError as exc:
