@@ -75,3 +75,31 @@ def test_duplicate_receipts_restore_one_archive_without_an_extra_tool_call():
     fresh = resume_with([event, deepcopy(event)])
     assert len(fresh.result_archive) == 1
     assert len([e for e in fresh.events if e.get("kind") == "resumed_tool_result_v1"]) == 1
+
+
+def test_resume_reads_planned_registered_excerpts_once_with_a_fixed_budget():
+    from normative_context_packing import completed_read_ids
+
+    p = position()
+    tools = toolkit()
+    tools.sources.clear()
+    sources = [dict(id=f"norm-{i}", kind="normative", origin="native",
+                    text=f"Clause {i}. Full condition.", page=i+1) for i in range(6)]
+    known = [s["id"] for s in sources]
+    requests = [dict(tool="read_source", source_id="norm-0", offset=10)] * 2
+    requests += [dict(tool="read_source", source_id="outside", offset=0),
+                 dict(tool="read_source", source_id="norm-1", offset=500)]
+    requests += [dict(tool="read_source", source_id=sid, offset=0) for sid in known[1:]]
+    data = dict(position_key=position_key(p), vor_version_id="vor", kb=dict(id="kb"),
+                position_check=dict(sources=sources, parameter_proposals=[]))
+    plan = dict(actions=[dict(action="read_registered_source", source_ids=known,
+                              retry_fingerprint="first", read_requests=requests)])
+    resume_evidence(tools, dict(review=dict(id="initial", payload=data), plan=plan),
+                    dict(vor_version_id="vor", config=dict(pdf_versions={"PD": tools.version})),
+                    p, dict(id="kb"))
+    reads = [e for e in tools.events if e.get("kind") == "followup_registered_source_read"]
+    assert [(e["request"]["source_id"], e["request"]["offset"]) for e in reads] == [
+        ("norm-0", 10), ("norm-1", 0), ("norm-2", 0), ("norm-3", 0)]
+    assert reads[0]["result"]["text"] == sources[0]["text"][10:]
+    assert set(completed_read_ids(reads)) == {"norm-0:part:10", "norm-1", "norm-2", "norm-3"}
+    assert not tools.parameter_evidence

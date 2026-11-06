@@ -1,6 +1,7 @@
 """Budget source previews only after all protected model metadata is present."""
 from copy import deepcopy
 import json
+import re
 
 from normative_embedded_context import literal_paths
 from normative_thickness_rules import source_definition, adjustment_rule
@@ -139,10 +140,17 @@ def source_order(value, sources, preferred, embedded, *, read_source_ids=()):
     conditions = [sid for sid in _ids([value.get('coefficient_condition_sources', []),
             value.get('material_definition_sources', [])])
         if sid in lookup and lookup[sid].get('kind') == 'normative' and sid not in embedded]
+    # A directly cited clause is not a GESN work definition. Even a preferred
+    # handle otherwise falls behind the larger definition/resource bundles.
+    comment = (value.get('position') or {}).get('comment') or ''
+    clause_refs = set(re.findall(r'\bп\.\s*(\d+(?:\.\d+)+)\b', comment, re.I))
+    cited = [sid for sid in remaining if sid not in embedded and lookup[sid].get('kind') == 'normative'
+             and (prefix := re.match(r'\s*(\d+(?:\.\d+)+)\b', lookup[sid].get('text') or ''))
+             and prefix[1] in clause_refs]
     # Keep the first coherent base/resource/adjustment bundle intact before
     # exploring newly found alternatives. Later old candidates may yield room.
-    return list(dict.fromkeys(reads + primary[:core_size] + calculations + table_reads + conditions + anchors + searches
-        + primary[core_size:] + remaining)), set(reads + table_reads + calculations + searches + primary + conditions + anchors)
+    return list(dict.fromkeys(reads + cited + primary[:core_size] + calculations + table_reads + conditions + anchors + searches
+        + primary[core_size:] + remaining)), set(reads + cited + table_reads + calculations + searches + primary + conditions + anchors)
 
 
 def pack_sources(value, sources, preferred=(), *, limit, planning=False, measure=None, read_source_ids=()):

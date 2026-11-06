@@ -73,8 +73,8 @@ def plan_for(payload):
         completion_reason="pending",
         instructions="Проверь открытые аспекты целевыми чтениями. Сохрани независимые "
         "подтверждённые факты. Не повторяй прежний поиск без нового запроса или чтения. "
-        "Для read_registered_source используй сохранённые read_requests: источник уже найден, "
-        "но его полный текст не был передан в последнем успешно завершённом контексте. "
+        "Для read_registered_source сначала проверь уже дочитанные выдержки. Если текст "
+        "по-прежнему неполон, используй оставшиеся read_requests или next_offset. "
         "Для verify_applicability_conditions проверь pending_condition_ids условного расчётного "
         "кандидата. Его итог не требуется искать буквальной цитатой; вычисление не доказывает "
         "применимость и не подтверждает зависимое количество. Отсутствие проектного расхода "
@@ -197,6 +197,34 @@ def _resume_tool_receipts(tools, result, origin_review_id):
         navigation_only=True, document_evidence=False, limit=256)
 
 
+def _read_open_registered_sources(tools, plan, available):
+    """Execute bounded exact reads from the saved plan before asking again."""
+    from normative_agent import EvidenceRequest
+
+    seen = set()
+    registered = {source["id"] for source in tools.sources}
+    for action in plan["actions"]:
+        if action.get("action") != "read_registered_source":
+            continue
+        for raw in action.get("read_requests", []):
+            if not isinstance(raw, dict) or raw.get("tool") != "read_source":
+                continue
+            sid, offset = raw.get("source_id"), raw.get("offset", 0)
+            if (not isinstance(sid, str) or len(sid) > 200 or sid not in available or sid not in registered
+                    or sid not in action.get("source_ids", [])
+                    or type(offset) is not int or not 0 <= offset <= 1_000_000
+                    or offset >= len(available[sid].get("text") or "")
+                    or (sid, offset) in seen):
+                continue
+            request = EvidenceRequest(tool="read_source", source_id=sid, offset=offset)
+            receipt = tools.execute(request)
+            seen.add((sid, offset))
+            tools.events.append(dict(kind="followup_registered_source_read",
+                request=request.model_dump(), result=receipt))
+            if len(seen) == 4:
+                return
+
+
 def resume_evidence(tools, continuation, record, position, kb):
     from normative_service import position_key
     from normative_parent_basis import _proposal_dependencies
@@ -235,6 +263,7 @@ def resume_evidence(tools, continuation, record, position, kb):
     ]
     supply(tools, dict(sources=sources, candidates=candidates))
     _resume_tool_receipts(tools, result, continuation["review"]["id"])
+    _read_open_registered_sources(tools, continuation["plan"], available)
     tools.parameter_evidence = {
         digest(c["proposal"]): c["proposal"] for c in candidates
     }
