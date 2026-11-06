@@ -51,7 +51,8 @@ def layer_assembly(position, positions):
             return None
         own_height=Decimal(str(own['height']))
         other_height=Decimal(str(layer['height']))
-        return dict(height=own_height+other_height,first=own_height,second=other_height,
+        first, second = (own_height, other_height) if own['stage'] == 1 else (other_height, own_height)
+        return dict(height=own_height+other_height,first=first,second=second,
             kind=own['kind'],other_row=row,work_indices=sorted([position.index,other.index]),
             operation_quantities=[str(position.volume),str(other.volume)],
             quantity_shared=False,basis='explicit_adjacent_work_stages_same_workbook_section')

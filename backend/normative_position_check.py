@@ -93,6 +93,10 @@ def validate_items(items, sources, known_claims=None, *, evidence_trace=None,mat
             row['claim_ids'] = [c for c in row['claim_ids'] if c in known_claims]
             if invalid_claims:
                 row['state'] = 'needs_facts'
+            if atomic and not row['claim_ids']:
+                if evidence_trace is not None:
+                    evidence_trace.append(dict(kind='unaddressed_model_claim', original=item.model_dump()))
+                continue
         if row['claim_ids'] and all(c.startswith('related:') for c in row['claim_ids']):
             row['required'] = False
         valid = set(row["project_source_ids"]) <= project_ids and set(row["normative_source_ids"]) <= norm_ids
@@ -201,6 +205,31 @@ def adjacent_material_context(owner, positions):
             if len(output)==3:
                 break
     return output
+
+
+def normalize_rounded_sum(proposal, computed, source, events):
+    """Keep the exact verified sum when the model supplied its decimal rounding."""
+    from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+    from normative_parameters import number, quoted
+
+    if proposal.parameter != 'quantity' or proposal.source_id != computed['source_id']:
+        return
+    displayed, exact = number(proposal.value), number(computed['value'])
+    if displayed is None or exact is None or displayed == exact:
+        return
+    exponent = displayed.as_tuple().exponent
+    if not isinstance(exponent, int) or exponent >= 0:
+        return
+    try:
+        if exact.quantize(Decimal(1).scaleb(exponent), rounding=ROUND_HALF_UP) != displayed:
+            return
+    except InvalidOperation:
+        return
+    if not quoted(computed['value'], proposal.quote, source['text']):
+        return
+    events.append(dict(kind='verified_sum_rounding', original_value=proposal.value,
+                       exact_value=computed['value'], source_id=proposal.source_id))
+    proposal.value = computed['value']
 
 
 def bind_explicit_sum_sources(answer,sources,tools):
@@ -354,6 +383,9 @@ def answer_feedback(answer, sources, tools, *, owner_unit='', work_scope='', hei
             if 'error' in result:
                 issues.append('Сумма: '+result['error']+'. Проверь operand_source_ids в quantity_candidates; не используй пустые или соседние ячейки.')
                 continue
+            source=next((source for source in tools.sources if source['id']==result['source_id']),None)
+            if source is not None:
+                normalize_rounded_sum(proposal, result, source, tools.events)
             if number(proposal.value)!=number(result['value']):
                 issues.append('Параметр '+proposal.parameter+': value не равно точной сумме заявленных operand_source_ids. '
                     'Используй точное значение из sum_cells / quantity_parameter_candidates, без округления до ВОР; '
@@ -363,7 +395,6 @@ def answer_feedback(answer, sources, tools, *, owner_unit='', work_scope='', hei
                 issues.append('Параметр '+proposal.parameter+': source_id не относится к сумме заявленных operand_source_ids. '
                     'Скопируй source_id результата sum_cells, не ссылку на отдельную ячейку или страницу.')
                 continue
-            source=next((source for source in tools.sources if source['id']==result['source_id']),None)
             errors=literal_parameter_issues(proposal,source)
             issues.extend(errors)
             if not errors and proposal.scope_state=='verified':
@@ -852,9 +883,19 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
         from normative_coefficient_policy import named as named_coefficients, compaction_sources
         coefficient_sources = []
         if tools.coverage['coefficient_policy'] == 'estimator_value_normative_conditions':
-            coefficient_sources = compaction_sources(kb, position)
+            coefficient_sources = compaction_sources(
+                kb, position, *(positions[child['material_index']] for child in relation['children']))
             merge(sources, coefficient_sources)
             tools.preferred.extend(source['id'] for source in coefficient_sources)
+        # A clause explicitly referenced by this row is a primary input for
+        # applicability, even when broader preflight results fill the window.
+        clause_refs = set(re.findall(r'\bп\.\s*(\d+(?:\.\d+)+)\b', position.comment, re.I))
+        cited_clauses = [
+            source['id'] for source in sources if source['kind'] == 'normative'
+            and (prefix := re.match(r'\s*(\d+(?:\.\d+)+)\b', source['text']))
+            and prefix[1] in clause_refs
+        ]
+        tools.preferred[:0] = cited_clauses
         inputs: dict[str, Any] = dict(question=payload.question, prepared_quantity_tables=table_discovery,
             project_quantity_contract=project_quantity_contract,
             material_property_search=material_search,
@@ -1083,11 +1124,14 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
                 continue
             source = next(s for s in sources if s['id'] == computed['source_id'])
             equation = source['text'].split('\n')[-1].partition(' Ячейки:')[0].rstrip('.')
+            normalize_rounded_sum(proposal, computed, source, tools.events)
             if number(proposal.value) != number(computed['value']):
                 proposal.scope_state = 'unresolved'
             proposal.source_id = source['id']
             proposal.quote = equation[:900]
-            proposal.scope_quote = equation[:900]
+            from normative_parameters import clean
+            if not proposal.scope_quote or clean(proposal.scope_quote) not in clean(source['text']):
+                proposal.scope_quote = equation[:900]
             for item in parsed.items:
                 if set(item.project_source_ids) & set(proposal.operand_source_ids):
                     item.project_source_ids = list(dict.fromkeys([*item.project_source_ids,source['id']]))[:8]
@@ -1132,6 +1176,14 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
     if execution_state == 'complete':
         from normative_resource_recovery import hydrate
         hydrate(kb,result,facts.model_dump())
+        if (prepared_schedule_candidates and prepared_schedule_candidates.get('construction_candidate')
+                and parent_position is None):
+            from normative_schedule_quantity import project as bind_schedule
+            from vor_material_ownership import material_owners
+            owners = material_owners([p.legacy_task() for p in positions.values()])
+            materials = [positions[i].work_name for i, owner in owners.items()
+                         if owner['index'] == position.index]
+            bind_schedule(position, result, tools, materials, positions=positions)
         result=bind_parent_basis(context,record,result,positions,relation,position=position,expected_kb=kb.identity)
         result = enrich(position, result, positions, relation)
     from normative_verdict import finalize_state, readable_review

@@ -553,7 +553,22 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
                 c.update(role='calculation', state='confirmed', reason=control_reason)
                 cards.append(c)
             elif is_factor:
-                cards.append(compare(c, 'coefficient'))
+                compared = compare(c, 'coefficient')
+                from normative_coefficient_policy import CONDITIONAL, compaction_basis, named
+                if (compared['state'] == 'needs_facts' and arithmetic_confirmed
+                        and result.get('coverage', {}).get('coefficient_policy') == CONDITIONAL):
+                    entry = next((entry for entry in named(work)
+                                  if number(entry['value']) == number(value)), None)
+                    if entry:
+                        proof = compaction_basis(work, result, entry, declared_material_only=True)
+                        if proof:
+                            compared.update(state='confirmed', source_ids=[proof['source_id']],
+                                quote=proof['quote'],
+                                source_anchors=[dict(source_id=proof['source_id'], quote=proof['quote'], rects=[])],
+                                reason=f"Сметное значение для материала, указанного в ВОР, входит в диапазон "
+                                       f"СП 78.13330.2012 п. 10.2: {proof['lower']}–{proof['upper']}. "
+                                       "Соответствие материала ПД проверяется отдельно.")
+                cards.append(compared)
             else:
                 c['reason']='Нужно установить назначение числа и источник: объём связанной работы, геометрический параметр, расход или перевод единиц.'
                 if re.search(r'/\s*\(?\s*'+literal+r'\s*\)?(?:$|[+*/-])',expression):
@@ -563,7 +578,10 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
     for p in proposals:
         if p['parameter'] != 'unit_scale' or p['source_id'] not in sources:
             continue
-        s, scale, declared = sources[p['source_id']], measure(p['value'], p['unit']), measure(owner.volume, owner.unit)
+        s = sources[p['source_id']]
+        if s['kind'] != 'normative':
+            continue  # A rejected project citation is not a new mandatory norm check.
+        scale = measure(p['value'], p['unit'])
         input_scale=bool(recipe and scale and scale[0]=='area')
         declared_value,declared_unit=(recipe['area'],'м2') if recipe is not None and input_scale else (owner.volume,owner.unit)
         declared=measure(declared_value,declared_unit)

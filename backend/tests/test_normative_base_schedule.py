@@ -182,8 +182,11 @@ def test_parent_sum_supersedes_only_the_childs_exact_direct_parts():
             unit="м3",
             work_name="Щебеночно-песчаная смесь типа 0/31,5",
             volume="4",
-        )
+        ),
+        deep=True,
     )
+    child.position_source.row = 13
+    child.position_source.position_id = "material"
     positions[3] = child
     result = {
         **deepcopy(basis),
@@ -257,7 +260,8 @@ def test_numbered_subsite_requires_the_same_schedule(title, accepted):
     for cell in table["cells"]:
         if cell["cell_id"].startswith("w"):
             cell["text"] = title
-    assert (select([(1, table)], key, dict(scope="exits")) is not None) is accepted
+    native = dict(scope="exits", height_value="22", height_unit="см")
+    assert (select([(1, table)], key, native) is not None) is accepted
 
 
 def test_multi_layer_page_excerpt_does_not_compete_with_exact_layer_sentence():
@@ -301,7 +305,39 @@ def test_wrong_expected_total_does_not_change_selected_operands():
     assert project(positions[0], result, tools, materials, positions=positions)
     event = result["evidence_trace"][-1]
     assert event["kind"] == "located_schedule_area_v1" and event["value"] == "30"
-    assert not result["parameter_proposals"]
+    found = {p["parameter"]: (p["value"], p["scope_state"]) for p in result["parameter_proposals"]}
+    assert found == {"quantity": ("30", "unresolved"), "thickness": ("22", "unresolved")}
+
+
+def test_other_construction_cannot_block_a_verified_schedule():
+    positions, result, tools, materials = fixture()
+    quote = "Тротуар: основание из ЩПС фр. 0/31,5, площадь 70 м2"
+    source = dict(id="other", kind="project", origin="native", page=3,
+                  version_id=tools.version, text=quote)
+    result["sources"].append(source)
+    tools.sources.append(source)
+    result["parameter_proposals"].append(dict(
+        parameter="quantity", operation="direct", value="70", unit="м2",
+        source_id="other", scope_quote=quote, quote="площадь 70 м2",
+        scope_state="verified", operand_source_ids=[]))
+    assert project(positions[0], result, tools, materials, positions=positions)
+    proposals = {p["value"]: p["scope_state"] for p in result["parameter_proposals"] if p["parameter"] == "quantity"}
+    assert proposals == {"30": "verified", "70": "unresolved"}
+
+
+def test_preparation_selects_documented_depth_independently_of_declared_split():
+    positions, result, tools, _ = fixture()
+    tools.index.texts = [result["sources"][0]["text"]]
+    tools.index.quality = {0: dict(origin="native")}
+    for p in positions.values():
+        p.work_name = p.work_name.replace("из ЩПС", "из ЩПС типа 0/31,5")
+    positions[0].work_name = positions[0].work_name.replace("11 см", "12 см")
+    from normative_layer_assembly import layer_assembly
+    assert layer_assembly(positions[0], positions)["height"] == 23
+    assert layer_assembly(positions[1], positions)["first"] == 12
+    prepared = prepare(positions[0], positions, tools, result["related_positions"])
+    assert prepared and prepared["construction_candidate"]["height_value"] == "22"
+    assert prepared["quantity_candidates"][0]["proposal"]["scope_state"] == "unresolved"
 
 
 @pytest.mark.parametrize(

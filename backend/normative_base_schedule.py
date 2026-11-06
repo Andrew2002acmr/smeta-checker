@@ -107,7 +107,7 @@ def native_construction(result, key, version):
                 if (
                     not FAMILY.search(clause)
                     or material_fractions(clause) != {key["fraction"]}
-                    or measure(*depth.groups()) != key["height"]
+                    or measure(*depth.groups()) is None
                 ):
                     continue
                 scope = (
@@ -169,6 +169,9 @@ def prepared_native_sources(tools):
 def select(tables, key, native):
     from pdf_cell_ocr import column_unit
 
+    native_height = measure(native["height_value"], native["height_unit"])
+    if native_height is None:
+        return None
     choices = []
     for page, table in tables:
         headers = {c["cell_id"]: c for c in table["cells"] if c.get("role") == "header"}
@@ -211,7 +214,7 @@ def select(tables, key, native):
             ds = [measure(*d.groups()) for d in DEPTH.finditer(text)]
             if (
                 len(sides) != 1
-                or any(d != key["height"] for d in ds)
+                or any(d != native_height for d in ds)
                 or cell.get("quality", "usable") != "usable"
             ):
                 invalid = True

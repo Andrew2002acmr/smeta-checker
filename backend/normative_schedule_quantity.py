@@ -237,7 +237,20 @@ def project(position, result, tools, materials, *, positions=None):
         return False
     from normative_quantity_anchors import sum_supersedes_operand
     covered = [p for p in original if sum_supersedes_operand(p, proposal, lookup)]
-    if any(p.get('scope_state') == 'verified' and p != proposal and p not in covered for p in original):
+    foreign = set()
+    if base and native is not None:
+        own_section = {'widening': 'street', 'exits': 'exits', 'stops': 'stops'}[native['scope']]
+        for p in original:
+            source = lookup.get(p['source_id'], {})
+            scope = clean(p.get('scope_quote', ''))
+            other_section = section(scope)
+            if (source.get('version_id') == tools.version and scope
+                    and scope in clean(source['text'])
+                    and other_section in {'sidewalk', 'exits', 'stops'}
+                    and other_section != own_section):
+                foreign.add(p['source_id'])
+    if any(p.get('scope_state') == 'verified' and p != proposal and p not in covered
+           and p['source_id'] not in foreign for p in original):
         return False
     preview = deepcopy(result)
     if base and native is not None and native['source_id'] not in {s['id'] for s in preview['sources']}:
@@ -249,7 +262,11 @@ def project(position, result, tools, materials, *, positions=None):
                 or number(old['text'].rsplit('\n', 1)[-1]) != number(source['text'].rsplit('\n', 1)[-1])):
             return False
     preview['sources'] = [s for s in preview['sources'] if s['id'] not in {v['id'] for v in fresh}] + deepcopy(fresh)
-    preview['parameter_proposals'] = [p for p in preview.get('parameter_proposals', []) if p['parameter'] != 'quantity'] + [proposal]
+    preview['parameter_proposals'] = [
+        p for p in preview.get('parameter_proposals', []) if p['parameter'] != 'quantity'
+    ] + [
+        {**p, 'scope_state': 'unresolved'} for p in original if p['source_id'] in foreign
+    ] + [proposal]
     bound_thickness = None
     if base and native is not None:
         source = next(s for s in preview['sources'] if s['id'] == native['source_id'])
@@ -262,7 +279,8 @@ def project(position, result, tools, materials, *, positions=None):
                 source_id=source['id'], value=depth[2], unit=depth[3], quote=depth[0],
                 scope_quote=scope, scope_state='verified')
             other = [p for p in preview['parameter_proposals'] if p['parameter'] == 'thickness'
-                and measure(p['value'], p['unit']) != key['height']]
+                and p.get('scope_state') == 'verified'
+                and measure(p['value'], p['unit']) != measure(depth[2], depth[3])]
             if not other:
                 preview['parameter_proposals'] = [p for p in preview['parameter_proposals']
                     if p['parameter'] != 'thickness'] + [thickness]
@@ -271,9 +289,14 @@ def project(position, result, tools, materials, *, positions=None):
     kept = []
     superseded_claims = {'quantity'} | ({'geometry:thickness', 'thickness'} if bound_thickness else set())
     for item in preview['items']:
-        if item['state'] == 'needs_facts' and superseded_claims.intersection(item.get('claim_ids', [])):
+        claims = set(item.get('claim_ids', []))
+        cited = set(item.get('project_source_ids', []))
+        wrong_scope = cited and cited <= foreign
+        replaced = claims & (superseded_claims if item['state'] == 'needs_facts'
+                             else {'quantity'} if wrong_scope else set())
+        if replaced:
             removed.append(deepcopy(item))
-            residual = [v for v in item['claim_ids'] if v not in superseded_claims]
+            residual = [v for v in item['claim_ids'] if v not in replaced]
             if residual:
                 kept.append({**item, 'claim_ids': residual})
         else:
@@ -294,6 +317,13 @@ def project(position, result, tools, materials, *, positions=None):
         if event in result.get('evidence_trace', []):
             return False
         result.setdefault('evidence_trace', []).append(event)
+        result['sources'] = preview['sources']
+        proposals = result.setdefault('parameter_proposals', [])
+        for fact in (proposal, bound_thickness):
+            if fact is not None and not any(
+                    p['source_id'] == fact['source_id'] and p['parameter'] == fact['parameter']
+                    and p['value'] == fact['value'] for p in proposals):
+                proposals.append({**fact, 'scope_state': 'unresolved'})
         return True
     preview['items'].append(dict(topic='Количество по собственной колонке ведомости ПД', state='confirmed', required=True,
         claim_ids=['quantity'], project_source_ids=[proposal['source_id']], normative_source_ids=[],
@@ -302,6 +332,7 @@ def project(position, result, tools, materials, *, positions=None):
     preview.setdefault('evidence_trace', []).append(dict(kind=TRACE, identity=serialized_key,
         version_id=tools.version, page=page, table_id=table['table_id'], cell_ids=[c['cell_id'] for c in cells],
         native_layer=native, original_proposals=deepcopy(original), superseded_items=removed,
-        proposal=proposal, physical_trace=deepcopy(tools.events), model_requests=0))
+        unrelated_scope_source_ids=sorted(foreign), proposal=proposal,
+        physical_trace=deepcopy(tools.events), model_requests=0))
     result.update(preview)
     return True
