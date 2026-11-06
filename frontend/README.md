@@ -138,6 +138,8 @@ Unit-тесты чистых функций и контрактов выполн
 
 После запуска fixture API на 8116 и built Nuxt на 3016 задайте `FRONTEND_URL=http://127.0.0.1:3016` и `E2E_FIXTURE_ROOT=<полный путь fixture>`, затем `pnpm --dir frontend run test:e2e`. В окружении приложения и раннера тестов задайте `WORKSPACE_AUTH_MODE=local` с тестовыми `WORKSPACE_LOGIN`/`WORKSPACE_PASSWORD` (синтетические значения, без секретов). GitHub Actions содержит эти шаги с отдельной тестовой БД.
 
+При сбое `browser-e2e` GitHub Actions сохраняет логи fixture и результаты тестов в артефакт `workspace-diagnostics`.
+
 Для полного синтетического комплекта после готовности API выполните
 `backend/tests/table_layout_fixture.py <root>` и
 `backend/tests/progressive_fixture.py seed <root>` тем же Python и с той же
