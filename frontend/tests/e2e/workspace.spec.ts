@@ -29,6 +29,7 @@ async function createProject(page: Page, name: string) {
   await expect(page).toHaveURL(/\/projects\/[^/?]+$/)
   await page.locator('a[href*="/departments/"]').filter({ hasText: 'Служба изысканий' }).click()
   await expect(page).toHaveURL(/\/projects\/[^/?]+\/departments\/[^/?]+$/)
+  await page.getByRole('button', { name: 'Добавить документы', exact: true }).click()
   await expect(page.getByRole('region', { name: 'Перетащите папку или файлы' })).toBeVisible()
 }
 test('history stays loading until audits arrive and handles an empty project list', async ({
