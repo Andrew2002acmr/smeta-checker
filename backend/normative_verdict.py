@@ -307,7 +307,8 @@ def publish(report, stored, position_key, validation, *, enabled=False, derived=
         return output
     supported = [v for v in items if source_supported(v) and project_consumption_supported(v,
         review.get('sources',[]),position=position,parameters=review.get('parameter_proposals',[]),items=items)]
-    contradictions = [v for v in supported if v.get('state') == 'possible_mismatch' and not absence_claim(v)]
+    contradictions = [v for v in supported if v.get('required', True)
+        and v.get('state') == 'possible_mismatch' and not absence_claim(v)]
     from normative_parent_basis import verified_geometry_dependency
     geometry_dependency = derived and verified_geometry_dependency(review,position)
     from normative_layer_assembly import verified_material_allocation
@@ -347,7 +348,7 @@ def publish(report, stored, position_key, validation, *, enabled=False, derived=
     card_gaps = [c for c in cards if c.get('required', True) and c['state'] != 'confirmed']
     def disputed_scope(card):
         key = card.get('id')
-        return any(v.get('state') == 'needs_facts' and any(
+        return any(v.get('required', True) and v.get('state') == 'needs_facts' and any(
             claim == 'quantity' if key == 'quantity' else 'thickness' in claim if key == 'thickness' else False
             for claim in v.get('claim_ids', [])) for v in items)
     card_conflicts = [c for c in card_gaps if c['state'] == 'possible_mismatch' and not disputed_scope(c)]

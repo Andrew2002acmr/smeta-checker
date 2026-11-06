@@ -441,3 +441,31 @@ def test_early_position_can_read_table_prepared_for_a_sibling_without_reextracti
     assert result['row_count'] == 1
     assert read.call_count == 2
     assert read.call_args.args[1] == {'key':'p2'}
+
+
+def test_position_job_snapshot_fallback_deduplicates_exact_refs_without_reordering():
+    first = dict(snapshot_storage='pages-v1', snapshot_key='manifest-a', snapshot_sha256='sha-a')
+    latest = dict(snapshot_storage='pages-v1', snapshot_key='manifest-b', snapshot_sha256='sha-b')
+    def job(ref):
+        return SimpleNamespace(payload=dict(snapshot=ref, pdf_name='copy.pdf',
+                                            pdf_versions={'copy.pdf': 'pinned-version'}))
+    context = SimpleNamespace(blob_store=object(), repository=SimpleNamespace(
+        load_position_job=lambda *args: job(first),
+        list_position_jobs=lambda *args, **kwargs: [job(first), job(dict(first)), job(latest), job(dict(latest))],
+    ))
+    record = dict(id='run', project_id='project', config=dict(pdf_versions={'copy.pdf': 'pinned-version'}))
+    index = toolkit().index
+    index.pending_ocr, index.errors, index.metadata = [], {}, {}
+    with patch('audit_snapshot.load_snapshot', return_value=index), \
+            patch('pdf_drawing_readings.apply', return_value=index):
+        tools = EvidenceTools(context, record, 0, [], None, {})
+    assert tools.snapshot_refs == [latest, first]
+    table = dict(table_id='sibling', row_count=1, col_count=1, cells=[])
+    with patch('audit_snapshot.load_json', side_effect=[
+        dict(format='page-snapshot-v1', pages=[{'key':'latest-1'}, {'key':'latest-2'}]),
+        {'tables': []},
+        dict(format='page-snapshot-v1', pages=[{'key':'first-1'}, {'key':'first-2'}]),
+        {'tables': [table]},
+    ]) as read:
+        assert tools._tables(2) == [table]
+    assert read.call_count == 4

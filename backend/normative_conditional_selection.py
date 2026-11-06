@@ -242,6 +242,7 @@ def selection_findings(position,result,positions,relation,*,cards=None):
                 'base_outside_condition' if len(codes)==1 and bound else 'base_selection_ambiguous')
             findings.append(dict(kind=TRACE,reason=reason,condition_source_id=source['id'],
                 condition_quote=match[0],allowed_base_codes=bases,selected_base_codes=codes,
+                applicability_links_verified=bool(choices) and bound,
                 selected_source_ids=sorted({s['source_id'] for s in choices}),project_source_id=fact['source_id'],
                 project_quote=fact['quote'],project_scope_quote=fact['scope_quote'],layer_role=fact['role'],
                 independent_literal_premise=independent_premise,
@@ -406,7 +407,10 @@ def apply_guard(position,result,positions,relation,*,cards=None):
                 if finding['reason']=='construction_role_unresolved' else
                 'Условие: «'+finding['condition_quote']+'». '
                 'База по структурированному измерителю: '+(', '.join(finding['selected_base_codes']) or 'не установлена однозначно')+
-                '; указанные условием базы: '+', '.join(finding['allowed_base_codes'])+'. Это не замечание к ВОР.'))
+                '. Указанные условием базы: '+', '.join(finding['allowed_base_codes'])+'. '
+                + ('В выводе о применимости нет проверенной ссылки на выбранное определение нормы. '
+                   if finding['selected_base_codes'] and not finding.get('applicability_links_verified') else '')
+                + 'Это не замечание к ВОР.'))
         if item not in result['items']:
             result['items'].append(item)
             changed=True

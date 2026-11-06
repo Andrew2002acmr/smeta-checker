@@ -48,7 +48,9 @@ def test_selection_never_uses_expected_vor_amount():
     assert project(position, result, tools, materials)
     event = result['evidence_trace'][-1]
     assert event['kind'] == 'located_schedule_area_v1' and event['value'] == '106.00'
-    assert not any(p['parameter'] == 'quantity' for p in result['parameter_proposals'])
+    quantities = [p for p in result['parameter_proposals'] if p['parameter'] == 'quantity']
+    assert len(quantities) == 1
+    assert quantities[0]['value'] == '106.00' and quantities[0]['scope_state'] == 'unresolved'
     assert not any(i['state'] == 'possible_mismatch' for i in result['items'])
 
 

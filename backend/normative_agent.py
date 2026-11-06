@@ -382,10 +382,16 @@ class EvidenceTools:
         from audit_snapshot import load_snapshot
         self.index = load_snapshot(context.blob_store, payload['snapshot'])
         jobs = context.repository.list_position_jobs(record['id'], include_results=False)
-        self.snapshot_refs = [j.payload['snapshot'] for j in reversed(jobs)
-            if j.payload.get('pdf_name') == self.filename and j.payload.get('snapshot')
-            and (j.payload.get('pdf_versions') or {}).get(self.filename) == self.version]
-        if self.snapshot_refs:
+        # A fully prepared PDF is normally shared by every position. Preserve
+        # newest-first fallback order without rereading an identical manifest
+        # once per position on every page that has no tables.
+        for sibling in reversed(jobs):
+            candidate = sibling.payload.get('snapshot')
+            if (candidate and sibling.payload.get('pdf_name') == self.filename
+                    and (sibling.payload.get('pdf_versions') or {}).get(self.filename) == self.version
+                    and candidate not in self.snapshot_refs):
+                self.snapshot_refs.append(candidate)
+        if self.snapshot_refs and self.snapshot_refs[0] != payload['snapshot']:
             later = load_snapshot(context.blob_store, self.snapshot_refs[0])
             same_extraction = all(later.metadata.get(k) == self.index.metadata.get(k)
                 for k in ('pdf_sha256', 'extraction_key', 'ocr_settings_key'))
@@ -402,7 +408,7 @@ class EvidenceTools:
                 # a page where the new producer recorded missing evidence.
                 self.snapshot_refs=[]
             self.index = latest
-            self.snapshot_refs.insert(0, refreshed)
+            self.snapshot_refs = [refreshed, *(ref for ref in self.snapshot_refs if ref != refreshed)]
         from pdf_drawing_readings import apply as apply_drawing_readings
         self.index = apply_drawing_readings(context, record, self.version, self.index)
         prepared_tables: Any = self.index.tables

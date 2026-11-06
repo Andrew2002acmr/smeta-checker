@@ -128,6 +128,26 @@ def test_child_rate_is_informational_for_work_but_unresolved_own_claim_still_blo
     assert publish(report(), SOURCE, 'same', checked, enabled=True)['Статус аудита'] == FIX
 
 
+def test_advisory_mismatch_remains_separate_from_mandatory_verdict():
+    advisory = dict(item('possible_mismatch', ['attribute:grade']), required=False)
+    checked = validation([item(), advisory])
+    assert publish(report(), SOURCE, 'same', checked, enabled=True)['Статус аудита'] == 'ОК'
+    assert checked['review']['items'][-1]['state'] == 'possible_mismatch'
+    advisory['required'] = True
+    assert publish(report(), SOURCE, 'same', checked, enabled=True)['Статус аудита'] == FIX
+
+
+def test_advisory_scope_question_does_not_suppress_mandatory_numeric_mismatch():
+    advisory = dict(item('needs_facts', ['quantity']), required=False)
+    checked = validation([item(claims=['normative:applicability']), advisory])
+    checked['review']['pipeline_version'] = 27
+    checked['review']['parameter_cards'] = [dict(id='quantity', label='Объём',
+        state='possible_mismatch', reason='ПД 11 м2; ВОР 10 м2', required=True)]
+    assert publish(report(), SOURCE, 'same', checked, enabled=True)['Статус аудита'] == FIX
+    advisory['required'] = True
+    assert publish(report(), SOURCE, 'same', checked, enabled=True)['Статус аудита'] == REVIEW
+
+
 def test_unscoped_warning_cannot_silently_disappear_without_local_resolution():
     checked = validation([item()])
     checked['review']['items'].append(dict(state='needs_facts',explanation='Нужна проверка участка'))

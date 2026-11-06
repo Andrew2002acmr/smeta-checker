@@ -92,17 +92,22 @@ def test_honestly_missing_source_remains_unresolved_without_forcing_fabrication(
 
 
 @pytest.mark.parametrize('scope_state',['verified','unresolved'])
-def test_sum_must_keep_exact_result_even_when_rounded_vor_comparison_would_match(scope_state):
+def test_verified_sum_is_canonicalized_from_legitimate_rounding_without_changing_scope(scope_state):
     tools=prepared_tools()
     # Precision is deliberately different from the production example.
     tools.cells[sid('c1')]['cell']['text']='123.456'
     tools.cells[sid('c2')]['cell']['text']='7.891'
     candidate,result=sum_answer(tools,value='131.35',scope_state=scope_state)
     assert result['value']=='131.347'
-    original=deepcopy(candidate)
     issues=answer_feedback(candidate,tools.sources,tools)
-    assert len(issues)==1 and 'точной сумме' in issues[0]
-    assert candidate==original and tools.parameter_evidence=={}
+    assert issues == []
+    assert candidate.parameters[0].value == '131.347'
+    assert candidate.parameters[0].scope_state == scope_state
+    assert any(e['kind'] == 'verified_sum_rounding' for e in tools.events)
+
+    wrong, _ = sum_answer(tools, value='131.36', scope_state=scope_state)
+    assert any('точной сумме' in issue for issue in answer_feedback(wrong, tools.sources, tools))
+    assert wrong.parameters[0].value == '131.36'
 
 
 def test_same_exact_sum_with_unresolved_scope_does_not_confirm_any_claim():
