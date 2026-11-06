@@ -15,6 +15,7 @@ test('revisions retain document identity and historical evidence after PD change
   await page.goto('/upload')
   await page.getByLabel('Название проекта', { exact: true }).fill(name)
   await page.getByRole('button', { name: 'Создать проект', exact: true }).click()
+  await page.locator('a[href*="/departments/"]').filter({ hasText: 'Служба изысканий' }).click()
   await expect(page.getByRole('region', { name: 'Перетащите папку или файлы' })).toBeVisible()
   const projectId = new URL(page.url()).pathname.split('/')[2]!
   await page.getByLabel('Добавить файлы', { exact: true }).setInputFiles([
