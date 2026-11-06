@@ -88,6 +88,20 @@ def _observation(fact):
     }}
 
 
+def _operand_dependencies(fact, hashes, sources):
+    if (fact.get('operation') != 'sum' or fact.get('literal_state') != 'verified'
+            or fact.get('calculation_state') != 'verified'):
+        return []
+    inputs = [fact['source_id'], *fact.get('operand_source_ids', [])]
+    if any(sid not in sources or hashes.get(sid) != digest(sources[sid]) for sid in inputs):
+        return []
+    from normative_parent_basis import _proposal_dependencies
+    try:
+        return _proposal_dependencies(fact, sources)[1:]
+    except (KeyError, TypeError, ValueError):
+        return []
+
+
 def _material_description(source, parent):
     """Address one literal child description; classification stays a candidate."""
     pair=source.get('paired_measurement_context')or{}
@@ -134,6 +148,13 @@ def build(record, positions, *, ledgers=(), sources=(), scope_graph=None):
         edge = _edge(*args, **kwargs)
         relations[edge['id']] = edge
 
+    def add_evidence(source):
+        sid, version = source['id'], str(source['version_id'])
+        return add(_entity('Evidence', version,
+            dict(source_id=sid, source_sha256=digest(source)), source.get('label', sid),
+            origin='project', source_id=sid, page=source.get('page'),
+            read_request=dict(tool='read_source', source_id=sid)))
+
     # This reuses the actual workbook graph rather than replacing its parser.
     if scope_graph is None:
         from normative_scope_graph import build as workbook_graph
@@ -178,10 +199,7 @@ def build(record, positions, *, ledgers=(), sources=(), scope_graph=None):
                     or ledger.get('source_hashes', {}).get(sid) != digest(source)):
                 continue
             version = str(source['version_id'])
-            evidence_id = add(_entity('Evidence', version,
-                dict(source_id=sid, source_sha256=digest(source)), source.get('label', sid),
-                origin='project', source_id=sid, page=source.get('page'),
-                read_request=dict(tool='read_source', source_id=sid)))
+            evidence_id = add_evidence(source)
             # A project observation is independent of the inspected workbook
             # quantity, proposed owner and the result of comparing them.
             observation = _observation(fact)
@@ -192,6 +210,10 @@ def build(record, positions, *, ledgers=(), sources=(), scope_graph=None):
             link('SUPPORTED_BY', fact_id, evidence_id, version, [evidence_id], 'validated_fact_ledger',
                  'Буквальное значение проверено по первоисточнику.' if literal else 'Буквальное значение требует проверки.',
                  'verified' if literal else 'candidate')
+            for operand in _operand_dependencies(fact, ledger.get('source_hashes', {}), source_map):
+                operand_id = add_evidence(source_map[operand])
+                link('DERIVED_FROM', fact_id, operand_id, version, [evidence_id, operand_id],
+                     'validated_fact_ledger', 'Исходная ячейка входит в проверенную сумму.', 'verified')
             project_work = add(_entity('Work', version,
                 dict(source_id=sid, scope_quote=fact.get('scope_quote', '')),
                 fact.get('scope_quote') or source.get('text', '')[:300] or source.get('label', sid),
@@ -251,7 +273,7 @@ def build(record, positions, *, ledgers=(), sources=(), scope_graph=None):
                 policy='Candidate relations never authorize engineering conclusions; document versions are exact pins.')
 
 
-def _supports(fact, relation, left, right, evidence_sids):
+def _supports(fact, operands, relation, left, right, evidence_sids):
     literal = fact.get('literal_state') == 'verified' and fact.get('source_id') in evidence_sids
     bound = fact.get('subject_binding_state', fact.get('subject_state')) == 'verified'
     if not literal:
@@ -260,6 +282,12 @@ def _supports(fact, relation, left, right, evidence_sids):
         return (left['kind'] == 'Fact' and left['address'].get('fact_id') == fact['id']
                 and left.get('fact') == _observation(fact) and right['kind'] == 'Evidence'
                 and right['id'] in relation['evidence_ids'] and right.get('source_id') == fact.get('source_id'))
+    if relation['kind'] == 'DERIVED_FROM':
+        sid = right.get('source_id')
+        return (left['kind'] == 'Fact' and left['address'].get('fact_id') == fact['id']
+                and left.get('fact') == _observation(fact) and right['kind'] == 'Evidence'
+                and right['id'] in relation['evidence_ids'] and sid in operands
+                and evidence_sids == {fact['source_id'], sid})
     if relation['kind'] == 'HAS_QUANTITY':
         return (bound and left['kind'] == 'Work' and left['origin'] == 'project'
                 and left['address'].get('source_id') == fact.get('source_id')
@@ -300,7 +328,7 @@ def _validate(graph, record):
             source = source_map.get(fact.get('source_id'))
             if (source and ledger.get('source_hashes', {}).get(source['id']) == digest(source)
                     and str(source.get('version_id')) in _pins(record)['pdf_versions']):
-                proofs.append(fact)
+                proofs.append((fact, _operand_dependencies(fact, ledger.get('source_hashes', {}), source_map)))
     for relation in graph['relations']:
         if relation['source'] not in entities or relation['target'] not in entities or relation['state'] not in STATES:
             raise ValueError('Engineering relation endpoints/state mismatch')
@@ -319,7 +347,8 @@ def _validate(graph, record):
         if relation['state'] == 'verified':
             left, right = entities[relation['source']], entities[relation['target']]
             evidence_sids = {entities[e].get('source_id') for e in relation['evidence_ids']}
-            if not any(_supports(fact, relation, left, right, evidence_sids) for fact in proofs):
+            if not any(_supports(fact, operands, relation, left, right, evidence_sids)
+                       for fact, operands in proofs):
                 raise ValueError('Verified engineering relation lacks matching validated ledger proof')
     for source in graph.get('sources', []):
         if source.get('kind') != 'project' or str(source.get('version_id')) not in _pins(record)['pdf_versions']:
@@ -355,7 +384,7 @@ def load_for_run(context, record):
     conflicts = []
     source_conflicts = set()
     ledger_proofs, aliases = {}, {}
-    for item in saved:
+    for item in sorted(saved, key=lambda artifact: artifact['identity']['graph_sha256']):
         graph = _validate(item['payload'], record)
         if (item['identity'].get('stage') != STAGE or any(item['identity'].get(k) != v for k, v in _pins(record).items())
                 or item['identity'].get('graph_sha256') != digest(graph)):
@@ -382,16 +411,24 @@ def load_for_run(context, record):
                     variants = existing.get('conflicting_variants', [deepcopy(existing)])
                     if value not in variants:
                         variants.append(deepcopy(value))
-                    bank[value['id']] = dict(existing, conflicting_variants=sorted(variants, key=digest), conflict=True)
+                    variants = sorted(variants, key=digest)
+                    bank[value['id']] = dict(variants[0], conflicting_variants=variants, conflict=True)
                     if category == 'relations':
                         bank[value['id']]['state'] = 'candidate'
                         bank[value['id']]['reason'] = 'Противоречащие сохранённые основания; требуется перепроверка.'
                     conflicts.append(value['id'])
                 else:
                     bank[value['id']] = deepcopy(value)
+    # A reusable arithmetic fact is only as stable as its actual operands.
+    invalidated_sums = {fact.get('source_id') for proof in ledger_proofs.values()
+                        for fact in proof.get('facts', []) if fact.get('operation') == 'sum'
+                        and source_conflicts.intersection(fact.get('operand_source_ids', []))}
+    invalidated_sources = source_conflicts | invalidated_sums
     affected = set(conflicts)
     for entity in entities.values():
-        if entity.get('source_id') in source_conflicts or (entity.get('read_request') or {}).get('source_id') in source_conflicts:
+        source_id = (entity.get('source_id') or (entity.get('read_request') or {}).get('source_id')
+                     or (entity.get('fact') or {}).get('source_id'))
+        if source_id in invalidated_sources:
             entity['source_conflict'] = True
             entity.pop('read_request', None)
             affected.add(entity['id'])
@@ -399,10 +436,11 @@ def load_for_run(context, record):
         if {relation['source'], relation['target'], *relation['evidence_ids']} & affected:
             relation.update(state='candidate', reason='Противоречащие сохранённые основания; требуется перепроверка.')
     merged.update(entities=[entities[k] for k in sorted(entities)], relations=[relations[k] for k in sorted(relations)],
-                  sources=[sources[k] for k in sorted(sources) if k not in source_conflicts],
+                  sources=[sources[k] for k in sorted(sources) if k not in invalidated_sources],
                   ledger_proofs=[ledger_proofs[k] for k in sorted(ledger_proofs)],
                   source_aliases=aliases,
-                  conflicts=sorted(set(conflicts)), source_conflicts=sorted(source_conflicts))
+                  conflicts=sorted(set(conflicts)), source_conflicts=sorted(source_conflicts),
+                  invalidated_sum_sources=sorted(invalidated_sums))
     return merged
 
 
@@ -452,25 +490,44 @@ def related(graph, entity_id, offset=0, limit=6, *, entity_kind=''):
         raise ValueError('Unknown engineering entity kind')
     if entity_id not in entities:
         raise KeyError('Unknown engineering entity')
-    rows, selected, seen = [], {entity_id: []}, set()
-    for _ in range(3):
-        frontier = dict(selected)
-        for relation in graph['relations']:
-            if relation['id'] in seen:
-                continue
-            start = next((e for e in (relation['source'], relation['target']) if e in frontier), None)
-            if start is not None:
-                other = relation['target'] if relation['source'] == start else relation['source']
-                path = [*frontier[start], relation['id']]
-                selected.setdefault(other, path)
-                seen.add(relation['id'])
-                rows.append(dict(relation=deepcopy(relation), entity=_summary(entities[other]),
-                                 via_relation_ids=path,
-                                 evidence=[_summary(entities[e]) for e in relation['evidence_ids']]))
-    relation_map={r['id']:r for r in graph['relations']}
-    for row in rows:
-        unverified=[rid for rid in row['via_relation_ids']if relation_map[rid]['state']!='verified']
-        row.update(path_state='unresolved'if unverified else'verified',unverified_relation_ids=unverified)
+    relations = graph['relations']
+    relation_map = {edge['id']: edge for edge in relations}
+
+    def route(rank, edge):
+        uncertainty, hops, path = rank
+        return uncertainty + (edge['state'] != 'verified'), hops + 1, (*path, edge['id'])
+
+    # Find the best prefix of at most two hops for each endpoint. The final
+    # edge makes a three-hop route. Prefer proof over a shorter candidate path
+    # and use stable relation IDs to break ties independent of retrieval order.
+    paths = {entity_id: (0, 0, ())}
+    for _ in range(2):
+        extended = dict(paths)
+        for edge in relations:
+            for start, end in ((edge['source'], edge['target']), (edge['target'], edge['source'])):
+                prefix = paths.get(start)
+                if prefix is None or edge['id'] in prefix[2]:
+                    continue
+                rank = route(prefix, edge)
+                if end not in extended or rank < extended[end]:
+                    extended[end] = rank
+        paths = extended
+
+    rows = []
+    for edge in relations:
+        candidates = [
+            (route(paths[start], edge), end)
+            for start, end in ((edge['source'], edge['target']), (edge['target'], edge['source']))
+            if start in paths and edge['id'] not in paths[start][2]
+        ]
+        if not candidates:
+            continue
+        (_, _, path), end = min(candidates)
+        unverified = [rid for rid in path if relation_map[rid]['state'] != 'verified']
+        rows.append(dict(relation=deepcopy(edge), entity=_summary(entities[end]),
+                         via_relation_ids=list(path), path_state='unresolved' if unverified else 'verified',
+                         unverified_relation_ids=unverified,
+                         evidence=[_summary(entities[e]) for e in edge['evidence_ids']]))
     rows=[row for row in rows if not entity_kind or row['entity']['kind']==entity_kind]
     rows.sort(key=lambda row: row['relation']['id'])
     return _page(rows, offset, limit, entity=_summary(entities[entity_id]), entity_kind=entity_kind,

@@ -137,6 +137,8 @@ def test_merge_conflicting_proofs_never_chooses_a_confirmed_relation_by_order():
     assert len(result['conflicting_variants']) == 2
     assert result['id'] in merged['conflicts']
     assert len(context.repository.saved) == 2  # Old immutable result is preserved.
+    context.repository.saved = dict(reversed(list(context.repository.saved.items())))
+    assert relations.load_for_run(context, record) == merged
 
 
 def test_ambiguous_source_handle_is_not_returned_as_a_readable_source():
@@ -219,6 +221,64 @@ def test_related_path_requires_every_ancestral_relation_to_be_verified():
     direct=relations.related(graph,fact['id'],entity_kind='Evidence')['items']
     assert direct and direct[0]['path_state']=='verified'
     assert direct[0]['unverified_relation_ids']==[]
+
+
+def test_related_uses_verified_detour_instead_of_shorter_candidate_path():
+    def entity(name, kind='Work'):
+        return dict(id=name, label=name, kind=kind, version_id='pd', origin='project')
+
+    def edge(name, left, right, state):
+        return dict(id=name, source=left, target=right, evidence_ids=[], state=state)
+
+    edges = [
+        edge('shortcut', 'start', 'subject', 'candidate'),
+        edge('first', 'start', 'bound', 'verified'),
+        edge('second', 'bound', 'subject', 'verified'),
+        edge('evidence', 'subject', 'proof', 'verified'),
+    ]
+    graph = dict(entities=[entity('start'), entity('bound'), entity('subject'), entity('proof', 'Evidence')],
+                 relations=edges)
+    page = relations.related(graph, 'start', entity_kind='Evidence')
+    assert len(page['items']) == 1
+    assert page['items'][0]['via_relation_ids'] == ['first', 'second', 'evidence']
+    assert page['items'][0]['path_state'] == 'verified'
+    graph['relations'] = list(reversed(edges))
+    assert relations.related(graph, 'start', entity_kind='Evidence') == page
+
+
+def test_calculated_fact_exposes_pinned_operands_and_invalidates_on_source_conflict():
+    record, source, position, ledger, _ = fixture()
+    source.update(origin='calculated_from_cells', numeric_verified=True)
+    operands = [dict(source, id=f'part:{index}', origin='native', text=text,
+                     unit='шт.', unit_verified=True)
+                for index, text in enumerate(('ПК 1+00\n100', 'ПК 2+00\n300'))]
+    all_sources = [source, *operands]
+    ledger['facts'][0].update(operation='sum', calculation_state='verified',
+                              operand_source_ids=[part['id'] for part in operands])
+    ledger['source_hashes'] = {s['id']: digest(s) for s in all_sources}
+    graph = relations.build(record, {0: position}, ledgers=[ledger], sources=all_sources)
+    context = SimpleNamespace(repository=Repository())
+    relations.store(context, record, graph)
+    fact = next(e for e in graph['entities'] if e['kind'] == 'Fact')
+    by_id = {e['id']: e for e in graph['entities']}
+    edges = [e for e in graph['relations'] if e['kind'] == 'DERIVED_FROM']
+    assert {by_id[e['target']]['read_request']['source_id'] for e in edges} == {'part:0', 'part:1'}
+    assert all(e['state'] == 'verified' and e['source'] == fact['id'] for e in edges)
+
+    broken = deepcopy(graph)
+    del broken['ledger_proofs'][0]['source_hashes']['part:1']
+    with pytest.raises(ValueError, match='lacks matching validated ledger proof'):
+        relations.store(context, record, broken)
+
+    operands[0]['text'] = 'Другое прочтение контекста\n100'
+    ledger['source_hashes'][operands[0]['id']] = digest(operands[0])
+    changed = relations.build(record, {0: position}, ledgers=[ledger], sources=all_sources)
+    relations.store(context, record, changed)
+    merged = relations.load_for_run(context, record)
+    assert merged['source_conflicts'] == ['part:0']
+    assert merged['invalidated_sum_sources'] == [source['id']]
+    assert all(e['state'] != 'verified' for e in merged['relations'])
+    assert {s['id'] for s in merged['sources']} == {'part:1'}
 
 
 def test_rejects_forged_verified_workbook_edge():
