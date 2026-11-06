@@ -281,6 +281,57 @@ def test_calculated_fact_exposes_pinned_operands_and_invalidates_on_source_confl
     assert {s['id'] for s in merged['sources']} == {'part:1'}
 
 
+def test_native_construction_candidates_keep_exact_addresses_and_unresolved_scope():
+    record, _, position, _, _ = fixture()
+    heading = '**_Тип IV – Конструкция_** **_ровиков уширения_**'
+    sources = [
+        dict(id=f'agent:p{page}:0', kind='project', origin='native', version_id='pdf',
+             page=page, text='Описание\n'+heading)
+        for page in (49, 50)
+    ]
+    sources += [
+        dict(sources[0], id='agent:p49:2', text='исание\n'+heading),
+        dict(sources[0], id='agent:p48:0', page=48, origin='ocr'),
+        dict(sources[0], id='agent:p47:250', page=47, text=heading),
+        dict(sources[0], id='agent:p46:0', page=46, version_id='stale'),
+    ]
+    graph = relations.build(record, {0: position}, sources=sources)
+    constructs = [e for e in graph['entities'] if e['origin'] == 'project' and e['kind'] == 'Construction']
+    assert {e['address']['page'] for e in constructs} == {49, 50}
+    assert len({e['id'] for e in constructs}) == 2
+    assert all(e['classification_state'] == 'candidate' and e['address']['heading_offset'] == 9
+               for e in constructs)
+    page49 = next(e for e in constructs if e['page'] == 49)
+    assert len(page49['evidence_ids']) == 2
+    assert page49['read_request'] == dict(tool='read_page', document_version_id='pdf', page=49, offset=9)
+    assert all(e['state'] == 'candidate' for e in graph['relations'])
+    assert relations.build(record, {0: position}, sources=list(reversed(sources))) == graph
+    relations.store(SimpleNamespace(repository=Repository()), record, graph)
+    constructs[0]['label'] = 'Другой тип конструкции'
+    with pytest.raises(ValueError, match='heading does not match'):
+        relations.store(SimpleNamespace(repository=Repository()), record, graph)
+
+
+def test_table_construction_candidate_requires_independently_validated_header():
+    from normative_table_headers import table_scope_context
+    from test_normative_table_scope_context import scope_fixture
+    record, _, position, _, _ = fixture()
+    table, cell, source = scope_fixture()
+    proof = table.pop('visual_scope_transcription')
+    table['cells'][0]['text'] = 'Тип III – Конструкция съездов'
+    proof['table_sha256'] = digest(table)
+    table['visual_scope_transcription'] = proof
+    source['table_scope_context'] = table_scope_context(table, cell, source['id'], 'pdf', 90)
+    graph = relations.build(record, {0: position}, sources=[source])
+    candidate = next(e for e in graph['entities'] if e['origin'] == 'project' and e['kind'] == 'Construction')
+    assert candidate['address']['header_cell_id'] == 'table:h'
+    assert candidate['classification_state'] == 'candidate'
+    relations.store(SimpleNamespace(repository=Repository()), record, graph)
+    source['table_scope_context']['header_cells'][0]['text'] = 'Тип I — Другая конструкция'
+    graph = relations.build(record, {0: position}, sources=[source])
+    assert not any(e['origin'] == 'project' for e in graph['entities'])
+
+
 def test_rejects_forged_verified_workbook_edge():
     record, _, _, _, graph = fixture()
     edge = next(e for e in graph['relations'] if e['method'] == 'workbook_section')

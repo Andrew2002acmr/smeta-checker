@@ -18,6 +18,8 @@ from audit_models import position_source_dict
 VERSION = 2
 STAGE = 'engineering_relations_v2'
 STATES = {'candidate', 'verified', 'rejected', 'stale'}
+CONSTRUCTION_CANDIDATE = 'addressed_construction_candidate'
+_TYPED_HEADING = re.compile(r'тип\s+(?:[ivxlcdm]+|\d+)[а-я]?\s*[-–—:]\s*\S.+', re.I)
 
 
 def _pins(record):
@@ -100,6 +102,53 @@ def _operand_dependencies(fact, hashes, sources):
         return _proposal_dependencies(fact, sources)[1:]
     except (KeyError, TypeError, ValueError):
         return []
+
+
+def _addressed_constructions(source):
+    """Expose an explicit heading, preserving its physical source identity."""
+    def label(raw):
+        text = ' '.join(re.sub(r'[*_]', '', raw).split())
+        return text if _TYPED_HEADING.fullmatch(text) else ''
+
+    page, sid = source.get('page'), source.get('id', '')
+    if source.get('kind') != 'project' or type(page) is not int or page < 1:
+        return
+    if source.get('origin') == 'native':
+        handle = re.fullmatch(r'agent:p(\d+):(\d+)(?::native:\d+)?(?::doc:(.+))?', sid)
+        start = None
+        if handle and int(handle[1]) == page and handle[3] in (None, str(source.get('version_id'))):
+            start = int(handle[2])
+        elif sid == f'prepared:native:{page}':
+            start = 0
+        text = source.get('text')
+        if start is not None and isinstance(text, str):
+            for index, line in enumerate(text.splitlines(keepends=True)):
+                # A bounded excerpt can start or end in the middle of a line.
+                complete = (index or not start) and (len(text) < 3500 or line.endswith('\n'))
+                title = label(line) if complete else ''
+                if title:
+                    yield dict(page=page, heading_offset=start, heading_sha256=digest(line.rstrip('\r\n'))), title
+                start += len(line)
+            return
+    if source.get('table_scope_context'):
+        from normative_table_headers import validated_table_scope_context
+        context = validated_table_scope_context(source)
+        if context:
+            for cell in context['header_cells']:
+                title = label(cell['text'])
+                if title:
+                    yield dict(page=page, table_id=context['source_binding']['table_id'],
+                               header_cell_id=cell['cell_id'], header_row=cell['row'], header_column=cell['column'],
+                               heading_sha256=digest(cell['text'])), title
+
+
+def _construction_request(address, version):
+    if 'header_cell_id' in address:
+        return dict(tool='read_table', document_version_id=version, page=address['page'],
+                    table_id=address['table_id'], row_ids=[address['header_row']],
+                    column_ids=[address['header_column']])
+    return dict(tool='read_page', document_version_id=version, page=address['page'],
+                offset=address['heading_offset'])
 
 
 def _material_description(source, parent):
@@ -185,6 +234,23 @@ def build(record, positions, *, ledgers=(), sources=(), scope_graph=None):
 
     source_map = {s['id']: s for s in sources if s.get('id')}
     retained_sources = {}
+    # Index a bounded set of physically addressed headings encountered during
+    # ordinary reads, independently of whether a model proposed a quantity.
+    headings = [
+        (source, address, label)
+        for _, source in sorted(source_map.items())
+        if str(source.get('version_id')) in pins['pdf_versions']
+        for address, label in _addressed_constructions(source)
+    ]
+    for source, address, label in headings[:24]:
+        evidence = add_evidence(source)
+        version, sid = str(source['version_id']), source['id']
+        retained_sources[sid] = deepcopy(source)
+        construction = add(_entity('Construction', version, address, label, origin='project',
+            classification_state='candidate', evidence_ids=[evidence],
+            page=source['page'], read_request=_construction_request(address, version)))
+        link('SUPPORTED_BY', construction, evidence, version, [evidence], CONSTRUCTION_CANDIDATE,
+             'Прочитан тип конструкции; границы и принадлежность позиции ВОР требуют проверки.')
     for ledger in ledgers:
         for sid, expected in ledger.get('source_hashes', {}).items():
             candidate = source_map.get(sid)
@@ -322,6 +388,15 @@ def _validate(graph, record):
                     or entity['address'].get('source_sha256') != digest(source)
                     or str(source.get('version_id')) != entity['version_id']):
                 raise ValueError('Engineering evidence envelope does not match its source')
+        if (entity['kind'] == 'Construction' and entity['origin'] == 'project'
+                and 'heading_sha256' in entity['address']):
+            references = [entities.get(eid, {}) for eid in entity.get('evidence_ids', [])]
+            if (entity.get('classification_state') != 'candidate' or not references
+                    or any(ref.get('kind') != 'Evidence' or ref.get('version_id') != entity['version_id']
+                        or (entity['address'], entity['label']) not in _addressed_constructions(
+                            source_map.get(ref.get('source_id'), {})) for ref in references)
+                    or entity.get('read_request') != _construction_request(entity['address'], entity['version_id'])):
+                raise ValueError('Construction heading does not match its physical source')
     proofs = []
     for ledger in graph.get('ledger_proofs', []):
         for fact in ledger.get('facts', []):
