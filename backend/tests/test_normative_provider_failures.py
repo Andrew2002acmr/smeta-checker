@@ -202,6 +202,19 @@ def agent_fixture(responses):
     return run, client.chat.completions.create, stats, tools
 
 
+def test_truncated_agent_answer_retries_compactly_within_existing_budget():
+    truncated = SimpleNamespace(choices=[SimpleNamespace(
+        finish_reason='length', message=SimpleNamespace(content='{"items":['))])
+    navigation = agent_response({'summary':'Read', 'items':[],
+                                 'requests':[{'tool':'read_page','page':7}]})
+    run, create, stats, tools = agent_fixture([navigation, truncated, agent_response()])
+    assert run().summary == 'Done'
+    assert stats['requests'] == create.call_count == MAX_ROUNDS
+    assert tools.execute.call_count == 1
+    supplied = json.loads(create.call_args.kwargs['messages'][1]['content'])
+    assert 'короткий JSON' in supplied['answer_validation'][0]
+
+
 def monthly_limit_error():
     # The reproduced RouterAI response, plus sensitive fields that must never
     # reach telemetry or the published engineering result.

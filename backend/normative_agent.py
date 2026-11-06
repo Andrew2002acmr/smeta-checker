@@ -912,7 +912,7 @@ def table_outline(table):
 def run(ask, client, credentials, instructions, inputs, schema, trace, stats, tools, *,
         verify_answer=None, evidence_timeout_seconds=120):
     """Three calls; one source-only repair for a newly exposed conditional error."""
-    from normative_context import ModelProviderResponseError
+    from normative_context import ModelOutputLimitError, ModelProviderResponseError
     started = time.monotonic()
     history = []
     feedback = []
@@ -994,6 +994,16 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
         try:
             answer = restore_source_ids(ask(client, credentials, step_instructions, supplied, schema, trace, stage, stats),aliases,tools.sources)
             packing['response_state'] = 'completed'
+        except ModelOutputLimitError:
+            packing['response_state'] = 'output_limit'
+            if step >= MAX_ROUNDS-1:
+                raise
+            feedback = [
+                'Предыдущий ответ не поместился. Верни короткий JSON. '
+                'Не повторяй каталог источников и пояснения. Для каждого вывода оставь '
+                'точный claim_id, необходимые ссылки и одно короткое предложение.'
+            ]
+            continue
         except ValidationError as exc:
             packing['response_state'] = 'invalid_schema'
             if step >= MAX_ROUNDS-1:
