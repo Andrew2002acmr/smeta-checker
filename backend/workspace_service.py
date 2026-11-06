@@ -92,6 +92,7 @@ def present_results(context, record) -> list[ResultDTO]:
         j.position_index: j for j in context.repository.list_position_jobs(record["id"])
     }
     result = []
+    directional_text = {}
     for item in record["indexed_results"]:
         index, stored = item["position_index"], item["result"]
         position = positions.get(index)
@@ -132,6 +133,11 @@ def present_results(context, record) -> list[ResultDTO]:
         report = publish(report, stored, position_key(position), validation.get(index),
             enabled=bool(record['config'].get('normative_after_match')), derived=bool(links.get(index)),position=position)
         report_status = report["Статус аудита"]
+        review = (validation.get(index) or {}).get('review') or {}
+        directional = (review.get('coverage') or {}).get('audit_directions')
+        if directional and review.get('position_key') == position_key(position):
+            from normative_review_directions import report_text
+            directional_text[index] = report_text(directional)
         quantity = verified_quantity((validation.get(index) or {}).get('review'),
             position_key(position), position.unit, derived=bool(links.get(index)),position=position)
         queues: dict[str, Literal['fix', 'review', 'missing', 'ok', 'pending']] = {
@@ -188,8 +194,13 @@ def present_results(context, record) -> list[ResultDTO]:
     verified_dependencies={index for index, entry in validation.items() if index in links
         and (verified_geometry_dependency(entry.get('review') or {},positions.get(index))
             or verified_allocation_dependency(entry.get('review') or {},positions.get(index)))}
-    return apply_parent_verdicts(result, enabled=bool(record['config'].get('normative_after_match')) or bool(validation),
+    rows = apply_parent_verdicts(result, enabled=bool(record['config'].get('normative_after_match')) or bool(validation),
         running=record['status'] == 'running',verified_dependencies=verified_dependencies)
+    for row in rows:
+        if text := directional_text.get(row.position_index):
+            row.problem = ' '.join(filter(None, (text, row.problem)))
+            row.details = row.problem
+    return rows
 
 
 def validated_word_report(context, record):

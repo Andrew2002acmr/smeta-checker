@@ -431,6 +431,9 @@ def finalize_state(result, stored, position_key, *, derived=False, position=None
     if position is not None:
         from normative_evidence_plan import VERSION, build_work_plan, position_data
         output['evidence_trace'] = [e for e in output.get('evidence_trace', []) if e.get('kind') != VERSION]
-        output['evidence_trace'].append(build_work_plan(position_data(position), output,
-            stored, derived=derived, relation=relation))
+        plan = build_work_plan(position_data(position), output, stored, derived=derived, relation=relation)
+        output['evidence_trace'].append(plan)
+        from normative_review_directions import assess
+        output.setdefault('coverage', {})['audit_directions'] = assess(
+            position, output, stored, plan, derived=derived, relation=relation)
     return output
