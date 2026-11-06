@@ -19,6 +19,10 @@ def test_mismatched_parent_fact_change_enqueues_formal_child_once_and_runs_local
     neighbour = deepcopy(child)
     neighbour["work_relations"] = dict(material_owner=dict(index=0))
     p.repo.save_normative_review(p.run.id, 2, "check", neighbour, "synthetic-neighbour")
+    empty_parent = dict(position_check=dict(pipeline_version=27, execution_state="complete",
+        state="needs_facts"), work_relations=dict(children=[dict(material_index=1)]))
+    p.repo.save_normative_review(p.run.id, 0, "check", empty_parent, "synthetic-no-new-geometry")
+    assert not p.repo.reserve_deliveries()
     parent = geometry_payload()
     parent["work_relations"] = dict(children=[dict(material_index=1), dict(material_index=2)])
     p.repo.save_normative_review(p.run.id, 0, "check", parent, "synthetic-parent-mismatch")

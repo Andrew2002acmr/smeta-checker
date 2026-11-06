@@ -116,7 +116,8 @@ def test_native_named_section_reads_actual_thickness_even_if_declared_value_diff
     assert result['evidence_trace'][-1]['expected_value_used_for_selection'] is False
 
 
-@pytest.mark.parametrize('reason', ['ocr', 'competing_scope', 'competing_work', 'range', 'same_number_only'])
+@pytest.mark.parametrize('reason', ['ocr', 'competing_scope', 'competing_work', 'range', 'same_number_only',
+                                   'alternative_layer', 'qualified_work', 'material_conflict'])
 def test_native_binding_rejects_wrong_or_ambiguous_scope(reason):
     body = '_Газоны_\nГазоны создаются. Наносится слой почвы толщиной 20 см, сеются многолетние травы.\n_Дороги_\nТекст.'
     work = native_work('газонов', 'с внесением почвы h = 20 см и посевом многолетних трав')
@@ -132,6 +133,13 @@ def test_native_binding_rejects_wrong_or_ambiguous_scope(reason):
         texts[0] = body.replace('20 см', '20 см или 25 см')
     if reason == 'same_number_only':
         texts[0] = body.replace('многолетние травы', 'однолетние растения')
+    if reason == 'alternative_layer':
+        texts[0] = body.replace('_Дороги_', 'Другой слой hmin=30 см.\n_Дороги_')
+    if reason == 'qualified_work':
+        work.work_name += ' только на первом этапе'
+    if reason == 'material_conflict':
+        work.work_name = work.work_name.replace('с внесением почвы', 'с материалом «песок»')
+        texts[0] = body.replace('слой почвы', 'слой материала «щебень»')
     tools = native_tools(texts, origin='ocr' if reason == 'ocr' else 'native')
     result = dict(sources=[], parameter_proposals=[])
     assert not resolve_native_geometry(work, positions, tools, result)

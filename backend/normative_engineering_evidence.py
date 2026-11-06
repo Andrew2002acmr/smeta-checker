@@ -16,8 +16,12 @@ _ENDING = re.compile(r'(иями|ами|ого|ему|ыми|ими|ий|ый|о
 _HEADING = re.compile(r'^[ \t]*(?P<mark>\*\*|_+)[^\n]{1,95}?(?P=mark)[^\n]{0,50}$', re.M)
 _THICKNESS = re.compile(r'\bтолщин[а-яё]*\s+(\d+(?:[.,]\s*\d+)?)\s*(мм|см|м)\b', re.I)
 _DECLARED_THICKNESS = re.compile(r'\bh\s*=\s*\d+(?:[.,]\s*\d+)?\s*(?:мм|см|м)\b', re.I)
+_ALTERNATE_THICKNESS = re.compile(r'\bh\s*(?:(?:min|max)\s*)?[=<>≤≥]', re.I)
 _CONSTRAINED = re.compile(r'\b(?:от|до|не|либо|или|кроме|около|примерно|менее|более)\b|[±<>≤≥≈~]', re.I)
 _LOCATION = re.compile(r'\b(?:улиц\w*|ул\.|съезд\w*|останов\w*|тротуар\w*|участ\w*|пикет\w*|слева|справа)(?=\W|$)', re.I)
+_PARTITION = re.compile(r'\b(?:(?:нижн|верхн|средн|перв|втор|трет)\w*\s+сло[йя]|'
+                        r'(?:двух|трех|трёх|много)слойн\w*|слой\s*\d|'
+                        r'этап\w*|очеред\w*|захватк\w*|сектор\w*|част[ьи]|кроме|только|без)\b', re.I)
 
 
 def _words(text):
@@ -62,19 +66,21 @@ def _native_paragraphs(index, subject):
 
 def resolve_native_geometry(position, positions, tools, result):
     """Bind exact stated geometry using a unique, independently located native section."""
-    from normative_parameters import clean, quoted, unit_quoted
+    from normative_parameters import clean, construction_conflict, quoted, unit_quoted
     from normative_scope_tokens import scope_tokens
     from pdf_inline_evidence import excerpt_origin
+    from vor_material_links import _family
 
     if (tools.index is None or not tools.version or position.position_type.casefold() != 'работа'
             or len(_DECLARED_THICKNESS.findall(position.work_name)) != 1
+            or len(_ALTERNATE_THICKNESS.findall(position.work_name)) != 1
             or getattr(tools, 'additional_documents', None)):
         return False
     subject = _subject(position)
     declared_sections = (position_source_dict(position) or {}).get('sections', [])
     declared_scope = ' '.join(section['text'] for section in declared_sections)
-    if (not subject or scope_tokens(declared_scope + ' ' + position.work_name)
-            or _LOCATION.search(declared_scope + ' ' + position.work_name)
+    declared = declared_scope + ' ' + position.work_name
+    if (not subject or scope_tokens(declared) or _LOCATION.search(declared) or _PARTITION.search(declared)
             or any(p.index != position.index and _subject(p) == subject for p in positions.values())):
         return False
     paragraphs = list(_native_paragraphs(tools.index, subject))
@@ -83,6 +89,7 @@ def resolve_native_geometry(position, positions, tools, result):
     page, start, title, body, context, end = paragraphs[0]
     thicknesses = list(_THICKNESS.finditer(body))
     if (end is None or title != subject or len(context) > 800 or len(thicknesses) != 1
+            or _ALTERNATE_THICKNESS.search(body) or _PARTITION.search(body)
             or _words(body)[:len(subject)] != subject
             or tools.index.quality.get(page-1, {}).get('origin') != 'native'
             or excerpt_origin(tools.index, page, start, len(context)) != 'native'
@@ -94,7 +101,10 @@ def resolve_native_geometry(position, positions, tools, result):
     clause_start = max(clause_start, body.rfind('.\n', 0, thickness.start()) + 2)
     layer = body[clause_start:thickness.start()]
     suffix = body[thickness.end():]
+    wanted_family, observed_family = _family(position.work_name), _family(layer)
     if (not re.search(r'\bсло[йя]\b', layer, re.I) or _CONSTRAINED.search(layer)
+            or (wanted_family and observed_family and wanted_family != observed_family)
+            or construction_conflict(layer, position.work_name)
             or re.match(r'\s*(?:[-–—±+<>≤≥]|(?:до|или)\s+\d)', suffix, re.I)):
         return False
     value, unit = re.sub(r'\s+', '', thickness[1]).replace(',', '.'), thickness[2].lower()

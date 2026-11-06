@@ -6,6 +6,8 @@ from analysis_replay import digest
 from storage_models import NormativeReview, Run
 from normative_evidence_followup import plan_for
 
+EMPTY_GEOMETRY_REVISION = digest(dict(cards=[]))
+
 
 def geometry_revision(payload):
     result = payload.get("position_check") or {}
@@ -48,6 +50,8 @@ def geometry_revision(payload):
             and (p["parameter"] == c["id"] or c["id"] == "input:area" and p["parameter"] == "quantity")
             for p in proposals)
     ]
+    if not cards:
+        return EMPTY_GEOMETRY_REVISION
     ids = {sid for c in cards for sid in c.get("source_ids", [])}
     proposals = [
         p for p in proposals if p.get("source_id") in ids
@@ -88,8 +92,11 @@ def after_review(repo, session, run_id, index, payload, previous):
             "audit_tasks.normative_position",
             dict(run_id=str(run_id), position_index=index, evidence_followup=True),
         )
+    if result.get('execution_state') != 'complete':
+        return
     revision = geometry_revision(payload)
-    if previous is not None and revision == geometry_revision(previous):
+    prior_revision = geometry_revision(previous) if previous is not None else EMPTY_GEOMETRY_REVISION
+    if revision == prior_revision:
         return
     # Only existing formal work->material dependencies can inherit geometry.
     # Structural neighbours and repeated titles on other sites cannot.

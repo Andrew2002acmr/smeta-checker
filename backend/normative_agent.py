@@ -222,7 +222,7 @@ def model_result(result, budget=10000):
     value = shrink(result)
     if len(json.dumps(value, ensure_ascii=False)) <= budget:
         return value
-    if 'engineering_entities' in value:
+    if isinstance(value, dict) and 'engineering_entities' in value:
         # Keep a complete cursor page together. Slicing items while retaining
         # its original next_offset silently skips entities on the next call.
         catalogue = {k: value[k] for k in ('engineering_entities', 'result_handle', 'archive_read_request') if k in value}
@@ -635,7 +635,7 @@ class EvidenceTools:
                     origin=item['extraction_status'], text=item['text'])
                 receipt = self._add(source)
                 results.append(receipt)
-                if item['entity_kind'] == 'norm' and 'source_id' in receipt:
+                if item.get('entity_kind') == 'norm' and 'source_id' in receipt:
                     definitions[item['id']] = source['id']
                 # A deliberately requested new source must survive packing.
                 # Otherwise a late raster label can disappear again behind the
