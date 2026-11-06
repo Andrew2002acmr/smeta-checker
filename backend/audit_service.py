@@ -978,7 +978,6 @@ def run_audit(
                     pdf_sources=pdf_sources,
                     provider=llm_provider,
                 )
-
             results[v_name] = {
                 "df": df_final,
                 "meta": meta,

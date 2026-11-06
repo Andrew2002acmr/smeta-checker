@@ -1,1084 +1,613 @@
 <script setup lang="ts">
-import type { ProjectDto, RunDto, DocumentDto } from '~/generated/types.gen'
-import type { TableColumn } from '@nuxt/ui'
-import type { SortingState } from '@tanstack/vue-table'
-type Tab = 'vor' | 'pdf' | 'runs'
-type Queue = 'fix' | 'review' | 'missing' | 'ok'
-type SummaryState =
-  | { status: 'loading' }
-  | { status: 'error' }
-  | { status: 'ready'; queues: Record<Queue, number> }
+import type { DepartmentDto, ProjectDto } from '~/generated/types.gen'
 
-const queueLabels: Record<Queue, string> = {
-  fix: 'Исправить',
-  review: 'Проверить вручную',
-  missing: 'Не выполнено',
-  ok: 'Подтверждено',
-}
-
-const backend = useBackend()
-const route = useRoute()
-const router = useRouter()
-
+const backend = useBackend(),
+  route = useRoute(),
+  router = useRouter()
 const projectId = computed(() => String(route.params.projectId || ''))
-const tab = computed<Tab>(() =>
-  route.query.tab === 'pdf' || route.query.tab === 'runs' ? route.query.tab : 'vor',
-)
-
 const project = ref<ProjectDto | null>(null)
-const documents = ref<DocumentDto[]>([])
-const runs = ref<RunDto[]>([])
-const summaries = ref<Record<string, SummaryState>>({})
-let catalogEpoch = 0
-const busy = ref(true)
-const runsOffset = ref(0)
-const runsBusy = ref(false)
-let runsEpoch = 0
-const error = ref('')
-const search = ref('')
-const showArchived = ref(false)
+const departments = ref<DepartmentDto[]>([])
+const busy = ref(true),
+  error = ref(''),
+  actionError = ref('')
+const filtered = computed(() => departments.value)
+const renamingId = ref<string | null>(null),
+  nameDraft = ref(''),
+  renameBusy = ref(false)
+const mutationBusy = ref(false),
+  actionTarget = ref<DepartmentDto | null>(null)
+const confirmName = ref(''),
+  actionOpen = ref(false)
+const creating = ref(false),
+  newDepartmentName = ref(''),
+  createBusy = ref(false),
+  createError = ref('')
+const projectRenameOpen = ref(false),
+  projectNameDraft = ref(''),
+  projectBusy = ref(false),
+  projectArchiveOpen = ref(false)
+let active = true,
+  epoch = 0
+let refreshTimer: ReturnType<typeof setTimeout> | undefined
 
-const renamingProject = ref(false)
-const projectNameDraft = ref('')
-const projectBusy = ref(false)
-const renamingDocId = ref<string | null>(null)
-const docNameDraft = ref('')
-const docBusy = ref(false)
-const archivingDocId = ref<string | null>(null)
-const deletingDocId = ref<string | null>(null)
-const deletingDocBusy = ref(false)
-const archiveBusy = ref(false)
-const confirmProjectArchive = ref(false)
-const confirmProjectDelete = ref(false)
-const deleteNameDraft = ref('')
-const deleteBusy = ref(false)
-
-const importOpen = ref(false)
-const revisionTargetId = ref<string | undefined>(undefined)
-
-let active = true
-let epoch = 0
-
-const vorDocs = computed(() => documents.value.filter((d) => d.kind === 'vor'))
-const pdfDocs = computed(() => documents.value.filter((d) => d.kind === 'pdf'))
-
-const visibleDocs = computed(() => {
-  const q = search.value.trim().toLocaleLowerCase('ru-RU')
-  const base = tab.value === 'pdf' ? pdfDocs.value : vorDocs.value
-  if (!q) return base
-  return base.filter(
-    (d) =>
-      d.title.toLocaleLowerCase('ru-RU').includes(q) ||
-      d.versions.some((v) => v.filename.toLocaleLowerCase('ru-RU').includes(q)),
-  )
-})
-const runColumns: TableColumn<RunDto>[] = [
-  { id: 'vor', accessorFn: (row: RunDto) => row.vor_filename, header: 'Ведомость' },
-  { id: 'status', accessorFn: (row: RunDto) => row.status, header: 'Статус' },
-  { id: 'date', accessorFn: (row: RunDto) => row.created_at, header: 'Дата' },
-  { id: 'action', header: '', enableSorting: false },
-]
-const runSorting = ref<SortingState>([])
-const docColumns: TableColumn<DocumentDto>[] = [
-  { id: 'doc', accessorFn: (row: DocumentDto) => row.title, header: 'Документ' },
-  {
-    id: 'revision',
-    accessorFn: (row: DocumentDto) => row.versions.length,
-    header: 'Текущая ревизия',
-  },
-  { id: 'status', accessorFn: (row: DocumentDto) => row.last_run?.status || '', header: 'Статус' },
-  { id: 'action', header: '', enableSorting: false },
-]
-const docSorting = ref<SortingState>([])
-function setTab(next: Tab) {
-  router.replace({ query: { ...route.query, tab: next === 'vor' ? undefined : next } })
+function departmentPath(item: DepartmentDto) {
+  return `/projects/${projectId.value}/departments/${item.id}`
 }
-
-function formatDate(value: string | null) {
-  return value
-    ? new Date(value).toLocaleString('ru-RU', {
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : '—'
-}
-
-function statusColor(status: RunDto['status']): 'success' | 'error' | 'warning' | 'neutral' {
-  return status === 'done' ? 'success' : status === 'failed' ? 'error' : 'warning'
-}
-
-function currentVersion(doc: DocumentDto) {
-  return doc.versions.find((v) => v.id === doc.current_version_id) || doc.versions[0] || null
-}
-
-function summaryText(runId: string) {
-  const state = summaries.value[runId]
-  if (!state || state.status !== 'ready') return ''
-  return (
-    (Object.keys(queueLabels) as Queue[])
-      .filter((queue) => state.queues[queue] > 0)
-      .map((queue) => `${queueLabels[queue]} · ${state.queues[queue]}`)
-      .join(' / ') || 'Проверка без позиций'
-  )
-}
-async function loadSummary(runId: string, current: number) {
-  summaries.value[runId] = { status: 'loading' }
+async function createDepartment() {
+  const name = newDepartmentName.value.trim()
+  if (!name || createBusy.value) return
+  createBusy.value = true
+  createError.value = ''
   try {
-    const summary = await backend.summary(runId)
-    if (!active || current !== catalogEpoch) return
-    summaries.value[runId] = {
-      status: 'ready',
-      queues: {
-        fix: summary.queues.fix ?? 0,
-        review: summary.queues.review ?? 0,
-        missing: summary.queues.missing ?? 0,
-        ok: summary.queues.ok ?? 0,
-      },
-    }
-  } catch {
-    if (active && current === catalogEpoch) summaries.value[runId] = { status: 'error' }
-  }
-}
-
-function setCatalog(catalog: DocumentDto[]) {
-  documents.value = catalog
-  const current = ++catalogEpoch
-  summaries.value = {}
-  const ids = new Set(
-    catalog
-      .filter((doc) => doc.kind === 'vor' && doc.last_run?.status === 'done')
-      .map((doc) => doc.last_run!.run_id),
-  )
-  for (const id of ids) void loadSummary(id, current)
-}
-
-function openDocument(doc: DocumentDto) {
-  router.push(`/projects/${projectId.value}/documents/${doc.id}`)
-}
-
-function openImport(targetDocumentId?: string) {
-  revisionTargetId.value = targetDocumentId
-  importOpen.value = true
-}
-
-function closeImport() {
-  importOpen.value = false
-  revisionTargetId.value = undefined
-  if (route.query.import) router.replace({ query: { ...route.query, import: undefined } })
-}
-
-async function afterSaved() {
-  closeImport()
-  await loadCatalog()
-}
-
-function startProjectRename() {
-  if (!project.value) return
-  projectNameDraft.value = project.value.name
-  renamingProject.value = true
-}
-
-async function saveProjectRename() {
-  const name = projectNameDraft.value.trim()
-  if (!name || projectBusy.value || !project.value) return
-  projectBusy.value = true
-  try {
-    project.value = await backend.updateProject(projectId.value, { name })
-    renamingProject.value = false
-  } catch (e) {
-    error.value = readableError(e)
-  } finally {
-    projectBusy.value = false
-  }
-}
-
-async function setProjectArchived(archived: boolean) {
-  projectBusy.value = true
-  try {
-    project.value = await backend.updateProject(projectId.value, { archived })
-    confirmProjectArchive.value = false
-  } catch (e) {
-    error.value = readableError(e)
-  } finally {
-    projectBusy.value = false
-  }
-}
-
-async function deleteProject() {
-  if (!project.value || deleteBusy.value) return
-  if (deleteNameDraft.value.trim() !== project.value.name) {
-    error.value = 'Название не совпадает. Удаление отменено.'
-    return
-  }
-  deleteBusy.value = true
-  try {
-    await backend.deleteProject(projectId.value)
-    await router.push({ path: '/', query: { archived: 'true' } })
-  } catch (e) {
-    error.value = readableError(e)
-  } finally {
-    deleteBusy.value = false
-  }
-}
-function startDocRename(doc: DocumentDto) {
-  renamingDocId.value = doc.id
-  docNameDraft.value = doc.title
-}
-
-async function saveDocRename(doc: DocumentDto) {
-  const title = docNameDraft.value.trim()
-  if (!title || docBusy.value) return
-  docBusy.value = true
-  try {
-    const updated = await backend.updateDocument(doc.id, { title })
-    doc.title = updated.title
-    renamingDocId.value = null
-  } catch (e) {
-    error.value = readableError(e)
-  } finally {
-    docBusy.value = false
-  }
-}
-
-function askDeleteDoc(id: string) {
-  deletingDocId.value = id
-}
-
-async function confirmDeleteDoc() {
-  if (!deletingDocId.value || deletingDocBusy.value) return
-  deletingDocBusy.value = true
-  try {
-    await backend.deleteDocument(deletingDocId.value)
-    deletingDocId.value = null
+    await backend.createDepartment(projectId.value, name)
+    newDepartmentName.value = ''
+    creating.value = false
     await load()
   } catch (e) {
-    error.value = readableError(e)
+    createError.value = readableError(e)
   } finally {
-    deletingDocBusy.value = false
+    createBusy.value = false
   }
 }
-
-async function setDocArchived(doc: DocumentDto, archived: boolean) {
-  if (archiveBusy.value) return
-  archiveBusy.value = true
+function cancelCreate() {
+  if (createBusy.value) return
+  newDepartmentName.value = ''
+  createError.value = ''
+  creating.value = false
+}
+function openDepartment(item: DepartmentDto) {
+  if (renamingId.value !== item.id) void router.push(departmentPath(item))
+}
+function startRename(item: DepartmentDto) {
+  actionError.value = ''
+  renamingId.value = item.id
+  nameDraft.value = item.name
+}
+async function saveRename(item: DepartmentDto) {
+  if (!nameDraft.value.trim() || renameBusy.value) return
+  renameBusy.value = true
+  actionError.value = ''
   try {
-    await backend.updateDocument(doc.id, { archived })
-    archivingDocId.value = null
-    await loadCatalog()
+    Object.assign(
+      item,
+      await backend.updateDepartment(projectId.value, item.id, { name: nameDraft.value.trim() }),
+    )
+    renamingId.value = null
   } catch (e) {
-    error.value = readableError(e)
+    actionError.value = readableError(e)
   } finally {
-    archiveBusy.value = false
+    renameBusy.value = false
   }
 }
-
-function reset() {
-  project.value = null
-  documents.value = []
-  summaries.value = {}
-  catalogEpoch++
-  runs.value = []
-  error.value = ''
-  renamingProject.value = false
-  renamingDocId.value = null
-  archivingDocId.value = null
-  confirmProjectArchive.value = false
-  closeImportSilent()
+function askAction(item: DepartmentDto) {
+  actionError.value = ''
+  actionTarget.value = item
+  confirmName.value = ''
+  actionOpen.value = true
 }
-
-function closeImportSilent() {
-  importOpen.value = false
-  revisionTargetId.value = undefined
-}
-
-async function loadCatalog() {
-  const id = projectId.value
-  const archived = showArchived.value
+async function confirmAction() {
+  const target = actionTarget.value
+  if (!target || mutationBusy.value || confirmName.value.trim() !== target.name) return
+  mutationBusy.value = true
+  actionError.value = ''
   try {
-    const catalog = await backend.catalog(id, archived)
-    if (active && projectId.value === id && showArchived.value === archived) setCatalog(catalog)
+    await backend.deleteDepartment(projectId.value, target.id)
+    actionOpen.value = false
+    await load()
   } catch (e) {
-    if (active && projectId.value === id) error.value = readableError(e)
-  }
-}
-
-async function loadRuns(offset: number) {
-  const current = ++runsEpoch
-  const id = projectId.value
-  runsBusy.value = true
-  try {
-    const loaded = await backend.runs(id, offset)
-    if (!active || current !== runsEpoch || projectId.value !== id) return
-    runs.value = loaded
-    runsOffset.value = offset
-  } catch (e) {
-    if (active && current === runsEpoch) error.value = readableError(e)
+    actionError.value = readableError(e)
   } finally {
-    if (active && current === runsEpoch) runsBusy.value = false
+    mutationBusy.value = false
   }
 }
-
+function editProject() {
+  projectNameDraft.value = project.value?.name || ''
+  actionError.value = ''
+  projectRenameOpen.value = true
+}
+async function saveProject() {
+  if (!projectNameDraft.value.trim() || projectBusy.value) return
+  projectBusy.value = true
+  actionError.value = ''
+  try {
+    project.value = await backend.updateProject(projectId.value, {
+      name: projectNameDraft.value.trim(),
+    })
+    projectRenameOpen.value = false
+  } catch (e) {
+    actionError.value = readableError(e)
+  } finally {
+    projectBusy.value = false
+  }
+}
+async function archiveProject(archived: boolean) {
+  projectBusy.value = true
+  actionError.value = ''
+  try {
+    project.value = await backend.updateProject(projectId.value, { archived })
+    projectArchiveOpen.value = false
+  } catch (e) {
+    actionError.value = readableError(e)
+  } finally {
+    projectBusy.value = false
+  }
+}
+function departmentActions(item: DepartmentDto) {
+  return [
+    {
+      label: 'Переименовать',
+      icon: 'i-lucide-pencil',
+      disabled: project.value?.archived || renameBusy.value,
+      onSelect: () => startRename(item),
+    },
+    ...(item.is_system
+      ? []
+      : [
+          {
+            label: 'Удалить',
+            icon: 'i-lucide-trash-2',
+            color: 'error' as const,
+            disabled: project.value?.archived || mutationBusy.value,
+            onSelect: () => askAction(item),
+          },
+        ]),
+  ]
+}
+const projectActions = computed(() => [
+  { label: 'Переименовать', icon: 'i-lucide-pencil', onSelect: editProject },
+  {
+    label: project.value?.archived ? 'Восстановить' : 'Архивировать',
+    icon: project.value?.archived ? 'i-lucide-archive-restore' : 'i-lucide-archive',
+    onSelect: () => {
+      if (project.value?.archived) void archiveProject(false)
+      else projectArchiveOpen.value = true
+    },
+  },
+])
 async function load() {
-  const current = ++epoch
-  reset()
-  runsEpoch++
-  runsOffset.value = 0
-  runsBusy.value = false
+  const current = ++epoch,
+    id = projectId.value
   busy.value = true
+  error.value = ''
+  if (refreshTimer) clearTimeout(refreshTimer)
   try {
     await backend.connect()
+    const [owner, items] = await Promise.all([backend.project(id), backend.departments(id)])
     if (!active || current !== epoch) return
-    const id = projectId.value
-    const [loaded, catalog, history] = await Promise.all([
-      backend.project(id),
-      backend.catalog(id, showArchived.value),
-      backend.runs(id, 0),
-    ])
-    if (!active || current !== epoch || projectId.value !== id) return
-    project.value = loaded
-    setCatalog(catalog)
-    runs.value = history
+    project.value = owner
+    departments.value = items
+    if (items.some((item) => item.running_count))
+      refreshTimer = setTimeout(() => void load(), 15000)
   } catch (e) {
     if (active && current === epoch) error.value = readableError(e)
   } finally {
     if (active && current === epoch) busy.value = false
   }
 }
-
-watch(projectId, () => load())
-watch(showArchived, () => loadCatalog())
-
-onMounted(() => {
-  load()
-  if (route.query.import === '1') importOpen.value = true
+watch(projectId, () => {
+  renamingId.value = null
+  void load()
 })
+onMounted(() => void load())
 onBeforeUnmount(() => {
   active = false
   epoch++
-  catalogEpoch++
+  if (refreshTimer) clearTimeout(refreshTimer)
 })
 </script>
 
 <template>
   <div>
-    <WorkspaceHeader active="check" />
-    <main id="main-content" tabindex="-1" class="shell project">
+    <WorkspaceHeader active="projects" />
+    <main id="main-content" tabindex="-1" class="shell departments">
       <nav aria-label="Навигация">
         <UButton to="/" variant="link" color="neutral" icon="i-lucide-arrow-left"
           >Все проекты</UButton
         >
       </nav>
-
-      <template v-if="busy && !project && !error">
-        <USkeleton class="project-title-skeleton" />
-        <p class="empty" role="status">Загружаем проект…</p>
-      </template>
-
+      <div v-if="busy && !project" class="department-loading" role="status">
+        <USkeleton class="h-9 w-80 max-w-full" />
+        <p class="muted">Загружаем отделы…</p>
+      </div>
       <UAlert
         v-else-if="error && !project"
         color="error"
         variant="soft"
         title="Не удалось загрузить проект"
         :description="error"
+        ><template #actions
+          ><UButton color="error" variant="soft" @click="load">Повторить</UButton></template
+        ></UAlert
       >
-        <template #actions>
-          <UButton color="error" variant="soft" size="sm" @click="load()">Повторить</UButton>
-        </template>
-      </UAlert>
-
       <template v-else-if="project">
-        <div class="page-heading">
-          <div class="project-heading-main">
-            <template v-if="renamingProject">
-              <div class="project-rename">
-                <UInput
-                  v-model="projectNameDraft"
-                  aria-label="Новое название проекта"
-                  :disabled="projectBusy"
-                  autofocus
-                  @keydown.enter="saveProjectRename"
-                  @keydown.escape="renamingProject = false"
-                />
-                <UButton
-                  icon="i-lucide-check"
-                  aria-label="Сохранить название проекта"
-                  color="primary"
-                  :loading="projectBusy"
-                  @click="saveProjectRename"
-                />
-                <UButton
-                  icon="i-lucide-x"
-                  aria-label="Отменить переименование проекта"
-                  color="neutral"
-                  variant="ghost"
-                  :disabled="projectBusy"
-                  @click="renamingProject = false"
-                />
-              </div>
-            </template>
-            <template v-else>
-              <h1 class="page-title">{{ project.name }}</h1>
-              <div class="project-heading-actions">
-                <UBadge v-if="project.archived" color="neutral" variant="soft">В архиве</UBadge>
-                <UButton
-                  icon="i-lucide-pencil"
-                  :aria-label="`Переименовать ${project.name}`"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  @click="startProjectRename"
-                />
-                <UButton
-                  v-if="project.archived"
-                  icon="i-lucide-archive-restore"
-                  color="neutral"
-                  variant="outline"
-                  size="sm"
-                  :loading="projectBusy"
-                  @click="setProjectArchived(false)"
-                  >Восстановить</UButton
-                >
-                <UButton
-                  v-else
-                  icon="i-lucide-archive"
-                  color="neutral"
-                  variant="outline"
-                  size="sm"
-                  @click="confirmProjectArchive = true"
-                  >В архив</UButton
-                >
-                <UButton
-                  v-if="project.archived"
-                  icon="i-lucide-trash-2"
-                  color="error"
-                  variant="outline"
-                  size="sm"
-                  @click="confirmProjectDelete = true"
-                  >Удалить</UButton
-                >
-              </div>
-            </template>
-          </div>
-          <div class="project-heading-side">
-            <UButton
-              icon="i-lucide-plus"
-              color="primary"
-              :disabled="project.archived"
-              @click="openImport()"
-              >Добавить документы</UButton
-            >
+        <div class="page-heading department-heading">
+          <div class="department-heading-title">
+            <h1 class="page-title">{{ project.name }}</h1>
           </div>
         </div>
-
         <UAlert
           v-if="project.archived"
           color="neutral"
           variant="soft"
           title="Проект в архиве"
-          description="Восстановите проект, чтобы добавлять документы и запускать проверки."
+          description="Восстановите проект, чтобы создавать и изменять отделы, добавлять документы и запускать проверки."
+          class="department-notice"
         />
-
+        <UAlert v-if="error" color="error" variant="soft" :title="error" class="department-notice"
+          ><template #actions
+            ><UButton color="error" variant="soft" @click="load">Повторить</UButton></template
+          ></UAlert
+        >
         <UAlert
-          v-if="error"
+          v-if="actionError && !actionOpen && !projectRenameOpen && !projectArchiveOpen"
           color="error"
           variant="soft"
-          :title="error"
-          role="alert"
-          class="project-alert"
+          :title="actionError"
+          class="department-notice"
         />
-
-        <div class="project-tabs" role="group" aria-label="Разделы проекта">
-          <UButton
-            :variant="tab === 'vor' ? 'soft' : 'ghost'"
-            color="neutral"
-            :aria-pressed="tab === 'vor'"
-            @click="setTab('vor')"
-            >Ведомости ({{ vorDocs.length }})</UButton
-          >
-          <UButton
-            :variant="tab === 'pdf' ? 'soft' : 'ghost'"
-            color="neutral"
-            :aria-pressed="tab === 'pdf'"
-            @click="setTab('pdf')"
-            >ПД ({{ pdfDocs.length }})</UButton
-          >
-          <UButton
-            :variant="tab === 'runs' ? 'soft' : 'ghost'"
-            color="neutral"
-            :aria-pressed="tab === 'runs'"
-            @click="setTab('runs')"
-            >Проверки</UButton
-          >
-        </div>
-
-        <template v-if="tab === 'runs'">
-          <div v-if="!runs.length" class="panel project-empty">
-            <UIcon name="i-lucide-clipboard-list" class="project-empty-icon" aria-hidden="true" />
-            <h2>Проверок пока нет</h2>
-            <p class="muted">Добавьте ведомость и проектные PDF, затем запустите проверку.</p>
-          </div>
-          <div v-else class="panel project-panel" :aria-busy="busy">
-            <UTable
-              sticky="header"
-              :data="runs"
-              :columns="runColumns"
-              class="results project-table max-h-[60vh] overflow-auto"
-            >
-              <template #vor-cell="{ row }">
-                <span class="project-cell-name">{{ row.original.vor_filename }}</span>
-              </template>
-              <template #status-cell="{ row }">
-                <UBadge :color="statusColor(row.original.status)" variant="subtle">
-                  {{ runLabel(row.original.status) }}
-                </UBadge>
-              </template>
-              <template #date-cell="{ row }">
-                <span class="muted">{{ formatDate(row.original.created_at) }}</span>
-              </template>
-              <template #action-cell="{ row }">
-                <UButton variant="ghost" :to="`/audits/${row.original.run_id}`">
-                  Открыть результат
-                </UButton>
-              </template>
-            </UTable>
-          </div>
-          <div v-if="runsOffset || runs.length === 50" class="toolbar">
+        <section :aria-busy="busy" aria-label="Список отделов">
+          <div v-if="!filtered.length && !error" class="panel department-empty">
+            <UIcon name="i-lucide-folder-open" class="size-8 text-muted" />
+            <h2>
+              {{ 'Пока нет отделов' }}
+            </h2>
+            <p class="muted">
+              {{ 'Создайте отдел, чтобы добавлять документы и запускать проверки.' }}
+            </p>
             <UButton
-              :disabled="runsBusy || runsOffset === 0"
-              @click="loadRuns(Math.max(0, runsOffset - 50))"
-              >Назад</UButton
-            >
-            <span class="muted">Запуски {{ runsOffset + 1 }}–{{ runsOffset + runs.length }}</span>
-            <UButton :disabled="runsBusy || runs.length < 50" @click="loadRuns(runsOffset + 50)"
-              >Далее</UButton
+              v-if="!project.archived"
+              :to="`/projects/${projectId}/departments/new`"
+              :disabled="project.archived"
+              icon="i-lucide-plus"
+              >Создать отдел</UButton
             >
           </div>
-        </template>
-
-        <template v-else>
-          <div class="project-toolbar">
-            <UInput
-              v-model="search"
-              icon="i-lucide-search"
-              placeholder="Найти документ…"
-              aria-label="Поиск документов"
-              class="project-search"
-            />
+          <div v-else class="department-grid" role="list">
+            <UPageCard
+              v-for="item in filtered"
+              :key="item.id"
+              variant="outline"
+              class="department-card"
+              role="listitem"
+              :aria-label="`Отдел ${item.name}`"
+              :ui="{ wrapper: 'min-w-0 w-full', header: 'w-full', body: 'min-w-0 w-full' }"
+              @click="openDepartment(item)"
+            >
+              <template #header>
+                <div class="department-card-top">
+                  <div class="department-icon">
+                    <UIcon :name="`i-lucide-${item.icon}`" class="size-5" aria-hidden="true" />
+                  </div>
+                  <UDropdownMenu :items="departmentActions(item)" :content="{ align: 'end' }"
+                    ><UButton
+                      icon="i-lucide-ellipsis"
+                      color="neutral"
+                      variant="ghost"
+                      size="sm"
+                      :aria-label="`Действия отдела ${item.name}`"
+                      :ui="{ base: 'size-8 min-h-0 min-w-0 p-0', leadingIcon: 'size-4' }"
+                      @click.stop
+                  /></UDropdownMenu>
+                </div>
+                <NuxtLink
+                  v-if="renamingId !== item.id"
+                  :to="departmentPath(item)"
+                  class="department-name"
+                  @click.stop
+                  >{{ item.name }}</NuxtLink
+                >
+                <form
+                  v-else
+                  class="department-rename"
+                  @click.stop
+                  @submit.prevent="saveRename(item)"
+                >
+                  <UInput
+                    v-model="nameDraft"
+                    aria-label="Новое название отдела"
+                    :maxlength="256"
+                    :disabled="renameBusy"
+                    autofocus
+                    class="min-w-0 flex-1"
+                    @keydown.escape="renamingId = null"
+                  /><UButton
+                    type="submit"
+                    icon="i-lucide-check"
+                    aria-label="Сохранить название отдела"
+                    color="neutral"
+                    variant="outline"
+                    :disabled="!nameDraft.trim()"
+                    :loading="renameBusy"
+                  /><UButton
+                    icon="i-lucide-x"
+                    aria-label="Отменить переименование"
+                    color="neutral"
+                    variant="ghost"
+                    :disabled="renameBusy"
+                    @click="renamingId = null"
+                  />
+                </form>
+              </template>
+              <template #body
+                ><div class="department-meta">
+                  <UBadge color="neutral" variant="outline">ВОР · {{ item.vor_count }}</UBadge
+                  ><UBadge color="neutral" variant="outline">ПД · {{ item.pdf_count }}</UBadge
+                  ><UBadge color="neutral" variant="outline">Проверок · {{ item.run_count }}</UBadge
+                  ><UBadge v-if="item.is_system" color="neutral" variant="soft">Системный</UBadge>
+                </div></template
+              >
+            </UPageCard>
+            <button
+              v-if="!project.archived && !creating"
+              type="button"
+              class="department-create-card"
+              role="listitem"
+              aria-label="Создать новый отдел"
+              @click="creating = true"
+            >
+              <span class="department-create-icon"><UIcon name="i-lucide-plus" /></span>
+              <span>Создать новый отдел</span>
+            </button>
+            <form
+              v-else-if="!project.archived"
+              class="department-create-card department-create-form"
+              role="listitem"
+              @submit.prevent="createDepartment"
+            >
+              <UFormField label="Название отдела" class="w-full">
+                <UInput
+                  v-model="newDepartmentName"
+                  autofocus
+                  class="w-full"
+                  placeholder="Введите название"
+                  :maxlength="256"
+                  :disabled="createBusy"
+                />
+              </UFormField>
+              <p v-if="createError" class="text-error department-create-error" role="alert">
+                {{ createError }}
+              </p>
+              <div class="department-create-actions">
+                <UButton type="submit" :loading="createBusy" :disabled="!newDepartmentName.trim()"
+                  >Создать</UButton
+                >
+                <UButton
+                  type="button"
+                  color="neutral"
+                  variant="ghost"
+                  :disabled="createBusy"
+                  @click="cancelCreate"
+                  >Отмена</UButton
+                >
+              </div>
+            </form>
+          </div>
+        </section>
+      </template>
+      <UModal v-model:open="actionOpen" title="Удалить отдел?"
+        ><template #body
+          ><p class="modal-text">
+            Отдел «{{ actionTarget?.name }}» будет удалён без восстановления. Можно удалить только
+            пустой отдел.
+          </p>
+          <UFormField label="Введите название отдела" class="department-delete-field"
+            ><UInput
+              v-model="confirmName"
+              class="w-full"
+              aria-label="Название отдела для подтверждения удаления"
+          /></UFormField>
+          <p v-if="actionError" class="text-error mt-3" role="alert">{{ actionError }}</p>
+          <div class="toolbar spread modal-footer">
             <UButton
               color="neutral"
-              :variant="showArchived ? 'soft' : 'outline'"
-              icon="i-lucide-archive"
-              :aria-pressed="showArchived"
-              @click="showArchived = !showArchived"
-              >{{ showArchived ? 'Архив: показаны' : 'Архив' }}</UButton
+              variant="ghost"
+              :disabled="mutationBusy"
+              @click="actionOpen = false"
+              >Отмена</UButton
+            ><UButton
+              color="error"
+              :loading="mutationBusy"
+              :disabled="confirmName.trim() !== actionTarget?.name"
+              @click="confirmAction"
+              >Удалить</UButton
             >
-          </div>
-
-          <p v-if="!visibleDocs.length" class="empty" role="status">
-            {{
-              search
-                ? `По запросу «${search}» ничего не найдено.`
-                : tab === 'vor'
-                  ? 'Ведомостей пока нет. Добавьте первую ведомость.'
-                  : 'Проектных PDF пока нет. Добавьте документы ПД.'
-            }}
+          </div></template
+        ></UModal
+      >
+      <UModal v-model:open="projectRenameOpen" title="Переименовать проект"
+        ><template #body
+          ><form @submit.prevent="saveProject">
+            <UFormField label="Название проекта"
+              ><UInput
+                v-model="projectNameDraft"
+                :maxlength="256"
+                class="w-full"
+                :disabled="projectBusy"
+                autofocus
+            /></UFormField>
+            <p v-if="actionError" class="text-error mt-3" role="alert">{{ actionError }}</p>
+            <div class="toolbar spread modal-footer">
+              <UButton color="neutral" variant="ghost" @click="projectRenameOpen = false"
+                >Отмена</UButton
+              ><UButton type="submit" :disabled="!projectNameDraft.trim()" :loading="projectBusy"
+                >Сохранить</UButton
+              >
+            </div>
+          </form></template
+        ></UModal
+      >
+      <UModal v-model:open="projectArchiveOpen" title="Архивировать проект?"
+        ><template #body
+          ><p class="modal-text">
+            Проект «{{ project?.name }}» исчезнет из активного списка. Отделы, документы и история
+            проверок сохранятся.
           </p>
-
-          <div v-else class="panel project-panel" :aria-busy="busy">
-            <UTable
-              sticky="header"
-              :data="visibleDocs"
-              :columns="docColumns"
-              class="results project-table max-h-[60vh] overflow-auto"
-            >
-              <template #doc-cell="{ row }">
-                <div>
-                  <template v-if="renamingDocId === row.original.id">
-                    <div class="project-rename" @click.stop>
-                      <UInput
-                        v-model="docNameDraft"
-                        :aria-label="`Новое название документа ${row.original.title}`"
-                        :disabled="docBusy"
-                        autofocus
-                        @keydown.enter="saveDocRename(row.original)"
-                        @keydown.escape="renamingDocId = null"
-                      />
-                      <UButton
-                        icon="i-lucide-check"
-                        :aria-label="`Сохранить название документа ${row.original.title}`"
-                        color="primary"
-                        :loading="docBusy"
-                        @click="saveDocRename(row.original)"
-                      />
-                      <UButton
-                        icon="i-lucide-x"
-                        :aria-label="`Отменить переименование документа ${row.original.title}`"
-                        color="neutral"
-                        variant="ghost"
-                        :disabled="docBusy"
-                        @click="renamingDocId = null"
-                      />
-                    </div>
-                  </template>
-                  <template v-else>
-                    <div class="project-name-row">
-                      <NuxtLink
-                        :to="`/projects/${projectId}/documents/${row.original.id}`"
-                        class="project-doc-link"
-                        >{{ row.original.title }}</NuxtLink
-                      >
-                      <UButton
-                        icon="i-lucide-pencil"
-                        :aria-label="`Переименовать документ ${row.original.title}`"
-                        color="neutral"
-                        variant="ghost"
-                        size="xs"
-                        @click="startDocRename(row.original)"
-                      />
-                    </div>
-                  </template>
-                  <p class="muted">Ревизий: {{ row.original.versions.length }}</p>
-                </div>
-              </template>
-              <template #revision-cell="{ row }">
-                <span class="muted">
-                  <template v-if="currentVersion(row.original)">
-                    {{ currentVersion(row.original)!.filename }} · №{{
-                      currentVersion(row.original)!.number
-                    }}
-                  </template>
-                  <template v-else>—</template>
-                </span>
-              </template>
-              <template #status-cell="{ row }">
-                <div class="project-status">
-                  <div class="project-badges">
-                    <UBadge v-if="row.original.archived" color="neutral" variant="soft" size="sm">
-                      В архиве
-                    </UBadge>
-                    <template v-if="row.original.kind === 'vor' && row.original.last_run">
-                      <UBadge
-                        :color="statusColor(row.original.last_run.status)"
-                        variant="subtle"
-                        size="sm"
-                      >
-                        {{ runLabel(row.original.last_run.status) }}
-                      </UBadge>
-                      <UBadge
-                        v-if="row.original.run_freshness === 'stale'"
-                        color="warning"
-                        variant="soft"
-                        size="sm"
-                      >
-                        Проверка неактуальна
-                      </UBadge>
-                      <UBadge
-                        v-if="row.original.vor_updated"
-                        color="warning"
-                        variant="soft"
-                        size="sm"
-                      >
-                        ВОР обновлена
-                      </UBadge>
-                      <UBadge
-                        v-if="row.original.pd_updated"
-                        color="warning"
-                        variant="soft"
-                        size="sm"
-                      >
-                        ПД обновлена
-                      </UBadge>
-                      <UBadge
-                        v-if="row.original.run_freshness === 'unavailable'"
-                        color="neutral"
-                        variant="soft"
-                        size="sm"
-                      >
-                        Актуальность недоступна
-                      </UBadge>
-                    </template>
-                    <span
-                      v-else-if="
-                        row.original.kind === 'vor' && row.original.run_freshness === 'unavailable'
-                      "
-                      class="muted"
-                      >Результат недоступен</span
-                    >
-                    <span v-else-if="row.original.kind === 'vor'" class="muted"
-                      >Не проверялась</span
-                    >
-                    <span v-else-if="!row.original.archived" class="muted">—</span>
-                  </div>
-                  <template v-if="row.original.kind === 'vor' && row.original.last_run">
-                    <span class="muted"
-                      >Последняя проверка: {{ formatDate(row.original.last_run.created_at) }}</span
-                    >
-                    <UProgress
-                      v-if="
-                        row.original.last_run.status === 'running' && row.original.last_run.total
-                      "
-                      :model-value="
-                        Math.floor(
-                          ((row.original.last_run.done + row.original.last_run.failed) /
-                            row.original.last_run.total) *
-                            100,
-                        )
-                      "
-                      color="neutral"
-                      size="xs"
-                      class="project-progress"
-                    />
-                    <template v-if="row.original.last_run.status === 'done'">
-                      <span
-                        v-if="
-                          !summaries[row.original.last_run.run_id] ||
-                          summaries[row.original.last_run.run_id]?.status === 'loading'
-                        "
-                        class="muted"
-                        role="status"
-                      >
-                        Загрузка результата…
-                      </span>
-                      <span
-                        v-else-if="summaries[row.original.last_run.run_id]?.status === 'error'"
-                        role="status"
-                      >
-                        Результат недоступен
-                        <UButton
-                          variant="link"
-                          size="xs"
-                          :aria-label="`Повторить загрузку результата ${row.original.title}`"
-                          @click="loadSummary(row.original.last_run.run_id, catalogEpoch)"
-                          >Повторить</UButton
-                        >
-                      </span>
-                      <span v-else>{{ summaryText(row.original.last_run.run_id) }}</span>
-                    </template>
-                  </template>
-                </div>
-              </template>
-              <template #action-cell="{ row }">
-                <div class="project-actions">
-                  <UButton
-                    v-if="row.original.last_run"
-                    variant="ghost"
-                    :to="`/audits/${row.original.last_run.run_id}`"
-                    >Открыть результат</UButton
-                  >
-                  <UButton
-                    v-if="!row.original.archived"
-                    variant="ghost"
-                    color="neutral"
-                    icon="i-lucide-file-plus-2"
-                    :aria-label="`Новая ревизия ${row.original.title}`"
-                    @click="openImport(row.original.id)"
-                  />
-                  <UButton
-                    v-if="row.original.archived"
-                    variant="ghost"
-                    color="neutral"
-                    icon="i-lucide-archive-restore"
-                    :aria-label="`Восстановить документ ${row.original.title}`"
-                    @click="setDocArchived(row.original, false)"
-                  />
-                  <UButton
-                    v-else
-                    variant="ghost"
-                    color="neutral"
-                    icon="i-lucide-archive"
-                    :aria-label="`Архивировать документ ${row.original.title}`"
-                    @click="archivingDocId = row.original.id"
-                  />
-                  <UButton
-                    variant="ghost"
-                    color="error"
-                    icon="i-lucide-trash-2"
-                    :aria-label="`Удалить документ ${row.original.title}`"
-                    @click="askDeleteDoc(row.original.id)"
-                  />
-                </div>
-              </template>
-            </UTable>
-          </div>
-        </template>
-
-        <UModal
-          v-model:open="importOpen"
-          :title="
-            revisionTargetId
-              ? `Новая ревизия · ${documents.find((d) => d.id === revisionTargetId)?.title || ''}`
-              : 'Добавить документы'
-          "
-          description="XLSX/CSV и PDF · до 100 МБ · до 50 файлов"
-          :ui="{ content: 'max-w-3xl' }"
-          @update:open="(open: boolean) => !open && closeImport()"
-        >
-          <template #body>
-            <DocumentImport
-              :project-id="projectId"
-              :project-name="project.name"
-              :documents="documents"
-              @changed="loadCatalog"
-              :target-document-id="revisionTargetId"
-              @saved="afterSaved"
-            />
-          </template>
-        </UModal>
-
-        <UModal
-          :open="archivingDocId !== null"
-          title="Архивировать документ?"
-          @update:open="(open: boolean) => !open && (archivingDocId = null)"
-        >
-          <template #body>
-            <p class="muted modal-text">
-              Документ «{{ documents.find((d) => d.id === archivingDocId)?.title }}» исчезнет из
-              активного списка. Восстановить можно через фильтр «Архив».
-            </p>
-            <div class="toolbar spread modal-footer">
-              <UButton color="neutral" variant="ghost" @click="archivingDocId = null"
-                >Отмена</UButton
-              >
-              <UButton
-                color="primary"
-                :loading="archiveBusy"
-                @click="
-                  () => {
-                    const doc = documents.find((d) => d.id === archivingDocId)
-                    if (doc) setDocArchived(doc, true)
-                  }
-                "
-                >Архивировать</UButton
-              >
-            </div>
-          </template>
-        </UModal>
-
-        <UModal v-model:open="confirmProjectArchive" title="Архивировать проект?">
-          <template #body>
-            <p class="muted modal-text">
-              Проект «{{ project.name }}» исчезнет из активного списка. Восстановить можно через
-              фильтр «Архив» на странице проектов.
-            </p>
-            <div class="toolbar spread modal-footer">
-              <UButton color="neutral" variant="ghost" @click="confirmProjectArchive = false"
-                >Отмена</UButton
-              >
-              <UButton color="primary" :loading="projectBusy" @click="setProjectArchived(true)"
-                >Архивировать</UButton
-              >
-            </div>
-          </template>
-        </UModal>
-
-        <UModal
-          :open="deletingDocId !== null"
-          title="Удалить документ?"
-          @update:open="(open: boolean) => !open && (deletingDocId = null)"
-        >
-          <template #body>
-            <p class="muted modal-text">
-              Документ и все его ревизии будут удалены без восстановления.
-            </p>
-            <div class="toolbar spread modal-footer">
-              <UButton
-                color="neutral"
-                variant="ghost"
-                :disabled="deletingDocBusy"
-                @click="deletingDocId = null"
-              >
-                Отмена
-              </UButton>
-              <UButton color="error" :loading="deletingDocBusy" @click="confirmDeleteDoc">
-                Удалить
-              </UButton>
-            </div>
-          </template>
-        </UModal>
-
-        <UModal v-model:open="confirmProjectDelete" title="Удалить проект?">
-          <template #body>
-            <p class="muted modal-text">
-              Проект «{{ project.name }}», все документы, проверки и результаты будут удалены
-              безвозвратно. Введите название проекта для подтверждения.
-            </p>
-            <UInput
-              v-model="deleteNameDraft"
-              aria-label="Название проекта для подтверждения удаления"
-              placeholder="Название проекта"
-              :disabled="deleteBusy"
-              @keyup.enter="deleteProject()"
-            />
-            <div class="toolbar spread modal-footer">
-              <UButton
-                color="neutral"
-                variant="ghost"
-                :disabled="deleteBusy"
-                @click="confirmProjectDelete = false"
-                >Отмена</UButton
-              >
-              <UButton
-                color="error"
-                :loading="deleteBusy"
-                :disabled="deleteNameDraft.trim() !== project.name"
-                @click="deleteProject()"
-                >Удалить навсегда</UButton
-              >
-            </div>
-          </template>
-        </UModal>
-      </template>
+          <p v-if="actionError" class="text-error" role="alert">{{ actionError }}</p>
+          <div class="toolbar spread modal-footer">
+            <UButton color="neutral" variant="ghost" @click="projectArchiveOpen = false"
+              >Отмена</UButton
+            ><UButton :loading="projectBusy" @click="archiveProject(true)">Архивировать</UButton>
+          </div></template
+        ></UModal
+      >
     </main>
   </div>
 </template>
 
 <style scoped>
-.project-title-skeleton {
-  height: 40px;
-  width: min(420px, 80%);
-  margin-bottom: 16px;
+.departments {
+  padding-bottom: 48px;
 }
-.project-heading-main {
+.department-heading {
+  margin-top: 24px;
+  align-items: flex-start;
+}
+.department-heading-title {
   min-width: 0;
 }
-.project-heading-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 4px;
-}
-.project-heading-side {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-.project-alert {
-  margin-bottom: 16px;
-}
-.project-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.project-toolbar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.project-search {
-  flex: 1;
-  min-width: min(100%, 240px);
-}
-.project-panel {
-  overflow: auto;
-  padding: 8px;
-}
-.modal-footer {
-  margin-top: 12px;
-}
-.project-cell-name {
+.department-heading .page-title {
   overflow-wrap: anywhere;
 }
-.project-name-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.department-loading {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
 }
-.project-doc-link {
-  font-weight: 650;
-  color: var(--ui-text-highlighted);
-  overflow-wrap: anywhere;
+.department-notice {
+  margin-bottom: 20px;
 }
-.project-rename {
+.department-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.department-create-card {
+  min-height: 224px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px;
+  border-width: 2px;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--ui-border-accented) 70%, transparent);
+  border-radius: 14px;
+  color: var(--ui-text-muted);
+  background: color-mix(in srgb, var(--ui-bg) 60%, transparent);
+  font-weight: 600;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    background 160ms ease;
+}
+.department-create-form {
+  place-content: center stretch;
+  justify-items: stretch;
+  text-align: left;
+  cursor: default;
+}
+.department-create-form:hover {
+  border-color: color-mix(in srgb, var(--ui-border-accented) 70%, transparent);
+  color: var(--ui-text-muted);
+  background: color-mix(in srgb, var(--ui-bg) 60%, transparent);
+}
+.department-create-actions {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.project-status {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-}
-.project-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.project-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-.project-empty {
-  padding: 48px 24px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-.project-empty h2 {
+.department-create-error {
   margin: 0;
+  font-size: 13px;
+}
+.department-create-card:hover {
+  border-color: color-mix(in srgb, var(--ui-primary) 75%, transparent);
+  color: var(--ui-primary);
+  background: var(--app-selected-bg);
+}
+.department-create-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--app-selected-bg);
   font-size: 20px;
 }
-.project-empty p {
-  margin: 0;
+.department-card {
+  min-width: 0;
+  height: 100%;
+  cursor: pointer;
 }
-.project-empty-icon {
-  font-size: 40px;
-  color: var(--ui-text-muted);
+.department-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 12px;
 }
-.row-action {
-  text-align: right;
-  white-space: nowrap;
+.department-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  color: var(--app-selected-text);
+  background: var(--app-selected-bg);
 }
-.modal-text {
-  padding: 0 24px 8px;
+.department-name {
+  display: block;
+  color: var(--ui-text-highlighted);
+  font-size: 17px;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+.department-name:hover {
+  text-decoration: underline;
 }
-@media (max-width: 700px) {
-  .project-toolbar {
+.department-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.modal-text {
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+.department-delete-field {
+  margin-bottom: 24px;
+}
+.department-rename {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.department-empty {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 40px 24px;
+  text-align: center;
+}
+.department-empty h2,
+.department-empty p {
+  margin: 0;
+}
+@media (min-width: 700px) {
+  .department-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1100px) {
+  .department-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 699px) {
+  .department-heading {
     flex-direction: column;
-  }
-  .project-table thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-  .project-table tbody,
-  .project-table tr,
-  .project-table td {
-    display: block;
-  }
-  .project-table tr {
-    padding: 12px 0;
-  }
-  .project-table tbody tr + tr {
-    border-top: 1px solid var(--ui-border);
-  }
-  .row-action {
-    text-align: left;
-  }
-  .project-actions {
-    justify-content: flex-start;
+    gap: 20px;
   }
 }
 </style>

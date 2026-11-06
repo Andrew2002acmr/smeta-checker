@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   zProjectDto,
+  zDepartmentDto,
   zDocumentDto,
   zVersionDto,
   zRunDto,
@@ -137,6 +138,30 @@ export function useBackend() {
     projects: (archived = false) =>
       json(root + '/projects' + (archived ? '?archived=true' : ''), z.array(zProjectDto)),
     project: (id: string) => json(`${root}/projects/${encodeURIComponent(id)}`, zProjectDto),
+    departments: (id: string) =>
+      json(`${root}/projects/${encodeURIComponent(id)}/departments`, z.array(zDepartmentDto)),
+    department: (projectId: string, id: string) =>
+      json(
+        `${root}/projects/${encodeURIComponent(projectId)}/departments/${encodeURIComponent(id)}`,
+        zDepartmentDto,
+      ),
+    createDepartment: (projectId: string, name: string) =>
+      json(`${root}/projects/${encodeURIComponent(projectId)}/departments`, zDepartmentDto, {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      }),
+    updateDepartment: (projectId: string, id: string, fields: { name: string }) =>
+      json(
+        `${root}/projects/${encodeURIComponent(projectId)}/departments/${encodeURIComponent(id)}`,
+        zDepartmentDto,
+        { method: 'PATCH', body: JSON.stringify(fields) },
+      ),
+    deleteDepartment: (projectId: string, id: string) =>
+      json(
+        `${root}/projects/${encodeURIComponent(projectId)}/departments/${encodeURIComponent(id)}`,
+        zDepartmentDto,
+        { method: 'DELETE' },
+      ),
     createProject: (name: string) =>
       json(root + '/projects', zProjectDto, { method: 'POST', body: JSON.stringify({ name }) }),
     renameProject: (id: string, name: string) =>
@@ -149,17 +174,14 @@ export function useBackend() {
         method: 'PATCH',
         body: JSON.stringify(fields),
       }),
-    deleteProject: (id: string) =>
-      json(`${root}/projects/${encodeURIComponent(id)}`, zProjectDto, {
-        method: 'DELETE',
-      }),
+
     deleteDocument: (id: string) =>
       json(`${root}/documents/${encodeURIComponent(id)}/detail`, zDocumentDto, {
         method: 'DELETE',
       }),
-    catalog: (id: string, archived = false) =>
+    catalog: (id: string, archived = false, departmentId?: string) =>
       json(
-        `${root}/projects/${encodeURIComponent(id)}/catalog${archived ? '?archived=true' : ''}`,
+        `${root}/projects/${encodeURIComponent(id)}/catalog?${new URLSearchParams({ archived: String(archived), ...(departmentId ? { department_id: departmentId } : {}) })}`,
         z.array(zDocumentDto),
       ),
     document: (id: string) =>
@@ -192,8 +214,11 @@ export function useBackend() {
           method: 'DELETE',
         },
       ),
-    documents: (id: string) =>
-      json(`${root}/projects/${encodeURIComponent(id)}/documents`, z.array(zVersionDto)),
+    documents: (id: string, departmentId?: string) =>
+      json(
+        `${root}/projects/${encodeURIComponent(id)}/documents${departmentId ? `?department_id=${encodeURIComponent(departmentId)}` : ''}`,
+        z.array(zVersionDto),
+      ),
     upload: (form: FormData) =>
       json(root + '/documents', zDocumentUploadResponse, { method: 'POST', body: form }),
     preflight: (payload: unknown) =>
@@ -226,11 +251,14 @@ export function useBackend() {
       `${root}/normative/${profile}/sources/${encodeURIComponent(sourceId)}`,
     normativeCatalogPdfUrl: (fileId: string) =>
       `${root}/normative/catalog/pdf?${new URLSearchParams({ path: fileId })}`,
-    runCount: (id: string) =>
-      json(`${root}/projects/${encodeURIComponent(id)}/audits/count`, zRunCountDto),
-    runs: (id: string, offset = 0) =>
+    runCount: (id: string, departmentId?: string) =>
       json(
-        `${root}/projects/${encodeURIComponent(id)}/audits?offset=${offset}&limit=50`,
+        `${root}/projects/${encodeURIComponent(id)}/audits/count${departmentId ? `?department_id=${encodeURIComponent(departmentId)}` : ''}`,
+        zRunCountDto,
+      ),
+    runs: (id: string, offset = 0, departmentId?: string) =>
+      json(
+        `${root}/projects/${encodeURIComponent(id)}/audits?offset=${offset}&limit=50${departmentId ? `&department_id=${encodeURIComponent(departmentId)}` : ''}`,
         z.array(zRunDto),
       ),
     run: (id: string) => json(audit(id) + '/progress', zRunDto),

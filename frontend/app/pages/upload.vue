@@ -16,7 +16,7 @@ async function create() {
   try {
     await backend.connect()
     const project = await backend.createProject(value)
-    await navigateTo(`/projects/${project.id}?import=1`)
+    await navigateTo(`/projects/${project.id}`)
   } catch (e) {
     error.value = readableError(e)
     busy.value = false
@@ -32,7 +32,7 @@ async function create() {
         <div>
           <h1 class="page-title">Новый проект</h1>
           <p class="muted">
-            Название проекта задаёте вы. Ведомости и ПД добавляются внутри проекта.
+            Название проекта задаёте вы. Затем выберите отдел и добавьте ведомости и ПД.
           </p>
         </div>
       </div>

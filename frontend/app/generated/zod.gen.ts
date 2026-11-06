@@ -100,6 +100,7 @@ export const zBodyFormattingUploadApiV1FormatChecksPost = z.object({
  * Body_upload_document_api_v1_documents_post
  */
 export const zBodyUploadDocumentApiV1DocumentsPost = z.object({
+    department_id: z.string().nullish(),
     document_id: z.string().nullish(),
     file: z.string(),
     kind: z.string().regex(/^(vor|pdf)$/),
@@ -121,6 +122,36 @@ export const zBodyWorkbenchVorCheckApiV1NormativeVorCheckPost = z.object({
 export const zConfirmBasisRequest = z.object({
     comment: z.string().max(2000).optional().default(''),
     evidence_index: z.int().gte(0)
+});
+
+/**
+ * DepartmentCreate
+ */
+export const zDepartmentCreate = z.object({
+    name: z.string().min(1).max(256)
+});
+
+/**
+ * DepartmentDTO
+ */
+export const zDepartmentDto = z.object({
+    created_at: z.iso.datetime().nullish(),
+    icon: z.string(),
+    id: z.string(),
+    is_system: z.boolean().optional().default(false),
+    name: z.string(),
+    pdf_count: z.int().optional().default(0),
+    project_id: z.string(),
+    run_count: z.int().optional().default(0),
+    running_count: z.int().optional().default(0),
+    vor_count: z.int().optional().default(0)
+});
+
+/**
+ * DepartmentUpdate
+ */
+export const zDepartmentUpdate = z.object({
+    name: z.string().min(1).max(256)
 });
 
 /**
@@ -1110,6 +1141,7 @@ export const zRunCountDto = z.object({
  */
 export const zRunDto = z.object({
     created_at: z.iso.datetime().nullable(),
+    department_id: z.string().nullish(),
     done: z.int(),
     failed: z.int(),
     finished_at: z.iso.datetime().nullable(),
@@ -1282,6 +1314,7 @@ export const zHttpValidationError = z.object({
  */
 export const zVersionDto = z.object({
     created_at: z.iso.datetime(),
+    department_id: z.string().nullish(),
     document_id: z.string(),
     filename: z.string(),
     format_status: z.record(z.string(), z.unknown()).optional(),
@@ -1302,6 +1335,7 @@ export const zVersionDto = z.object({
 export const zDocumentDto = z.object({
     archived: z.boolean().optional().default(false),
     current_version_id: z.string().nullish(),
+    department_id: z.string().nullish(),
     id: z.string(),
     kind: z.enum(['vor', 'pdf']),
     last_run: zRunDto.nullish(),
@@ -1887,15 +1921,6 @@ export const zCreateProjectApiV1ProjectsPostBody = zProjectCreate;
  */
 export const zCreateProjectApiV1ProjectsPostResponse = zProjectDto;
 
-export const zDeleteProjectApiV1ProjectsProjectIdDeletePath = z.object({
-    project_id: z.string()
-});
-
-/**
- * Successful Response
- */
-export const zDeleteProjectApiV1ProjectsProjectIdDeleteResponse = zProjectDto;
-
 export const zGetProjectApiV1ProjectsProjectIdGetPath = z.object({
     project_id: z.string()
 });
@@ -1922,7 +1947,8 @@ export const zHistoryApiV1ProjectsProjectIdAuditsGetPath = z.object({
 
 export const zHistoryApiV1ProjectsProjectIdAuditsGetQuery = z.object({
     offset: z.int().gte(0).optional().default(0),
-    limit: z.int().gte(1).lte(100).optional().default(50)
+    limit: z.int().gte(1).lte(100).optional().default(50),
+    department_id: z.string().nullish()
 });
 
 /**
@@ -1936,6 +1962,10 @@ export const zHistoryCountApiV1ProjectsProjectIdAuditsCountGetPath = z.object({
     project_id: z.string()
 });
 
+export const zHistoryCountApiV1ProjectsProjectIdAuditsCountGetQuery = z.object({
+    department_id: z.string().nullish()
+});
+
 /**
  * Successful Response
  */
@@ -1946,7 +1976,8 @@ export const zCatalogApiV1ProjectsProjectIdCatalogGetPath = z.object({
 });
 
 export const zCatalogApiV1ProjectsProjectIdCatalogGetQuery = z.object({
-    archived: z.boolean().optional().default(false)
+    archived: z.boolean().optional().default(false),
+    department_id: z.string().nullish()
 });
 
 /**
@@ -1956,8 +1987,66 @@ export const zCatalogApiV1ProjectsProjectIdCatalogGetQuery = z.object({
  */
 export const zCatalogApiV1ProjectsProjectIdCatalogGetResponse = z.array(zDocumentDto);
 
+export const zDepartmentsApiV1ProjectsProjectIdDepartmentsGetPath = z.object({
+    project_id: z.string()
+});
+
+/**
+ * Response Departments Api V1 Projects  Project Id  Departments Get
+ *
+ * Successful Response
+ */
+export const zDepartmentsApiV1ProjectsProjectIdDepartmentsGetResponse = z.array(zDepartmentDto);
+
+export const zCreateDepartmentApiV1ProjectsProjectIdDepartmentsPostBody = zDepartmentCreate;
+
+export const zCreateDepartmentApiV1ProjectsProjectIdDepartmentsPostPath = z.object({
+    project_id: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zCreateDepartmentApiV1ProjectsProjectIdDepartmentsPostResponse = zDepartmentDto;
+
+export const zDeleteDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdDeletePath = z.object({
+    project_id: z.string(),
+    department_id: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zDeleteDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdDeleteResponse = zDepartmentDto;
+
+export const zDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdGetPath = z.object({
+    project_id: z.string(),
+    department_id: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdGetResponse = zDepartmentDto;
+
+export const zUpdateDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdPatchBody = zDepartmentUpdate;
+
+export const zUpdateDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdPatchPath = z.object({
+    project_id: z.string(),
+    department_id: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zUpdateDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdPatchResponse = zDepartmentDto;
+
 export const zDocumentsApiV1ProjectsProjectIdDocumentsGetPath = z.object({
     project_id: z.string()
+});
+
+export const zDocumentsApiV1ProjectsProjectIdDocumentsGetQuery = z.object({
+    department_id: z.string().nullish()
 });
 
 /**

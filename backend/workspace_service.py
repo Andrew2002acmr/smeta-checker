@@ -44,6 +44,7 @@ def run_progress(context, record) -> RunDTO:
     return RunDTO(
         run_id=str(record["id"]),
         project_id=str(record["project_id"]),
+        department_id=str(record["department_id"]) if record.get("department_id") else None,
         vor_version_id=str(record["vor_version_id"]),
         vor_filename=record["vor_filename"],
         status=status,
