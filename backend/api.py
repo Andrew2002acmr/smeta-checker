@@ -340,6 +340,7 @@ def _upload_document(
     context: ApiContext, project_id: UUID, kind: str, upload: UploadFile, data: bytes,
     document_id: UUID | None = None,
     new_document: bool = False,
+    department_id: UUID | None = None,
 ) -> DocumentUploadResponse:
     from vor_parse import load_vor_positions
 
@@ -396,6 +397,7 @@ def _upload_document(
         version = context.repository.add_document_version(
             project_id, bytes(data), filename=filename, kind=kind,
             document_id=document_id, new_document=new_document,
+            department_id=department_id,
         )
     except KeyError as exc:
         raise ApiError(404, "document_not_found", "Документ не найден") from exc
@@ -533,6 +535,10 @@ def _check_active_versions(context: ApiContext, project_id: UUID,
         document = context.repository.load_document(ref.document_id)
         if bool(document.get("archived")):
             raise ApiError(400, "version_archived", "Версия принадлежит архиву")
+        if document.get("department_id"):
+            department = context.repository.load_department(project_id, UUID(document["department_id"]))
+            if department["archived"]:
+                raise ApiError(400, "department_archived", "Сначала восстановите отдел из архива")
     try:
         project = context.repository.load_project(project_id)
     except KeyError as exc:
@@ -541,25 +547,39 @@ def _check_active_versions(context: ApiContext, project_id: UUID,
         raise ApiError(400, "project_archived", "Проект архивирован")
 
 
+def _check_department_versions(context: ApiContext, vor_id: UUID, pdf_ids: list[UUID]):
+    try:
+        scope = context.repository.version_department_id(vor_id)
+        for pdf_id in pdf_ids:
+            if context.repository.version_department_id(pdf_id) != scope:
+                raise ApiError(400, "department_version_mismatch", "ВОР и ПД должны принадлежать одному отделу")
+    except KeyError as exc:
+        raise ApiError(404, "version_not_found", "Версия документа не найдена") from exc
+
+
 def _resolve_pdf_pool(context: ApiContext, project_id: UUID,
-                      pdf_ids: list[UUID]) -> list[UUID]:
-    """Default to current revisions of every active project PDF.
+                      pdf_ids: list[UUID], vor_id: UUID | None = None) -> list[UUID]:
+    """Default to current revisions of active PDFs in the VOR department.
 
     An explicit non-empty selection stays untouched (tests, API clients);
     the UI no longer selects revisions — designations verify against the
-    whole project pool at audit time.
+    department pool at audit time.
     """
     if pdf_ids:
         return pdf_ids
     pool = []
-    for document in context.repository.catalog(project_id, archived=False):
+    try:
+        scope = context.repository.version_department_id(vor_id) if vor_id else None
+    except KeyError as exc:
+        raise ApiError(404, "version_not_found", "Версия документа не найдена") from exc
+    for document in context.repository.catalog(project_id, archived=False, department_id=scope):
         if document.get("kind") != "pdf" or not document.get("current_version_id"):
             continue
         pool.append(_parse_uuid(str(document["current_version_id"]),
                                 field="pdf_version_ids"))
     if not pool:
         raise ApiError(400, "pdf_pool_empty",
-                       "В проекте нет проектных PDF для проверки.")
+                       "В отделе нет проектных PDF для проверки.")
     return pool
 
 
@@ -799,6 +819,7 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
         kind: str = Form(pattern="^(vor|pdf)$"),
         file: UploadFile = File(...),
         project_id: str = Form(...),
+        department_id: str | None = Form(None),
         document_id: str | None = Form(None),
         new_document: bool = Form(False),
         context: ApiContext = Depends(get_context),
@@ -813,7 +834,8 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             raise ApiError(404, "project_not_found", "Проект не найден") from exc
         target_id = _parse_uuid(document_id, field="document_id") if document_id else None
         response = _upload_document(context, owner_id, kind, file, data,
-                                    target_id, new_document)
+                                    target_id, new_document,
+                                    _parse_uuid(department_id, field="department_id") if department_id else None)
         logger.info(
             "document uploaded",
             extra={
@@ -837,10 +859,11 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
         pdf_ids = _resolve_pdf_pool(context, owner.id, [
             _parse_uuid(item, field="pdf_version_ids")
             for item in payload.pdf_version_ids
-        ])
+        ], vor_id)
         if not payload.pdf_version_ids:
             pdf_ids = _include_bound_versions(context, vor_id, pdf_ids)
         _check_project_versions(context, owner.id, [vor_id, *pdf_ids])
+        _check_department_versions(context, vor_id, pdf_ids)
         _check_active_versions(context, owner.id, [vor_id, *pdf_ids])
         _check_pdf_names(context, pdf_ids)
         return _preflight_for_versions(context, vor_id, pdf_ids)
@@ -864,10 +887,11 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
         pdf_ids = _resolve_pdf_pool(context, stored_project.id, [
             _parse_uuid(item, field="pdf_version_ids")
             for item in payload.pdf_version_ids
-        ])
+        ], vor_id)
         if not payload.pdf_version_ids:
             pdf_ids = _include_bound_versions(context, vor_id, pdf_ids)
         _check_project_versions(context, stored_project.id, [vor_id, *pdf_ids])
+        _check_department_versions(context, vor_id, pdf_ids)
         _check_pdf_names(context, pdf_ids)
         _check_active_versions(context, stored_project.id, [vor_id, *pdf_ids])
         allowed = max(1, int(context.settings.max_uploads_per_request or 1))

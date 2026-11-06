@@ -78,7 +78,16 @@ const historyColumns: TableColumn<RunDto>[] = [
   { id: 'action', header: 'Действие' },
 ]
 const historyLimit = 50
-const locksMutations = computed(() => projectArchived.value || document.value?.archived)
+const departmentArchived = ref(false)
+const departmentName = ref('')
+const departmentPath = computed(() =>
+  document.value?.department_id
+    ? `/projects/${projectId.value}/departments/${document.value.department_id}`
+    : `/projects/${projectId.value}`,
+)
+const locksMutations = computed(
+  () => projectArchived.value || departmentArchived.value || document.value?.archived,
+)
 const kindLabel = computed(() => (document.value?.kind === 'pdf' ? 'ПД' : 'ВОР'))
 const sortedVersions = computed<RichVersion[]>(() => document.value?.versions ?? [])
 const isVor = computed(() => document.value?.kind === 'vor')
@@ -113,7 +122,7 @@ async function loadBindings() {
   try {
     const [data, catalog] = await Promise.all([
       backend.pdfBindings(revision.id),
-      backend.catalog(projectId.value),
+      backend.catalog(projectId.value, false, document.value?.department_id || undefined),
     ])
     if (!active || current !== bindingEpoch) return
     bindingReferences.value = data.references
@@ -237,6 +246,14 @@ async function loadDocument() {
     projectName.value = project.name
     projectArchived.value = project.archived
     document.value = detail
+    departmentArchived.value = false
+    departmentName.value = ''
+    if (detail.department_id) {
+      const department = await backend.department(ownerId, detail.department_id)
+      if (!active || currentEpoch !== documentEpoch) return
+      departmentArchived.value = department.archived
+      departmentName.value = department.name
+    }
     titleDraft.value = detail.title
     resetPreflight()
     editingMetadata.value = false
@@ -262,7 +279,11 @@ async function loadHistory() {
   if (!revision || !isVor.value) return
   historyBusy.value = true
   try {
-    const values = await backend.runs(projectId.value, historyOffset.value)
+    const values = await backend.runs(
+      projectId.value,
+      historyOffset.value,
+      document.value?.department_id || undefined,
+    )
     if (!active || currentEpoch !== historyEpoch || selectedVersion.value?.id !== revision.id)
       return
     historyHasMore.value = values.length === historyLimit
@@ -504,14 +525,14 @@ onBeforeUnmount(() => {
     <WorkspaceHeader />
     <main id="main-content" tabindex="-1" class="shell document-detail">
       <nav aria-label="Хлебные крошки" class="toolbar">
-        <UButton
-          variant="link"
-          :to="`/projects/${projectId}`"
-          aria-label="Назад к документам проекта"
-        >
-          ← К проекту
+        <UButton variant="link" :to="departmentPath" aria-label="Назад к документам отдела">
+          ← К проверкам отдела
         </UButton>
+        <span v-if="departmentName" class="muted">{{ departmentName }}</span>
         <span v-if="projectArchived" class="muted">Проект архивирован: изменения недоступны</span>
+        <span v-else-if="departmentArchived" class="muted"
+          >Отдел архивирован: изменения недоступны</span
+        >
       </nav>
 
       <div class="page-heading">

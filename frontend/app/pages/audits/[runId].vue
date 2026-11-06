@@ -232,7 +232,11 @@ onBeforeUnmount(() => {
     <main id="main-content" tabindex="-1" class="shell shell-wide">
       <nav v-if="summary" class="toolbar" aria-label="Проект и редакция ведомости">
         <UButton
-          :to="`/projects/${summary.project.id}`"
+          :to="
+            summary.run.department_id
+              ? `/projects/${summary.project.id}/departments/${summary.run.department_id}`
+              : `/projects/${summary.project.id}`
+          "
           color="neutral"
           variant="link"
           icon="i-lucide-arrow-left"
@@ -331,7 +335,15 @@ onBeforeUnmount(() => {
         </p>
         <p class="muted">Можно закрыть страницу и вернуться к проверке через историю.</p>
         <div class="toolbar">
-          <UButton color="neutral" variant="outline" :to="`/projects/${run.project_id}`">
+          <UButton
+            color="neutral"
+            variant="outline"
+            :to="
+              run.department_id
+                ? `/projects/${run.project_id}/departments/${run.department_id}`
+                : `/projects/${run.project_id}`
+            "
+          >
             К проекту
           </UButton>
           <UButton color="error" variant="outline" :loading="cancelling" @click="cancel">

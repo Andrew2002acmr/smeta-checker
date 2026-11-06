@@ -22,9 +22,11 @@ from sqlalchemy.dialects.postgresql import insert, JSONPATH, JSONB
 from sqlalchemy.orm import Session
 
 from storage_blobs import BlobStore
+from department_storage import DepartmentRepositoryMixin, default_department_id, seed_departments
 from storage_models import (
     Base,
     Document,
+    Department,
     DocumentVersion,
     PositionJob,
     PositionResult,
@@ -151,7 +153,7 @@ def _read_source_bytes(source: Any) -> bytes:
             source.seek(position)
 
 
-class Repository:
+class Repository(DepartmentRepositoryMixin):
     supports_analysis_replay = True
 
     def analysis_human_revision(self, project_id, vor_version_id, pdf_versions):
@@ -269,6 +271,8 @@ class Repository:
             if project is None:
                 project = Project(name=name)
                 session.add(project)
+                session.flush()
+                seed_departments(session, project.id)
                 session.commit()
                 session.refresh(project)
             return ProjectRow(id=project.id, name=project.name,
@@ -280,6 +284,8 @@ class Repository:
         with Session(self._engine) as session:
             project = Project(name=name)
             session.add(project)
+            session.flush()
+            seed_departments(session, project.id)
             session.commit()
             session.refresh(project)
             return ProjectRow(id=project.id, name=project.name,
@@ -325,16 +331,17 @@ class Repository:
                               archived=bool(project.archived),
                               created_at=project.created_at)
 
-    def list_versions(self, project_id: UUID) -> list[dict[str, Any]]:
+    def list_versions(self, project_id: UUID, *, department_id: UUID | None = None) -> list[dict[str, Any]]:
         with Session(self._engine) as session:
             rows = session.execute(
                 select(Document, DocumentVersion).join(
                     DocumentVersion, DocumentVersion.document_id == Document.id
-                ).where(Document.project_id == project_id).order_by(
+                ).where(Document.project_id == project_id,
+                        *([Document.department_id == department_id] if department_id else [])).order_by(
                     Document.created_at, Document.id, DocumentVersion.version_no.desc()
                 )
             ).all()
-            return [{"id": str(v.id), "project_id": str(d.project_id),
+            return [{"id": str(v.id), "project_id": str(d.project_id), "department_id": str(d.department_id),
                      "document_id": str(d.id), "filename": v.filename, "kind": d.kind,
                      "number": v.version_no, "sha256": v.sha256, "size": v.size,
                      "created_at": v.created_at,
@@ -370,7 +377,7 @@ class Repository:
         metadata = dict(version.metadata_ or {})
         overrides = dict(version.metadata_overrides or {})
         return {
-            "id": str(version.id), "project_id": str(document.project_id),
+            "id": str(version.id), "project_id": str(document.project_id), "department_id": str(document.department_id),
             "document_id": str(document.id), "filename": version.filename,
             "kind": document.kind, "number": version.version_no,
             "sha256": version.sha256, "size": version.size,
@@ -389,7 +396,7 @@ class Repository:
         ).all()
         presented = [self._present_version(session, v, document) for v in versions]
         payload: dict[str, Any] = {
-            "id": str(document.id), "project_id": str(document.project_id),
+            "id": str(document.id), "project_id": str(document.project_id), "department_id": str(document.department_id),
             "kind": document.kind,
             "title": document.title or self._document_title(
                 presented[0]["metadata"] if presented else {},
@@ -456,13 +463,14 @@ class Repository:
 
 
     def catalog(self, project_id: UUID,
-                *, archived: bool = False) -> list[dict[str, Any]]:
+                *, archived: bool = False, department_id: UUID | None = None) -> list[dict[str, Any]]:
         with Session(self._engine) as session:
             project = session.get(Project, project_id)
             if project is None:
                 raise KeyError(str(project_id))
             documents = session.scalars(select(Document).where(
                 Document.project_id == project_id,
+                *([Document.department_id == department_id] if department_id else []),
                 Document.archived == bool(archived)).order_by(
                 Document.created_at, Document.id)).all()
             return [self._present_document(session, document) for document in documents]
@@ -718,6 +726,7 @@ class Repository:
         self, project_id: UUID, data: bytes, *, filename: str, kind: str,
         document_id: UUID | None = None, new_document: bool = False,
         metadata: dict[str, Any] | None = None,
+        department_id: UUID | None = None,
     ) -> DocumentVersionRow:
         """Append a version. Default creates an independent document identity.
 
@@ -739,6 +748,9 @@ class Repository:
                     raise KeyError(str(document_id))
                 if document.project_id != project_id:
                     raise ValueError("document belongs to another project")
+                if department_id is not None and document.department_id != department_id:
+                    raise ValueError("Документ принадлежит другому отделу")
+                department_id = document.department_id
                 if document.kind != kind:
                     raise ValueError("document kind mismatch")
                 if bool(document.archived):
@@ -749,9 +761,16 @@ class Repository:
                 # HTTP layer always sends document_id or new_document=true.
                 if not new_document:
                     raise ValueError("explicit document_id or new_document required")
-                document = Document(project_id=project_id, kind=kind, title="")
+                department_id = department_id or default_department_id(session, project_id)
+                document = Document(project_id=project_id, department_id=department_id, kind=kind, title="")
                 session.add(document)
-                session.flush()
+            with session.no_autoflush:
+                department = session.get(Department, department_id)
+            if department is None or department.project_id != project_id:
+                raise ValueError("Отдел не найден в этом проекте")
+            if department.archived:
+                raise ValueError("Сначала восстановите отдел из архива")
+            session.flush()
             row = self._append_version(session, document, payload,
                                        filename=filename, metadata=metadata)
             session.commit()
@@ -886,6 +905,8 @@ class Repository:
                     raise ValueError("pinned version is not a PDF")
                 if pdf_doc.project_id != project_id:
                     raise ValueError("pinned version belongs to another project")
+                if pdf_doc.department_id != document.department_id:
+                    raise ValueError("ВОР и ПД должны принадлежать одному отделу")
                 pdf_blob_keys[source_key] = pdf_version.blob_key
                 session.add(RunPdfVersion(run_id=run.id, source_key=str(source_key),
                                           version_id=pdf_version.id))
@@ -1686,6 +1707,7 @@ class Repository:
     def run_progress_records(
         self, *, project_id: UUID | None = None, run_id: UUID | None = None,
         offset: int = 0, limit: int = 50,
+        department_id: UUID | None = None,
     ) -> list[dict[str, Any]]:
         """Read only metadata and grouped counts, never job/result JSON payloads."""
         page = select(
@@ -1699,6 +1721,8 @@ class Repository:
             page = page.where(Run.project_id == project_id)
         if run_id is not None:
             page = page.where(Run.id == run_id)
+        if department_id is not None:
+            page = page.where(Run.vor_version_id.in_(select(DocumentVersion.id).join(Document, DocumentVersion.document_id == Document.id).where(Document.department_id == department_id)))
         page = page.order_by(Run.created_at.desc(), Run.id.desc()).offset(offset).limit(limit).subquery()
         jobs = select(
             PositionJob.run_id, PositionJob.queue, PositionJob.status,
@@ -1710,7 +1734,7 @@ class Repository:
             PositionResult.run_id, func.count().label("count"),
         ).where(PositionResult.run_id.in_(select(page.c.id))).group_by(PositionResult.run_id).subquery()
         query = select(
-            page, DocumentVersion.filename, jobs.c.queue, jobs.c.status.label("job_status"),
+            page, Document.department_id, DocumentVersion.filename, jobs.c.queue, jobs.c.status.label("job_status"),
             jobs.c.count.label("job_count"), results.c.count.label("result_count"),
         ).join(DocumentVersion, DocumentVersion.id == page.c.vor_version_id).join(
             Document, Document.id == DocumentVersion.document_id,
@@ -1722,7 +1746,7 @@ class Repository:
             for row in session.execute(query).mappings():
                 record = records.setdefault(row["id"], {
                     **{key: row[key] for key in (
-                        "id", "project_id", "vor_version_id", "status", "created_at", "finished_at",
+                        "id", "project_id", "department_id", "vor_version_id", "status", "created_at", "finished_at",
                         "input_total", "prepare_seconds", "pdf_preparation",
                     )},
                     "vor_filename": row["filename"], "result_count": row["result_count"] or 0,
@@ -1742,10 +1766,11 @@ class Repository:
                     counts[task_status] = counts.get(task_status,0)+1
             return list(records.values())
 
-    def count_runs(self, project_id: UUID) -> int:
+    def count_runs(self, project_id: UUID, *, department_id: UUID | None = None) -> int:
         with Session(self._engine) as session:
             return int(session.scalar(
-                select(func.count()).select_from(Run).where(Run.project_id == project_id)
+                select(func.count()).select_from(Run).where(Run.project_id == project_id,
+                    *([Run.vor_version_id.in_(select(DocumentVersion.id).join(Document, DocumentVersion.document_id == Document.id).where(Document.department_id == department_id))] if department_id else []))
             ) or 0)
 
     def list_runs(self, project_id: UUID) -> list[RunRow]:

@@ -42,6 +42,7 @@ from workspace_service import (
     sheet_window,
     source_evidence,
 )
+from department_api import department_scope, register_department_routes
 
 
 def workspace_router(get_context) -> APIRouter:
@@ -102,7 +103,7 @@ def workspace_router(get_context) -> APIRouter:
 
     @router.put("/api/v1/documents/{version_id}/pdf-bindings", response_model=PdfBindingsDTO)
     def update_pdf_bindings(version_id: str, payload: PdfBindingsPatch, context=Depends(guarded)):
-        from api import _check_active_versions, _check_project_versions
+        from api import _check_active_versions, _check_project_versions, _check_department_versions
         from pdf_binding import clean_pdf_name
         ref, owner_id, references = binding_document(context, version_id)
         _check_active_versions(context, owner_id, [ref.id])
@@ -115,6 +116,7 @@ def workspace_router(get_context) -> APIRouter:
             if pdf.kind != "pdf":
                 raise ApiError(400, "not_pdf_version", "Для ссылки нужно выбрать PDF")
             _check_project_versions(context, owner_id, [pdf.id])
+            _check_department_versions(context, ref.id, [pdf.id])
             _check_active_versions(context, owner_id, [pdf.id])
             bindings[key] = str(pdf.id)
         context.repository.save_pdf_bindings(ref.id, bindings)
@@ -125,6 +127,7 @@ def workspace_router(get_context) -> APIRouter:
 
     from normative_api import register_normative_routes
     register_normative_routes(router, guarded, available)
+    register_department_routes(router, guarded, project)
 
     @router.get("/api/v1/projects", response_model=list[ProjectDTO])
     def projects(archived: bool = Query(False), context=Depends(guarded)):
@@ -190,8 +193,10 @@ def workspace_router(get_context) -> APIRouter:
     @router.get(
         "/api/v1/projects/{project_id}/documents", response_model=list[VersionDTO]
     )
-    def documents(project_id: str, context=Depends(guarded)):
-        return context.repository.list_versions(project(context, project_id).id)
+    def documents(project_id: str, department_id: str | None = Query(None), context=Depends(guarded)):
+        owner = project(context, project_id)
+        scope = department_scope(context, owner.id, department_id)
+        return context.repository.list_versions(owner.id, department_id=scope)
 
     def _enrich_last_run(context, document: dict) -> dict:
         last = dict(document.get("last_run") or {})
@@ -215,12 +220,12 @@ def workspace_router(get_context) -> APIRouter:
         "/api/v1/projects/{project_id}/catalog", response_model=list[DocumentDTO]
     )
     def catalog(
-        project_id: str, archived: bool = Query(False), context=Depends(guarded)
+        project_id: str, archived: bool = Query(False), department_id: str | None = Query(None), context=Depends(guarded)
     ):
         try:
-            documents = context.repository.catalog(
-                project(context, project_id).id, archived=archived
-            )
+            owner = project(context, project_id)
+            scope = department_scope(context, owner.id, department_id)
+            documents = context.repository.catalog(owner.id, archived=archived, department_id=scope)
         except KeyError as exc:
             raise ApiError(404, "project_not_found", "Проект не найден") from exc
         return [_enrich_last_run(context, document) for document in documents]
@@ -307,18 +312,23 @@ def workspace_router(get_context) -> APIRouter:
         project_id: str,
         offset: int = Query(0, ge=0),
         limit: int = Query(50, ge=1, le=100),
+        department_id: str | None = Query(None),
         context=Depends(guarded),
     ):
+        owner = project(context, project_id)
+        scope = department_scope(context, owner.id, department_id)
         runs = context.repository.run_progress_records(
-            project_id=project(context, project_id).id,
+            project_id=owner.id, department_id=scope,
             offset=offset,
             limit=limit,
         )
         return [run_progress(context, record) for record in runs]
 
     @router.get("/api/v1/projects/{project_id}/audits/count", response_model=RunCountDTO)
-    def history_count(project_id: str, context=Depends(guarded)):
-        return {"count": context.repository.count_runs(project(context, project_id).id)}
+    def history_count(project_id: str, department_id: str | None = Query(None), context=Depends(guarded)):
+        owner = project(context, project_id)
+        scope = department_scope(context, owner.id, department_id)
+        return {"count": context.repository.count_runs(owner.id, department_id=scope)}
 
     @router.get("/api/v1/audits/{run_id}/progress", response_model=RunDTO)
     def progress(run_id: str, context=Depends(guarded)):

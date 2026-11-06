@@ -54,6 +54,23 @@ class Project(Base):
     )
 
 
+class Department(Base):
+    __tablename__ = "departments"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(256))
+    icon: Mapped[str] = mapped_column(String(40), default="folder-open", server_default="folder-open")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("project_id", "name", name="uq_department_name"),
+        UniqueConstraint("id", "project_id", name="uq_department_project"),
+    )
+
+
 class Document(Base):
     __tablename__ = "documents"
 
@@ -64,6 +81,7 @@ class Document(Base):
         UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE")
     )
     kind: Mapped[str] = mapped_column(String(32))
+    department_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
     title: Mapped[str] = mapped_column(Text, default="", server_default="")
     archived: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="false", nullable=False
@@ -76,6 +94,10 @@ class Document(Base):
     )
 
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["department_id", "project_id"], ["departments.id", "departments.project_id"],
+            ondelete="RESTRICT", name="fk_documents_department_project",
+        ),
         ForeignKeyConstraint(
             ["current_version_id", "id"],
             ["document_versions.id", "document_versions.document_id"],
