@@ -182,6 +182,7 @@ onBeforeUnmount(() => {
         <header class="aw-topbar">
           <div class="aw-nav">
             <UButton
+              data-testid="prev-position"
               color="neutral"
               variant="ghost"
               icon="i-lucide-chevron-left"
@@ -191,7 +192,7 @@ onBeforeUnmount(() => {
             />
             <UButton
               color="neutral"
-              variant="ghost"
+              data-testid="next-position"
               icon="i-lucide-chevron-right"
               aria-label="Следующая позиция"
               :disabled="nextReady === null"

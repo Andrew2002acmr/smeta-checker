@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { RunDto, SummaryDto, RowsDto } from '~/generated/types.gen'
 import type { TableColumn } from '@nuxt/ui'
+import type { SortingState } from '@tanstack/vue-table'
 import {
   formatFileName,
   queueColor,
@@ -81,7 +82,7 @@ const auditColumns: TableColumn<AuditRow>[] = [
     meta: { style: { th: { width: '18%' } } },
   },
 ]
-const auditSorting = ref<any[]>([])
+const auditSorting = ref<SortingState>([])
 const auditPagination = ref({ pageIndex: 0, pageSize: 10 })
 function openPosition(index: number) {
   router.replace({ query: { ...route.query, position: index } })
@@ -270,6 +271,7 @@ onBeforeUnmount(() => {
             Продолжить обработку
           </UButton>
           <UButton
+            data-testid="download-word"
             v-if="summary && (runStatus === 'done' || runStatus === 'failed')"
             variant="outline"
             icon="i-lucide-download"

@@ -98,14 +98,28 @@ Development frontend: задайте серверные `NUXT_BACKEND_URL` и `N
 
 ## Контракты и проверки
 
+Одна команда вместо пяти (нужен `PYTHON` — абсолютный путь к Python backend-venv):
+
 ```powershell
-cd backend; python -m scripts.export_frontend_openapi; cd ..
-pnpm --dir frontend run api:generate
+$env:PYTHON = "<repo>\backend\.venv\Scripts\python.exe"
+pnpm --dir frontend run check
+```
+
+Эквивалент по шагам:
+
+```powershell
 pnpm --dir frontend run api:check
 pnpm --dir frontend run fmt:check
 pnpm --dir frontend run lint
 pnpm --dir frontend run typecheck
 pnpm --dir frontend run test:unit
+```
+
+Перегенерация контракта после изменения Python DTO:
+
+```powershell
+cd backend; python -m scripts.export_frontend_openapi; cd ..
+pnpm --dir frontend run api:generate
 pnpm --dir frontend run build
 ```
 

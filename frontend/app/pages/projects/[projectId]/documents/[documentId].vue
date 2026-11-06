@@ -812,6 +812,7 @@ onBeforeUnmount(() => {
           <div class="preflight-block">
             <div class="toolbar">
               <UButton
+                data-testid="start-audit"
                 color="primary"
                 :loading="preflightBusy || starting"
                 :disabled="

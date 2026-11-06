@@ -16,9 +16,7 @@ const maximumBytes = 100 * 1024 * 1024
 let epoch = 0
 let dragDepth = 0
 
-const sheetItems = computed(() =>
-  (result.value?.sheets ?? []).map((name) => ({ label: name, value: name })),
-)
+const sheetItems = useFormatSheets(result)
 const failedRows = computed(() => {
   const rows = new Set<string>()
   for (const issue of result.value?.issues ?? []) {

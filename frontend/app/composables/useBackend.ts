@@ -42,15 +42,27 @@ export function backendError(value: unknown): string {
         'Запрос не выполнен'
     : 'Запрос не выполнен'
 }
-async function download(url: string, filename: string) {
-  const reply = await fetch(url, { credentials: 'same-origin' })
-  if (!reply.ok) throw Error(backendError(await reply.json()))
+async function triggerDownload(reply: Response, filename: string) {
   const href = URL.createObjectURL(await reply.blob())
   const link = document.createElement('a')
   link.href = href
   link.download = filename
-  link.click()
-  setTimeout(() => URL.revokeObjectURL(href), 1000)
+  document.body.appendChild(link)
+  try {
+    link.click()
+  } finally {
+    link.remove()
+    setTimeout(() => URL.revokeObjectURL(href), 1000)
+  }
+}
+async function throwDownloadError(reply: Response): Promise<never> {
+  const data: unknown = await reply.json().catch(() => null)
+  throw Error(backendError(data))
+}
+async function download(url: string, filename: string) {
+  const reply = await fetch(url, { credentials: 'same-origin' })
+  if (!reply.ok) await throwDownloadError(reply)
+  await triggerDownload(reply, filename)
 }
 async function downloadPost(url: string, form: FormData, filename: string) {
   const reply = await fetch(url, {
@@ -58,16 +70,8 @@ async function downloadPost(url: string, form: FormData, filename: string) {
     body: form,
     credentials: 'same-origin',
   })
-  if (!reply.ok) {
-    const data: unknown = await reply.json().catch(() => null)
-    throw Error(backendError(data))
-  }
-  const href = URL.createObjectURL(await reply.blob())
-  const link = document.createElement('a')
-  link.href = href
-  link.download = filename
-  link.click()
-  setTimeout(() => URL.revokeObjectURL(href), 1000)
+  if (!reply.ok) await throwDownloadError(reply)
+  await triggerDownload(reply, filename)
 }
 export function useBackend() {
   const route = useRoute()

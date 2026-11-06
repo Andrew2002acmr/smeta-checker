@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ProjectDto, RunDto, DocumentDto } from '~/generated/types.gen'
-import { runLabel } from '~/utils/presentation'
 import type { TableColumn } from '@nuxt/ui'
+import type { SortingState } from '@tanstack/vue-table'
 type Tab = 'vor' | 'pdf' | 'runs'
 type Queue = 'fix' | 'review' | 'missing' | 'ok'
 type SummaryState =
@@ -78,7 +78,7 @@ const runColumns: TableColumn<RunDto>[] = [
   { id: 'date', accessorFn: (row: RunDto) => row.created_at, header: 'Дата' },
   { id: 'action', header: '', enableSorting: false },
 ]
-const runSorting = ref<any[]>([])
+const runSorting = ref<SortingState>([])
 const docColumns: TableColumn<DocumentDto>[] = [
   { id: 'doc', accessorFn: (row: DocumentDto) => row.title, header: 'Документ' },
   {
@@ -89,7 +89,7 @@ const docColumns: TableColumn<DocumentDto>[] = [
   { id: 'status', accessorFn: (row: DocumentDto) => row.last_run?.status || '', header: 'Статус' },
   { id: 'action', header: '', enableSorting: false },
 ]
-const docSorting = ref<any[]>([])
+const docSorting = ref<SortingState>([])
 function setTab(next: Tab) {
   router.replace({ query: { ...route.query, tab: next === 'vor' ? undefined : next } })
 }

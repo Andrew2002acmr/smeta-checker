@@ -347,6 +347,7 @@ async function save() {
     <div class="toolbar spread import-footer">
       <span class="muted">{{ pending.length ? `К сохранению: ${pending.length}` : '' }}</span>
       <UButton
+        data-testid="save-documents"
         color="primary"
         icon="i-lucide-save"
         :loading="saving || collecting"

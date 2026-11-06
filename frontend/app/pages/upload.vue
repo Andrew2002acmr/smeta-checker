@@ -61,7 +61,13 @@ async function create() {
               :disabled="busy"
               class="upload-name"
             />
-            <UButton type="submit" color="primary" icon="i-lucide-plus" :loading="busy">
+            <UButton
+              type="submit"
+              color="primary"
+              icon="i-lucide-plus"
+              :loading="busy"
+              data-testid="create-project"
+            >
               Создать проект
             </UButton>
           </div>
