@@ -320,10 +320,6 @@ export type DepartmentCreate = {
  */
 export type DepartmentDto = {
     /**
-     * Archived
-     */
-    archived?: boolean;
-    /**
      * Created At
      */
     created_at?: string | null;
@@ -335,6 +331,10 @@ export type DepartmentDto = {
      * Id
      */
     id: string;
+    /**
+     * Is System
+     */
+    is_system?: boolean;
     /**
      * Name
      */
@@ -366,13 +366,9 @@ export type DepartmentDto = {
  */
 export type DepartmentUpdate = {
     /**
-     * Archived
-     */
-    archived?: boolean | null;
-    /**
      * Name
      */
-    name?: string | null;
+    name: string;
 };
 
 /**
@@ -4886,36 +4882,6 @@ export type CreateProjectApiV1ProjectsPostResponses = {
 
 export type CreateProjectApiV1ProjectsPostResponse = CreateProjectApiV1ProjectsPostResponses[keyof CreateProjectApiV1ProjectsPostResponses];
 
-export type DeleteProjectApiV1ProjectsProjectIdDeleteData = {
-    body?: never;
-    path: {
-        /**
-         * Project Id
-         */
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/projects/{project_id}';
-};
-
-export type DeleteProjectApiV1ProjectsProjectIdDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DeleteProjectApiV1ProjectsProjectIdDeleteError = DeleteProjectApiV1ProjectsProjectIdDeleteErrors[keyof DeleteProjectApiV1ProjectsProjectIdDeleteErrors];
-
-export type DeleteProjectApiV1ProjectsProjectIdDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    200: ProjectDto;
-};
-
-export type DeleteProjectApiV1ProjectsProjectIdDeleteResponse = DeleteProjectApiV1ProjectsProjectIdDeleteResponses[keyof DeleteProjectApiV1ProjectsProjectIdDeleteResponses];
-
 export type GetProjectApiV1ProjectsProjectIdGetData = {
     body?: never;
     path: {
@@ -5105,12 +5071,7 @@ export type DepartmentsApiV1ProjectsProjectIdDepartmentsGetData = {
          */
         project_id: string;
     };
-    query?: {
-        /**
-         * Archived
-         */
-        archived?: boolean;
-    };
+    query?: never;
     url: '/api/v1/projects/{project_id}/departments';
 };
 

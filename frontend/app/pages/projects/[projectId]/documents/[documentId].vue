@@ -78,16 +78,13 @@ const historyColumns: TableColumn<RunDto>[] = [
   { id: 'action', header: 'Действие' },
 ]
 const historyLimit = 50
-const departmentArchived = ref(false)
 const departmentName = ref('')
 const departmentPath = computed(() =>
   document.value?.department_id
     ? `/projects/${projectId.value}/departments/${document.value.department_id}`
     : `/projects/${projectId.value}`,
 )
-const locksMutations = computed(
-  () => projectArchived.value || departmentArchived.value || document.value?.archived,
-)
+const locksMutations = computed(() => projectArchived.value || document.value?.archived)
 const kindLabel = computed(() => (document.value?.kind === 'pdf' ? 'ПД' : 'ВОР'))
 const sortedVersions = computed<RichVersion[]>(() => document.value?.versions ?? [])
 const isVor = computed(() => document.value?.kind === 'vor')
@@ -246,12 +243,10 @@ async function loadDocument() {
     projectName.value = project.name
     projectArchived.value = project.archived
     document.value = detail
-    departmentArchived.value = false
     departmentName.value = ''
     if (detail.department_id) {
       const department = await backend.department(ownerId, detail.department_id)
       if (!active || currentEpoch !== documentEpoch) return
-      departmentArchived.value = department.archived
       departmentName.value = department.name
     }
     titleDraft.value = detail.title
@@ -530,9 +525,6 @@ onBeforeUnmount(() => {
         </UButton>
         <span v-if="departmentName" class="muted">{{ departmentName }}</span>
         <span v-if="projectArchived" class="muted">Проект архивирован: изменения недоступны</span>
-        <span v-else-if="departmentArchived" class="muted"
-          >Отдел архивирован: изменения недоступны</span
-        >
       </nav>
 
       <div class="page-heading">

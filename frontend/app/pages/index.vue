@@ -60,9 +60,6 @@ const renamingId = ref<string | null>(null)
 const renamingName = ref('')
 const renamingBusy = ref(false)
 const confirmArchiveId = ref<string | null>(null)
-const deleteProjectId = ref<string | null>(null)
-const deleteProjectName = ref('')
-const deleteProjectBusy = ref(false)
 const archiveBusy = ref(false)
 const actionError = ref('')
 const restoringId = ref<string | null>(null)
@@ -86,9 +83,6 @@ const attention = (p: DashboardProject) =>
 
 const confirmArchiveProject = computed(
   () => projects.value.find((p) => p.id === confirmArchiveId.value) || null,
-)
-const deleteProjectTarget = computed(
-  () => projects.value.find((p) => p.id === deleteProjectId.value) || null,
 )
 
 const filtered = computed(() => {
@@ -171,12 +165,6 @@ const archiveModalOpen = computed({
     if (!open) confirmArchiveId.value = null
   },
 })
-const deleteProjectOpen = computed({
-  get: () => deleteProjectId.value !== null,
-  set: (open: boolean) => {
-    if (!open) deleteProjectId.value = null
-  },
-})
 
 function openProject(p: DashboardProject) {
   router.push(`/projects/${p.id}`)
@@ -241,28 +229,6 @@ async function confirmArchive() {
     actionError.value = readableError(e)
   } finally {
     archiveBusy.value = false
-  }
-}
-
-function askDeleteProject(p: DashboardProject) {
-  deleteProjectId.value = p.id
-  deleteProjectName.value = ''
-}
-
-async function confirmDeleteProject() {
-  const target = deleteProjectTarget.value
-  if (!target || deleteProjectBusy.value) return
-  if (deleteProjectName.value.trim() !== target.name) return
-  deleteProjectBusy.value = true
-  try {
-    await backend.deleteProject(target.id)
-    scopeCache.active = null
-    deleteProjectId.value = null
-    await load()
-  } catch (e) {
-    actionError.value = readableError(e)
-  } finally {
-    deleteProjectBusy.value = false
   }
 }
 
@@ -575,16 +541,6 @@ onBeforeUnmount(() => {
                       disabled: archiveBusy || restoringId !== null,
                       onSelect: () => (project.archived ? restore(project) : askArchive(project)),
                     },
-                    ...(project.archived
-                      ? [
-                          {
-                            label: 'Удалить',
-                            icon: 'i-lucide-trash-2',
-                            disabled: deleteProjectBusy,
-                            onSelect: () => askDeleteProject(project),
-                          },
-                        ]
-                      : []),
                   ]"
                   :content="{ align: 'end' }"
                 >
@@ -654,38 +610,6 @@ onBeforeUnmount(() => {
             <UButton color="primary" :loading="archiveBusy" @click="confirmArchive"
               >Архивировать</UButton
             >
-          </div>
-        </template>
-      </UModal>
-      <UModal v-model:open="deleteProjectOpen" title="Удалить проект?">
-        <template #body>
-          <p class="modal-text">
-            Проект «{{ deleteProjectTarget?.name }}» и все его документы будут удалены без
-            восстановления.
-          </p>
-          <UInput
-            v-model="deleteProjectName"
-            placeholder="Введите название проекта"
-            aria-label="Название проекта для подтверждения удаления"
-            class="w-full"
-          />
-          <div class="toolbar spread modal-footer">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              :disabled="deleteProjectBusy"
-              @click="deleteProjectId = null"
-            >
-              Отмена
-            </UButton>
-            <UButton
-              color="error"
-              :loading="deleteProjectBusy"
-              :disabled="deleteProjectName.trim() !== deleteProjectTarget?.name"
-              @click="confirmDeleteProject"
-            >
-              Удалить
-            </UButton>
           </div>
         </template>
       </UModal>

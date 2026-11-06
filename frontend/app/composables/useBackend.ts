@@ -134,11 +134,8 @@ export function useBackend() {
     projects: (archived = false) =>
       json(root + '/projects' + (archived ? '?archived=true' : ''), z.array(zProjectDto)),
     project: (id: string) => json(`${root}/projects/${encodeURIComponent(id)}`, zProjectDto),
-    departments: (id: string, archived = false) =>
-      json(
-        `${root}/projects/${encodeURIComponent(id)}/departments?archived=${archived}`,
-        z.array(zDepartmentDto),
-      ),
+    departments: (id: string) =>
+      json(`${root}/projects/${encodeURIComponent(id)}/departments`, z.array(zDepartmentDto)),
     department: (projectId: string, id: string) =>
       json(
         `${root}/projects/${encodeURIComponent(projectId)}/departments/${encodeURIComponent(id)}`,
@@ -149,11 +146,7 @@ export function useBackend() {
         method: 'POST',
         body: JSON.stringify({ name }),
       }),
-    updateDepartment: (
-      projectId: string,
-      id: string,
-      fields: { name?: string; archived?: boolean },
-    ) =>
+    updateDepartment: (projectId: string, id: string, fields: { name: string }) =>
       json(
         `${root}/projects/${encodeURIComponent(projectId)}/departments/${encodeURIComponent(id)}`,
         zDepartmentDto,
@@ -177,10 +170,7 @@ export function useBackend() {
         method: 'PATCH',
         body: JSON.stringify(fields),
       }),
-    deleteProject: (id: string) =>
-      json(`${root}/projects/${encodeURIComponent(id)}`, zProjectDto, {
-        method: 'DELETE',
-      }),
+
     deleteDocument: (id: string) =>
       json(`${root}/documents/${encodeURIComponent(id)}/detail`, zDocumentDto, {
         method: 'DELETE',

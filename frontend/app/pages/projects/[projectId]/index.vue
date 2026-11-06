@@ -140,13 +140,17 @@ function departmentActions(item: DepartmentDto) {
       disabled: project.value?.archived || renameBusy.value,
       onSelect: () => startRename(item),
     },
-    {
-      label: 'Удалить',
-      icon: 'i-lucide-trash-2',
-      color: 'error' as const,
-      disabled: project.value?.archived || mutationBusy.value,
-      onSelect: () => askAction(item),
-    },
+    ...(item.is_system
+      ? []
+      : [
+          {
+            label: 'Удалить',
+            icon: 'i-lucide-trash-2',
+            color: 'error' as const,
+            disabled: project.value?.archived || mutationBusy.value,
+            onSelect: () => askAction(item),
+          },
+        ]),
   ]
 }
 const projectActions = computed(() => [
@@ -168,7 +172,7 @@ async function load() {
   if (refreshTimer) clearTimeout(refreshTimer)
   try {
     await backend.connect()
-    const [owner, items] = await Promise.all([backend.project(id), backend.departments(id, false)])
+    const [owner, items] = await Promise.all([backend.project(id), backend.departments(id)])
     if (!active || current !== epoch) return
     project.value = owner
     departments.value = items
@@ -328,9 +332,8 @@ onBeforeUnmount(() => {
                 ><div class="department-meta">
                   <UBadge color="neutral" variant="outline">ВОР · {{ item.vor_count }}</UBadge
                   ><UBadge color="neutral" variant="outline">ПД · {{ item.pdf_count }}</UBadge
-                  ><UBadge color="neutral" variant="outline"
-                    >Проверок · {{ item.run_count }}</UBadge
-                  >
+                  ><UBadge color="neutral" variant="outline">Проверок · {{ item.run_count }}</UBadge
+                  ><UBadge v-if="item.is_system" color="neutral" variant="soft">Системный</UBadge>
                 </div></template
               >
             </UPageCard>

@@ -135,10 +135,10 @@ export const zDepartmentCreate = z.object({
  * DepartmentDTO
  */
 export const zDepartmentDto = z.object({
-    archived: z.boolean().optional().default(false),
     created_at: z.iso.datetime().nullish(),
     icon: z.string(),
     id: z.string(),
+    is_system: z.boolean().optional().default(false),
     name: z.string(),
     pdf_count: z.int().optional().default(0),
     project_id: z.string(),
@@ -151,8 +151,7 @@ export const zDepartmentDto = z.object({
  * DepartmentUpdate
  */
 export const zDepartmentUpdate = z.object({
-    archived: z.boolean().nullish(),
-    name: z.string().min(1).max(256).nullish()
+    name: z.string().min(1).max(256)
 });
 
 /**
@@ -1922,15 +1921,6 @@ export const zCreateProjectApiV1ProjectsPostBody = zProjectCreate;
  */
 export const zCreateProjectApiV1ProjectsPostResponse = zProjectDto;
 
-export const zDeleteProjectApiV1ProjectsProjectIdDeletePath = z.object({
-    project_id: z.string()
-});
-
-/**
- * Successful Response
- */
-export const zDeleteProjectApiV1ProjectsProjectIdDeleteResponse = zProjectDto;
-
 export const zGetProjectApiV1ProjectsProjectIdGetPath = z.object({
     project_id: z.string()
 });
@@ -1999,10 +1989,6 @@ export const zCatalogApiV1ProjectsProjectIdCatalogGetResponse = z.array(zDocumen
 
 export const zDepartmentsApiV1ProjectsProjectIdDepartmentsGetPath = z.object({
     project_id: z.string()
-});
-
-export const zDepartmentsApiV1ProjectsProjectIdDepartmentsGetQuery = z.object({
-    archived: z.boolean().optional().default(false)
 });
 
 /**

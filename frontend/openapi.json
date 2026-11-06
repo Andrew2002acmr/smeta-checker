@@ -511,11 +511,6 @@
       "DepartmentDTO": {
         "additionalProperties": false,
         "properties": {
-          "archived": {
-            "default": false,
-            "title": "Archived",
-            "type": "boolean"
-          },
           "created_at": {
             "anyOf": [
               {
@@ -535,6 +530,11 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "is_system": {
+            "default": false,
+            "title": "Is System",
+            "type": "boolean"
           },
           "name": {
             "title": "Name",
@@ -577,31 +577,16 @@
       "DepartmentUpdate": {
         "additionalProperties": false,
         "properties": {
-          "archived": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Archived"
-          },
           "name": {
-            "anyOf": [
-              {
-                "maxLength": 256,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
           }
         },
+        "required": [
+          "name"
+        ],
         "title": "DepartmentUpdate",
         "type": "object"
       },
@@ -7934,43 +7919,6 @@
       }
     },
     "/api/v1/projects/{project_id}": {
-      "delete": {
-        "operationId": "delete_project_api_v1_projects__project_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "project_id",
-            "required": true,
-            "schema": {
-              "title": "Project Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectDTO"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Delete Project"
-      },
       "get": {
         "operationId": "get_project_api_v1_projects__project_id__get",
         "parameters": [
@@ -8273,16 +8221,6 @@
             "schema": {
               "title": "Project Id",
               "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "archived",
-            "required": false,
-            "schema": {
-              "default": false,
-              "title": "Archived",
-              "type": "boolean"
             }
           }
         ],

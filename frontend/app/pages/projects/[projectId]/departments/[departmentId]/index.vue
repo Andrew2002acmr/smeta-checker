@@ -23,9 +23,7 @@ const router = useRouter()
 const projectId = computed(() => String(route.params.projectId || ''))
 const departmentId = computed(() => String(route.params.departmentId || ''))
 const department = ref<DepartmentDto | null>(null)
-const workspaceArchived = computed(() =>
-  Boolean(project.value?.archived || department.value?.archived),
-)
+const workspaceArchived = computed(() => Boolean(project.value?.archived))
 const tab = computed<Tab>(() =>
   route.query.tab === 'pdf' || route.query.tab === 'runs' ? route.query.tab : 'vor',
 )
@@ -347,9 +345,6 @@ onBeforeUnmount(() => {
           <div class="project-heading-main">
             <p class="muted">{{ project.name }}</p>
             <h1 class="page-title department-workspace-title">{{ department?.name }}</h1>
-            <UBadge v-if="department?.archived" color="neutral" variant="soft"
-              >Отдел в архиве</UBadge
-            >
           </div>
           <div class="project-heading-side">
             <UButton
@@ -367,7 +362,7 @@ onBeforeUnmount(() => {
           color="neutral"
           variant="soft"
           title="Раздел в архиве"
-          description="Восстановите проект или отдел, чтобы добавлять документы и запускать проверки."
+          description="Восстановите проект, чтобы добавлять документы и запускать проверки."
         />
 
         <UAlert
