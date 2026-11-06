@@ -56,7 +56,7 @@ test('binds a renamed PDF copy to a VOR reference and keeps the selection after 
   const select = page.getByLabel('ПД для ссылки project.pdf', { exact: true })
   await expect(select).toBeVisible()
   await select.selectOption(copy.version_id)
-  await expect(page.getByRole('button', { name: 'Проверить', exact: true })).toBeDisabled()
+  await expect(page.getByTestId('start-audit')).toBeDisabled()
   await page.getByRole('button', { name: 'Сохранить привязки ПД', exact: true }).click()
   await expect(
     page.getByText('Привязки ПД сохранены для этой версии ВОР.', { exact: true }),
