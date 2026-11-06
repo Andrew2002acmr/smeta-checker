@@ -748,6 +748,7 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
         if (item['entity_kind'],item['id']) not in seen_candidates)
     candidates = [service.candidate(kb,item,facts.model_dump()) for item in raw_candidates]
     resource_evidence = []
+    definition_ids = {}
     for item in candidates:
         refs = item["citations"][:1]
         if not refs:
@@ -757,6 +758,8 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
         from normative_source_registry import full_text_handle
         sources.append(dict(id=full_text_handle("n"+str(len(sources)),text), kind="normative", label=item["designation"]+" · "+item["code"],
             source_id=ref["source_id"], page=ref["page"], text=text, origin=item["extraction_status"]))
+        if item['entity_kind'] == 'norm':
+            definition_ids[item['id']] = sources[-1]['id']
         sources.extend(resource_sources(item,sources[-1]['id'],evidence_trace=resource_evidence))
     tools = EvidenceTools(context, record, index, sources, kb, facts.model_dump())
     from normative_laying_width_scope import supply_pass_width
@@ -872,10 +875,16 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
         manufacturer=manufacturer_context(kb,position.comment,definitions,expected_pin=kb.identity)
         merge(sources,manufacturer['sources'])
         tools.preferred.extend(manufacturer['preferred_source_ids'])
-        from normative_collection_context import collection_context
-        collection=collection_context(kb,raw_candidates,expected_pin=kb.identity)
+        from normative_collection_context import definition_links, ranked_collection_context
+        collection=ranked_collection_context(kb,raw_candidates,expected_pin=kb.identity)
+        for chunk in collection['context']['literal_chunks']:
+            chunk['matched_paragraphs'] = definition_links(chunk, definition_ids)
         merge(sources,collection['sources'])
         tools.preferred.extend(collection['preferred_source_ids'])
+        tools.events.append(dict(kind='normative_collection_navigation_v1', stage='preflight',
+            state=collection['reason'], warnings=collection['warnings'],
+            routes=[dict(source_id=chunk['source_id'], matches=chunk['matched_paragraphs'])
+                for chunk in collection['context']['literal_chunks']]))
         from normative_material_search import definition_sources
         material_definitions = definition_sources(kb, position)
         merge(sources, material_definitions)
@@ -896,6 +905,13 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
             and prefix[1] in clause_refs
         ]
         tools.preferred[:0] = cited_clauses
+        from normative_work_method import method_candidates
+        for definition in definitions:
+            task = definition.get('evidence_task') or {}
+            if task.get('kind') == 'equipment_function_and_method_compatibility':
+                method_sources = method_candidates(definition['expected_text'], definition['claim_id'], sources)
+                if method_sources:
+                    task['candidate_sources'] = method_sources[:4]
         inputs: dict[str, Any] = dict(question=payload.question, prepared_quantity_tables=table_discovery,
             project_quantity_contract=project_quantity_contract,
             material_property_search=material_search,
@@ -1184,6 +1200,9 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
             materials = [positions[i].work_name for i, owner in owners.items()
                          if owner['index'] == position.index]
             bind_schedule(position, result, tools, materials, positions=positions)
+        if parent_position is None:
+            from normative_engineering_evidence import resolve_native_geometry
+            resolve_native_geometry(position, positions, tools, result)
         result=bind_parent_basis(context,record,result,positions,relation,position=position,expected_kb=kb.identity)
         result = enrich(position, result, positions, relation)
     from normative_verdict import finalize_state, readable_review
@@ -1301,6 +1320,10 @@ def validate_agent_saved(context, record, index, row, actor, *, register=True):
         work_scope=work_scope,
         height_cm=group['height'] if group else None, owner_unit=owner.unit,evidence_trace=result.setdefault('evidence_trace',[]))
     result['parameter_proposals'] = [p.model_dump() for p in proposals]
+    if owner.index == position.index and result.get('pipeline_version', 0) >= 6:
+        from normative_engineering_evidence import resolve_native_geometry
+        resolve_native_geometry(position, positions,
+            EvidenceTools(context, record, index, result['sources'], kb, data.get('facts') or {}), result)
     # Anchor repair can change a sum's scope quote. Freeze transferred geometry
     # only after that repair, as on the initial agent path: its proof must bind
     # the actual proposals consumed by enrich/publish, not an earlier envelope.

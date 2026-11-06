@@ -106,6 +106,7 @@ offset здесь — курсор страниц результатов (пер
 read_page(page, offset): следующие 3500 символов физической страницы;
 read_source(source_id, offset): дочитать конкретный источник; его текст не исчезает;
 read_table(page, table_id, row_ids, column_ids): точные строки и столбцы с заголовками
+Можно указать source_id известной ячейки или суммы одной таблицы вместо page/table_id.
 и ID ячеек. Каталог tables содержит columns и total_rows. Для общего количества
 читай итоговые строки, а не первые строки заголовка. Различай Итог по участку и Всего.
 Одинаковое число в колонке другого материала не является основанием.
@@ -211,9 +212,10 @@ def model_result(result, budget=10000):
         if isinstance(value, dict):
             keys = sorted(value, key=lambda k: (k not in {'rows','source_id','page','table_id','value','operands',
                 'discovery_only','parameter_mismatches','scope_verified','recognition_verified','header_observations',
-                'parameter_match_state','missing_parameters','header_id','read_request','next_line_offset','row_measurements'},))
+                'parameter_match_state','missing_parameters','header_id','read_request','next_line_offset',
+                'row_measurements','engineering_paths'},))
             return {k: shrink(value[k]) for k in keys
-                if k not in {'coverage','cells','bbox','cell_id','header_ids'}}
+                if k not in {'coverage','cells','bbox','cell_id','header_ids','full_engineering_paths'}}
         if isinstance(value, list):
             return [shrink(v) for v in value]
         return value
@@ -365,6 +367,7 @@ class EvidenceTools:
 
     def __init__(self, context, record, index, sources, kb, facts):
         self._reset(sources, kb, facts)
+        self.position_index = index
         self.context, self.record = context, record
         self.blob_store = context.blob_store
         try:
@@ -533,6 +536,12 @@ class EvidenceTools:
         if request.tool == 'read_page' and request.bbox:
             from normative_drawing_tool import render_region
             return render_region(self, request)
+        if request.tool == 'read_table' and request.source_id:
+            from normative_table_navigation import resolve
+            address = resolve(self, request)
+            if isinstance(address, dict):
+                return address
+            request = address
         from normative_multidoc import route
         routed=route(self,request)
         result = routed if routed is not None else self._execute_single(request)
@@ -610,10 +619,13 @@ class EvidenceTools:
         if request.tool == 'search_norms':
             if self.kb is None:
                 return {'error': 'normative_kb_unavailable'}
+            from normative_collection_context import definition_links, ranked_collection_context
             from normative_service import candidate
             from normative_source_registry import full_text_handle
             results = []
-            for hit in search_evidence(self.kb, request.query, self.facts, limit=3):
+            definitions = {}
+            hits = search_evidence(self.kb, request.query, self.facts, limit=3)
+            for hit in hits:
                 item = candidate(self.kb, hit, self.facts)
                 if not item['citations']:
                     continue
@@ -621,13 +633,24 @@ class EvidenceTools:
                 source = dict(id=full_text_handle('agent:n:'+str(item['id']),item['text']), kind='normative',
                     source_id=ref['source_id'], page=ref['page'], label=item['designation']+' · '+item['code'],
                     origin=item['extraction_status'], text=item['text'])
-                results.append(self._add(source))
+                receipt = self._add(source)
+                results.append(receipt)
+                if item['entity_kind'] == 'norm' and 'source_id' in receipt:
+                    definitions[item['id']] = source['id']
                 # A deliberately requested new source must survive packing.
                 # Otherwise a late raster label can disappear again behind the
                 # generic 1300-character normative preview after being found.
                 self.preferred.append(source['id'])
                 results.extend(self._add(resource) for resource in resource_sources(item,source['id'],evidence_trace=self.events))
-            return {'results': results}
+            technical = ranked_collection_context(self.kb, hits, expected_pin=getattr(self.kb, 'identity', None))
+            routes = []
+            for card, chunk in zip(technical['sources'], technical['context']['literal_chunks'], strict=True):
+                matches = definition_links(chunk, definitions)
+                if matches and 'source_id' in self._add(card):
+                    self.preferred.append(card['id'])
+                    routes.append(dict(source_id=card['id'], matches=matches))
+            return dict(results=results, technical_context=dict(state=technical['reason'],
+                warnings=technical['warnings'], routes=routes))
         if self.index is None or not self.version:
             return {'error': 'prepared_corpus_unavailable', 'coverage': self.coverage}
         if request.tool in {'search_project', 'search_tables'}:
@@ -672,6 +695,7 @@ class EvidenceTools:
         selected = [c for c in cells if (c['row'] in request.row_ids if request.row_ids else request.offset <= c['row'] < request.offset+4)
             and (not request.column_ids or c['column'] in request.column_ids)]
         output = []
+        engineering_paths = []
         header_parameters=[]
         from pdf_saved_evidence import header_geometry
         for header in cells:
@@ -717,6 +741,12 @@ class EvidenceTools:
             from pdf_source_links import source_link
             link=source_link(self.index,self.version,request.page,table,cell)
             invalid_geometry=link['state'] in {'invalid_geometry','source_geometry_requires_review'}
+            if request.source_id and len(engineering_paths) < 4:
+                from normative_engineering_evidence import table_evidence_path
+                path = table_evidence_path(table, cell, version=self.version, page=request.page,
+                    source_id=cell_id, source_anchor=link, unit=resolved_unit or '')
+                if path:
+                    engineering_paths.append(path)
             output.append(self._add(dict(id=cell_id, kind='project',
                 **({'table_scope_context':scope_context} if scope_context else {}),
                 version_id=self.version, page=request.page, label=self.filename,
@@ -729,6 +759,8 @@ class EvidenceTools:
                 unit_verified=bool(resolved_unit) and not invalid_geometry,unit=resolved_unit,
                 origin=(cell.get('origin', table.get('origin', 'uncertain_table'))
                     if cell.get('quality', 'usable') == 'usable' and not invalid_geometry else 'uncertain_table'))))
+            if not invalid_geometry and 'source_id' in output[-1]:
+                output[-1]['read_request'] = dict(tool='read_table', source_id=cell_id)
             if request.row_ids and request.column_ids:
                 self.preferred.append(cell_id)
         from normative_retrieval import terms
@@ -762,7 +794,26 @@ class EvidenceTools:
             if 'source_id' in registered:
                 row_measurements.append(dict(row['preview'], source_id=registered['source_id'],
                     measurement_kind='native_scalar_row'))
-        return {'row_measurements':row_measurements,'header_observations':observations,'cells': output, 'header_parameters':header_parameters, 'matching_rows': matching_rows, 'columns': table_outline(table)['columns'], 'rows': [dict(**{k: c[k] for k in ('cell_id', 'row', 'column', 'text', 'header_ids', 'bbox', 'quality', 'numeric_verified','row_scope') if k in c},
+        paths = {}
+        if engineering_paths:
+            from normative_engineering_evidence import compact_evidence_path, engineering_path_links
+            registered = {entry.get('source_id') for entry in output}
+            engineering_paths = [path for path in engineering_paths if path['source_id'] in registered]
+            source_map = {source['id']: source for source in self.sources}
+            graph = getattr(self, 'engineering_graph', None) or {}
+            position_index = getattr(self, 'position_index', None)
+            for path in engineering_paths:
+                sid = path['source_id']
+                routes = (engineering_path_links(graph, sid, position_index)
+                          if position_index is not None and source_map[sid] in graph.get('sources', []) else [])
+                path['verified_routes'] = routes
+                if any(route['evidence_role'] == 'direct' for route in routes):
+                    path['missing_links'] = [gap for gap in path['missing_links']
+                        if gap['link'] not in {'fact_to_subject', 'subject_to_vor_position'}]
+            paths = dict(engineering_paths=[dict(compact_evidence_path(path) or {},
+                    verified_routes=path['verified_routes'][:3]) for path in engineering_paths],
+                full_engineering_paths=engineering_paths)
+        return {**paths, 'row_measurements':row_measurements,'header_observations':observations,'cells': output, 'header_parameters':header_parameters, 'matching_rows': matching_rows, 'columns': table_outline(table)['columns'], 'rows': [dict(**{k: c[k] for k in ('cell_id', 'row', 'column', 'text', 'header_ids', 'bbox', 'quality', 'numeric_verified','row_scope') if k in c},
             **output[i]) for i,c in enumerate(selected)], 'next_offset': request.offset+4, 'row_count': table['row_count']}
 
     def _sum(self, request):

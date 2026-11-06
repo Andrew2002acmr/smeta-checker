@@ -252,6 +252,16 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
     actions = []
 
     def append(key, family, references, *, card=None, item=None):
+        spec, verification, method_routes = None, {}, []
+        if key.startswith('claim:'):
+            from normative_verification_contract import contract
+            claim = key.removeprefix('claim:')
+            spec = semantic_specs.get(claim)
+            verification = contract(claim, spec)
+            if spec and verification.get('property') == 'equipment_function':
+                from normative_work_method import method_candidates
+                method_routes = method_candidates(spec.expected_text, spec.claim_id, sources.values())
+                references = [*references, *(route['source_id'] for route in method_routes)]
         parameter = (('quantity' if card['id'] == 'input:area' else card['id'])
             if card and card['id'] in {'quantity','thickness','input:area'} else
             'coefficient' if card and card.get('role') == 'coefficient' else
@@ -281,12 +291,6 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
         if unread and not unreadable and not (set(refs) - sources.keys()) and dependency is None:
             action = 'read_registered_source'
         numeric = {k: card.get(k) for k in ('id', 'state', 'declared_value', 'found_value', 'unit', 'found_unit')} if card else None
-        spec, verification = None, {}
-        if key.startswith('claim:'):
-            from normative_verification_contract import contract
-            claim = key.removeprefix('claim:')
-            spec = semantic_specs.get(claim)
-            verification = contract(claim, spec)
         reason = ((card or item or {}).get('reason') or (item or {}).get('explanation')
                   or _open_reason(verification, spec, card))
         actions.append(dict(key=key, family=family, state=state, action=action,
@@ -303,6 +307,8 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
             # A changed proof obligation is new work even with the same sources.
             actions[-1]['retry_fingerprint'] = _identity([
                 actions[-1]['retry_fingerprint'], actions[-1]['verification']])
+        if method_routes:
+            actions[-1]['method_candidate_routes'] = method_routes
 
     for claim in sorted(open_claims):
         relevant = [i for i in items if claim in i.get('claim_ids', []) and i.get('state') != 'confirmed']
