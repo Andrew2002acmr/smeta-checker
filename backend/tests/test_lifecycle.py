@@ -494,12 +494,14 @@ class LifecycleTests(unittest.TestCase):
             repo = open_repository(_postgres_url(), FileBlobStore(tmp))
             repo.reset_for_tests()
             project = repo.create_project("Параллельные редакции")
+            department_id = repo.list_departments(project.id)[0]["id"]
             first = repo.add_document_version(
                 project.id,
                 _vor_with_headers(),
                 filename="vor.xlsx",
                 kind="vor",
                 new_document=True,
+                department_id=department_id,
             )
 
             def upload(quantity):
@@ -529,7 +531,7 @@ class LifecycleTests(unittest.TestCase):
                 repeated = list(executor.map(duplicate, range(2)))
             self.assertEqual(repeated[0].id, repeated[1].id)
             self.assertEqual(repeated[0].version_no, 4)
-    def test_delete_project_cascades_runs_documents_and_pins(self):
+    def test_project_hard_delete_route_is_gone_and_archive_keeps_runs(self):
         with tempfile.TemporaryDirectory(prefix="smeta-lifecycle-") as tmp:
             client, app = self._open_app(tmp)
             project_id = self._project(client, "Под снос")
@@ -558,23 +560,17 @@ class LifecycleTests(unittest.TestCase):
                 f"/api/v1/projects/{project_id}", json={"archived": True}
             )
             self.assertEqual(archived.status_code, 200, archived.text)
-            deleted = client.delete(f"/api/v1/projects/{project_id}")
-            self.assertEqual(deleted.status_code, 200, deleted.text)
-            self.assertEqual(deleted.json()["id"], project_id)
+            gone = client.delete(f"/api/v1/projects/{project_id}")
+            self.assertEqual(gone.status_code, 405, gone.text)
             self.assertEqual(
-                client.get(f"/api/v1/projects/{project_id}").status_code, 404
+                client.get(f"/api/v1/projects/{project_id}").status_code, 200
             )
             self.assertEqual(
-                client.get(
-                    f"/api/v1/projects/{project_id}/catalog"
-                ).status_code,
-                404,
-            )
-            self.assertEqual(
-                client.get(f"/api/v1/audits/{run_id}").status_code, 404
+                client.get(f"/api/v1/audits/{run_id}").status_code, 200
             )
             names = [p["name"] for p in client.get("/api/v1/projects").json()]
             self.assertNotIn("Под снос", names)
+
 
     def test_migration_backfills_pins_without_moving_uuids(self):
         from storage_blobs import FileBlobStore
@@ -584,12 +580,14 @@ class LifecycleTests(unittest.TestCase):
             repo = open_repository(_postgres_url(), blob_store=FileBlobStore(tmp))
             repo.reset_for_tests()
             project = repo.create_project("Легаси")
+            department_id = repo.list_departments(project.id)[0]["id"]
             vor = repo.add_document_version(
                 project.id,
                 fixtures._fake_vor_bytes(),
                 filename="vor.csv",
                 kind="vor",
                 new_document=True,
+                department_id=department_id,
             )
             pdf = repo.add_document_version(
                 project.id,
@@ -597,6 +595,7 @@ class LifecycleTests(unittest.TestCase):
                 filename="project.pdf",
                 kind="pdf",
                 new_document=True,
+                department_id=department_id,
             )
             run = repo.create_run(
                 project.id,

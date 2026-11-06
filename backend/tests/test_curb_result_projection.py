@@ -17,12 +17,14 @@ def test_compact_database_projection_matches_full_curb_review_and_quantity(tmp_p
     repo = open_repository(_postgres_url(), blob_store=FileBlobStore(tmp_path))
     try:
         project_row = repo.create_project("Scoped quantity projection integration")
+        department_id = repo.list_departments(project_row.id)[0]["id"]
         vor = repo.add_document_version(
             project_row.id,
             b"isolated workbook",
             filename="vor.xlsx",
             kind="vor",
             new_document=True,
+            department_id=department_id,
         )
         run = repo.create_run(project_row.id, vor.id, {})
         repo.save_normative_review(

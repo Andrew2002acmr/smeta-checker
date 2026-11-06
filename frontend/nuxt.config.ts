@@ -24,6 +24,13 @@ export default defineNuxtConfig({
   icon: {
     clientBundle: {
       icons: [
+        'lucide:zap',
+        'lucide:droplets',
+        'lucide:calculator',
+        'lucide:leaf',
+        'lucide:building-2',
+        'lucide:route',
+        'lucide:map-pinned',
         'lucide:archive',
         'lucide:archive-restore',
         'lucide:arrow-left',

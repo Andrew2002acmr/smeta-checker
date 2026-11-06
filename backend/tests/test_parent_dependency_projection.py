@@ -12,7 +12,8 @@ def test_compact_result_keeps_parent_fact_proof_and_its_geometry_sources(tmp_pat
     repo=open_repository(_postgres_url(),blob_store=FileBlobStore(tmp_path))
     try:
         project=repo.create_project('Independent parent facts projection')
-        vor=repo.add_document_version(project.id,b'isolated workbook',filename='vor.xlsx',kind='vor',new_document=True)
+        department_id = repo.list_departments(project.id)[0]["id"]
+        vor=repo.add_document_version(project.id,b'isolated workbook',filename='vor.xlsx',kind='vor',new_document=True,department_id=department_id)
         run=repo.create_run(project.id,vor.id,{})
         repo.save_normative_review(run.id,1,'check',dict(position_key='key',position_check=review),'test')
         compact=repo.normative_validation_context(run.id)[1]['review']

@@ -472,6 +472,27 @@ class RunCountDTO(DTO):
     count: int
 
 
+class DepartmentDTO(DTO):
+    id: str
+    project_id: str
+    name: str
+    icon: str
+    is_system: bool = False
+    created_at: datetime | None = None
+    vor_count: int = 0
+    pdf_count: int = 0
+    run_count: int = 0
+    running_count: int = 0
+
+
+class DepartmentCreate(DTO):
+    name: str = Field(min_length=1, max_length=256)
+
+
+class DepartmentUpdate(DTO):
+    name: str = Field(min_length=1, max_length=256)
+
+
 class ProjectCreate(DTO):
     name: str = Field(min_length=1, max_length=256)
 
@@ -501,6 +522,7 @@ class DocumentMetadataDTO(DTO):
 class VersionDTO(DTO):
     id: str
     project_id: str
+    department_id: str | None = None
     document_id: str
     filename: str
     kind: Literal["vor", "pdf"]
@@ -518,6 +540,7 @@ class RunDTO(DTO):
     normative_counts: dict[str, int] = Field(default_factory=dict)
     run_id: str
     project_id: str
+    department_id: str | None = None
     vor_version_id: str
     vor_filename: str
     status: Literal["running", "done", "failed", "cancelled"]
@@ -536,6 +559,7 @@ class RunDTO(DTO):
 class DocumentDTO(DTO):
     id: str
     project_id: str
+    department_id: str | None = None
     kind: Literal["vor", "pdf"]
     title: str
     archived: bool = False
