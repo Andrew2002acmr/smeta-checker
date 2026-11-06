@@ -249,7 +249,9 @@ def project(position, result, tools, materials, *, positions=None):
                     and other_section in {'sidewalk', 'exits', 'stops'}
                     and other_section != own_section):
                 foreign.add(p['source_id'])
-    if any(p.get('scope_state') == 'verified' and p != proposal and p not in covered
+    # A bare scope flag without an evidence handle is an incomplete answer.
+    # It cannot conflict with a freshly read and physically checked source.
+    if any(p.get('scope_state') == 'verified' and p.get('source_id') and p != proposal and p not in covered
            and p['source_id'] not in foreign for p in original):
         return False
     preview = deepcopy(result)
@@ -279,7 +281,7 @@ def project(position, result, tools, materials, *, positions=None):
                 source_id=source['id'], value=depth[2], unit=depth[3], quote=depth[0],
                 scope_quote=scope, scope_state='verified')
             other = [p for p in preview['parameter_proposals'] if p['parameter'] == 'thickness'
-                and p.get('scope_state') == 'verified'
+                and p.get('scope_state') == 'verified' and p.get('source_id')
                 and measure(p['value'], p['unit']) != measure(depth[2], depth[3])]
             if not other:
                 preview['parameter_proposals'] = [p for p in preview['parameter_proposals']

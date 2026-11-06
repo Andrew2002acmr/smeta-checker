@@ -113,6 +113,18 @@ def test_complete_pair_and_blank_depth_are_bound_without_model():
     assert not project(positions[0], result, tools, materials, positions=positions)
 
 
+def test_empty_model_source_does_not_veto_independent_schedule_proof():
+    positions, result, tools, materials = fixture()
+    result['parameter_proposals'] = [
+        dict(parameter=parameter, scope_state='verified', source_id='', value='500', unit=unit)
+        for parameter, unit in [('quantity', 'м2'), ('thickness', 'см')]
+    ]
+    assert project(positions[0], result, tools, materials, positions=positions)
+    cards = {c['id']: c for c in build_cards(positions[0], result, positions, {})}
+    assert cards['quantity']['found_value'] == '30'
+    assert cards['thickness']['found_value'] == '22'
+
+
 def test_existing_direct_parts_are_replaced_by_their_proven_whole():
     positions, result, tools, materials = fixture()
     assert project(positions[0], result, tools, materials, positions=positions)

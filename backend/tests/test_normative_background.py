@@ -176,6 +176,8 @@ def test_parent_fact_change_revalidates_only_formal_existing_child_without_paid_
     p.repo.save_normative_review(p.run.id,1,'check',child,'synthetic-child')
     p.repo.save_normative_review(p.run.id,2,'check',neighbour,'synthetic-neighbour')
     parent = saved(0,work_relations={'children':[{'material_index':1},{'material_index':2}]})
+    from test_normative_followup_lifecycle import geometry_payload
+    parent['position_check'] = geometry_payload()['position_check']
     p.repo.save_normative_review(p.run.id,0,'check',parent,'synthetic-parent')
     jobs = p.repo.reserve_deliveries()
     assert len(jobs)==1 and jobs[0]['payload']['position_index']==1
