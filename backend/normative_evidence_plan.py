@@ -86,6 +86,30 @@ def _family(claim):
     return 'claim_identity'
 
 
+def _open_reason(verification, spec, card):
+    """Name the missing verification without claiming the source is absent."""
+    if card is not None:
+        label = card.get('label') or card['id']
+        return f'Проверка «{label}» пока не имеет подтверждённого основания в текущем заключении.'
+    expected = ' '.join((getattr(spec, 'expected_text', '') or getattr(spec, 'label', '')).split())
+    subject = f' «{expected[:240]}»' if expected else ''
+    if verification.get('property') == 'equipment_function':
+        return (f'Для указанной операции{subject} не привязано доказательство, '
+                'что функция или класс машины соответствует условиям применимой нормы и условиям проекта.')
+    relation = verification.get('relation')
+    if relation == 'same_subject_and_project_value':
+        return f'Не привязан факт ПД{subject} о том же участке, конструкции и проверяемом параметре.'
+    if relation == 'condition_applies_to_project_facts':
+        return (f'Не привязано доказательство применимости нормативного условия{subject} '
+                'к проверяемой проектной операции и её характеристикам.')
+    if relation == 'operands_units_and_derivation':
+        return f'Не установлена проверяемая цепочка исходных величин, единиц и расчёта{subject}.'
+    if relation == 'satisfies_project_constraints':
+        return (f'Для требования ВОР{subject} не привязано проектное основание '
+                'или проверяемое обоснование совместимости с условиями ПД.')
+    return f'В текущем заключении нет проверяемой привязки к обязательному требованию{subject}.'
+
+
 def _appendix_candidate(position, review, sources):
     """Plan from a bound derived candidate; never treat it as certification.
 
@@ -257,20 +281,25 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
         if unread and not unreadable and not (set(refs) - sources.keys()) and dependency is None:
             action = 'read_registered_source'
         numeric = {k: card.get(k) for k in ('id', 'state', 'declared_value', 'found_value', 'unit', 'found_unit')} if card else None
+        spec, verification = None, {}
+        if key.startswith('claim:'):
+            from normative_verification_contract import contract
+            claim = key.removeprefix('claim:')
+            spec = semantic_specs.get(claim)
+            verification = contract(claim, spec)
+        reason = ((card or item or {}).get('reason') or (item or {}).get('explanation')
+                  or _open_reason(verification, spec, card))
         actions.append(dict(key=key, family=family, state=state, action=action,
             dependency_position=dependency, source_ids=refs, unreadable_source_ids=unreadable,
             model_delivery=delivery,
             read_requests=[dict(tool='read_source',source_id=sid,
                 offset=delivery['next_offset_by_source'].get(sid, 0)) for sid in unread]
                 if action == 'read_registered_source' else [],
-            proposal_count=len(proposals), reason=(card or item or {}).get('reason') or
-                (item or {}).get('explanation', ''),
+            proposal_count=len(proposals), reason=reason,
             retry_fingerprint=_identity([scope, key, numeric, available, proposals,
                 delivery['source_states'],delivery['next_offset_by_source']])))
-        if key.startswith('claim:'):
-            from normative_verification_contract import contract
-            claim = key.removeprefix('claim:')
-            actions[-1]['verification'] = contract(claim, semantic_specs.get(claim))
+        if verification:
+            actions[-1]['verification'] = verification
             # A changed proof obligation is new work even with the same sources.
             actions[-1]['retry_fingerprint'] = _identity([
                 actions[-1]['retry_fingerprint'], actions[-1]['verification']])

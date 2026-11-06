@@ -140,6 +140,28 @@ def test_late_context_loss_is_not_hidden_by_an_earlier_complete_context():
     assert task["model_delivery"]["source_states"]["rule"] == "not_sent"
 
 
+def test_open_obligations_explain_missing_binding_from_the_verification_contract():
+    from test_normative_context_packing import CAPTURES
+
+    position = dict(CAPTURES[0]["metadata"]["position"])
+    position["work_name"] = position["work"]
+    equipment = "method:comment:equipment:1"
+    note = "attribute:comment:separate_notes"
+    matching = dict(checks=[dict(claim_id=claim, state="unknown") for claim in (equipment, note)])
+    review = open_review([])
+    review["parameter_cards"] = [dict(id="thickness", label="Толщина слоя", state="needs_facts")]
+    plan = build_work_plan(position, review, matching)
+    actions = {action["key"]: action for action in plan["actions"]}
+    machine = actions[f"claim:{equipment}"]
+    assert machine["state"] == "no_bound_evidence"
+    assert machine["verification"]["property"] == "equipment_function"
+    assert "функция или класс машины" in machine["reason"]
+    assert "уплотнен" in machine["reason"].casefold()
+    assert "обоснование совместимости с условиями ПД" in actions[f"claim:{note}"]["reason"]
+    assert "Толщина слоя" in actions["card:thickness"]["reason"]
+    assert not plan["policy"]["manual_missing_document_established"]
+
+
 def test_legacy_changed_or_missing_sources_never_acquire_delivery_proof():
     sources = [
         dict(
