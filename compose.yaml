@@ -235,33 +235,6 @@ services:
       retries: 3
       start_period: 60s
 
-  worker-normative:
-    extends:
-      service: worker-pdf
-    environment:
-      AUDIT_TASK_TIME_LIMIT: "240"
-      AUDIT_TASK_SOFT_TIME_LIMIT: "210"
-      NORMATIVE_KB_ROOT: /knowledge/electrical-norms
-      NORMATIVE_ROAD_KB_ROOT: /knowledge/road-norms
-      NORMATIVE_SQLITE_CACHE_DIR: /srv/smeta/.normative-sqlite-cache
-    volumes:
-      - normcache:/srv/smeta/.normative-sqlite-cache
-      - type: bind
-        source: ${NORMATIVE_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/electrical-norms}
-        target: /knowledge/electrical-norms
-        read_only: true
-        bind:
-          create_host_path: false
-      - type: bind
-        source: ${NORMATIVE_ROAD_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/road-norms}
-        target: /knowledge/road-norms
-        read_only: true
-        bind:
-          create_host_path: false
-    command: ["celery", "-A", "audit_tasks:worker", "worker", "-Q", "normative", "-c", "${AUDIT_NORMATIVE_CONCURRENCY:-2}", "--loglevel=INFO", "--max-memory-per-child", "750000", "--max-tasks-per-child", "25", "-n", "normative-worker@%h", "--pidfile", "/tmp/celery-normative.pid"]
-    healthcheck:
-      test: ["CMD-SHELL", "kill -0 $(cat /tmp/celery-normative.pid)"]
-
   worker-llm:
     build:
       context: ./backend
@@ -288,6 +261,9 @@ services:
       AUDIT_ALLOWED_LLM_HOSTS: ${AUDIT_ALLOWED_LLM_HOSTS:-ai.api.cloud.yandex.net}
       AUDIT_TASK_TIME_LIMIT: ${AUDIT_TASK_TIME_LIMIT:-600}
       AUDIT_TASK_SOFT_TIME_LIMIT: ${AUDIT_TASK_SOFT_TIME_LIMIT:-540}
+      NORMATIVE_KB_ROOT: /knowledge/electrical-norms
+      NORMATIVE_ROAD_KB_ROOT: /knowledge/road-norms
+      NORMATIVE_SQLITE_CACHE_DIR: /srv/smeta/.normative-sqlite-cache
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
       LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
@@ -299,6 +275,19 @@ services:
     volumes:
       - blobs:/srv/smeta/.audit_blobs
       - pdfcache:/srv/smeta/.audit_cache
+      - normcache:/srv/smeta/.normative-sqlite-cache
+      - type: bind
+        source: ${NORMATIVE_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/electrical-norms}
+        target: /knowledge/electrical-norms
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${NORMATIVE_ROAD_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/road-norms}
+        target: /knowledge/road-norms
+        read_only: true
+        bind:
+          create_host_path: false
     command:
       - celery
       - -A
