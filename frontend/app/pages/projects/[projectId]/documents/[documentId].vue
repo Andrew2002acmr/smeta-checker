@@ -41,6 +41,7 @@ const preflightError = ref('')
 const acknowledged = ref(false)
 const starting = ref(false)
 const startedRunId = ref('')
+const normativeProfile = ref<'roads' | 'electrical'>('roads')
 let preflightEpoch = 0
 
 const metadataBusy = ref(false)
@@ -430,6 +431,7 @@ async function checkAndStart() {
     const value = await backend.preflight({
       project_id: projectId.value,
       vor_version_id: revision.id,
+      normative_profile: normativeProfile.value,
     })
     if (current !== preflightEpoch) return
     preflight.value = value
@@ -465,6 +467,7 @@ async function startAudit() {
     const created = await backend.start({
       project_id: projectId.value,
       vor_version_id: revision.id,
+      normative_profile: normativeProfile.value,
     })
     if (!active) return
     startedRunId.value = created.run_id
@@ -810,6 +813,13 @@ onBeforeUnmount(() => {
             </p>
           </div>
           <div class="preflight-block">
+            <label class="profile-row">
+              Нормативный профиль
+              <select v-model="normativeProfile" aria-label="Нормативный профиль">
+                <option value="roads">Дороги · ГЭСН27/47</option>
+                <option value="electrical">Электрика · ГЭСНм08</option>
+              </select>
+            </label>
             <div class="toolbar">
               <UButton
                 color="primary"

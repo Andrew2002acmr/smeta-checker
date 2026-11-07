@@ -42,6 +42,7 @@ test('image-only PDF: multiple regions across pages, real crop OCR, corrections 
       project_id: project.id,
       vor_version_id: uploads[0].version_id,
       pdf_version_ids: [uploads[1].version_id],
+      normative_profile: 'roads',
     },
   })
   expect(started.ok()).toBeTruthy()

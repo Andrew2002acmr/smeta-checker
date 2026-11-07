@@ -1031,6 +1031,7 @@ onBeforeUnmount(() => {
 
               <template #dossier>
                 <div class="aw-dossier-pane excel-pane">
+                  <AssessmentPanel :assessment="workspace.row.assessment" />
                   <NormativePanel
                     :key="`${runId}:${positionIndex}`"
                     :run-id="runId"

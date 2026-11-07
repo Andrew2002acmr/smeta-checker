@@ -127,6 +127,7 @@ test('one click selects exactly one table row with a matching preview and saved 
       project_id: project.id,
       vor_version_id: (await vor.json()).version_id,
       pdf_version_ids: [(await pdf.json()).version_id],
+      normative_profile: 'roads',
     },
     headers: { Origin: process.env.FRONTEND_URL! },
   })

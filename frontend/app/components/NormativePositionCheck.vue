@@ -163,26 +163,7 @@ function parsePages(value: string) {
   return unique
 }
 async function check() {
-  error.value = ''
-  let selected: number[]
-  try {
-    selected = parsePages(pages.value)
-  } catch (e) {
-    error.value = readableError(e)
-    return
-  }
-  busy.value = true
-  try {
-    review.value = await backend.checkNormativePosition(props.runId, props.positionIndex, {
-      question: props.question,
-      pages: selected,
-    })
-    emit('completed', review.value)
-  } catch (e) {
-    error.value = readableError(e)
-  } finally {
-    busy.value = false
-  }
+  error.value = 'Ручная нормативная проверка заменена единой оценкой позиции.'
 }
 </script>
 

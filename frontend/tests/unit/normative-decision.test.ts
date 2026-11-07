@@ -34,9 +34,26 @@ describe('engineer decision', () => {
     expect(normativeDecision(result('needs_facts', false)).issues).toEqual([])
   })
   it('keeps correct, wrong and still processing outcomes distinct', () => {
-    expect(normativeDecision(result('confirmed'), { queue: 'ok', problem: '' }).title).toBe(
-      'Можно оставить без изменений',
-    )
+    const assessment = {
+      revision: 'a'.repeat(64),
+      run_id: 'run-1',
+      position_index: 0,
+      execution_revision: 0,
+      normative: { state: 'confirmed', obligations: [] },
+      completion: 'complete',
+    }
+    expect(
+      normativeDecision(result('confirmed'), { queue: 'ok', problem: '', assessment }).title,
+    ).toBe('Можно оставить без изменений')
+    const incomplete = {
+      ...assessment,
+      normative: { state: 'needs_facts', obligations: [] },
+      completion: 'incomplete',
+    }
+    expect(
+      normativeDecision(result('confirmed'), { queue: 'ok', problem: '', assessment: incomplete })
+        .title,
+    ).toBe('Не хватает подтверждения')
     const wrong = result('possible_mismatch')
     wrong.parameter_cards![0]!.found_value = '400'
     expect(

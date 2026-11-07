@@ -1,9 +1,429 @@
 {
   "components": {
     "schemas": {
+      "AssessmentActionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Expected Revision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_revision"
+        ],
+        "title": "AssessmentActionRequest",
+        "type": "object"
+      },
+      "AssessmentDirection": {
+        "additionalProperties": false,
+        "properties": {
+          "obligations": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentObligation"
+            },
+            "maxItems": 64,
+            "title": "Obligations",
+            "type": "array"
+          },
+          "state": {
+            "default": "pending",
+            "enum": [
+              "confirmed",
+              "needs_facts",
+              "possible_mismatch",
+              "not_applicable",
+              "pending"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "summary": {
+            "default": "",
+            "maxLength": 4000,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "title": "AssessmentDirection",
+        "type": "object"
+      },
+      "AssessmentExecution": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Error",
+            "type": "string"
+          },
+          "http_attempts": {
+            "default": 0,
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Http Attempts",
+            "type": "integer"
+          },
+          "state": {
+            "default": "pending",
+            "enum": [
+              "pending",
+              "running",
+              "complete",
+              "technical_failure",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "stop_reason": {
+            "default": "",
+            "maxLength": 512,
+            "title": "Stop Reason",
+            "type": "string"
+          },
+          "tool_executions": {
+            "default": 0,
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Tool Executions",
+            "type": "integer"
+          }
+        },
+        "title": "AssessmentExecution",
+        "type": "object"
+      },
+      "AssessmentFact": {
+        "additionalProperties": false,
+        "description": "Addressable evidence leaf shared across directions.",
+        "properties": {
+          "calculation_state": {
+            "default": "not_applicable",
+            "enum": [
+              "verified",
+              "unresolved",
+              "not_applicable"
+            ],
+            "title": "Calculation State",
+            "type": "string"
+          },
+          "dimension": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dimension"
+          },
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "literal_state": {
+            "default": "unresolved",
+            "enum": [
+              "verified",
+              "unresolved"
+            ],
+            "title": "Literal State",
+            "type": "string"
+          },
+          "operand_source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Operand Source Ids",
+            "type": "array"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "parameter": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Parameter",
+            "type": "string"
+          },
+          "quote": {
+            "default": "",
+            "maxLength": 2400,
+            "title": "Quote",
+            "type": "string"
+          },
+          "role": {
+            "default": "output",
+            "maxLength": 32,
+            "title": "Role",
+            "type": "string"
+          },
+          "scope_quote": {
+            "default": "",
+            "maxLength": 2400,
+            "title": "Scope Quote",
+            "type": "string"
+          },
+          "source_id": {
+            "default": "",
+            "maxLength": 256,
+            "title": "Source Id",
+            "type": "string"
+          },
+          "subject_state": {
+            "default": "unresolved",
+            "enum": [
+              "verified",
+              "unresolved"
+            ],
+            "title": "Subject State",
+            "type": "string"
+          },
+          "unit": {
+            "default": "",
+            "maxLength": 32,
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Value",
+            "type": "string"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          }
+        },
+        "required": [
+          "id",
+          "parameter"
+        ],
+        "title": "AssessmentFact",
+        "type": "object"
+      },
+      "AssessmentObligation": {
+        "additionalProperties": false,
+        "description": "One checkable obligation with provenance, not a verdict sentence.",
+        "properties": {
+          "basis": {
+            "default": "",
+            "maxLength": 800,
+            "title": "Basis",
+            "type": "string"
+          },
+          "comparable": {
+            "default": true,
+            "title": "Comparable",
+            "type": "boolean"
+          },
+          "domain": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Domain",
+            "type": "string"
+          },
+          "fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "title": "Fact Ids",
+            "type": "array"
+          },
+          "gap": {
+            "default": "",
+            "maxLength": 800,
+            "title": "Gap",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "mismatch_level": {
+            "anyOf": [
+              {
+                "enum": [
+                  "proved",
+                  "suspected"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mismatch Level"
+          },
+          "policy": {
+            "default": "blocking",
+            "enum": [
+              "blocking",
+              "advisory",
+              "not_applicable"
+            ],
+            "title": "Policy",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Reason",
+            "type": "string"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "requirement": {
+            "default": "",
+            "maxLength": 1600,
+            "title": "Requirement",
+            "type": "string"
+          },
+          "source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "title": "Source Ids",
+            "type": "array"
+          },
+          "state": {
+            "default": "pending",
+            "enum": [
+              "confirmed",
+              "needs_facts",
+              "possible_mismatch",
+              "not_applicable",
+              "pending"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "domain",
+          "subject"
+        ],
+        "title": "AssessmentObligation",
+        "type": "object"
+      },
+      "AssessmentSource": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "default": "project",
+            "enum": [
+              "project",
+              "normative",
+              "workbook"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "maxLength": 512,
+            "title": "Label",
+            "type": "string"
+          },
+          "origin": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Origin",
+            "type": "string"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "text": {
+            "default": "",
+            "maxLength": 12000,
+            "title": "Text",
+            "type": "string"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "AssessmentSource",
+        "type": "object"
+      },
       "AuditCreateRequest": {
         "additionalProperties": false,
         "properties": {
+          "normative_profile": {
+            "enum": [
+              "roads",
+              "electrical"
+            ],
+            "title": "Normative Profile",
+            "type": "string"
+          },
           "pdf_version_ids": {
             "items": {
               "type": "string"
@@ -35,7 +455,8 @@
           }
         },
         "required": [
-          "vor_version_id"
+          "vor_version_id",
+          "normative_profile"
         ],
         "title": "AuditCreateRequest",
         "type": "object"
@@ -3441,6 +3862,99 @@
         "title": "NormativeWorkbenchSearchDTO",
         "type": "object"
       },
+      "OwnQuantity": {
+        "additionalProperties": false,
+        "description": "The row's own declared amount, assessed separately from its inputs.",
+        "properties": {
+          "basis": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Basis",
+            "type": "array"
+          },
+          "conditions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Conditions",
+            "type": "array"
+          },
+          "declared_value": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Declared Value",
+            "type": "string"
+          },
+          "explanation": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Explanation",
+            "type": "string"
+          },
+          "found_unit": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Found Unit"
+          },
+          "found_value": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Found Value"
+          },
+          "kind": {
+            "default": "direct",
+            "enum": [
+              "direct",
+              "derived"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "operands": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Operands",
+            "type": "array"
+          },
+          "state": {
+            "default": "unresolved",
+            "enum": [
+              "confirmed",
+              "conditional",
+              "unresolved"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "unit": {
+            "default": "",
+            "maxLength": 32,
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "title": "OwnQuantity",
+        "type": "object"
+      },
       "PdfBindingsDTO": {
         "additionalProperties": false,
         "properties": {
@@ -3511,6 +4025,126 @@
           "reason"
         ],
         "title": "PdfRegionDTO",
+        "type": "object"
+      },
+      "PositionAssessment": {
+        "additionalProperties": false,
+        "properties": {
+          "completion": {
+            "default": "pending",
+            "enum": [
+              "pending",
+              "complete",
+              "incomplete",
+              "unknown"
+            ],
+            "title": "Completion",
+            "type": "string"
+          },
+          "contract": {
+            "const": "assessment-obligations-v1",
+            "default": "assessment-obligations-v1",
+            "title": "Contract",
+            "type": "string"
+          },
+          "engine": {
+            "const": "langgraph-evidence-v1",
+            "default": "langgraph-evidence-v1",
+            "title": "Engine",
+            "type": "string"
+          },
+          "execution": {
+            "$ref": "#/components/schemas/AssessmentExecution"
+          },
+          "execution_revision": {
+            "minimum": 0.0,
+            "title": "Execution Revision",
+            "type": "integer"
+          },
+          "fact_bundle_ref": {
+            "default": "",
+            "maxLength": 128,
+            "title": "Fact Bundle Ref",
+            "type": "string"
+          },
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentFact"
+            },
+            "maxItems": 128,
+            "title": "Facts",
+            "type": "array"
+          },
+          "fingerprint": {
+            "additionalProperties": true,
+            "title": "Fingerprint",
+            "type": "object"
+          },
+          "normative": {
+            "$ref": "#/components/schemas/AssessmentDirection"
+          },
+          "open_gaps": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "title": "Open Gaps",
+            "type": "array"
+          },
+          "own_quantity": {
+            "$ref": "#/components/schemas/OwnQuantity"
+          },
+          "position_index": {
+            "minimum": 0.0,
+            "title": "Position Index",
+            "type": "integer"
+          },
+          "project": {
+            "$ref": "#/components/schemas/AssessmentDirection"
+          },
+          "relationships": {
+            "$ref": "#/components/schemas/AssessmentDirection"
+          },
+          "revision": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Revision",
+            "type": "string"
+          },
+          "run_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "evidence-assessment-v1",
+            "default": "evidence-assessment-v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source_registry_ref": {
+            "default": "",
+            "maxLength": 128,
+            "title": "Source Registry Ref",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentSource"
+            },
+            "maxItems": 96,
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "run_id",
+          "position_index",
+          "execution_revision",
+          "revision"
+        ],
+        "title": "PositionAssessment",
         "type": "object"
       },
       "PositionSource": {
@@ -3899,8 +4533,25 @@
             "title": "Action",
             "type": "string"
           },
+          "assessment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PositionAssessment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "audit_status": {
-            "$ref": "#/components/schemas/AuditStatus"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuditStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "cells": {
             "additionalProperties": {
@@ -3910,8 +4561,15 @@
             "type": "object"
           },
           "comment_confirmed": {
-            "title": "Comment Confirmed",
-            "type": "boolean"
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment Confirmed"
           },
           "declared_quantity": {
             "title": "Declared Quantity",
@@ -4012,6 +4670,15 @@
             ],
             "title": "Report Status"
           },
+          "result_origin": {
+            "default": "legacy",
+            "enum": [
+              "graph",
+              "legacy"
+            ],
+            "title": "Result Origin",
+            "type": "string"
+          },
           "sheet": {
             "title": "Sheet",
             "type": "string"
@@ -4032,16 +4699,37 @@
             "type": "string"
           },
           "unit_confirmed": {
-            "title": "Unit Confirmed",
-            "type": "boolean"
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Confirmed"
           },
           "volume_confirmed": {
-            "title": "Volume Confirmed",
-            "type": "boolean"
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume Confirmed"
           },
           "work_found": {
-            "title": "Work Found",
-            "type": "boolean"
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Work Found"
           }
         },
         "required": [
@@ -4057,15 +4745,10 @@
           "sheet",
           "source_row",
           "cells",
-          "audit_status",
           "report_status",
           "queue",
           "problem",
           "action",
-          "work_found",
-          "volume_confirmed",
-          "unit_confirmed",
-          "comment_confirmed",
           "details"
         ],
         "title": "ResultDTO",
@@ -4226,6 +4909,13 @@
       "RunDTO": {
         "additionalProperties": false,
         "properties": {
+          "completion_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Completion Counts",
+            "type": "object"
+          },
           "created_at": {
             "anyOf": [
               {
@@ -4237,6 +4927,16 @@
               }
             ],
             "title": "Created At"
+          },
+          "direction_counts": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "title": "Direction Counts",
+            "type": "object"
           },
           "done": {
             "title": "Done",
@@ -4257,6 +4957,17 @@
               }
             ],
             "title": "Finished At"
+          },
+          "input_position_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Position Count"
           },
           "normative_counts": {
             "additionalProperties": {
@@ -4296,6 +5007,17 @@
           "running": {
             "title": "Running",
             "type": "integer"
+          },
+          "selected_position_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Position Count"
           },
           "stage": {
             "enum": [
@@ -4667,6 +5389,23 @@
       "SummaryDTO": {
         "additionalProperties": false,
         "properties": {
+          "completion_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Completion Counts",
+            "type": "object"
+          },
+          "direction_counts": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "title": "Direction Counts",
+            "type": "object"
+          },
           "documents": {
             "items": {
               "$ref": "#/components/schemas/VersionDTO"
@@ -5184,6 +5923,122 @@
           }
         },
         "summary": "Cancel Audit"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/assessment/recheck": {
+      "post": {
+        "operationId": "assessment_recheck_api_v1_audits__run_id__positions__position_index__assessment_recheck_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assessment Recheck"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/assessment/validate": {
+      "post": {
+        "operationId": "assessment_validate_api_v1_audits__run_id__positions__position_index__assessment_validate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assessment Validate"
       }
     },
     "/api/v1/audits/{run_id}/positions/{position_index}/basis": {
@@ -5825,6 +6680,7 @@
     },
     "/api/v1/audits/{run_id}/positions/{position_index}/normative/check": {
       "post": {
+        "deprecated": true,
         "operationId": "check_api_v1_audits__run_id__positions__position_index__normative_check_post",
         "parameters": [
           {
@@ -6246,6 +7102,7 @@
     },
     "/api/v1/audits/{run_id}/positions/{position_index}/normative/{review_id}/validate": {
       "post": {
+        "deprecated": true,
         "operationId": "validate_saved_api_v1_audits__run_id__positions__position_index__normative__review_id__validate_post",
         "parameters": [
           {
@@ -6533,6 +7390,17 @@
               "default": "all",
               "pattern": "^(all|fix|review|missing|ok|pending)$",
               "title": "Focus",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "default": "project",
+              "pattern": "^(project|normative|relationships)$",
+              "title": "Direction",
               "type": "string"
             }
           },

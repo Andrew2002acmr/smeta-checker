@@ -6,7 +6,7 @@ import type {
 import { cardTitle, cardValue, compactText, workbookOperandCard } from './normativePresentation'
 import { firstSentence } from './presentation'
 
-export type DecisionRow = Pick<WorkspaceDto['row'], 'queue' | 'problem'>
+export type DecisionRow = Pick<WorkspaceDto['row'], 'queue' | 'problem' | 'assessment'>
 function title(card: NormativeParameterCard) {
   if (card.id !== 'quantity') return cardTitle(card)
   const unit = card.unit.normalize('NFKC').replace(/\./g, '').trim().toLowerCase()
@@ -21,14 +21,19 @@ function title(card: NormativeParameterCard) {
           : 'Количество'
 }
 export function normativeDecision(result: NormativePositionCheck, row?: DecisionRow, busy = false) {
+  const assessment = row?.assessment ?? null
   const state =
-    row?.queue === 'ok'
-      ? 'ok'
-      : row?.queue === 'fix'
-        ? 'fix'
-        : row?.queue === 'pending' || busy
-          ? 'pending'
-          : 'review'
+    assessment && row?.queue === 'ok' && assessment.normative?.state !== 'confirmed'
+      ? 'review'
+      : assessment?.normative?.state === 'confirmed' && assessment?.completion === 'complete'
+        ? 'ok'
+        : assessment?.normative?.state === 'possible_mismatch'
+          ? 'fix'
+          : row?.queue === 'fix' && !assessment
+            ? 'fix'
+            : row?.queue === 'pending' || busy
+              ? 'pending'
+              : 'review'
   const cards = result.parameter_cards ?? []
   const issues = cards
     .filter((c) => c.required !== false && c.state !== 'confirmed')
@@ -77,11 +82,13 @@ export function normativeDecision(result: NormativePositionCheck, row?: Decision
     }[state],
     explanation:
       state === 'ok'
-        ? 'Обязательные проверки позиции пройдены. Исправление не требуется.'
+        ? 'Нормативные и расчётные проверки позиции подтверждены. Исправление не требуется.'
         : state === 'pending'
-          ? 'Дождитесь окончания нормативного этапа. Готовые результаты сохраняются.'
+          ? 'Дождитесь окончания проверки. Готовые результаты сохраняются.'
           : state === 'fix'
             ? compactText(firstSentence(row?.problem ?? result.summary), 240)
-            : 'Ошибка пока не доказана. Уточните основание по ПД или нормативам.',
+            : assessment && row?.queue === 'ok'
+              ? 'Проектное соответствие подтверждено, но нормативные или расчётные вопросы ещё открыты.'
+              : 'Ошибка пока не доказана. Уточните основание по ПД или нормативам.',
   }
 }

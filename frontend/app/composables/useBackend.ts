@@ -5,6 +5,7 @@ import {
   zVersionDto,
   zRunDto,
   zSummaryDto,
+  zResultDto,
   zRowsDto,
   zWorkspaceDto,
   zAuditCreateResponse,
@@ -212,10 +213,15 @@ export function useBackend() {
     resumeAudit: (id: string) => json(audit(id) + '/resume', zRunDto, { method: 'POST' }),
     normative: (id: string, index: number) =>
       json(`${audit(id)}/positions/${index}/normative`, zNormativeStateDto),
-    checkNormativePosition: (id: string, index: number, body: unknown) =>
-      json(`${audit(id)}/positions/${index}/normative/check`, zNormativeReviewDto, {
+    recheckAssessment: (id: string, index: number, expectedRevision: string) =>
+      json(`${audit(id)}/positions/${index}/assessment/recheck`, zResultDto, {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: JSON.stringify({ expected_revision: expectedRevision }),
+      }),
+    validateAssessment: (id: string, index: number, expectedRevision: string) =>
+      json(`${audit(id)}/positions/${index}/assessment/validate`, zResultDto, {
+        method: 'POST',
+        body: JSON.stringify({ expected_revision: expectedRevision }),
       }),
     searchNormative: (id: string, index: number, body: unknown) =>
       json(`${audit(id)}/positions/${index}/normative/search`, zNormativeReviewDto, {
@@ -252,12 +258,16 @@ export function useBackend() {
       ),
     run: (id: string) => json(audit(id) + '/progress', zRunDto),
     summary: (id: string) => json(audit(id) + '/summary', zSummaryDto),
-    rows: (id: string, query: { focus: string; q: string; offset: number; limit?: number }) =>
+    rows: (
+      id: string,
+      query: { focus: string; q: string; offset: number; limit?: number; direction?: string },
+    ) =>
       json(
         audit(id) +
           '/rows?' +
           new URLSearchParams({
             focus: query.focus,
+            direction: query.direction ?? 'project',
             q: query.q,
             offset: String(query.offset),
             limit: String(query.limit ?? 10),
