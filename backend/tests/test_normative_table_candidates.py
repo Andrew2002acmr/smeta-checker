@@ -138,3 +138,15 @@ def test_single_total_column_is_a_direct_candidate_not_a_synthetic_sum():
     assert candidates[0]['scope_verified'] is False
     value['cells'][-1]['text'] = 'Итог по участку:'
     assert grouped_totals(value, 'Материал Б', unit='м2', include_single=True) == []
+
+def test_material_family_abbreviation_rescues_lexical_miss():
+    # "ЩПС" stems to "щпс" while "щебеночно-песчаная" stems to "щебено":
+    # without the shared family map the column is invisible to discovery.
+    value = table()
+    for cell in value['cells']:
+        if cell['cell_id'] in {'m0', 'm2'}:
+            cell['text'] = 'Щебеночно-песчаная смесь фр. 0/31,5'
+    candidates = grouped_totals(value, 'Устройство основания из ЩПС', unit='м2', include_single=True)
+    assert candidates
+    assert candidates[0]['columns'] == [0, 2]
+    assert candidates[0]['discovery_only'] is True

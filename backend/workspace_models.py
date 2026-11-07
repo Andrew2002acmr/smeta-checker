@@ -5,9 +5,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, StrictBool
 
+from audit_assessment import PositionAssessment
 from audit_models import AuditStatus, ReportStatus, VorPosition
-
-
 class DTO(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -512,15 +511,18 @@ class RunDTO(DTO):
     status: Literal["running", "done", "failed", "cancelled"]
     stage: Literal["preparing", "auditing", "finalizing", "done", "failed"]
     total: int | None
+    input_position_count: int | None = None
+    selected_position_count: int | None = None
     done: int
     failed: int
     running: int
     queued: int
+    completion_counts: dict[str, int] = Field(default_factory=dict)
+    direction_counts: dict[str, dict[str, int]] = Field(default_factory=dict)
     created_at: datetime | None
     finished_at: datetime | None
     preparation_done: int = 0
     preparation_total: int | None = None
-
 
 class DocumentDTO(DTO):
     id: str
@@ -561,19 +563,20 @@ class ResultDTO(DTO):
     sheet: str
     source_row: int | None
     cells: dict[str, str]
-    audit_status: AuditStatus
+    audit_status: AuditStatus | None = None
     report_status: ReportStatus | Literal["Проверяется по нормативам"]
     queue: Literal["fix", "review", "missing", "ok", "pending"]
     matching_report_status: ReportStatus | None = None
     related_work: dict[str, Any] | None = None
     problem: str
     action: str
-    work_found: bool
-    volume_confirmed: bool
-    unit_confirmed: bool
-    comment_confirmed: bool
+    work_found: bool | None = None
+    volume_confirmed: bool | None = None
+    unit_confirmed: bool | None = None
+    comment_confirmed: bool | None = None
     details: str
-
+    assessment: PositionAssessment | None = None
+    result_origin: Literal["graph", "legacy"] = "legacy"
 
 class RowsDTO(DTO):
     run_id: str
@@ -589,7 +592,8 @@ class SummaryDTO(DTO):
     project: ProjectDTO
     queues: dict[str, int]
     documents: list[VersionDTO]
-
+    completion_counts: dict[str, int] = Field(default_factory=dict)
+    direction_counts: dict[str, dict[str, int]] = Field(default_factory=dict)
 
 class HighlightDTO(DTO):
     bbox: list[float]

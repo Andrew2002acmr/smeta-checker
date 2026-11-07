@@ -135,16 +135,35 @@ def _ok_client_factory():
             self.responses = SimpleNamespace(create=self.create)
 
         def create(self, **kwargs):
-            import re
-            source_id = re.findall(r"\[([a-z0-9]+)\] ", kwargs["input"])[0]
+            payload = json.loads(kwargs["input"])
+            sources = payload.get("sources", []) if isinstance(payload, dict) else []
+            source = sources[0] if sources else {"id": "s0", "text": "Copper cable 45 m."}
             body = {
-                "claims": [
-                    {"claim_id": "presence", "source_ids": [source_id]},
-                    {"claim_id": "quantity", "source_ids": [source_id],
-                     "value_source_id": source_id, "unit_source_id": source_id},
-                    {"claim_id": "unit", "source_ids": [source_id]},
+                "summary": "Подтверждено синтетическим клиентом.",
+                "items": [
+                    {
+                        "topic": "Наличие работы",
+                        "state": "confirmed",
+                        "explanation": "Работа найдена в источнике.",
+                        "claim_ids": ["presence"],
+                        "project_source_ids": [source["id"]],
+                        "normative_source_ids": [],
+                    }
                 ],
-                "discrepancy_details": "Confirmed",
+                "parameters": [
+                    {
+                        "parameter": "quantity",
+                        "operation": "direct",
+                        "value": "45",
+                        "unit": "m",
+                        "source_id": source["id"],
+                        "operand_source_ids": [],
+                        "quote": str(source.get("text", ""))[:900],
+                        "scope_state": "verified",
+                        "scope_quote": str(source.get("text", ""))[:900],
+                    }
+                ],
+                "requests": [],
             }
             return SimpleNamespace(
                 output_text=json.dumps(body),
@@ -257,29 +276,20 @@ class TaskPipelineTests(unittest.TestCase):
             self.assertFalse(result["duplicate"])
             loaded = repo.load_run(run.id)
             self.assertEqual(len(loaded["results"]), 1)
-            self.assertEqual(loaded["results"][0]["status"], "ОК")
-            self.assertTrue(loaded["results"][0]["work_found"])
+            assessment = loaded["results"][0]
+            self.assertEqual(assessment["schema_version"], "evidence-assessment-v1")
+            self.assertEqual(assessment["execution"]["state"], "complete")
             again = audit_position(context, run.id, 0, worker="llm-test")
             self.assertTrue(again["duplicate"])
             with patch("audit_tracing._configured_client", return_value=None):
                 final = finalize_run(context, run.id, worker="pdf-test")
             self.assertEqual(final["positions"], 1)
             self.assertIn("metrics", final)
-            self.assertEqual(final["metrics"]["statuses"], {"ОК": 1})
             self.assertIn("prepare", final["metrics"]["stage_seconds"])
             finished = repo.load_run(run.id)
             self.assertEqual(finished["status"], "done")
             self.assertEqual(len(finished["results"]), 1)
-            self.assertEqual(finished["results"][0]["status"], "ОК")
-            self.assertEqual(finished["results"][0]["usage"], {"total": 100})
-            source = finished["results"][0]["position_source"]
-            self.assertEqual(source["row"], 1)
-            self.assertEqual(source["header_row"], 1)
-            self.assertEqual(source["format"], "csv")
-            self.assertEqual(source["sheet"], "")
-            self.assertEqual(
-                finished["config"]["metrics"]["statuses"], {"ОК": 1}
-            )
+            self.assertEqual(finished["results"][0]["revision"], assessment["revision"])
             self.assertEqual(repo.load_run_report(run.id, "word")[:2], b"PK")
 
     def test_one_broken_position_does_not_abort_others(self):
@@ -315,12 +325,11 @@ class TaskPipelineTests(unittest.TestCase):
             loaded = repo.load_run(run.id)
             self.assertEqual(loaded["status"], "done")
             self.assertEqual(len(loaded["results"]), 2)
-            statuses = [item["status"] for item in loaded["results"]]
-            self.assertIn("ОК", statuses)
+            states = [item["project"]["state"] for item in loaded["results"]]
+            self.assertIn("confirmed", states)
             failed = next(item for item in loaded["results"]
-                          if item["status"] == "Ошибка")
-            self.assertIn("missing.pdf", failed["discrepancy_details"])
-            self.assertIsNotNone(failed["position_source"])
+                          if item["project"]["state"] == "needs_facts")
+            self.assertIn("missing.pdf", failed["project"]["obligations"][0]["reason"])
 
     def test_recover_redispatches_orphaned_positions(self):
         from audit_tasks import recover_run
@@ -390,7 +399,7 @@ class TaskPipelineTests(unittest.TestCase):
             self.assertEqual(payload["run_id"], str(run.id))
             self.assertTrue(repo.load_run(run.id)["config"]["finalize_chained"])
 
-    def test_failed_last_position_still_chains_finalize(self):
+    def test_failed_position_keeps_retryable_delivery_without_finalize(self):
         from unittest.mock import patch
 
         from audit_tasks import audit_position, prepare_run
@@ -414,7 +423,7 @@ class TaskPipelineTests(unittest.TestCase):
             chained: list[tuple[str, dict]] = []
             dispatch = lambda name, payload: chained.append((name, payload))  # noqa: E731
             with patch(
-                "audit_tasks.traced_worker_check_row",
+                "audit_graph_runner.run_graph_position",
                 side_effect=RuntimeError("llm down"),
             ), patch("audit_tracing._configured_client", return_value=None):
                 with self.assertRaises(RuntimeError):
@@ -422,9 +431,10 @@ class TaskPipelineTests(unittest.TestCase):
                         context, run.id, 0, worker="llm-1", dispatch=dispatch
                     )
             self.assertEqual(repo.load_position_job(run.id, 0).status, "failed")
-            self.assertEqual(len(chained), 1)
-            self.assertEqual(chained[0][0], "audit_tasks.finalize_run")
-            self.assertEqual(chained[0][1]["run_id"], str(run.id))
+            self.assertEqual(chained, [])
+            from audit_tasks import _maybe_chain_finalize
+            _maybe_chain_finalize(context, run.id, dispatch=dispatch)
+            self.assertEqual(chained, [])
 
 
 if __name__ == "__main__":

@@ -277,6 +277,7 @@ class Repository:
             connection.exec_driver_sql(
                 "DROP TABLE IF EXISTS " + ", ".join(tables) + " CASCADE"
             )
+            connection.exec_driver_sql("DROP SCHEMA IF EXISTS audit_graph CASCADE")
         migrate(self._database_url)
 
     def list_human_basis(self, project_id, vor_version_id, position_key, pdf_version_ids, *, include_revoked=False):
@@ -917,6 +918,7 @@ class Repository:
     def create_run(
         self, project_id: UUID, vor_version_id: UUID, config: dict[str, Any],
         pdf_pins: dict[str, UUID] | None = None, *, background: bool = False,
+        selected_indices: list[int] | None = None,
     ) -> RunRow:
         with Session(self._engine) as session:
             vor = session.get(DocumentVersion, vor_version_id)
@@ -927,6 +929,23 @@ class Repository:
                 raise ValueError("not a VOR version")
             if document.project_id != project_id:
                 raise ValueError("version belongs to another project")
+            config = dict(config)
+            config.setdefault("engine", "langgraph-evidence-v1")
+            inputs = config.get("position_inputs") or []
+            config["input_position_count"] = len(inputs)
+            if selected_indices is None and not inputs:
+                config["selected_position_count"] = None
+                config["selected_indices"] = None
+            else:
+                if selected_indices is None:
+                    selected = [int(item.get("index", number)) for number, item in enumerate(inputs)]
+                else:
+                    selected = sorted(set(int(index) for index in selected_indices))
+                    known = {int(item.get("index", number)) for number, item in enumerate(inputs)}
+                    if known and any(index not in known for index in selected):
+                        raise ValueError("selected position is outside run inputs")
+                config["selected_position_count"] = len(selected)
+                config["selected_indices"] = selected
             run = Run(
                 project_id=project_id,
                 vor_version_id=vor_version_id,
@@ -949,7 +968,7 @@ class Repository:
                 session.add(RunPdfVersion(run_id=run.id, source_key=str(source_key),
                                           version_id=pdf_version.id))
             if background:
-                run.config = {**dict(run.config), "normative_after_match": os.environ.get("NORMATIVE_AUTO_ENABLED", "0") == "1"}
+                run.config = {**dict(run.config), "normative_after_match": False}
                 self._enqueue(session, run.id, "prepare", "audit_tasks.prepare_run", {
                     "run_id": str(run.id), "project": str(config.get("project", "")),
                     "vor_filename": vor.filename, "vor_blob_key": vor.blob_key,
@@ -1105,6 +1124,19 @@ class Repository:
                         "request_id": str(config.get("request_id", "")),
                     })
             session.commit()
+
+    def own_dispatched_delivery(self, run_id: UUID, position_index: int) -> dict[str, Any] | None:
+        """Return a live dispatched delivery previously reserved by this worker."""
+        with Session(self._engine) as session:
+            now = session.scalar(select(func.clock_timestamp()))
+            row = session.scalar(select(TaskOutbox).where(
+                TaskOutbox.run_id == run_id, TaskOutbox.task_key == f"audit:{position_index}",
+                TaskOutbox.status == "dispatched",
+                or_(TaskOutbox.lease_until.is_(None), TaskOutbox.lease_until >= now)))
+            if row is None or row.delivery_token is None:
+                return None
+            return {"id": str(row.id), "token": str(row.delivery_token),
+                    "name": row.task_name, "payload": dict(row.payload)}
 
     def reserve_deliveries(self, *, limit: int = 100) -> list[dict[str, Any]]:
         """Recover expired execution leases even when the worker hostname is alive."""
@@ -1662,12 +1694,11 @@ class Repository:
                 job.result = dict(result)
             job.error = error
             run = session.get(Run, run_id)
-            if status == "done" and run and run.config.get("normative_after_match"):
+            if status == "done" and run and run.config.get("engine") != "langgraph-evidence-v1" and run.config.get("normative_after_match"):
                 self._enqueue(session, run_id, f"normative:{position_index}", "audit_tasks.normative_position", {
                     "run_id": str(run_id), "position_index": position_index,
                 })
             session.commit()
-
     def requeue_position_job(
         self,
         run_id: UUID,
@@ -1676,7 +1707,7 @@ class Repository:
         queue: str,
         payload: dict[str, Any], durable: bool = False,
     ) -> None:
-        """Move a claimed job to another queue without consuming an attempt."""
+        """Move a job back to queued without consuming an attempt."""
         with Session(self._engine) as session:
             job = session.scalar(
                 select(PositionJob).where(
@@ -1686,18 +1717,30 @@ class Repository:
             )
             if job is None:
                 raise KeyError(f"{run_id}:{position_index}")
-            if job.status == "done":
-                return
             job.queue = queue
             job.payload = dict(payload)
             job.status = "queued"
             job.worker = None
             job.error = None
             if durable:
-                self._enqueue(session, run_id, f"audit:{position_index}", "audit_tasks.audit_position", {
-                    "run_id": str(run_id), "position_index": position_index,
-                    "request_id": str(payload.get("request_id", "")),
-                })
+                existing = session.scalar(select(TaskOutbox).where(
+                    TaskOutbox.run_id == run_id,
+                    TaskOutbox.task_key == f"audit:{position_index}").with_for_update())
+                if existing is None:
+                    self._enqueue(session, run_id, f"audit:{position_index}", "audit_tasks.audit_position", {
+                        "run_id": str(run_id), "position_index": position_index,
+                        "request_id": str(payload.get("request_id", "")),
+                    })
+                else:
+                    existing.status = "pending"
+                    existing.attempts = 0
+                    existing.delivery_token = None
+                    existing.lease_until = None
+                    existing.error = None
+                    existing.payload = {
+                        "run_id": str(run_id), "position_index": position_index,
+                        "request_id": str(payload.get("request_id", "")),
+                    }
             session.commit()
 
     def list_position_jobs(self, run_id: UUID, *, include_results: bool = True) -> list[PositionJobRow]:

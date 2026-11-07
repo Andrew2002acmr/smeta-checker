@@ -290,9 +290,9 @@ def test_llm_worker_refuses_partial_document_without_reopening_or_calling_model(
     with patch("pymupdf.open", side_effect=AssertionError("worker opened PDF")):
         audit_position(p.context, p.run.id, 0, worker="test-llm")
     result = p.repo.load_position_job(p.run.id, 0).result
-    assert result["status"] == "Технический сбой"
-    assert result.get("requests", 0) == 0
-    assert "подготовка ПД" in result["discrepancy_details"]
+    assert result["execution"]["state"] == "technical_failure"
+    assert result["execution"]["http_attempts"] == 0
+    assert "preparation-incomplete" in result.get("open_gaps", [])
 
 
 @pytest.mark.parametrize('legacy',['preparation_version','source_bytes_contract'])

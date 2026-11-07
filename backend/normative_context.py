@@ -111,7 +111,7 @@ def response_token_limit(credentials):
     return 8192 if (urlparse(credentials.base_url).hostname or '').lower() == 'routerai.ru' and credentials.model_name.startswith('deepseek/') else 2500
 
 
-def _ask(client, credentials, instructions, data, schema, trace, stage, stats):
+def _ask(client, credentials, instructions, data, schema, trace, stage, stats, *, response_sink=None):
     instructions += '\nВерни только JSON по следующей схеме. Имена полей и типы соблюдай точно:\n' + json.dumps(schema.model_json_schema(),ensure_ascii=False)
     from normative_context_packing import serialize_context
     serialized = serialize_context(data)
@@ -129,10 +129,11 @@ def _ask(client, credentials, instructions, data, schema, trace, stage, stats):
             # This bounded tool protocol already supplies explicit evidence and
             # deterministic arithmetic. DeepSeek's low mode exhausted the shared
             # completion budget before closing JSON even for a navigation step.
-            if stage.startswith('normative-evidence-') and options.get('reasoning_effort') == 'low':
+            bounded = stage.startswith(('normative-evidence-', 'graph-request-evidence'))
+            if bounded and options.get('reasoning_effort') == 'low':
                 options['reasoning_effort'] = 'none'
             reasoning = options.get('extra_body', {}).get('reasoning', {})
-            if stage.startswith('normative-evidence-') and reasoning.get('effort') == 'low':
+            if bounded and reasoning.get('effort') == 'low':
                 reasoning['effort'] = 'none'
             try:
                 response = client.chat.completions.create(model=credentials.model_name, messages=messages,
@@ -172,6 +173,9 @@ def _ask(client, credentials, instructions, data, schema, trace, stage, stats):
                 error=diagnostic, max_tokens=max_tokens))
             observation.update(output=dict(error=diagnostic), usage_details=usage)
             raise failure
+        if response_sink is not None:
+            response_sink(dict(stage=stage, response_id=getattr(response, 'id', None),
+                finish_reason=finish_reason, text=text or '', usage=dict(usage), max_tokens=max_tokens))
         observation.update(output=[{"role": "assistant", "content": text}], usage_details=usage)
         stats.setdefault('responses', []).append(dict(stage=stage, response_id=getattr(response,'id',None),
             finish_reason=finish_reason, text=(text or '')[:30000], max_tokens=max_tokens))

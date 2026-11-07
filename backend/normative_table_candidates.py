@@ -67,14 +67,19 @@ def grouped_totals(table, query, *, unit='', height_cm=None, include_single=Fals
         # Alternative OCR helps find a column; it never repairs literal text,
         # proves a thickness/unit, or relaxes a known material constraint.
         discovery_terms=terms(text).union(*(terms(item['text'])for item in observed))
+        found_family=_family(text)
+        if not found_family and re.search(r'\b[аa]\d{1,3}[а-яa-z]+|щма\s*[-–]?\s*\d',text,re.I):
+            found_family='асфальтобетон'
         score = len(wanted & discovery_terms)
+        if not score and wanted_family and found_family == wanted_family:
+            # Lexical stems miss abbreviations: "ЩПС" stems to "щпс" while
+            # "щебеночно-песчаная" stems to "щебено". The shared family map
+            # already treats them as one material; let it rescue discovery.
+            score = 1
         if not score:
             continue
         thicknesses = [Decimal(v.replace(',', '.'))*(100 if u.lower() in {'m','м'} else 1)
             for v,u in re.findall(r'(?:\bh\s*=\s*|[([]\s*)(\d+(?:[.,]\d+)?)\s*(см|cm|[мm])\b', text, re.I)]
-        found_family=_family(text)
-        if not found_family and re.search(r'\b[аa]\d{1,3}[а-яa-z]+|щма\s*[-–]?\s*\d',text,re.I):
-            found_family='асфальтобетон'
         if wanted_family and found_family and wanted_family!=found_family:
             continue
         found_fractions = material_fractions(text)

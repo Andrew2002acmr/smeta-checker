@@ -360,3 +360,23 @@ def test_corrupt_shared_page_is_rejected(tmp_path):
     (tmp_path / page["key"]).write_bytes(b"corrupt")
     with pytest.raises(ValueError, match="hash"):
         load_snapshot(store, ref)
+
+def test_durable_requeue_resets_finished_delivery(pipeline):
+    p = pipeline
+    prepare(p)
+    p.repo.enqueue_task("audit_tasks.audit_position", {
+        "run_id": str(p.run.id), "position_index": 0, "request_id": "test",
+    })
+    delivery = next(item for item in p.repo.reserve_deliveries()
+                    if item["payload"].get("position_index") == 0)
+    assert p.repo.claim_delivery(UUID(delivery["id"]), UUID(delivery["token"]), timeout=60)
+    p.repo.settle_delivery(UUID(delivery["id"]), UUID(delivery["token"]))
+    job = p.repo.load_position_job(p.run.id, 0)
+    p.repo.requeue_position_job(p.run.id, 0, queue="llm", payload=dict(job.payload or {}), durable=True)
+    with Session(p.repo._engine) as session:
+        row = session.scalar(select(TaskOutbox).where(
+            TaskOutbox.run_id == p.run.id, TaskOutbox.task_key == "audit:0"))
+        assert row is not None and row.status == "pending" and row.attempts == 0
+    redelivered = [item for item in p.repo.reserve_deliveries()
+                   if item["payload"].get("position_index") == 0]
+    assert redelivered and redelivered[0]["id"] == delivery["id"]

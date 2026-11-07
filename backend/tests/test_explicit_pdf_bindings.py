@@ -24,7 +24,7 @@ class ExplicitPdfBindingTests(unittest.TestCase):
         self.assertEqual(data, dict(references=["project.pdf"], bindings={}))
         saved = self.client.put(self.url, json={"bindings": {"project.pdf": self.copy["version_id"]}})
         self.assertEqual(saved.status_code, 200, saved.text)
-        payload = dict(project_id=self.project, vor_version_id=self.vor["version_id"])
+        payload = dict(project_id=self.project, vor_version_id=self.vor["version_id"], normative_profile="roads")
         preflight = self.client.post("/api/v1/documents/preflight", json=payload)
         self.assertEqual(preflight.status_code, 200, preflight.text)
         self.assertFalse(preflight.json()["has_critical_error"])
@@ -47,7 +47,7 @@ class ExplicitPdfBindingTests(unittest.TestCase):
         other = self._upload(self.client, "ИГДИ", "pdf", "project.pdf", fixtures._fake_pdf_bytes(), "application/pdf", new_document=True)
         response = self.client.put(self.url, json={"bindings": {"project.pdf": other["version_id"]}})
         self.assertEqual(response.status_code, 200, response.text)
-        preflight = self.client.post("/api/v1/documents/preflight", json=dict(project_id=self.project, vor_version_id=self.vor["version_id"]))
+        preflight = self.client.post("/api/v1/documents/preflight", json=dict(project_id=self.project, vor_version_id=self.vor["version_id"], normative_profile="roads"))
         self.assertEqual(preflight.status_code, 200, preflight.text)
         self.assertFalse(preflight.json()["has_critical_error"])
         self.assertIn(other["version_id"], preflight.json()["rows"][0]["pdf"])
@@ -63,7 +63,7 @@ class ExplicitPdfBindingTests(unittest.TestCase):
 
     def test_explicit_pool_cannot_silently_replace_a_missing_bound_pdf(self):
         self.client.put(self.url, json={"bindings": {"project.pdf": self.copy["version_id"]}})
-        payload = dict(project_id=self.project, vor_version_id=self.vor["version_id"], pdf_version_ids=[self.original["version_id"]])
+        payload = dict(project_id=self.project, vor_version_id=self.vor["version_id"], pdf_version_ids=[self.original["version_id"]], normative_profile="roads")
         response = self.client.post("/api/v1/documents/preflight", json=payload)
         self.assertEqual(response.status_code, 400, response.text)
         self.assertIn("binding_pdf_unavailable", response.text)

@@ -66,3 +66,17 @@ def test_actual_content_over_budget_is_rejected_before_any_provider_call():
         _ask(client, credentials, '', data, Plan, trace, 'normative-evidence-plan', stats)
     client.chat.completions.create.assert_not_called()
     assert stats['requests'] == 0
+
+def test_bounded_stages_disable_deepseek_reasoning():
+    from test_normative_provider_failures import fixture
+
+    answer = '{"interpretation":"Проверено","queries":["ГЭСН"]}'
+    completion = SimpleNamespace(choices=[SimpleNamespace(
+        finish_reason='stop', message=SimpleNamespace(content=answer),
+    )])
+    for stage in ('normative-evidence-plan', 'graph-request-evidence'):
+        client, credentials, stats, trace = fixture(completion)
+        credentials.model_name = 'deepseek/deepseek-v4.1-flash'
+        _ask(client, credentials, '', {}, Plan, trace, stage, stats)
+        sent = client.chat.completions.create.call_args.kwargs
+        assert sent['extra_body']['reasoning']['effort'] == 'none'

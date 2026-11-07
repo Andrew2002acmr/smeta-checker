@@ -22,6 +22,7 @@ def setup(tmp_path,monkeypatch):
 
 def test_new_run_reuses_full_preparation_and_matching_without_extractor_or_model(setup):
     ctx,repo,first,versions,vor,pdf=setup
+    repo.update_run_config(first.id, {'engine': 'legacy-matching-v1'})
     def prepare(run):
         return prepare_run(ctx,run.id,project='ИГДИ',vor_filename='vor.csv',vor_bytes=vor,
             pdf_files={'project.pdf':pdf},pdf_versions=versions,worker='pdf-test',dispatch=lambda *args:None)
@@ -31,7 +32,7 @@ def test_new_run_reuses_full_preparation_and_matching_without_extractor_or_model
     original=repo.load_position_job(first.id,0)
     record=repo.load_run(first.id)
     second=repo.create_run(record['project_id'],record['vor_version_id'],
-        {'model':record['config']['model'],'pdf_versions':record['config']['pdf_versions'],'vor_filename':'vor.csv'},
+        {'model':record['config']['model'],'pdf_versions':record['config']['pdf_versions'],'vor_filename':'vor.csv','engine':'legacy-matching-v1'},
         pdf_pins={name:v.id for name,v in versions.items()})
     with (patch('pdf_text.PDFTextSource.__init__',side_effect=AssertionError('No extraction/OCR')),
             patch('audit_tasks.traced_worker_check_row',side_effect=AssertionError('No model'))):
@@ -70,6 +71,7 @@ def test_concurrent_first_writers_publish_one_output_and_project_scope_is_enforc
 def test_validation_code_change_reuses_raw_ocr_but_changed_contract_does_not(setup):
     from analysis_replay import algorithm,prepared_identity
     ctx,repo,first,versions,vor,pdf=setup
+    repo.update_run_config(first.id, {'engine': 'legacy-matching-v1'})
     def prepare(run):
         return prepare_run(ctx,run.id,project='ИГДИ',vor_filename='vor.csv',vor_bytes=vor,
             pdf_files={'project.pdf':pdf},pdf_versions=versions,worker='pdf-test',dispatch=lambda *args:None)
@@ -77,7 +79,7 @@ def test_validation_code_change_reuses_raw_ocr_but_changed_contract_does_not(set
         prepare(first)
     record=repo.load_run(first.id)
     second=repo.create_run(record['project_id'],record['vor_version_id'],
-        {'model':record['config']['model'],'pdf_versions':record['config']['pdf_versions'],'vor_filename':'vor.csv'},
+        {'model':record['config']['model'],'pdf_versions':record['config']['pdf_versions'],'vor_filename':'vor.csv','engine':'legacy-matching-v1'},
         pdf_pins={name:v.id for name,v in versions.items()})
     with (patch('analysis_replay.algorithm',side_effect=lambda stage:'new-validator' if stage=='prepared_pdf' else algorithm(stage)),
             patch('pymupdf.open',side_effect=AssertionError('Do not re-open/recognize PDF')),

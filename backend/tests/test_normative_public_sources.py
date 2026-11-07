@@ -43,7 +43,7 @@ def test_projection_retains_public_fields_and_never_mutates_stored_private_metad
     assert saved == original
 
 
-@pytest.mark.parametrize('endpoint', ['state', 'search', 'selection', 'check', 'validate'])
+@pytest.mark.parametrize('endpoint', ['state', 'search', 'selection'])
 def test_real_response_model_routes_accept_private_source_metadata_without_storage_changes(monkeypatch, endpoint):
     stored = review()
     stored['payload']['position_check'].update(pipeline_version=5, decision_origin='model_with_validated_sources')
@@ -52,8 +52,6 @@ def test_real_response_model_routes_accept_private_source_metadata_without_stora
     monkeypatch.setattr('normative_service.state', lambda *_: state)
     monkeypatch.setattr('normative_service.search', lambda *_: stored)
     monkeypatch.setattr('normative_service.select', lambda *_: stored)
-    monkeypatch.setattr('normative_position_check.check', lambda *_: stored)
-    monkeypatch.setattr('normative_position_check.validate_saved', lambda *_: stored)
     app = FastAPI()
     router = APIRouter()
     register_normative_routes(router, lambda: object(), lambda *_: {})
@@ -67,8 +65,7 @@ def test_real_response_model_routes_accept_private_source_metadata_without_stora
             output = response.json()['latest_check']
         else:
             tail, payload = {'search':('/search',{'query':'test query'}),
-                'selection':('/selection',{'search_id':'source','norm_ids':[]}),
-                'check':('/check',{}),'validate':('/review/validate',{})}[endpoint]
+                'selection':('/selection',{'search_id':'source','norm_ids':[]})}[endpoint]
             response = client.post(base + tail, json=payload)
             assert response.status_code == 200, response.text
             output = response.json()

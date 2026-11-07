@@ -116,8 +116,10 @@ def main():
                 data = None
             if not isinstance(data, dict) or "sources" not in data:
                 return audit_client.responses.create(**request)
-            project = next(s for s in data["sources"] if s["kind"] == "project")
-            norm = next(s for s in data["sources"] if s["kind"] == "normative")
+            project = next((s for s in data["sources"] if s["kind"] == "project"), None)
+            norm = next((s for s in data["sources"] if s["kind"] == "normative"), None)
+            if project is None or norm is None:
+                return audit_client.responses.create(**request)
             answer = dict(summary="Синтетическая точечная проверка: исходный прогон не изменён.", items=[dict(topic="ПД и норматив", state="needs_facts", explanation="Синтетический стенд: проверьте исходный норматив и проектную строку.", project_source_ids=[project["id"]], normative_source_ids=[norm["id"]])])
             return SimpleNamespace(output_text=json.dumps(answer), usage=SimpleNamespace(input_tokens=120, output_tokens=30, total_tokens=150))
 
@@ -184,6 +186,7 @@ def main():
                 "project_id": project_id,
                 "vor_version_id": versions[0],
                 "pdf_version_ids": [versions[1]],
+                "normative_profile": "roads",
             },
         )
         response.raise_for_status()

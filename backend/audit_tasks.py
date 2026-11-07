@@ -306,6 +306,8 @@ def prepare_run(
         if prepared_documents is None:
             return {'run_id': str(run_id), 'cancelled': True}
         existing = {j.position_index: j for j in context.repository.list_position_jobs(run_id, include_results=False)}
+        selected = previous_config.get("selected_indices")
+        selected_set = {int(index) for index in selected} if isinstance(selected, list) else None
         from vor_consistency import check_scheme_divisors
         scheme_notes: dict = {}
         for hit in check_scheme_divisors(positions):
@@ -313,6 +315,8 @@ def prepare_run(
         pool_keys = list(pdf_files)
         cancelled = False
         for position in positions:
+            if selected_set is not None and int(position.index) not in selected_set:
+                continue
             try:
                 if context.repository.run_status(run_id) != "running":
                     cancelled = True
@@ -464,6 +468,8 @@ def audit_position(
     pdf_versions: dict[str, Any] | None = None,
     request_id: str = "",
     dispatch: Callable[[str, dict[str, Any]], None] | None = None,
+    delivery_id: str = "",
+    delivery_token: str = "",
 ) -> dict[str, Any]:
     """Network stage: audit one position through the LLM, persist its result.
 
@@ -497,6 +503,51 @@ def audit_position(
     job = context.repository.load_position_job(run_id, position_index)
     if job.status == "done" and job.result:
         return {"position_index": position_index, "duplicate": True}
+    record = context.repository.load_run(run_id, include_results=False)
+    if (record.get("config", {}) or {}).get("engine", "langgraph-evidence-v1") == "langgraph-evidence-v1":
+        from audit_graph_runner import run_graph_position
+
+        own_delivery = not (delivery_id and delivery_token)
+        if own_delivery:
+            context.repository.enqueue_task("audit_tasks.audit_position", {
+                "run_id": str(run_id), "position_index": position_index, "request_id": request_id,
+            })
+            deliveries = [item for item in context.repository.reserve_deliveries()
+                          if item["name"] == "audit_tasks.audit_position"
+                          and item["payload"].get("position_index") == position_index
+                          and str(item["payload"].get("run_id")) == str(run_id)]
+            if not deliveries:
+                owned = context.repository.own_dispatched_delivery(run_id, position_index)
+                if owned is not None:
+                    deliveries = [owned]
+            if not deliveries:
+                raise RuntimeError(f"Delivery unavailable for position {position_index}")
+            delivery_id, delivery_token = deliveries[0]["id"], deliveries[0]["token"]
+            claimed = context.repository.claim_delivery(
+                UUID(str(delivery_id)), UUID(str(delivery_token)), timeout=600)
+            if not claimed:
+                raise RuntimeError(f"Delivery claim failed for position {position_index}")
+        try:
+            outcome = run_graph_position(
+                context=context, run_id=run_id, position_index=position_index,
+                task_id=UUID(str(delivery_id)), token=UUID(str(delivery_token)),
+                request_id=request_id,
+            )
+        except PermissionError:
+            return {"position_index": position_index, "fenced": True}
+        except Exception as exc:
+            context.repository.finish_position_job(
+                run_id, position_index, "failed", error=f"{type(exc).__name__}: {str(exc)[:300]}")
+            if own_delivery:
+                context.repository.settle_delivery(
+                    UUID(str(delivery_id)), UUID(str(delivery_token)),
+                    error=f"{type(exc).__name__}: {str(exc)[:300]}")
+            _maybe_chain_finalize(context, run_id, dispatch=dispatch, request_id=request_id)
+            raise
+        if own_delivery:
+            context.repository.settle_delivery(UUID(str(delivery_id)), UUID(str(delivery_token)))
+        _maybe_chain_finalize(context, run_id, dispatch=dispatch, request_id=request_id)
+        return outcome
     job = context.repository.claim_position_job(run_id, position_index, worker=worker)
     payload = dict(job.payload or {})
     resolved_request = str(request_id or payload.get("request_id") or "")
@@ -909,10 +960,32 @@ def finalize_run(
         }
         results = record.get("results") or []
         # load_run orders by position_index: zip with sorted jobs, never enumerate.
+        selected = config.get("selected_indices")
+        if isinstance(selected, list):
+            positions = [position for position in positions if int(position.index) in {int(index) for index in selected}]
         ordered_jobs = [jobs[position.index] for position in positions]
         ordered = [jobs[position.index].result or {} for position in positions]
         if len(results) == len(positions):
             ordered = list(results)
+        if config.get("engine") == "langgraph-evidence-v1":
+            from workspace_service import present_results as _present
+
+            record = context.repository.load_run(run_id)
+            rows = _present(context, record)
+            report = [{'№': row.number, 'Наименование работ': row.name, 'Статус аудита': str(row.report_status),
+                'Что не так': row.problem, 'Наименование файла': 'Не указан', 'Где проверить': row.action} for row in rows]
+            from audit_reports import generate_word_report
+            word = generate_word_report(report, {'object_name': config.get('project') or record['vor_filename']})
+            context.repository.save_run_report(run_id, "word", bytes(word))
+            context.repository.update_run_config(run_id, {"assessment_revisions": {
+                str(item["position_index"]): (item["result"] or {}).get("revision") for item in record["indexed_results"]}})
+            metrics = RunMetrics(run_id=str(run_id))
+            metrics.record_stage("finalize", time.monotonic() - started)
+            if isinstance(config.get("prepare_seconds"), (int, float)):
+                metrics.record_stage("prepare", float(config["prepare_seconds"]))
+            summary = metrics.finish()
+            context.repository.finish_run(run_id, "done", metrics=summary)
+            return {"run_id": str(run_id), "positions": len(positions), "metrics": summary}
         tasks: list[dict[str, Any]] = []
         tracking: list[dict[str, Any]] = []
         results_list: list[dict[str, Any]] = []
@@ -1225,6 +1298,7 @@ def register_tasks(app):  # type: ignore[no-untyped-def]
                 context, UUID(str(run_id)), int(position_index),
                 worker=self.request.hostname or "llm-worker", request_id=str(request_id or ""),
                 dispatch=context.repository.enqueue_task,
+                delivery_id=str(delivery_id or ""), delivery_token=str(delivery_token or ""),
             )
         return execute(context, run_id, delivery_id, delivery_token, operation, "audit_tasks.audit_position", {
             "run_id": str(run_id), "position_index": int(position_index), "request_id": request_id,

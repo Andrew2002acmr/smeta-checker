@@ -41,6 +41,17 @@ def run_progress(context, record) -> RunDTO:
             else "preparing"
         )
     )
+    config = record.get("config", {}) or {}
+    completion_counts: Counter = Counter()
+    direction_counts: dict[str, Counter] = {"project": Counter(), "normative": Counter(), "relationships": Counter()}
+    for item in record.get("indexed_results", []) or []:
+        stored = item.get("result") or {}
+        if stored.get("schema_version") != "evidence-assessment-v1":
+            continue
+        completion_counts[str(stored.get("completion", "unknown"))] += 1
+        for direction in direction_counts:
+            state = (stored.get(direction) or {}).get("state", "pending")
+            direction_counts[direction][str(state)] += 1
     return RunDTO(
         run_id=str(record["id"]),
         project_id=str(record["project_id"]),
@@ -49,10 +60,14 @@ def run_progress(context, record) -> RunDTO:
         status=status,
         stage=stage,
         total=total,
+        input_position_count=config.get("input_position_count"),
+        selected_position_count=config.get("selected_position_count"),
         done=counts["done"] if job_total else record["result_count"],
         failed=counts["failed"],
         running=counts["running"],
         queued=counts["queued"],
+        completion_counts=dict(completion_counts),
+        direction_counts={key: dict(value) for key, value in direction_counts.items()},
         created_at=record.get("created_at"),
         finished_at=record.get("finished_at"),
         preparation_done=(record.get("pdf_preparation") or {}).get("done", 0),
@@ -81,7 +96,75 @@ def _provenance(position: VorPosition) -> tuple[str, int | None, dict[str, str]]
     return source.sheet, source.row, dict(source.cells)
 
 
+def _projected_graph_row(record, position, assessment) -> ResultDTO:
+    from audit_assessment import PositionAssessment
+
+    parsed = PositionAssessment.model_validate(assessment)
+    sheet, source_row, cells = _provenance(position)
+    project_state = parsed.project.state
+    if project_state == "confirmed":
+        queue, report_status = "ok", "ОК"
+    elif project_state == "possible_mismatch":
+        queue, report_status = "fix", "Обнаружено расхождение"
+    elif project_state == "needs_facts":
+        queue, report_status = "review", "Требуется ручная проверка"
+    elif project_state == "pending":
+        queue, report_status = "pending", "Проверяется по нормативам"
+    elif project_state == "not_applicable":
+        queue, report_status = "ok", "ОК"
+    else:
+        queue, report_status = "missing", "Проверка не выполнена"
+    own = parsed.own_quantity
+    found_quantity = own.found_value if own.state == "confirmed" else None
+    found_unit = own.found_unit if own.state == "confirmed" else None
+    severity = {"possible_mismatch": 0, "needs_facts": 1, "pending": 2, "not_applicable": 3}
+    obligations = sorted(
+        (obligation for obligation in parsed.project.obligations if obligation.state != "confirmed"),
+        key=lambda item: (severity.get(item.state, 4), item.id))
+    problem = obligations[0].reason if obligations else "Соответствие ПД подтверждено."
+    if obligations and obligations[0].state == "needs_facts" and obligations[0].gap:
+        problem = f"{problem} Открытый вопрос: {obligations[0].gap}."
+    if own.state != "confirmed":
+        problem = f"{problem} Собственное количество: {own.state}."
+    return ResultDTO(
+        id=f"{record['id']}:{position.index}",
+        position_index=position.index,
+        number=position.number,
+        name=position.work_name,
+        unit=position.unit,
+        declared_quantity=position.volume,
+        found_quantity=found_quantity,
+        found_unit=found_unit,
+        formula=position.formula,
+        sheet=sheet,
+        source_row=source_row,
+        cells=cells,
+        report_status=report_status,
+        queue=queue,
+        problem=problem,
+        action="Откройте позицию и проверьте источники.",
+        details=problem,
+        assessment=parsed,
+        result_origin="graph",
+    )
+
+
 def present_results(context, record) -> list[ResultDTO]:
+    positions = {p.index: p for p in inputs_for_run(context, record)}
+    jobs = {j.position_index: j for j in context.repository.list_position_jobs(record["id"])}
+    graph_rows: list[ResultDTO] = []
+    legacy_items: list[dict] = []
+    for item in record["indexed_results"]:
+        stored = item["result"] or {}
+        if stored.get("schema_version") == "evidence-assessment-v1":
+            position = positions.get(item["position_index"])
+            if position is None:
+                raise ValueError("Исходная позиция результата не найдена")
+            graph_rows.append(_projected_graph_row(record, position, stored))
+        else:
+            legacy_items.append(item)
+    if not legacy_items:
+        return sorted(graph_rows, key=lambda row: row.position_index)
     from normative_local_checks import LOCAL_RULES_VERSION
     context.repository.schedule_local_normative_refresh(record['id'], LOCAL_RULES_VERSION)
     positions = {p.index: p for p in inputs_for_run(context, record)}
@@ -93,7 +176,7 @@ def present_results(context, record) -> list[ResultDTO]:
     }
     result = []
     directional_text = {}
-    for item in record["indexed_results"]:
+    for item in legacy_items:
         index, stored = item["position_index"], item["result"]
         position = positions.get(index)
         if position is None:
@@ -200,7 +283,7 @@ def present_results(context, record) -> list[ResultDTO]:
         if text := directional_text.get(row.position_index):
             row.problem = ' '.join(filter(None, (text, row.problem)))
             row.details = row.problem
-    return rows
+    return sorted([*graph_rows, *rows], key=lambda row: row.position_index)
 
 
 def validated_word_report(context, record):
@@ -452,11 +535,25 @@ def source_evidence(context, record, index, position):
     )
     versions = record["config"].get("pdf_versions") or {}
     result = []
-    for evidence in stored.get("evidence") or []:
+    entries = list(stored.get("evidence") or [])
+    if stored.get("schema_version") == "evidence-assessment-v1":
+        for source in stored.get("sources") or []:
+            if source.get("kind") != "project" or not isinstance(source.get("page"), int):
+                continue
+            entries.append({
+                "document_id": "",
+                "page": source["page"],
+                "quote": (source.get("text") or "")[:1200],
+                "kind": "work",
+                "version_id": source.get("version_id"),
+            })
+    for evidence in entries:
         name = evidence.get("document_id") or stored.get("pdf_name") or ""
-        version_id = versions.get(name) or (
+        version_id = evidence.get("version_id") or versions.get(name) or (
             stored.get("pdf_version_id") if name == stored.get("pdf_name") else None
         )
+        if not version_id and stored.get("schema_version") == "evidence-assessment-v1" and len(set(versions.values())) == 1:
+            version_id = next(iter(versions.values()))
         if not version_id or not isinstance(evidence.get("page"), int):
             continue
         version = context.repository.load_version(UUID(version_id))

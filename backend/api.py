@@ -15,7 +15,7 @@ import hmac
 import mimetypes
 import threading
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 from uuid import UUID, uuid4
 
 from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
@@ -96,7 +96,7 @@ class AuditCreateRequest(BaseModel):
     project_id: str | None = None
     vor_version_id: str = Field(min_length=1)
     pdf_version_ids: list[str] = Field(default_factory=list)
-
+    normative_profile: Literal["roads", "electrical"]
 
 class AuditCreateResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -630,10 +630,31 @@ def run_tasks_job(
             request_id=request_id,
         )
         for index in out["queued"]:
-            audit_position(
-                task_context, run_id, index,
-                worker="api-fallback", request_id=request_id,
-            )
+            context.repository.enqueue_task("audit_tasks.audit_position", {
+                "run_id": str(run_id), "position_index": index, "request_id": request_id,
+            })
+            deliveries = [item for item in context.repository.reserve_deliveries()
+                          if item["name"] == "audit_tasks.audit_position"
+                          and item["payload"].get("position_index") == index]
+            if not deliveries:
+                raise RuntimeError(f"Fallback delivery unavailable for position {index}")
+            delivery = deliveries[0]
+            claimed = context.repository.claim_delivery(
+                UUID(delivery["id"]), UUID(delivery["token"]), timeout=600)
+            if not claimed:
+                raise RuntimeError(f"Fallback delivery claim failed for position {index}")
+            try:
+                audit_position(
+                    task_context, run_id, index,
+                    worker="api-fallback", request_id=request_id,
+                    delivery_id=delivery["id"], delivery_token=delivery["token"],
+                )
+            except Exception as exc:
+                context.repository.settle_delivery(
+                    UUID(delivery["id"]), UUID(delivery["token"]),
+                    error=f"{type(exc).__name__}: {str(exc)[:300]}")
+                raise
+            context.repository.settle_delivery(UUID(delivery["id"]), UUID(delivery["token"]))
         finalize_run(
             task_context, run_id, worker="api-fallback", request_id=request_id
         )
@@ -910,6 +931,8 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             "has_critical_error": preflight.has_critical_error,
             "request_id": request_id,
             "position_inputs": [p.model_dump(mode="json") for p in positions],
+            "engine": "langgraph-evidence-v1",
+            "normative_profile": payload.normative_profile,
         }
         dispatch = _celery_dispatch(context)
         try:

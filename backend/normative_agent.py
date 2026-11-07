@@ -454,7 +454,7 @@ class EvidenceTools:
         merge(self.sources,[source])
         return {'source_id': source['id']}
 
-    def quantity_candidates(self, query, *, unit='', height_cm=None, section_context='') -> list[dict[str, Any]]:
+    def quantity_candidates(self, query, *, unit='', height_cm=None, section_context='', limit=4) -> list[dict[str, Any]]:
         """Precompute bounded alternatives; never use the declared VOR amount."""
         if self.index is None or not self.version:
             return []
@@ -505,7 +505,8 @@ class EvidenceTools:
                             for label in matching_labels[:3]],scope_match_observation_count=len(matching_labels),
                         scope_observations_prove_total_allocation=False))
         ranked.sort(key=lambda c: (-c['ranking_score'],not c['unit_verified'],-c['score']))
-        for candidate in ranked[:4]:
+        capped = max(1, int(limit))
+        for candidate in ranked[:capped]:
             result = self.execute(EvidenceRequest(tool='read_table', page=candidate['page'],
                 table_id=candidate['table_id'], row_ids=[candidate['row']], column_ids=candidate['columns']))
             candidate['operand_source_ids'] = [c['source_id'] for c in result['rows']
@@ -524,7 +525,7 @@ class EvidenceTools:
                         operand_source_ids=candidate['operand_source_ids'],page=candidate['page'],
                         table_id=candidate['table_id'],row=candidate['row'],columns=candidate['columns'],
                         unit=unit,scope_verified=False))
-        return ranked[:4]
+        return ranked[:capped]
 
     def execute(self, request) -> dict[str, Any]:
         if request.tool == 'read_source' and request.source_id.startswith('tool-result:'):

@@ -62,9 +62,32 @@ def seed(root, repo, blobs, *, road=False):
     config = {**remap(old["config"]), "position_inputs": positions, "prepare_seconds": 0.1}
     run = repo.create_run(project_id, version.id, config,
                           pdf_pins={k: UUID(v) for k, v in config["pdf_versions"].items()})
-    result = remap(old["indexed_results"][0]["result"])
+    template = remap(old["indexed_results"][0]["result"])
     payload = remap(repo.load_position_job(old["id"], 0).payload)
+    from audit_assessment import reduce_assessment
+
+    def resealed(index: int) -> dict:
+        if template.get("schema_version") != "evidence-assessment-v1":
+            return dict(template)
+        return reduce_assessment({
+            "run_id": str(run.id),
+            "position_index": index,
+            "execution_revision": int(template.get("execution_revision", 0)),
+            "fingerprint": template.get("fingerprint", {}),
+            "project": {"obligations": (template.get("project") or {}).get("obligations", [])},
+            "normative": {"obligations": (template.get("normative") or {}).get("obligations", [])},
+            "relationships": {"obligations": (template.get("relationships") or {}).get("obligations", [])},
+            "own_quantity": template.get("own_quantity", {}),
+            "facts": template.get("facts", []),
+            "sources": template.get("sources", []),
+            "execution_state": (template.get("execution") or {}).get("state", "complete"),
+            "http_attempts": (template.get("execution") or {}).get("http_attempts", 0),
+            "tool_executions": (template.get("execution") or {}).get("tool_executions", 0),
+            "stop_reason": (template.get("execution") or {}).get("stop_reason", ""),
+        }).model_dump(mode="json")
+
     for i in range(12):
+        result = resealed(i)
         repo.create_position_job(run.id, i, queue="llm", payload=payload)
         repo.save_position_result(run.id, i, result)
         repo.finish_position_job(run.id, i, "done", result=result)
