@@ -133,7 +133,11 @@ function resolveBindingOption(reference: string) {
   const target = bindingStem(reference)
   const fuzzy = bindingOptions.value.filter((item) => {
     const candidate = bindingStem(item.filename)
-    return target && candidate && (target === candidate || target.includes(candidate) || candidate.includes(target))
+    return (
+      target &&
+      candidate &&
+      (target === candidate || target.includes(candidate) || candidate.includes(target))
+    )
   })
   return fuzzy.length === 1 ? fuzzy[0] || null : null
 }
@@ -664,7 +668,11 @@ onBeforeUnmount(() => {
       <template v-if="document && selectedVersion">
         <section class="panel revision-panel revision-overview" aria-label="Текущая редакция">
           <div class="revision-copy">
-            <div class="file-mark" :class="isVor ? 'file-mark-xlsx' : 'file-mark-pdf'" aria-hidden="true">
+            <div
+              class="file-mark"
+              :class="isVor ? 'file-mark-xlsx' : 'file-mark-pdf'"
+              aria-hidden="true"
+            >
               <span>{{ fileTypeLabel }}</span>
             </div>
             <div class="revision-identity">
@@ -721,10 +729,7 @@ onBeforeUnmount(() => {
               </UButton>
             </div>
           </div>
-          <div
-            v-if="selectedVersion.id !== document.current_version_id"
-            class="revision-current"
-          >
+          <div v-if="selectedVersion.id !== document.current_version_id" class="revision-current">
             <UButton
               variant="outline"
               :disabled="!!locksMutations"
@@ -736,10 +741,13 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <section v-if="isVor" class="panel binding-panel" aria-label="Связи ВОР и проектной документации">
+        <section
+          v-if="isVor"
+          class="panel binding-panel"
+          aria-label="Связи ВОР и проектной документации"
+        >
           <div class="binding-heading">
             <div>
-              <span class="section-kicker">Подготовка проверки</span>
               <h2>Связи ВОР и проектной документации</h2>
               <p class="muted">
                 Сначала система сопоставит ссылки из ведомости с PDF по имени файла.
@@ -759,7 +767,10 @@ onBeforeUnmount(() => {
           <div class="binding-canvas" aria-label="Привязки ВОР и ПД">
             <p v-if="bindingsBusy" role="status">Загружаем или сохраняем привязки…</p>
             <p v-if="bindingsError" class="error-box" role="alert">{{ bindingsError }}</p>
-            <div v-if="!bindingsBusy && !bindingsError && bindingReferences.length" class="binding-auto-summary">
+            <div
+              v-if="!bindingsBusy && !bindingsError && bindingReferences.length"
+              class="binding-auto-summary"
+            >
               <div class="binding-summary-head">
                 <div class="binding-auto-icon" aria-hidden="true">
                   <UIcon name="i-lucide-wand-sparkles" />
@@ -767,7 +778,8 @@ onBeforeUnmount(() => {
                 <div class="binding-auto-copy">
                   <strong>Связи определены по именам файлов</strong>
                   <span class="muted">
-                    {{ resolvedBindingGroups.filter((group) => group.option).length }} из {{ resolvedBindingGroups.length }} определено автоматически
+                    {{ resolvedBindingGroups.filter((group) => group.option).length }} из
+                    {{ resolvedBindingGroups.length }} определено автоматически
                   </span>
                 </div>
                 <UButton
@@ -784,25 +796,25 @@ onBeforeUnmount(() => {
                   <div class="binding-map-file binding-map-xlsx">
                     <span class="binding-file-tile">{{ fileTypeLabel }}</span>
                     <div>
-                      <strong :title="selectedVersion.filename">{{ selectedVersion.filename }}</strong>
-                      <span class="muted">
-                        {{ group.references.length === 1 ? group.references[0] : `${group.references.length} ссылки на этот PDF` }}
-                      </span>
+                      <strong :title="selectedVersion.filename">{{
+                        selectedVersion.filename
+                      }}</strong>
                     </div>
                   </div>
                   <div class="binding-map-link" aria-hidden="true">
                     <UIcon :name="group.option ? 'i-lucide-arrow-right' : 'i-lucide-circle-help'" />
                     <span>{{ group.option ? 'Связан' : 'Не определён' }}</span>
                   </div>
-                  <div class="binding-map-file binding-map-pdf" :class="{ 'binding-map-unresolved': !group.option }">
+                  <div
+                    class="binding-map-file binding-map-pdf"
+                    :class="{ 'binding-map-unresolved': !group.option }"
+                  >
                     <span class="binding-file-tile">{{ group.option ? 'PDF' : '?' }}</span>
                     <div>
                       <strong :title="group.option?.filename || group.references.join(', ')">
                         {{ group.option?.filename || 'PDF не определён' }}
                       </strong>
-                      <span class="muted">
-                        {{ group.option ? group.option.documentTitle : 'Нужно выбрать вручную' }}
-                      </span>
+                      <span v-if="!group.option" class="muted">Нужно выбрать вручную</span>
                     </div>
                   </div>
                 </li>
@@ -811,9 +823,15 @@ onBeforeUnmount(() => {
             <div v-if="bindingsManualOpen && bindingReferences.length" class="binding-manual">
               <div class="binding-manual-note">
                 <strong>Ручные исключения</strong>
-                <span class="muted">Меняйте только ссылки, которые система не смогла определить однозначно.</span>
+                <span class="muted"
+                  >Меняйте только ссылки, которые система не смогла определить однозначно.</span
+                >
               </div>
-              <div v-for="(reference, index) in bindingReferences" :key="reference" class="binding-row">
+              <div
+                v-for="(reference, index) in bindingReferences"
+                :key="reference"
+                class="binding-row"
+              >
                 <div class="binding-source">
                   <span class="binding-index">{{ index + 1 }}</span>
                   <div>
@@ -824,7 +842,10 @@ onBeforeUnmount(() => {
                 <div class="binding-arrow" aria-hidden="true">
                   <UIcon name="i-lucide-arrow-right" />
                 </div>
-                <div class="binding-target" :class="{ 'binding-target-linked': bindingDraft[reference] }">
+                <div
+                  class="binding-target"
+                  :class="{ 'binding-target-linked': bindingDraft[reference] }"
+                >
                   <div class="binding-target-head">
                     <span class="binding-label">Редакция PDF</span>
                     <UBadge
@@ -857,7 +878,10 @@ onBeforeUnmount(() => {
                 </div>
               </div>
             </div>
-            <div v-if="!bindingsBusy && !bindingsError && !bindingReferences.length" class="binding-empty">
+            <div
+              v-if="!bindingsBusy && !bindingsError && !bindingReferences.length"
+              class="binding-empty"
+            >
               <UIcon name="i-lucide-file-check-2" />
               <div>
                 <strong>Ссылки на PDF не найдены</strong>
@@ -867,9 +891,15 @@ onBeforeUnmount(() => {
           </div>
           <div class="launch-bar">
             <div class="launch-copy">
-              <strong>{{ bindingsDirty ? 'Есть несохранённые изменения' : 'Можно запускать проверку' }}</strong>
+              <strong>{{
+                bindingsDirty ? 'Есть несохранённые изменения' : 'Можно запускать проверку'
+              }}</strong>
               <span class="muted">
-                {{ bindingsDirty ? 'Сначала сохраните выбранные PDF.' : 'Привязки фиксируются внутри нового запуска.' }}
+                {{
+                  bindingsDirty
+                    ? 'Сначала сохраните выбранные PDF.'
+                    : 'Привязки фиксируются внутри нового запуска.'
+                }}
               </span>
             </div>
             <div class="toolbar launch-actions">
@@ -960,7 +990,10 @@ onBeforeUnmount(() => {
               <UIcon name="i-lucide-layers-3" />
               <span>
                 <strong>{{ isVor ? 'История редакций' : 'История редакций ПД' }}</strong>
-                <small>{{ sortedVersions.length }} редакций · текущая № {{ selectedVersion.number }}</small>
+                <small
+                  >{{ sortedVersions.length }} редакций · текущая №
+                  {{ selectedVersion.number }}</small
+                >
               </span>
             </span>
             <UIcon :name="revisionsOpen ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" />
@@ -1052,13 +1085,9 @@ onBeforeUnmount(() => {
               Повторить
             </UButton>
           </p>
-          <div v-else-if="!historyRuns.length" class="runs-empty" role="status">
-            <UIcon name="i-lucide-circle-play" />
-            <div>
-              <strong>Проверок пока нет</strong>
-              <p class="muted">Настройте связи с PDF и запустите первую проверку.</p>
-            </div>
-          </div>
+          <p v-else-if="!historyRuns.length" class="empty" role="status">
+            Запусков с этим документом пока нет.
+          </p>
           <template v-else>
             <NuxtLink :to="`/audits/${latestRun?.run_id}`" class="latest-run">
               <div class="latest-run-icon"><UIcon name="i-lucide-file-check-2" /></div>
@@ -1068,12 +1097,19 @@ onBeforeUnmount(() => {
                 <span class="muted">{{ latestRun?.vor_filename }}</span>
               </div>
               <UBadge
-                :color="latestRun?.status === 'done' ? 'success' : latestRun?.status === 'failed' ? 'error' : 'warning'"
+                :color="
+                  latestRun?.status === 'done'
+                    ? 'success'
+                    : latestRun?.status === 'failed'
+                      ? 'error'
+                      : 'warning'
+                "
                 variant="soft"
                 :label="auditStatusLabel(latestRun?.status || '')"
               />
               <span class="latest-run-count">
-                {{ (latestRun?.done || 0) + (latestRun?.failed || 0) }} / {{ latestRun?.total ?? '…' }}
+                {{ (latestRun?.done || 0) + (latestRun?.failed || 0) }} /
+                {{ latestRun?.total ?? '…' }}
               </span>
               <UIcon name="i-lucide-arrow-up-right" class="latest-run-arrow" />
             </NuxtLink>
@@ -1084,51 +1120,55 @@ onBeforeUnmount(() => {
               :aria-expanded="runsOpen"
               @click="runsOpen = !runsOpen"
             >
-              <span>{{ runsOpen ? 'Скрыть остальные проверки' : `Показать остальные · ${historyRuns.length - 1}` }}</span>
+              <span>{{
+                runsOpen
+                  ? 'Скрыть остальные проверки'
+                  : `Показать остальные · ${historyRuns.length - 1}`
+              }}</span>
               <UIcon :name="runsOpen ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" />
             </button>
-          <div v-if="runsOpen && historyRuns.length > 1" class="table-wrap runs-table">
-            <UTable
-              sticky="header"
-              :data="historyRuns.slice(1)"
-              :columns="historyColumns"
-              class="results max-h-[60vh] overflow-auto"
-            >
-              <template #run-cell="{ row }">
-                <span class="cell-wrap" :title="row.original.vor_filename">
-                  {{ row.original.vor_filename }} · {{ formatDate(row.original.created_at) }}
-                </span>
-              </template>
-              <template #status-cell="{ row }">
-                <UBadge
-                  :color="
-                    row.original.status === 'done'
-                      ? 'success'
-                      : row.original.status === 'failed'
-                        ? 'error'
-                        : 'warning'
-                  "
-                  variant="soft"
-                  :label="row.original.status"
-                />
-              </template>
-              <template #count-cell="{ row }">
-                <span class="numbers"
-                  >{{ row.original.done + row.original.failed }} /
-                  {{ row.original.total ?? '…' }}</span
-                >
-              </template>
-              <template #action-cell="{ row }">
-                <UButton
-                  variant="link"
-                  :to="`/audits/${row.original.run_id}`"
-                  :aria-label="`Открыть запуск ${row.original.vor_filename}`"
-                >
-                  Открыть
-                </UButton>
-              </template>
-            </UTable>
-          </div>
+            <div v-if="runsOpen && historyRuns.length > 1" class="table-wrap runs-table">
+              <UTable
+                sticky="header"
+                :data="historyRuns.slice(1)"
+                :columns="historyColumns"
+                class="results max-h-[60vh] overflow-auto"
+              >
+                <template #run-cell="{ row }">
+                  <span class="cell-wrap" :title="row.original.vor_filename">
+                    {{ row.original.vor_filename }} · {{ formatDate(row.original.created_at) }}
+                  </span>
+                </template>
+                <template #status-cell="{ row }">
+                  <UBadge
+                    :color="
+                      row.original.status === 'done'
+                        ? 'success'
+                        : row.original.status === 'failed'
+                          ? 'error'
+                          : 'warning'
+                    "
+                    variant="soft"
+                    :label="row.original.status"
+                  />
+                </template>
+                <template #count-cell="{ row }">
+                  <span class="numbers"
+                    >{{ row.original.done + row.original.failed }} /
+                    {{ row.original.total ?? '…' }}</span
+                  >
+                </template>
+                <template #action-cell="{ row }">
+                  <UButton
+                    variant="link"
+                    :to="`/audits/${row.original.run_id}`"
+                    :aria-label="`Открыть запуск ${row.original.vor_filename}`"
+                  >
+                    Открыть
+                  </UButton>
+                </template>
+              </UTable>
+            </div>
           </template>
           <div v-if="historyOffset || historyHasMore" class="toolbar pagination">
             <UButton
@@ -1322,138 +1362,724 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.document-detail { display: flex; flex-direction: column; gap: 20px; padding-top: 28px; padding-bottom: 64px; }
-.document-detail > .panel { padding: 28px; }
-.document-detail h2 { margin: 2px 0 6px; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
-.title-block, .revision-identity, .revision-controls { min-width: 0; }
-.title-text, .title-meta, .source-name, .revision-name, .delete-name { overflow-wrap: anywhere; }
-.heading-actions, .revision-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.document-alert { margin: 0; }
-.title-editor { display: flex; flex-direction: column; gap: 12px; }
-.title-input, .binding-select { width: 100%; }
-.revision-panel { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(360px, 1.2fr) auto; align-items: center; gap: 24px; }
-.revision-overview { border-color: var(--ui-border-muted); background: var(--ui-bg-elevated); }
-.revision-copy, .revision-identity, .revision-controls { display: flex; }
-.revision-copy { align-items: center; gap: 16px; }
-.revision-identity, .revision-controls { flex-direction: column; gap: 4px; }
-.revision-select { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 4px; }
-.revision-current { display: flex; justify-content: flex-end; }
-.revision-file { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.file-mark { display: flex; width: 54px; height: 54px; flex: 0 0 auto; align-items: center; justify-content: center; border: 1px solid #b9d8c4; border-radius: 9px; background: #eef8f1; color: #287a49; }
-.file-mark span { font-size: 11px; font-weight: 800; letter-spacing: .03em; }
-.file-mark-pdf { border-color: #efc4c0; background: #fff1f0; color: #b7352d; }
-.section-kicker, .binding-label { color: var(--ui-text-muted); font-size: 13px; font-weight: 600; }
-.binding-heading, .runs-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
-.binding-heading-side { display: flex; flex: 0 0 auto; align-items: center; gap: 20px; }
-.binding-canvas { display: flex; flex-direction: column; gap: 12px; margin-top: 22px; }
-.binding-auto-summary { display: flex; overflow: hidden; flex-direction: column; border: 1px solid var(--ui-border); border-radius: 10px; background: var(--ui-bg); }
-.binding-summary-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 14px 16px; background: var(--ui-bg-muted); }
-.binding-auto-icon { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 9px; background: color-mix(in srgb, var(--ui-primary) 10%, var(--ui-bg)); color: var(--ui-primary); }
-.binding-auto-icon svg { width: 21px; height: 21px; }
-.binding-auto-copy, .binding-manual, .binding-manual-note { display: flex; flex-direction: column; }
-.binding-auto-copy { min-width: 0; gap: 3px; }
-.binding-map-list { display: flex; flex-direction: column; margin: 0; padding: 0; border-top: 1px solid var(--ui-border); list-style: none; }
-.binding-map-row { display: grid; grid-template-columns: minmax(0, 1fr) 92px minmax(0, 1fr); align-items: center; gap: 12px; padding: 16px; background: var(--ui-bg); }
-.binding-map-row + .binding-map-row { border-top: 1px solid var(--ui-border-muted); }
-.binding-map-file { display: flex; min-width: 0; align-items: center; gap: 12px; }
-.binding-map-file > div { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
-.binding-map-file strong, .binding-map-file .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.binding-map-file .muted { font-size: 12px; }
-.binding-file-tile { display: grid; width: 44px; height: 44px; flex: 0 0 auto; place-items: center; border: 1px solid #efc4c0; border-radius: 8px; background: #fff1f0; color: #b7352d; font-size: 10px; font-weight: 800; letter-spacing: .03em; }
-.binding-map-xlsx .binding-file-tile { border-color: #b9d8c4; background: #eef8f1; color: #287a49; }
-.binding-map-unresolved .binding-file-tile { border-color: var(--ui-border); background: var(--ui-bg); color: var(--ui-text-muted); }
-.binding-map-link { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--ui-text-muted); }
-.binding-map-link span { font-size: 11px; font-weight: 650; }
-.binding-map-link svg { width: 18px; height: 18px; }
-.binding-manual { gap: 12px; padding-top: 4px; }
-.binding-manual-note { gap: 2px; padding: 2px 2px 4px; }
-.binding-manual-note .muted { font-size: 13px; }
-.binding-row { display: grid; grid-template-columns: minmax(190px, .8fr) 64px minmax(320px, 1.5fr); align-items: stretch; }
-.binding-source, .binding-target { min-width: 0; padding: 16px; border: 1px solid var(--ui-border); border-radius: 10px; background: var(--ui-bg); }
-.binding-source { display: flex; align-items: center; gap: 12px; }
-.binding-source > div, .binding-target { display: flex; flex-direction: column; gap: 7px; }
-.binding-source strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.binding-index { display: grid; width: 28px; height: 28px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: var(--ui-bg-accented); font-size: 13px; font-weight: 700; }
-.binding-target { transition: border-color 160ms var(--app-ease); }
-.binding-target-linked { border-color: color-mix(in srgb, var(--ui-success) 55%, var(--ui-border)); }
-.binding-target-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.binding-select { min-height: 44px; padding: 10px 36px 10px 12px; border: 1px solid var(--ui-border); border-radius: 6px; background: var(--ui-bg); color: var(--ui-text); }
-.binding-arrow { display: flex; align-items: center; justify-content: center; color: var(--ui-text-muted); }
-.binding-arrow svg { width: 20px; height: 20px; }
-.binding-empty, .runs-empty { display: flex; align-items: center; gap: 16px; padding: 24px; border: 1px dashed var(--ui-border-accented); border-radius: 10px; background: var(--ui-bg); }
-.binding-empty > svg, .runs-empty > svg { width: 28px; height: 28px; color: var(--ui-primary); }
-.binding-empty p, .runs-empty p { margin: 2px 0 0; }
-.launch-bar { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--ui-border-muted); }
-.launch-copy { display: flex; flex-direction: column; gap: 2px; }
-.preflight-block { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
-.preflight-result { display: flex; flex-direction: column; gap: 12px; }
-.revision-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; padding: 0; list-style: none; }
-.revision-row { padding: 12px 16px; border: 1px solid var(--ui-border); border-radius: 8px; }
-.revision-row-current { border-color: var(--ui-primary); }
-.revision-main { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 8px; }
-.disclosure-panel { padding: 0 !important; overflow: hidden; }
-.disclosure-trigger, .runs-trigger { width: 100%; border: 0; background: transparent; color: var(--ui-text); text-align: left; }
-.disclosure-trigger { display: flex; min-height: 82px; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 24px; }
-.disclosure-trigger:hover, .runs-trigger:hover { background: var(--ui-bg-muted); }
-.disclosure-title { display: flex; align-items: center; gap: 14px; }
-.disclosure-title > svg { width: 22px; height: 22px; color: var(--ui-primary); }
-.disclosure-title span { display: flex; flex-direction: column; }
-.disclosure-title small { color: var(--ui-text-muted); font-size: 13px; }
-.disclosure-content { margin: 0; padding: 16px 24px 24px; border-top: 1px solid var(--ui-border-muted); }
-.disclosure-content .revision-row { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto auto; align-items: center; gap: 16px; padding: 14px 16px; border-color: var(--ui-border-muted); background: var(--ui-bg); }
-.disclosure-content .revision-row-current { border-color: color-mix(in srgb, var(--ui-primary) 48%, var(--ui-border)); background: color-mix(in srgb, var(--app-selected-bg) 55%, var(--ui-bg)); }
-.revision-number { display: flex; width: 44px; height: 44px; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; background: var(--ui-bg-muted); color: var(--ui-text-muted); line-height: 1; }
-.revision-number span { font-size: 10px; font-weight: 600; }
-.revision-number strong { margin-top: 3px; color: var(--ui-text-highlighted); font-size: 17px; }
-.revision-history-copy { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
-.revision-history-copy .revision-name { overflow: hidden; color: var(--ui-text-highlighted); text-overflow: ellipsis; white-space: nowrap; }
-.revision-state, .revision-history-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.revision-history-actions { justify-content: flex-end; }
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.runs-panel { display: flex; flex-direction: column; gap: 18px; }
-.latest-run { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; align-items: center; gap: 16px; padding: 18px; border: 1px solid var(--ui-border); border-radius: 10px; color: inherit; text-decoration: none; transition: transform 160ms var(--app-ease), border-color 160ms var(--app-ease); }
-.latest-run:hover { transform: translateY(-2px); border-color: var(--ui-border-accented); }
-.latest-run-icon { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 9px; background: var(--app-selected-bg); color: var(--app-selected-text); }
-.latest-run-icon svg { width: 22px; height: 22px; }
-.latest-run-copy { display: flex; min-width: 0; flex-direction: column; }
-.latest-run-copy .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.latest-run-count { font-variant-numeric: tabular-nums; font-weight: 700; }
-.latest-run-arrow { color: var(--ui-text-muted); }
-.runs-trigger { display: flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; font-weight: 600; }
-.runs-table { padding-top: 8px; border-top: 1px solid var(--ui-border-muted); }
-.table-wrap { overflow-x: auto; }
-.cell-wrap { min-width: 140px; overflow-wrap: anywhere; }
-.ack-row { display: flex; align-items: center; gap: 8px; }
-.pagination { margin-top: 12px; }
-.managed-documents { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--ui-border-muted); }
-.managed-documents-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.managed-documents-heading h3 { margin: 0; font-size: 16px; }
-.managed-documents-heading p { margin: 3px 0 0; font-size: 13px; }
-.managed-document-list { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
-.managed-document-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--ui-border); border-radius: 9px; }
-.managed-document-icon { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 7px; background: var(--ui-bg-muted); color: var(--ui-primary); }
-.managed-document-copy { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
-.managed-document-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.managed-document-copy span { font-size: 13px; }
+.document-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 28px;
+  padding-bottom: 64px;
+}
+.document-detail > .panel {
+  padding: 28px;
+}
+.document-detail h2 {
+  margin: 2px 0 6px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.title-block,
+.revision-identity,
+.revision-controls {
+  min-width: 0;
+}
+.title-text,
+.title-meta,
+.source-name,
+.revision-name,
+.delete-name {
+  overflow-wrap: anywhere;
+}
+.heading-actions,
+.revision-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.document-alert {
+  margin: 0;
+}
+.title-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.title-input,
+.binding-select {
+  width: 100%;
+}
+.revision-panel {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(360px, 1.2fr) auto;
+  align-items: center;
+  gap: 24px;
+}
+.revision-overview {
+  border-color: var(--ui-border-muted);
+  background: var(--ui-bg-elevated);
+}
+.revision-copy,
+.revision-identity,
+.revision-controls {
+  display: flex;
+}
+.revision-copy {
+  align-items: center;
+  gap: 16px;
+}
+.revision-identity,
+.revision-controls {
+  flex-direction: column;
+  gap: 4px;
+}
+.revision-select {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.revision-current {
+  display: flex;
+  justify-content: flex-end;
+}
+.revision-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.file-mark {
+  display: flex;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #b9d8c4;
+  border-radius: 9px;
+  background: #eef8f1;
+  color: #287a49;
+}
+.file-mark span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+.file-mark-pdf {
+  border-color: #efc4c0;
+  background: #fff1f0;
+  color: #b7352d;
+}
+.section-kicker,
+.binding-label {
+  color: var(--ui-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.binding-heading,
+.runs-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.binding-heading-side {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 20px;
+}
+.binding-canvas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 22px;
+}
+.binding-auto-summary {
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: var(--ui-bg);
+}
+.binding-summary-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--ui-bg-muted);
+}
+.binding-auto-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--ui-primary) 10%, var(--ui-bg));
+  color: var(--ui-primary);
+}
+.binding-auto-icon svg {
+  width: 21px;
+  height: 21px;
+}
+.binding-auto-copy,
+.binding-manual,
+.binding-manual-note {
+  display: flex;
+  flex-direction: column;
+}
+.binding-auto-copy {
+  min-width: 0;
+  gap: 3px;
+}
+.binding-map-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--ui-border);
+  list-style: none;
+}
+.binding-map-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--ui-bg);
+}
+.binding-map-row + .binding-map-row {
+  border-top: 1px solid var(--ui-border-muted);
+}
+.binding-map-file {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+.binding-map-file > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.binding-map-file strong,
+.binding-map-file .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.binding-map-file .muted {
+  font-size: 12px;
+}
+.binding-file-tile {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #efc4c0;
+  border-radius: 8px;
+  background: #fff1f0;
+  color: #b7352d;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+.binding-map-xlsx .binding-file-tile {
+  border-color: #b9d8c4;
+  background: #eef8f1;
+  color: #287a49;
+}
+.binding-map-unresolved .binding-file-tile {
+  border-color: var(--ui-border);
+  background: var(--ui-bg);
+  color: var(--ui-text-muted);
+}
+.binding-map-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--ui-primary);
+}
+.binding-map-link span {
+  font-size: 11px;
+  font-weight: 650;
+}
+.binding-map-link svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2.5;
+}
+.binding-manual {
+  gap: 12px;
+  padding-top: 4px;
+}
+.binding-manual-note {
+  gap: 2px;
+  padding: 2px 2px 4px;
+}
+.binding-manual-note .muted {
+  font-size: 13px;
+}
+.binding-row {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.8fr) 64px minmax(320px, 1.5fr);
+  align-items: stretch;
+}
+.binding-source,
+.binding-target {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: var(--ui-bg);
+}
+.binding-source {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.binding-source > div,
+.binding-target {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.binding-source strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.binding-index {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ui-bg-accented);
+  font-size: 13px;
+  font-weight: 700;
+}
+.binding-target {
+  transition: border-color 160ms var(--app-ease);
+}
+.binding-target-linked {
+  border-color: color-mix(in srgb, var(--ui-success) 55%, var(--ui-border));
+}
+.binding-target-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.binding-select {
+  min-height: 44px;
+  padding: 10px 36px 10px 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+  background: var(--ui-bg);
+  color: var(--ui-text);
+}
+.binding-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ui-text-muted);
+}
+.binding-arrow svg {
+  width: 20px;
+  height: 20px;
+}
+.binding-empty,
+.runs-empty {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  border: 1px dashed var(--ui-border-accented);
+  border-radius: 10px;
+  background: var(--ui-bg);
+}
+.binding-empty > svg,
+.runs-empty > svg {
+  width: 28px;
+  height: 28px;
+  color: var(--ui-primary);
+}
+.binding-empty p,
+.runs-empty p {
+  margin: 2px 0 0;
+}
+.launch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--ui-border-muted);
+}
+.launch-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.preflight-block {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.preflight-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.revision-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+.revision-row {
+  padding: 12px 16px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+}
+.revision-row-current {
+  border-color: var(--ui-primary);
+}
+.revision-main {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.disclosure-panel {
+  padding: 0 !important;
+  overflow: hidden;
+}
+.disclosure-trigger,
+.runs-trigger {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ui-text);
+  text-align: left;
+}
+.disclosure-trigger {
+  display: flex;
+  min-height: 82px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+}
+.disclosure-trigger:hover,
+.runs-trigger:hover {
+  background: var(--ui-bg-muted);
+}
+.disclosure-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.disclosure-title > svg {
+  width: 22px;
+  height: 22px;
+  color: var(--ui-primary);
+}
+.disclosure-title span {
+  display: flex;
+  flex-direction: column;
+}
+.disclosure-title small {
+  color: var(--ui-text-muted);
+  font-size: 13px;
+}
+.disclosure-content {
+  margin: 0;
+  padding: 16px 24px 24px;
+  border-top: 1px solid var(--ui-border-muted);
+}
+.disclosure-content .revision-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-color: var(--ui-border-muted);
+  background: var(--ui-bg);
+}
+.disclosure-content .revision-row-current {
+  border-color: color-mix(in srgb, var(--ui-primary) 48%, var(--ui-border));
+  background: color-mix(in srgb, var(--app-selected-bg) 55%, var(--ui-bg));
+}
+.revision-number {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--ui-bg-muted);
+  color: var(--ui-text-muted);
+  line-height: 1;
+}
+.revision-number span {
+  font-size: 10px;
+  font-weight: 600;
+}
+.revision-number strong {
+  margin-top: 3px;
+  color: var(--ui-text-highlighted);
+  font-size: 17px;
+}
+.revision-history-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+.revision-history-copy .revision-name {
+  overflow: hidden;
+  color: var(--ui-text-highlighted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.revision-state,
+.revision-history-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.revision-history-actions {
+  justify-content: flex-end;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.runs-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.latest-run {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    transform 160ms var(--app-ease),
+    border-color 160ms var(--app-ease);
+}
+.latest-run:hover {
+  transform: translateY(-2px);
+  border-color: var(--ui-border-accented);
+}
+.latest-run-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--app-selected-bg);
+  color: var(--app-selected-text);
+}
+.latest-run-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.latest-run-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.latest-run-copy .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.latest-run-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.latest-run-arrow {
+  color: var(--ui-text-muted);
+}
+.runs-trigger {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.runs-table {
+  padding-top: 8px;
+  border-top: 1px solid var(--ui-border-muted);
+}
+.table-wrap {
+  overflow-x: auto;
+}
+.cell-wrap {
+  min-width: 140px;
+  overflow-wrap: anywhere;
+}
+.ack-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pagination {
+  margin-top: 12px;
+}
+.managed-documents {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--ui-border-muted);
+}
+.managed-documents-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.managed-documents-heading h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.managed-documents-heading p {
+  margin: 3px 0 0;
+  font-size: 13px;
+}
+.managed-document-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.managed-document-row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 9px;
+}
+.managed-document-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--ui-bg-muted);
+  color: var(--ui-primary);
+}
+.managed-document-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.managed-document-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.managed-document-copy span {
+  font-size: 13px;
+}
 @media (max-width: 640px) {
-  .document-detail > .panel { padding: 16px; }
-  .revision-panel, .binding-row, .latest-run { grid-template-columns: 1fr; }
-  .revision-current { justify-content: flex-start; }
-  .binding-arrow { min-height: 28px; transform: rotate(90deg); }
-  .binding-heading, .launch-bar, .binding-heading-side { align-items: stretch; flex-direction: column; }
-  .binding-summary-head { grid-template-columns: auto minmax(0, 1fr); }
-  .binding-summary-head > :last-child { grid-column: 1 / -1; }
-  .binding-map-row { grid-template-columns: 1fr; }
-  .binding-map-link { min-height: 42px; }
-  .launch-actions > * { flex: 1 1 100%; }
-  .latest-run > :not(.latest-run-copy, .latest-run-icon) { justify-self: start; }
-  .disclosure-content { padding-inline: 12px; }
-  .disclosure-content .revision-row { grid-template-columns: 44px minmax(0, 1fr); gap: 12px; }
-  .revision-state, .revision-history-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .document-detail > .panel {
+    padding: 16px;
+  }
+  .revision-panel,
+  .binding-row,
+  .latest-run {
+    grid-template-columns: 1fr;
+  }
+  .revision-current {
+    justify-content: flex-start;
+  }
+  .binding-arrow {
+    min-height: 28px;
+    transform: rotate(90deg);
+  }
+  .binding-heading,
+  .launch-bar,
+  .binding-heading-side {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .binding-summary-head {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .binding-summary-head > :last-child {
+    grid-column: 1 / -1;
+  }
+  .binding-map-row {
+    grid-template-columns: 1fr;
+  }
+  .binding-map-link {
+    min-height: 42px;
+  }
+  .launch-actions > * {
+    flex: 1 1 100%;
+  }
+  .latest-run > :not(.latest-run-copy, .latest-run-icon) {
+    justify-self: start;
+  }
+  .disclosure-content {
+    padding-inline: 12px;
+  }
+  .disclosure-content .revision-row {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .revision-state,
+  .revision-history-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
 }
 @media (min-width: 641px) and (max-width: 960px) {
-  .revision-panel { grid-template-columns: 1fr 1fr; }
-  .revision-current { grid-column: 1 / -1; justify-content: flex-start; }
-  .binding-row { grid-template-columns: minmax(160px, .8fr) 44px minmax(260px, 1.2fr); }
+  .revision-panel {
+    grid-template-columns: 1fr 1fr;
+  }
+  .revision-current {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  .binding-row {
+    grid-template-columns: minmax(160px, 0.8fr) 44px minmax(260px, 1.2fr);
+  }
 }
 </style>
