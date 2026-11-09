@@ -60,6 +60,7 @@ def run_progress(context, record) -> RunDTO:
     return RunDTO(
         run_id=str(record["id"]),
         project_id=str(record["project_id"]),
+        department_id=str(record["department_id"]) if record.get("department_id") else None,
         vor_version_id=str(record["vor_version_id"]),
         vor_filename=record["vor_filename"],
         status=status,
@@ -184,8 +185,9 @@ def _projected_graph_row(record, position, assessment) -> ResultDTO:
     )
 
 
-def present_results(context, record) -> list[ResultDTO]:
+def present_results(context, record, only=None) -> list[ResultDTO]:
     positions = {p.index: p for p in inputs_for_run(context, record)}
+    wanted = set(only) if only is not None else None
     jobs = {
         j.position_index: j for j in context.repository.list_position_jobs(record["id"])
     }
@@ -193,6 +195,8 @@ def present_results(context, record) -> list[ResultDTO]:
     legacy_items: list[dict] = []
     for item in record["indexed_results"]:
         stored = item["result"] or {}
+        if wanted is not None and item["position_index"] not in wanted:
+            continue
         if stored.get("schema_version") == "evidence-assessment-v1":
             position = positions.get(item["position_index"])
             if position is None:
@@ -211,14 +215,24 @@ def present_results(context, record) -> list[ResultDTO]:
     from vor_material_links import material_links
 
     links = material_links([p.legacy_task() for p in positions.values()])
-    validation = context.repository.normative_validation_context(record["id"])
+    if wanted is not None:
+        # Parent verdicts need the parent row; it is cheap once validation is scoped.
+        for index in list(wanted):
+            parent = (links.get(index) or {}).get('index')
+            if isinstance(parent, int):
+                wanted.add(parent)
+    validation = context.repository.normative_validation_context(
+        record['id'], wanted if wanted is not None else None)
     jobs = {
-        j.position_index: j for j in context.repository.list_position_jobs(record["id"])
+        j.position_index: j for j in context.repository.list_position_jobs(
+            record["id"], indices=wanted if wanted is not None else None)
     }
     result = []
     directional_text = {}
     for item in legacy_items:
         index, stored = item["position_index"], item["result"]
+        if wanted is not None and index not in wanted:
+            continue
         position = positions.get(index)
         if position is None:
             raise ValueError("Исходная позиция результата не найдена")
@@ -340,26 +354,11 @@ def present_results(context, record) -> list[ResultDTO]:
     from normative_verdict import apply_parent_verdicts
     from normative_parent_basis import verified_geometry_dependency
     from normative_verdict import verified_allocation_dependency
-
-    verified_dependencies = {
-        index
-        for index, entry in validation.items()
-        if index in links
-        and (
-            verified_geometry_dependency(
-                entry.get("review") or {}, positions.get(index)
-            )
-            or verified_allocation_dependency(
-                entry.get("review") or {}, positions.get(index)
-            )
-        )
-    }
-    rows = apply_parent_verdicts(
-        result,
-        enabled=bool(record["config"].get("normative_after_match")) or bool(validation),
-        running=record["status"] == "running",
-        verified_dependencies=verified_dependencies,
-    )
+    verified_dependencies={index for index, entry in validation.items() if index in links
+        and (verified_geometry_dependency(entry.get('review') or {},positions.get(index))
+            or verified_allocation_dependency(entry.get('review') or {},positions.get(index)))}
+    rows = apply_parent_verdicts(result, enabled=bool(record['config'].get('normative_after_match')) or bool(validation),
+        running=record['status'] == 'running',verified_dependencies=verified_dependencies)
     for row in rows:
         if text := directional_text.get(row.position_index):
             row.problem = " ".join(filter(None, (text, row.problem)))

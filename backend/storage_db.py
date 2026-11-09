@@ -22,9 +22,11 @@ from sqlalchemy.dialects.postgresql import insert, JSONPATH, JSONB
 from sqlalchemy.orm import Session
 
 from storage_blobs import BlobStore
+from department_storage import DepartmentRepositoryMixin, seed_departments
 from storage_models import (
     Base,
     Document,
+    Department,
     DocumentVersion,
     PositionJob,
     PositionResult,
@@ -151,7 +153,7 @@ def _read_source_bytes(source: Any) -> bytes:
             source.seek(position)
 
 
-class Repository:
+class Repository(DepartmentRepositoryMixin):
     supports_analysis_replay = True
 
     def analysis_human_revision(self, project_id, vor_version_id, pdf_versions):
@@ -187,62 +189,6 @@ class Repository:
             raise ValueError('Reusable analysis artifact identity mismatch')
         return saved['payload']
 
-    def drawing_reading_artifacts(self, project_id, version_id):
-        from analysis_replay import digest
-        from pdf_drawing_readings import STAGE
-        with Session(self._engine) as session:
-            rows = session.scalars(select(AnalysisArtifact).where(
-                AnalysisArtifact.project_id == UUID(str(project_id)),
-                AnalysisArtifact.stage == STAGE,
-                AnalysisArtifact.identity['version_id'].astext == str(version_id),
-            )).all()
-            result = []
-            for row in rows:
-                ident, payload = dict(row.identity), dict(row.payload)
-                if digest(ident) != row.key or digest(payload) != row.sha256:
-                    raise ValueError('Drawing artifact hash mismatch')
-                result.append(dict(identity=ident, payload=payload))
-            return result
-
-    def engineering_relation_artifacts(self, project_id, vor_version_id, pdf_versions):
-        """Read immutable engineering artifacts with exact document pins only."""
-        from analysis_replay import digest
-        from normative_engineering_relations import STAGE
-        pins = sorted(set(str(v) for v in pdf_versions))
-        with Session(self._engine) as session:
-            rows = session.scalars(select(AnalysisArtifact).where(
-                AnalysisArtifact.project_id == UUID(str(project_id)),
-                AnalysisArtifact.stage == STAGE,
-                AnalysisArtifact.identity['vor_version_id'].astext == str(vor_version_id),
-                AnalysisArtifact.identity['pdf_versions'] == pins,
-            ).order_by(AnalysisArtifact.key)).all()
-            result = []
-            for row in rows:
-                identity, payload = dict(row.identity), dict(row.payload)
-                if digest(identity) != row.key or digest(payload) != row.sha256:
-                    raise ValueError('Engineering relation artifact hash mismatch')
-                result.append(dict(identity=identity, payload=payload, key=row.key))
-            return result
-
-    def visual_header_artifacts(self, project_id, version_id, page, table_id):
-        from analysis_replay import digest
-        from normative_table_headers import STAGE
-        with Session(self._engine) as session:
-            rows = session.scalars(select(AnalysisArtifact).where(
-                AnalysisArtifact.project_id == UUID(str(project_id)),
-                AnalysisArtifact.stage == STAGE,
-                AnalysisArtifact.identity['version_id'].astext == str(version_id),
-                AnalysisArtifact.identity['page'].as_integer() == page,
-                AnalysisArtifact.identity['table_id'].astext == table_id,
-            )).all()
-            result = []
-            for row in rows:
-                ident, payload = dict(row.identity), dict(row.payload)
-                if digest(ident) != row.key or digest(payload) != row.sha256:
-                    raise ValueError('Visual header artifact hash mismatch')
-                result.append(dict(identity=ident, payload=payload, key=row.key))
-            return result
-
     def compatible_prepared_artifact(self,project_id,inputs):
         """Only raw extraction with exactly the same explicit source contract."""
         from analysis_replay import digest
@@ -277,7 +223,6 @@ class Repository:
             connection.exec_driver_sql(
                 "DROP TABLE IF EXISTS " + ", ".join(tables) + " CASCADE"
             )
-            connection.exec_driver_sql("DROP SCHEMA IF EXISTS audit_graph CASCADE")
         migrate(self._database_url)
 
     def list_human_basis(self, project_id, vor_version_id, position_key, pdf_version_ids, *, include_revoked=False):
@@ -326,6 +271,8 @@ class Repository:
             if project is None:
                 project = Project(name=name)
                 session.add(project)
+                session.flush()
+                seed_departments(session, project.id)
                 session.commit()
                 session.refresh(project)
             return ProjectRow(id=project.id, name=project.name,
@@ -337,6 +284,8 @@ class Repository:
         with Session(self._engine) as session:
             project = Project(name=name)
             session.add(project)
+            session.flush()
+            seed_departments(session, project.id)
             session.commit()
             session.refresh(project)
             return ProjectRow(id=project.id, name=project.name,
@@ -382,16 +331,17 @@ class Repository:
                               archived=bool(project.archived),
                               created_at=project.created_at)
 
-    def list_versions(self, project_id: UUID) -> list[dict[str, Any]]:
+    def list_versions(self, project_id: UUID, *, department_id: UUID | None = None) -> list[dict[str, Any]]:
         with Session(self._engine) as session:
             rows = session.execute(
                 select(Document, DocumentVersion).join(
                     DocumentVersion, DocumentVersion.document_id == Document.id
-                ).where(Document.project_id == project_id).order_by(
+                ).where(Document.project_id == project_id,
+                        *([Document.department_id == department_id] if department_id else [])).order_by(
                     Document.created_at, Document.id, DocumentVersion.version_no.desc()
                 )
             ).all()
-            return [{"id": str(v.id), "project_id": str(d.project_id),
+            return [{"id": str(v.id), "project_id": str(d.project_id), "department_id": str(d.department_id),
                      "document_id": str(d.id), "filename": v.filename, "kind": d.kind,
                      "number": v.version_no, "sha256": v.sha256, "size": v.size,
                      "created_at": v.created_at,
@@ -427,7 +377,7 @@ class Repository:
         metadata = dict(version.metadata_ or {})
         overrides = dict(version.metadata_overrides or {})
         return {
-            "id": str(version.id), "project_id": str(document.project_id),
+            "id": str(version.id), "project_id": str(document.project_id), "department_id": str(document.department_id),
             "document_id": str(document.id), "filename": version.filename,
             "kind": document.kind, "number": version.version_no,
             "sha256": version.sha256, "size": version.size,
@@ -446,7 +396,7 @@ class Repository:
         ).all()
         presented = [self._present_version(session, v, document) for v in versions]
         payload: dict[str, Any] = {
-            "id": str(document.id), "project_id": str(document.project_id),
+            "id": str(document.id), "project_id": str(document.project_id), "department_id": str(document.department_id),
             "kind": document.kind,
             "title": document.title or self._document_title(
                 presented[0]["metadata"] if presented else {},
@@ -455,74 +405,72 @@ class Repository:
             "current_version_id": (str(document.current_version_id)
                                    if document.current_version_id else None),
             "versions": presented,
-            "last_run": None, "pd_updated": False,
+            "last_run": None, "pd_updated": False, "vor_updated": False,
+            "run_freshness": None,
         }
-        if include_runs:
-            payload["last_run"] = self._document_last_run(session, document)
-            payload["pd_updated"] = self._document_pd_updated(
-                session, document, presented, payload["last_run"])
+        if include_runs and document.kind == "vor":
+            run = self._document_last_run(session, document)
+            if run is not None:
+                payload["last_run"] = {"run_id": str(run.id), "created_at": run.created_at}
+                payload["vor_updated"] = (
+                    document.current_version_id is not None
+                    and document.current_version_id != run.vor_version_id
+                )
+                pd_updated, pd_available = self._document_pd_updated(session, run)
+                payload["pd_updated"] = pd_updated
+                if document.current_version_id is None or not pd_available:
+                    payload["run_freshness"] = "unavailable"
+                elif payload["vor_updated"] or pd_updated:
+                    payload["run_freshness"] = "stale"
+                else:
+                    payload["run_freshness"] = "current"
         return payload
 
-    def _document_last_run(self, session, document: Document) -> dict[str, Any] | None:
-        version_ids = set(session.scalars(select(DocumentVersion.id).where(
-            DocumentVersion.document_id == document.id)).all())
-        if not version_ids:
-            return None
-        run = session.scalar(
-            select(Run).where(Run.vor_version_id.in_(version_ids)).order_by(
-                Run.created_at.desc(), Run.id.desc()))
-        if run is None:
-            return None
-        return {"run_id": str(run.id), "created_at": run.created_at}
+    def _document_last_run(self, session, document: Document) -> Run | None:
+        return session.scalar(
+            select(Run).join(
+                DocumentVersion, Run.vor_version_id == DocumentVersion.id
+            ).where(
+                DocumentVersion.document_id == document.id,
+                Run.project_id == document.project_id,
+            ).order_by(Run.created_at.desc(), Run.id.desc())
+        )
 
-    def _document_pd_updated(self, session, document: Document,
-                             presented: list[dict[str, Any]],
-                             last_run: dict[str, Any] | None) -> bool:
-        # Badge only; verdicts stay immutable. Compares pinned PDF versions of
-        # the last run against current PDF revisions of mapped documents.
-        if document.kind != "vor" or not last_run:
-            return False
-        try:
-            from uuid import UUID as _UUID
-            run = session.get(Run, _UUID(str(last_run["run_id"])))
-        except Exception:
-            return False
-        if run is None:
-            return False
-        pinned = {row.version_id for row in session.scalars(
-            select(RunPdfVersion).where(RunPdfVersion.run_id == run.id)).all()}
+    def _document_pd_updated(self, session, run: Run) -> tuple[bool, bool]:
+        """Compare immutable PDF pins with available current document versions."""
+        pinned = set(session.scalars(
+            select(RunPdfVersion.version_id).where(RunPdfVersion.run_id == run.id)
+        ).all())
         if not pinned:
-            mapping = dict((run.config or {}).get("pdf_versions") or {})
+            mapping = (run.config or {}).get("pdf_versions")
+            if not isinstance(mapping, dict):
+                return False, False
             try:
-                from uuid import UUID as _UUID
-                pinned = {_UUID(str(value)) for value in mapping.values()}
-            except Exception:
-                pinned = set()
-        if not pinned:
-            return False
-        selected = pinned
-        current_ids: set[UUID] = set()
-        for pdf_version_id in selected:
-            version = session.get(DocumentVersion, pdf_version_id)
-            if version is None:
-                return True
-            pdf_doc = session.get(Document, version.document_id)
-            if pdf_doc is None:
-                return True
-            if pdf_doc.current_version_id is None:
-                continue
-            current_ids.add(pdf_doc.current_version_id)
-        return set(selected) != set(current_ids)
+                pinned = {UUID(str(value)) for value in mapping.values()}
+            except (ValueError, TypeError, AttributeError):
+                return False, False
+        updated = False
+        available = True
+        for version_id in pinned:
+            version = session.get(DocumentVersion, version_id)
+            pdf = session.get(Document, version.document_id) if version else None
+            if (pdf is None or pdf.kind != "pdf" or pdf.project_id != run.project_id
+                    or pdf.archived or pdf.current_version_id is None):
+                available = False
+            elif pdf.current_version_id != version_id:
+                updated = True
+        return updated, available
 
 
     def catalog(self, project_id: UUID,
-                *, archived: bool = False) -> list[dict[str, Any]]:
+                *, archived: bool = False, department_id: UUID | None = None) -> list[dict[str, Any]]:
         with Session(self._engine) as session:
             project = session.get(Project, project_id)
             if project is None:
                 raise KeyError(str(project_id))
             documents = session.scalars(select(Document).where(
                 Document.project_id == project_id,
+                *([Document.department_id == department_id] if department_id else []),
                 Document.archived == bool(archived)).order_by(
                 Document.created_at, Document.id)).all()
             return [self._present_document(session, document) for document in documents]
@@ -596,64 +544,6 @@ class Repository:
             version.format_status = dict(status or {})
             session.commit()
 
-    def persist_vor_run(
-        self,
-        *,
-        vor_name: str,
-        vor_source: Any,
-        pdf_pool: dict[str, Any],
-        tasks: list[dict[str, Any]],
-        tracking: list[dict[str, Any]],
-        results: list[dict[str, Any]],
-        word_bytes: bytes,
-        model_name: str,
-        project_name: str = "default",
-        pdf_sources: dict[str, Any] | None = None,
-        provider: str = "Yandex Cloud (Qwen)",
-    ) -> UUID:
-        """Persist one VOR audit as a new run; returns the run id.
-
-        Each upload gets an independent document identity; blobs dedupe by
-        content address. VOR bytes are read without disturbing the caller's
-        stream position.
-        """
-        project = self.get_or_create_project(project_name)
-        vor_version = self.add_document_version(
-            project.id, _read_source_bytes(vor_source), filename=vor_name, kind="vor",
-            new_document=True,
-        )
-        pdf_versions: dict[str, DocumentVersionRow] = {}
-        for key, doc in (pdf_pool or {}).items():
-            source = (pdf_sources or {}).get(key)
-            if source is None:
-                pdf_bytes = bytes(doc.tobytes())
-            else:
-                pdf_bytes = _read_source_bytes(source)
-            pdf_versions[key] = self.add_document_version(
-                project.id, pdf_bytes, filename=key, kind="pdf",
-                new_document=True,
-            )
-        run = self.create_run(
-            project.id,
-            vor_version.id,
-            {
-                "model": model_name,
-                "provider": provider,
-                "pdf_versions": {
-                    key: str(version.id) for key, version in pdf_versions.items()
-                },
-            },
-        )
-        self.save_vor_run_payload(
-            run.id,
-            tasks=tasks,
-            tracking=tracking,
-            results=results,
-            word_bytes=bytes(word_bytes),
-            pdf_versions=pdf_versions,
-        )
-        self.finish_run(run.id, "done")
-        return run.id
 
     def save_vor_run_payload(
         self,
@@ -778,6 +668,7 @@ class Repository:
         self, project_id: UUID, data: bytes, *, filename: str, kind: str,
         document_id: UUID | None = None, new_document: bool = False,
         metadata: dict[str, Any] | None = None,
+        department_id: UUID | None = None,
     ) -> DocumentVersionRow:
         """Append a version. Default creates an independent document identity.
 
@@ -799,6 +690,9 @@ class Repository:
                     raise KeyError(str(document_id))
                 if document.project_id != project_id:
                     raise ValueError("document belongs to another project")
+                if department_id is not None and document.department_id != department_id:
+                    raise ValueError("Документ принадлежит другому отделу")
+                department_id = document.department_id
                 if document.kind != kind:
                     raise ValueError("document kind mismatch")
                 if bool(document.archived):
@@ -807,11 +701,22 @@ class Repository:
                 # New-document default: never auto-merge by filename. Internal
                 # legacy callers pass explicit new_document=True as well; the
                 # HTTP layer always sends document_id or new_document=true.
+                # Department is mandatory for new documents; there is no
+                # implicit fallback department.
                 if not new_document:
                     raise ValueError("explicit document_id or new_document required")
-                document = Document(project_id=project_id, kind=kind, title="")
+                if department_id is None:
+                    raise ValueError("Укажите отдел для нового документа")
+                department = session.get(Department, department_id)
+                if department is None or department.project_id != project_id:
+                    raise ValueError("Отдел не найден в этом проекте")
+                document = Document(project_id=project_id, department_id=department_id, kind=kind, title="")
                 session.add(document)
-                session.flush()
+            with session.no_autoflush:
+                department = session.get(Department, department_id)
+            if department is None or department.project_id != project_id:
+                raise ValueError("Отдел не найден в этом проекте")
+            session.flush()
             row = self._append_version(session, document, payload,
                                        filename=filename, metadata=metadata)
             session.commit()
@@ -884,41 +789,72 @@ class Repository:
             session.commit()
             return True
 
-    def delete_project(self, project_id: UUID) -> bool:
-        """Hard-delete a project with every owned row.
+    def persist_vor_run(
+        self,
+        *,
+        vor_name: str,
+        vor_source: Any,
+        pdf_pool: dict[str, Any],
+        tasks: list[dict[str, Any]],
+        tracking: list[dict[str, Any]],
+        results: list[dict[str, Any]],
+        word_bytes: bytes,
+        model_name: str,
+        project_name: str = "default",
+        pdf_sources: dict[str, Any] | None = None,
+        provider: str = "Yandex Cloud (Qwen)",
+    ) -> UUID:
+        """Persist one VOR audit as a new run; returns the run id.
 
-        Runs, position jobs/results, artifacts and PDF pins go first
-        (children cascade from runs); versions, documents and the project
-        follow. Blobs are content-addressed and stay in the store.
+        Legacy headless path (tests and offline scripts): resolves the
+        department explicitly to the project's first seeded department
+        instead of relying on any implicit storage fallback.
         """
-        with Session(self._engine) as session:
-            project = session.get(Project, project_id)
-            if project is None:
-                raise KeyError(str(project_id))
-            documents = session.scalars(select(Document).where(
-                Document.project_id == project.id)).all()
-            runs = session.scalars(select(Run).where(
-                Run.project_id == project.id)).all()
-            for run in runs:
-                for pin in session.scalars(select(RunPdfVersion).where(
-                        RunPdfVersion.run_id == run.id)).all():
-                    session.delete(pin)
-                session.delete(run)
-            session.flush()
-            for document in documents:
-                for version in session.scalars(select(DocumentVersion).where(
-                        DocumentVersion.document_id == document.id)).all():
-                    session.delete(version)
-                session.delete(document)
-            session.delete(project)
-            session.commit()
-            return True
-
+        project = self.get_or_create_project(project_name)
+        departments = self.list_departments(project.id)
+        if not departments:
+            raise ValueError("В проекте нет отделов для сохранения проверки")
+        department_id = departments[0]["id"]
+        vor_version = self.add_document_version(
+            project.id, _read_source_bytes(vor_source), filename=vor_name, kind="vor",
+            new_document=True, department_id=department_id,
+        )
+        pdf_versions: dict[str, DocumentVersionRow] = {}
+        for key, doc in (pdf_pool or {}).items():
+            source = (pdf_sources or {}).get(key)
+            if source is None:
+                pdf_bytes = bytes(doc.tobytes())
+            else:
+                pdf_bytes = _read_source_bytes(source)
+            pdf_versions[key] = self.add_document_version(
+                project.id, pdf_bytes, filename=key, kind="pdf",
+                new_document=True, department_id=department_id,
+            )
+        run = self.create_run(
+            project.id,
+            vor_version.id,
+            {
+                "model": model_name,
+                "provider": provider,
+                "pdf_versions": {
+                    key: str(version.id) for key, version in pdf_versions.items()
+                },
+            },
+        )
+        self.save_vor_run_payload(
+            run.id,
+            tasks=tasks,
+            tracking=tracking,
+            results=results,
+            word_bytes=bytes(word_bytes),
+            pdf_versions={key: version for key, version in pdf_versions.items()},
+        )
+        self.finish_run(run.id, "done")
+        return run.id
 
     def create_run(
         self, project_id: UUID, vor_version_id: UUID, config: dict[str, Any],
         pdf_pins: dict[str, UUID] | None = None, *, background: bool = False,
-        selected_indices: list[int] | None = None,
     ) -> RunRow:
         with Session(self._engine) as session:
             vor = session.get(DocumentVersion, vor_version_id)
@@ -929,23 +865,6 @@ class Repository:
                 raise ValueError("not a VOR version")
             if document.project_id != project_id:
                 raise ValueError("version belongs to another project")
-            config = dict(config)
-            config.setdefault("engine", "langgraph-evidence-v1")
-            inputs = config.get("position_inputs") or []
-            config["input_position_count"] = len(inputs)
-            if selected_indices is None and not inputs:
-                config["selected_position_count"] = None
-                config["selected_indices"] = None
-            else:
-                if selected_indices is None:
-                    selected = [int(item.get("index", number)) for number, item in enumerate(inputs)]
-                else:
-                    selected = sorted(set(int(index) for index in selected_indices))
-                    known = {int(item.get("index", number)) for number, item in enumerate(inputs)}
-                    if known and any(index not in known for index in selected):
-                        raise ValueError("selected position is outside run inputs")
-                config["selected_position_count"] = len(selected)
-                config["selected_indices"] = selected
             run = Run(
                 project_id=project_id,
                 vor_version_id=vor_version_id,
@@ -964,11 +883,13 @@ class Repository:
                     raise ValueError("pinned version is not a PDF")
                 if pdf_doc.project_id != project_id:
                     raise ValueError("pinned version belongs to another project")
+                if pdf_doc.department_id != document.department_id:
+                    raise ValueError("ВОР и ПД должны принадлежать одному отделу")
                 pdf_blob_keys[source_key] = pdf_version.blob_key
                 session.add(RunPdfVersion(run_id=run.id, source_key=str(source_key),
                                           version_id=pdf_version.id))
             if background:
-                run.config = {**dict(run.config), "normative_after_match": False}
+                run.config = {**dict(run.config), "normative_after_match": os.environ.get("NORMATIVE_AUTO_ENABLED", "0") == "1"}
                 self._enqueue(session, run.id, "prepare", "audit_tasks.prepare_run", {
                     "run_id": str(run.id), "project": str(config.get("project", "")),
                     "vor_filename": vor.filename, "vor_blob_key": vor.blob_key,
@@ -1124,19 +1045,6 @@ class Repository:
                         "request_id": str(config.get("request_id", "")),
                     })
             session.commit()
-
-    def own_dispatched_delivery(self, run_id: UUID, position_index: int) -> dict[str, Any] | None:
-        """Return a live dispatched delivery previously reserved by this worker."""
-        with Session(self._engine) as session:
-            now = session.scalar(select(func.clock_timestamp()))
-            row = session.scalar(select(TaskOutbox).where(
-                TaskOutbox.run_id == run_id, TaskOutbox.task_key == f"audit:{position_index}",
-                TaskOutbox.status == "dispatched",
-                or_(TaskOutbox.lease_until.is_(None), TaskOutbox.lease_until >= now)))
-            if row is None or row.delivery_token is None:
-                return None
-            return {"id": str(row.id), "token": str(row.delivery_token),
-                    "name": row.task_name, "payload": dict(row.payload)}
 
     def reserve_deliveries(self, *, limit: int = 100) -> list[dict[str, Any]]:
         """Recover expired execution leases even when the worker hostname is alive."""
@@ -1366,7 +1274,6 @@ class Repository:
             session.commit()
             return scheduled
 
-
     @staticmethod
     def _material_replay_source_ids(items, cards, proofs, proposals):
         """Referenced proof operands/anchors only; never the full source registry."""
@@ -1391,13 +1298,15 @@ class Repository:
         return sorted(ids)
 
 
-    def normative_validation_context(self, run_id):
+    def normative_validation_context(self, run_id, indices=None):
         """Batch-read verdict fields and replayable proofs, without OCR snapshots."""
+        wanted = set(indices) if indices is not None else None
         with Session(self._engine) as session:
             from normative_delivery_status import stages
             result: dict[int, dict[str, Any]] = {index: {'stage': status}
                 for (_,index),status in stages(session.scalars(select(TaskOutbox).where(
-                    TaskOutbox.run_id == run_id, TaskOutbox.task_name == 'audit_tasks.normative_position'))).items()}
+                    TaskOutbox.run_id == run_id, TaskOutbox.task_name == 'audit_tasks.normative_position'))).items()
+                if wanted is None or index in wanted}
             material_trace=func.jsonb_path_exists(
                 NormativeReview.payload['position_check']['evidence_trace'],
                 cast('$[*] ? (@.kind.type() == "string" && '
@@ -1465,7 +1374,8 @@ class Repository:
                 case((material_trace,material_parameters),else_=None),
                 case((material_trace,NormativeReview.payload['position_check']['coverage']['coefficient_policy'].as_string()),
                     else_=None)).where(
-                    NormativeReview.run_id == run_id, NormativeReview.kind == 'check')
+                    NormativeReview.run_id == run_id, NormativeReview.kind == 'check',
+                    *((NormativeReview.position_index.in_(sorted(wanted)),) if wanted is not None else ()))
                 .distinct(NormativeReview.position_index)
                 .order_by(NormativeReview.position_index, NormativeReview.created_at.desc(), NormativeReview.id.desc()))
             scoped_reviews={}
@@ -1694,11 +1604,12 @@ class Repository:
                 job.result = dict(result)
             job.error = error
             run = session.get(Run, run_id)
-            if status == "done" and run and run.config.get("engine") != "langgraph-evidence-v1" and run.config.get("normative_after_match"):
+            if status == "done" and run and run.config.get("normative_after_match"):
                 self._enqueue(session, run_id, f"normative:{position_index}", "audit_tasks.normative_position", {
                     "run_id": str(run_id), "position_index": position_index,
                 })
             session.commit()
+
     def requeue_position_job(
         self,
         run_id: UUID,
@@ -1707,7 +1618,7 @@ class Repository:
         queue: str,
         payload: dict[str, Any], durable: bool = False,
     ) -> None:
-        """Move a job back to queued without consuming an attempt."""
+        """Move a claimed job to another queue without consuming an attempt."""
         with Session(self._engine) as session:
             job = session.scalar(
                 select(PositionJob).where(
@@ -1717,6 +1628,8 @@ class Repository:
             )
             if job is None:
                 raise KeyError(f"{run_id}:{position_index}")
+            if job.status == "done":
+                return
             job.queue = queue
             job.payload = dict(payload)
             job.status = "queued"
@@ -1743,19 +1656,21 @@ class Repository:
                     }
             session.commit()
 
-    def list_position_jobs(self, run_id: UUID, *, include_results: bool = True) -> list[PositionJobRow]:
+    def list_position_jobs(self, run_id: UUID, *, include_results: bool = True, indices=None) -> list[PositionJobRow]:
         """List all job rows of a run ordered by position index."""
+        wanted = set(indices) if indices is not None else None
+        extra = ((PositionJob.position_index.in_(sorted(wanted)),) if wanted is not None else ())
         with Session(self._engine) as session:
             if not include_results:
                 rows = session.execute(select(
                     PositionJob.id, PositionJob.run_id, PositionJob.position_index,
                     PositionJob.queue, PositionJob.status, PositionJob.attempts,
                     PositionJob.worker, PositionJob.payload,
-                ).where(PositionJob.run_id == run_id).order_by(PositionJob.position_index)).mappings()
+                ).where(PositionJob.run_id == run_id, *extra).order_by(PositionJob.position_index)).mappings()
                 return [PositionJobRow(**dict(row)) for row in rows]
             rows = session.scalars(
                 select(PositionJob)
-                .where(PositionJob.run_id == run_id)
+                .where(PositionJob.run_id == run_id, *extra)
                 .order_by(PositionJob.position_index)
             ).all()
             return [self._job_row(job) for job in rows]
@@ -1784,6 +1699,7 @@ class Repository:
     def run_progress_records(
         self, *, project_id: UUID | None = None, run_id: UUID | None = None,
         offset: int = 0, limit: int = 50,
+        department_id: UUID | None = None,
     ) -> list[dict[str, Any]]:
         """Read only metadata and grouped counts, never job/result JSON payloads."""
         page = select(
@@ -1797,6 +1713,8 @@ class Repository:
             page = page.where(Run.project_id == project_id)
         if run_id is not None:
             page = page.where(Run.id == run_id)
+        if department_id is not None:
+            page = page.where(Run.vor_version_id.in_(select(DocumentVersion.id).join(Document, DocumentVersion.document_id == Document.id).where(Document.department_id == department_id)))
         page = page.order_by(Run.created_at.desc(), Run.id.desc()).offset(offset).limit(limit).subquery()
         jobs = select(
             PositionJob.run_id, PositionJob.queue, PositionJob.status,
@@ -1808,7 +1726,7 @@ class Repository:
             PositionResult.run_id, func.count().label("count"),
         ).where(PositionResult.run_id.in_(select(page.c.id))).group_by(PositionResult.run_id).subquery()
         query = select(
-            page, DocumentVersion.filename, jobs.c.queue, jobs.c.status.label("job_status"),
+            page, Document.department_id, DocumentVersion.filename, jobs.c.queue, jobs.c.status.label("job_status"),
             jobs.c.count.label("job_count"), results.c.count.label("result_count"),
         ).join(DocumentVersion, DocumentVersion.id == page.c.vor_version_id).join(
             Document, Document.id == DocumentVersion.document_id,
@@ -1820,7 +1738,7 @@ class Repository:
             for row in session.execute(query).mappings():
                 record = records.setdefault(row["id"], {
                     **{key: row[key] for key in (
-                        "id", "project_id", "vor_version_id", "status", "created_at", "finished_at",
+                        "id", "project_id", "department_id", "vor_version_id", "status", "created_at", "finished_at",
                         "input_total", "prepare_seconds", "pdf_preparation",
                     )},
                     "vor_filename": row["filename"], "result_count": row["result_count"] or 0,
@@ -1839,6 +1757,13 @@ class Repository:
                     counts = records[run_key].setdefault("normative_counts", {})
                     counts[task_status] = counts.get(task_status,0)+1
             return list(records.values())
+
+    def count_runs(self, project_id: UUID, *, department_id: UUID | None = None) -> int:
+        with Session(self._engine) as session:
+            return int(session.scalar(
+                select(func.count()).select_from(Run).where(Run.project_id == project_id,
+                    *([Run.vor_version_id.in_(select(DocumentVersion.id).join(Document, DocumentVersion.document_id == Document.id).where(Document.department_id == department_id))] if department_id else []))
+            ) or 0)
 
     def list_runs(self, project_id: UUID) -> list[RunRow]:
         with Session(self._engine) as session:

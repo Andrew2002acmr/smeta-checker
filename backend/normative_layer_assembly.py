@@ -15,7 +15,7 @@ def layer_assembly(position, positions):
     own=_layer(position.work_name)
     source=position_source_dict(position)
     if (not own or not own['height'] or not source or source.get('format')!='xlsx' or not _region(source) or not _sections(source)
-            or str(position.position_type).casefold()!='работа' or _unit(position.unit)!='м2'):
+            or str(getattr(position,'position_type','')).casefold()!='работа' or _unit(position.unit)!='м2'):
         return None
     region=_region(source)
     entries=[]
@@ -40,7 +40,7 @@ def layer_assembly(position, positions):
         row,other,src=entries[at]
         if src.get('sections')!=source['sections']:
             return None
-        kind=str(other.position_type).casefold()
+        kind=str(getattr(other,'position_type','')).casefold()
         if kind=='материал':
             continue
         if kind!='работа':
@@ -178,7 +178,7 @@ def single_base_price_application(position, result, positions, relation, *, card
     from vor_material_links import _family
 
     own = position_source_dict(position) or {}
-    if (str(position.position_type).casefold() != 'работа' or _unit(position.unit) != 'м2'
+    if (str(getattr(position,'position_type','')).casefold() != 'работа' or _unit(position.unit) != 'м2'
             or relation.get('parent') or not _region(own) or not _sections(own)
             or position.index not in positions or any(key != row.index for key, row in positions.items())
             or positions[position.index].model_dump(mode='json') != position.model_dump(mode='json')
@@ -191,7 +191,7 @@ def single_base_price_application(position, result, positions, relation, *, card
         if not _region(src) or not _sections(src):
             return None
         if (_region(src) == _region(own) and src['sections'] == own['sections']
-                and other.index != position.index and str(other.position_type).casefold() == 'работа'
+                and other.index != position.index and str(getattr(other,'position_type','')).casefold() == 'работа'
                 and re.search(r'устройств\w*\s+[^.]*основан', other.work_name, re.I)):
             return None
     sources = result.get('sources') or []
@@ -450,7 +450,7 @@ def material_allocation_proof(position, result, positions, relation):
     if (not isinstance(positions, dict) or position.index not in positions
             or any(key != row.index for key, row in positions.items())
             or position.model_dump(mode='json') != positions[position.index].model_dump(mode='json')
-            or str(position.position_type).casefold() != 'материал'
+            or str(getattr(position,'position_type','')).casefold() != 'материал'
             or _family(position.work_name) != 'щпс'):
         return None
     # A gross/actual or loss-inclusive claim requires a different consumption

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { RunDto, SummaryDto, RowsDto } from '~/generated/types.gen'
 import type { TableColumn } from '@nuxt/ui'
+import type { SortingState } from '@tanstack/vue-table'
 import {
   formatFileName,
   queueColor,
@@ -87,7 +88,7 @@ const auditColumns: TableColumn<AuditRow>[] = [
     meta: { style: { th: { width: '18%' } } },
   },
 ]
-const auditSorting = ref<any[]>([])
+const auditSorting = ref<SortingState>([])
 const auditPagination = ref({ pageIndex: 0, pageSize: 10 })
 function openPosition(index: number) {
   router.replace({ query: { ...route.query, position: index } })
@@ -240,11 +241,15 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <div>
-    <WorkspaceHeader active="check" />
-    <main id="main-content" tabindex="-1" class="shell">
+    <WorkspaceHeader active="check" wide />
+    <main id="main-content" tabindex="-1" class="shell shell-wide">
       <nav v-if="summary" class="toolbar" aria-label="Проект и редакция ведомости">
         <UButton
-          :to="`/projects/${summary.project.id}`"
+          :to="
+            summary.run.department_id
+              ? `/projects/${summary.project.id}/departments/${summary.run.department_id}`
+              : `/projects/${summary.project.id}`
+          "
           color="neutral"
           variant="link"
           icon="i-lucide-arrow-left"
@@ -282,6 +287,7 @@ onBeforeUnmount(() => {
             Продолжить обработку
           </UButton>
           <UButton
+            data-testid="download-word"
             v-if="summary && (runStatus === 'done' || runStatus === 'failed')"
             variant="outline"
             icon="i-lucide-download"
@@ -343,7 +349,15 @@ onBeforeUnmount(() => {
         </p>
         <p class="muted">Можно закрыть страницу и вернуться к проверке через историю.</p>
         <div class="toolbar">
-          <UButton color="neutral" variant="outline" :to="`/projects/${run.project_id}`">
+          <UButton
+            color="neutral"
+            variant="outline"
+            :to="
+              run.department_id
+                ? `/projects/${run.project_id}/departments/${run.department_id}`
+                : `/projects/${run.project_id}`
+            "
+          >
             К проекту
           </UButton>
           <UButton color="error" variant="outline" :loading="cancelling" @click="cancel">
@@ -478,8 +492,8 @@ onBeforeUnmount(() => {
             @update:page="setPage"
           />
         </div>
-        <details class="docs">
-          <summary>Исходные версии документов</summary>
+        <section class="docs" aria-label="Исходные версии документов">
+          <h2>Исходные версии документов</h2>
           <p v-for="doc in summary.documents" :key="doc.id">
             {{ doc.filename }} · версия {{ doc.number }} · {{ doc.sha256.slice(0, 12) }}
             <UButton
@@ -492,7 +506,7 @@ onBeforeUnmount(() => {
               >Скачать</UButton
             >
           </p>
-        </details>
+        </section>
       </template>
       <AuditWorkspace
         v-if="position !== null && summary"
@@ -635,16 +649,17 @@ onBeforeUnmount(() => {
 }
 .pagination {
   margin: 20px 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
 }
 .docs {
   margin-top: 8px;
   font-size: 14px;
 }
-.docs summary {
-  font-weight: 600;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
+.docs h2 {
+  font-size: 14px;
+  margin: 0;
 }
 .docs p {
   margin: 8px 0;

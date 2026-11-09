@@ -184,8 +184,16 @@ class ApiTests(unittest.TestCase):
         return response.json()["id"]
 
     def _upload(self, client, project, kind, filename, payload, content_type,
-                project_id=None, document_id=None, new_document=None):
-        data = {"project_id": project_id or ApiTests._project_id(self, client, project), "kind": kind}
+                project_id=None, document_id=None, new_document=None,
+                department_id=None):
+        resolved_project = project_id or ApiTests._project_id(self, client, project)
+        data = {"project_id": resolved_project, "kind": kind}
+        if department_id:
+            data["department_id"] = department_id
+        elif not document_id and new_document is not False:
+            departments = client.get(f"/api/v1/projects/{resolved_project}/departments")
+            self.assertEqual(departments.status_code, 200, departments.text)
+            data["department_id"] = departments.json()[0]["id"]
         if document_id:
             data["document_id"] = document_id
         if new_document is None:
@@ -204,9 +212,12 @@ class ApiTests(unittest.TestCase):
         created = client.post("/api/v1/projects", json={"name": project})
         self.assertEqual(created.status_code, 201, created.text)
         project_id = created.json()["id"]
+        departments = client.get(f"/api/v1/projects/{project_id}/departments")
+        assert departments.status_code == 200, departments.text
+        department_id = departments.json()[0]["id"]
         vor = self._upload(
             client, project, "vor", "vor.csv", _fake_vor_bytes(), "text/csv",
-            project_id=project_id, new_document=True,
+            project_id=project_id, new_document=True, department_id=department_id,
         )
         pdf = self._upload(
             client,
@@ -217,6 +228,7 @@ class ApiTests(unittest.TestCase):
             "application/pdf",
             project_id=project_id,
             new_document=True,
+            department_id=department_id,
         )
         return vor, pdf
     def _wait_for_run(self, client, run_id, timeout=60.0):

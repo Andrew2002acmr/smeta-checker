@@ -256,6 +256,7 @@ jobs:
         if: failure()
         with:
           name: workspace-diagnostics
+          include-hidden-files: true
           path: |
             .audit_cache/*.log
             .audit_cache/e2e-results.jpg

@@ -15,21 +15,23 @@ test('revisions retain document identity and historical evidence after PD change
   await page.goto('/upload')
   await page.getByLabel('Название проекта', { exact: true }).fill(name)
   await page.getByRole('button', { name: 'Создать проект', exact: true }).click()
+  await page.locator('a[href*="/departments/"]').filter({ hasText: 'Служба изысканий' }).click()
+  await page.getByRole('button', { name: 'Добавить документы', exact: true }).click()
   await expect(page.getByRole('region', { name: 'Перетащите папку или файлы' })).toBeVisible()
   const projectId = new URL(page.url()).pathname.split('/')[2]!
   await page.getByLabel('Добавить файлы', { exact: true }).setInputFiles([
     { name: 'vor.csv', mimeType: 'text/csv', buffer: Buffer.from('\uFEFF' + csv) },
     { name: 'project.pdf', mimeType: 'application/pdf', buffer: pdf },
   ])
-  await page.getByRole('button', { name: 'Сохранить документы', exact: true }).click()
+  await page.getByTestId('save-documents').click()
   await expect(page.getByRole('dialog')).toBeHidden()
   await page.locator('a[href*="/documents/"]').filter({ hasText: 'vor.csv' }).first().click()
   await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/documents/[^/?]+$`))
   const vorPath = new URL(page.url()).pathname
   const vorDocumentId = vorPath.split('/').at(-1)!
-  await page.getByRole('button', { name: 'Проверить', exact: true }).click()
+  await page.getByTestId('start-audit').click()
   await expect(page).toHaveURL(/\/audits\/[^/?]+$/)
-  await expect(page.getByRole('button', { name: 'Скачать Word', exact: true })).toBeVisible()
+  await expect(page.getByTestId('download-word')).toBeVisible()
   const firstRunId = new URL(page.url()).pathname.split('/')[2]!
   const beforeResponse = await page.request.get(`/api/v1/audits/${firstRunId}/summary`)
   expect(beforeResponse.status()).toBe(200)
@@ -94,9 +96,9 @@ test('revisions retain document identity and historical evidence after PD change
 
   await page.goto(vorPath)
   // Авто-пул берёт действующую редакцию ПД — выбирать нечего.
-  await page.getByRole('button', { name: 'Проверить', exact: true }).click()
+  await page.getByTestId('start-audit').click()
   await expect(page).toHaveURL(/\/audits\/[^/?]+$/)
-  await expect(page.getByRole('button', { name: 'Скачать Word', exact: true })).toBeVisible()
+  await expect(page.getByTestId('download-word')).toBeVisible()
   const secondRunId = new URL(page.url()).pathname.split('/')[2]!
   const second = await (await page.request.get(`/api/v1/audits/${secondRunId}/summary`)).json()
   expect(second.run.vor_version_id).toBe(vor.current_version_id)

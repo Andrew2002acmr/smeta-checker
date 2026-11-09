@@ -78,6 +78,7 @@ docker compose ps
 ## Документация
 
 - [Установка, вход, сетевой доступ и диагностика](docs/docker-quickstart.md).
+- [Версии нормативных данных и установка из Releases](docs/normative-data.md).
 - [Резервное копирование, перенос и восстановление данных](docs/data-migration.md).
 - [Развёртывание и обновление](docs/deployment-cicd.md); [мониторинг](docs/monitoring.md).
 - [API и ограничения доступа](docs/api.md); [среда разработки и проверки](docs/development.md).

@@ -164,6 +164,12 @@ def main():
         )
         created.raise_for_status()
         project_id = created.json()["id"]
+        departments = client.get(f"/api/v1/projects/{project_id}/departments")
+        departments.raise_for_status()
+        department_id = next(
+            department["id"] for department in departments.json()
+            if department["name"] == "Служба изысканий"
+        )
         versions = []
         for filename, kind, mime in [
             (
@@ -175,7 +181,7 @@ def main():
         ]:
             response = client.post(
                 "/api/v1/documents",
-                data={"project_id": project_id, "kind": kind, "new_document": "true"},
+                data={"project_id": project_id, "department_id": department_id, "kind": kind, "new_document": "true"},
                 files={"file": (filename, (args.root / filename).read_bytes(), mime)},
             )
             response.raise_for_status()

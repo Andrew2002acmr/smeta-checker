@@ -417,6 +417,7 @@
         "additionalProperties": false,
         "properties": {
           "normative_profile": {
+            "default": "roads",
             "enum": [
               "roads",
               "electrical"
@@ -455,8 +456,7 @@
           }
         },
         "required": [
-          "vor_version_id",
-          "normative_profile"
+          "vor_version_id"
         ],
         "title": "AuditCreateRequest",
         "type": "object"
@@ -822,6 +822,17 @@
       },
       "Body_upload_document_api_v1_documents_post": {
         "properties": {
+          "department_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Id"
+          },
           "document_id": {
             "anyOf": [
               {
@@ -902,6 +913,104 @@
         "title": "ConfirmBasisRequest",
         "type": "object"
       },
+      "DepartmentCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "DepartmentCreate",
+        "type": "object"
+      },
+      "DepartmentDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "icon": {
+            "title": "Icon",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_system": {
+            "default": false,
+            "title": "Is System",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "pdf_count": {
+            "default": 0,
+            "title": "Pdf Count",
+            "type": "integer"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "run_count": {
+            "default": 0,
+            "title": "Run Count",
+            "type": "integer"
+          },
+          "running_count": {
+            "default": 0,
+            "title": "Running Count",
+            "type": "integer"
+          },
+          "vor_count": {
+            "default": 0,
+            "title": "Vor Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "name",
+          "icon"
+        ],
+        "title": "DepartmentDTO",
+        "type": "object"
+      },
+      "DepartmentUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "DepartmentUpdate",
+        "type": "object"
+      },
       "DocumentDTO": {
         "additionalProperties": false,
         "properties": {
@@ -920,6 +1029,17 @@
               }
             ],
             "title": "Current Version Id"
+          },
+          "department_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Id"
           },
           "id": {
             "title": "Id",
@@ -952,6 +1072,22 @@
             "title": "Project Id",
             "type": "string"
           },
+          "run_freshness": {
+            "anyOf": [
+              {
+                "enum": [
+                  "current",
+                  "stale",
+                  "unavailable"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Freshness"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -962,6 +1098,11 @@
             },
             "title": "Versions",
             "type": "array"
+          },
+          "vor_updated": {
+            "default": false,
+            "title": "Vor Updated",
+            "type": "boolean"
           }
         },
         "required": [
@@ -2414,6 +2555,13 @@
             "title": "Collections",
             "type": "array"
           },
+          "profile_errors": {
+            "items": {
+              "$ref": "#/components/schemas/NormativeProfileErrorDTO"
+            },
+            "title": "Profile Errors",
+            "type": "array"
+          },
           "profiles": {
             "items": {
               "$ref": "#/components/schemas/NormativeCorpusAdminDTO"
@@ -2424,7 +2572,8 @@
         },
         "required": [
           "profiles",
-          "collections"
+          "collections",
+          "profile_errors"
         ],
         "title": "NormativeManagerDTO",
         "type": "object"
@@ -2938,6 +3087,29 @@
           }
         },
         "title": "NormativePositionCheckRequest",
+        "type": "object"
+      },
+      "NormativeProfileErrorDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "profile": {
+            "enum": [
+              "electrical",
+              "roads"
+            ],
+            "title": "Profile",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile",
+          "message"
+        ],
+        "title": "NormativeProfileErrorDTO",
         "type": "object"
       },
       "NormativeProjectCitation": {
@@ -3494,6 +3666,17 @@
             "default": "",
             "title": "Role",
             "type": "string"
+          },
+          "sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sha256"
           }
         },
         "required": [
@@ -4907,6 +5090,20 @@
         "title": "RowsDTO",
         "type": "object"
       },
+      "RunCountDTO": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count"
+        ],
+        "title": "RunCountDTO",
+        "type": "object"
+      },
       "RunDTO": {
         "additionalProperties": false,
         "properties": {
@@ -4928,6 +5125,17 @@
               }
             ],
             "title": "Created At"
+          },
+          "department_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Id"
           },
           "direction_counts": {
             "additionalProperties": {
@@ -5491,6 +5699,17 @@
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "department_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Id"
           },
           "document_id": {
             "title": "Document Id",
@@ -8569,43 +8788,6 @@
       }
     },
     "/api/v1/projects/{project_id}": {
-      "delete": {
-        "operationId": "delete_project_api_v1_projects__project_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "project_id",
-            "required": true,
-            "schema": {
-              "title": "Project Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectDTO"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Delete Project"
-      },
       "get": {
         "operationId": "get_project_api_v1_projects__project_id__get",
         "parameters": [
@@ -8726,6 +8908,22 @@
               "title": "Limit",
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "department_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Department Id"
+            }
           }
         ],
         "responses": {
@@ -8757,6 +8955,61 @@
         "summary": "History"
       }
     },
+    "/api/v1/projects/{project_id}/audits/count": {
+      "get": {
+        "operationId": "history_count_api_v1_projects__project_id__audits_count_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "department_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Department Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunCountDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "History Count"
+      }
+    },
     "/api/v1/projects/{project_id}/catalog": {
       "get": {
         "operationId": "catalog_api_v1_projects__project_id__catalog_get",
@@ -8778,6 +9031,22 @@
               "default": false,
               "title": "Archived",
               "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "department_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Department Id"
             }
           }
         ],
@@ -8810,6 +9079,246 @@
         "summary": "Catalog"
       }
     },
+    "/api/v1/projects/{project_id}/departments": {
+      "get": {
+        "operationId": "departments_api_v1_projects__project_id__departments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DepartmentDTO"
+                  },
+                  "title": "Response Departments Api V1 Projects  Project Id  Departments Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Departments"
+      },
+      "post": {
+        "operationId": "create_department_api_v1_projects__project_id__departments_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Department"
+      }
+    },
+    "/api/v1/projects/{project_id}/departments/{department_id}": {
+      "delete": {
+        "operationId": "delete_department_api_v1_projects__project_id__departments__department_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "department_id",
+            "required": true,
+            "schema": {
+              "title": "Department Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Department"
+      },
+      "get": {
+        "operationId": "department_api_v1_projects__project_id__departments__department_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "department_id",
+            "required": true,
+            "schema": {
+              "title": "Department Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Department"
+      },
+      "patch": {
+        "operationId": "update_department_api_v1_projects__project_id__departments__department_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "department_id",
+            "required": true,
+            "schema": {
+              "title": "Department Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentDTO"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Department"
+      }
+    },
     "/api/v1/projects/{project_id}/documents": {
       "get": {
         "operationId": "documents_api_v1_projects__project_id__documents_get",
@@ -8821,6 +9330,22 @@
             "schema": {
               "title": "Project Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "department_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Department Id"
             }
           }
         ],

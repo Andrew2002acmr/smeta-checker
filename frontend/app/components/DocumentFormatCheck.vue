@@ -12,9 +12,7 @@ const result = ref<FormatDto | null>(null)
 
 let epoch = 0
 
-const sheetItems = computed(() =>
-  (result.value?.sheets ?? []).map((name) => ({ label: name, value: name })),
-)
+const sheetItems = useFormatSheets(result)
 
 const formatBadge = computed(() => {
   const status = (props.version.format_status ?? {}) as Record<string, unknown>

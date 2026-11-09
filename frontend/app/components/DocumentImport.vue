@@ -16,6 +16,7 @@ const props = withDefaults(
   defineProps<{
     projectId: string
     projectName: string
+    departmentId?: string
     documents: DocumentDto[]
     targetDocumentId?: string
   }>(),
@@ -188,6 +189,7 @@ async function save() {
       status.value = `Сохраняем ${item.file.name}…`
       const form = new FormData()
       form.append('project_id', props.projectId)
+      if (props.departmentId) form.append('department_id', props.departmentId)
       form.append('kind', item.kind)
       form.append('file', item.file)
       if (item.target === 'new') form.append('new_document', 'true')
@@ -347,6 +349,7 @@ async function save() {
     <div class="toolbar spread import-footer">
       <span class="muted">{{ pending.length ? `К сохранению: ${pending.length}` : '' }}</span>
       <UButton
+        data-testid="save-documents"
         color="primary"
         icon="i-lucide-save"
         :loading="saving || collecting"

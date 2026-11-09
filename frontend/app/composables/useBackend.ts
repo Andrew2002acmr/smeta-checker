@@ -1,11 +1,12 @@
 import { z } from 'zod'
 import {
   zProjectDto,
+  zDepartmentDto,
   zDocumentDto,
   zVersionDto,
   zRunDto,
+  zRunCountDto,
   zSummaryDto,
-  zResultDto,
   zRowsDto,
   zWorkspaceDto,
   zAuditCreateResponse,
@@ -13,14 +14,7 @@ import {
   zDocumentUploadResponse,
   zStructureDto,
   zFormatDto,
-  zHumanBasisDto,
-  zBasisPreviewDto,
-  zReviewHistoryDto,
-  zReviewArtifactDto,
-  zPreparedPageDto,
   zPdfBindingsDto,
-  zNormativeStateDto,
-  zNormativeReviewDto,
   zNormativeWorkbenchSearchDto,
   zNormativeVorCheckDto,
   zNormativeManagerDto,
@@ -49,15 +43,27 @@ export function backendError(value: unknown): string {
         'Запрос не выполнен'
     : 'Запрос не выполнен'
 }
-async function download(url: string, filename: string) {
-  const reply = await fetch(url, { credentials: 'same-origin' })
-  if (!reply.ok) throw Error(backendError(await reply.json()))
+async function triggerDownload(reply: Response, filename: string) {
   const href = URL.createObjectURL(await reply.blob())
   const link = document.createElement('a')
   link.href = href
   link.download = filename
-  link.click()
-  setTimeout(() => URL.revokeObjectURL(href), 1000)
+  document.body.appendChild(link)
+  try {
+    link.click()
+  } finally {
+    link.remove()
+    setTimeout(() => URL.revokeObjectURL(href), 1000)
+  }
+}
+async function throwDownloadError(reply: Response): Promise<never> {
+  const data: unknown = await reply.json().catch(() => null)
+  throw Error(backendError(data))
+}
+async function download(url: string, filename: string) {
+  const reply = await fetch(url, { credentials: 'same-origin' })
+  if (!reply.ok) await throwDownloadError(reply)
+  await triggerDownload(reply, filename)
 }
 async function downloadPost(url: string, form: FormData, filename: string) {
   const reply = await fetch(url, {
@@ -65,16 +71,8 @@ async function downloadPost(url: string, form: FormData, filename: string) {
     body: form,
     credentials: 'same-origin',
   })
-  if (!reply.ok) {
-    const data: unknown = await reply.json().catch(() => null)
-    throw Error(backendError(data))
-  }
-  const href = URL.createObjectURL(await reply.blob())
-  const link = document.createElement('a')
-  link.href = href
-  link.download = filename
-  link.click()
-  setTimeout(() => URL.revokeObjectURL(href), 1000)
+  if (!reply.ok) await throwDownloadError(reply)
+  await triggerDownload(reply, filename)
 }
 export function useBackend() {
   const route = useRoute()
@@ -140,6 +138,30 @@ export function useBackend() {
     projects: (archived = false) =>
       json(root + '/projects' + (archived ? '?archived=true' : ''), z.array(zProjectDto)),
     project: (id: string) => json(`${root}/projects/${encodeURIComponent(id)}`, zProjectDto),
+    departments: (id: string) =>
+      json(`${root}/projects/${encodeURIComponent(id)}/departments`, z.array(zDepartmentDto)),
+    department: (projectId: string, id: string) =>
+      json(
+        `${root}/projects/${encodeURIComponent(projectId)}/departments/${encodeURIComponent(id)}`,
+        zDepartmentDto,
+      ),
+    createDepartment: (projectId: string, name: string) =>
+      json(`${root}/projects/${encodeURIComponent(projectId)}/departments`, zDepartmentDto, {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      }),
+    updateDepartment: (projectId: string, id: string, fields: { name: string }) =>
+      json(
+        `${root}/projects/${encodeURIComponent(projectId)}/departments/${encodeURIComponent(id)}`,
+        zDepartmentDto,
+        { method: 'PATCH', body: JSON.stringify(fields) },
+      ),
+    deleteDepartment: (projectId: string, id: string) =>
+      json(
+        `${root}/projects/${encodeURIComponent(projectId)}/departments/${encodeURIComponent(id)}`,
+        zDepartmentDto,
+        { method: 'DELETE' },
+      ),
     createProject: (name: string) =>
       json(root + '/projects', zProjectDto, { method: 'POST', body: JSON.stringify({ name }) }),
     renameProject: (id: string, name: string) =>
@@ -152,17 +174,14 @@ export function useBackend() {
         method: 'PATCH',
         body: JSON.stringify(fields),
       }),
-    deleteProject: (id: string) =>
-      json(`${root}/projects/${encodeURIComponent(id)}`, zProjectDto, {
-        method: 'DELETE',
-      }),
+
     deleteDocument: (id: string) =>
       json(`${root}/documents/${encodeURIComponent(id)}/detail`, zDocumentDto, {
         method: 'DELETE',
       }),
-    catalog: (id: string, archived = false) =>
+    catalog: (id: string, archived = false, departmentId?: string) =>
       json(
-        `${root}/projects/${encodeURIComponent(id)}/catalog${archived ? '?archived=true' : ''}`,
+        `${root}/projects/${encodeURIComponent(id)}/catalog?${new URLSearchParams({ archived: String(archived), ...(departmentId ? { department_id: departmentId } : {}) })}`,
         z.array(zDocumentDto),
       ),
     document: (id: string) =>
@@ -195,8 +214,11 @@ export function useBackend() {
           method: 'DELETE',
         },
       ),
-    documents: (id: string) =>
-      json(`${root}/projects/${encodeURIComponent(id)}/documents`, z.array(zVersionDto)),
+    documents: (id: string, departmentId?: string) =>
+      json(
+        `${root}/projects/${encodeURIComponent(id)}/documents${departmentId ? `?department_id=${encodeURIComponent(departmentId)}` : ''}`,
+        z.array(zVersionDto),
+      ),
     upload: (form: FormData) =>
       json(root + '/documents', zDocumentUploadResponse, { method: 'POST', body: form }),
     preflight: (payload: unknown) =>
@@ -211,28 +233,6 @@ export function useBackend() {
       }),
     cancelAudit: (id: string) => json(audit(id) + '/cancel', zRunDto, { method: 'POST' }),
     resumeAudit: (id: string) => json(audit(id) + '/resume', zRunDto, { method: 'POST' }),
-    normative: (id: string, index: number) =>
-      json(`${audit(id)}/positions/${index}/normative`, zNormativeStateDto),
-    recheckAssessment: (id: string, index: number, expectedRevision: string) =>
-      json(`${audit(id)}/positions/${index}/assessment/recheck`, zResultDto, {
-        method: 'POST',
-        body: JSON.stringify({ expected_revision: expectedRevision }),
-      }),
-    validateAssessment: (id: string, index: number, expectedRevision: string) =>
-      json(`${audit(id)}/positions/${index}/assessment/validate`, zResultDto, {
-        method: 'POST',
-        body: JSON.stringify({ expected_revision: expectedRevision }),
-      }),
-    searchNormative: (id: string, index: number, body: unknown) =>
-      json(`${audit(id)}/positions/${index}/normative/search`, zNormativeReviewDto, {
-        method: 'POST',
-        body: JSON.stringify(body),
-      }),
-    selectNormative: (id: string, index: number, body: unknown) =>
-      json(`${audit(id)}/positions/${index}/normative/selection`, zNormativeReviewDto, {
-        method: 'POST',
-        body: JSON.stringify(body),
-      }),
     searchNormativeLibrary: (profile: 'electrical' | 'roads', body: unknown) =>
       json(`${root}/normative/search?profile=${profile}`, zNormativeWorkbenchSearchDto, {
         method: 'POST',
@@ -251,9 +251,14 @@ export function useBackend() {
       `${root}/normative/${profile}/sources/${encodeURIComponent(sourceId)}`,
     normativeCatalogPdfUrl: (fileId: string) =>
       `${root}/normative/catalog/pdf?${new URLSearchParams({ path: fileId })}`,
-    runs: (id: string, offset = 0) =>
+    runCount: (id: string, departmentId?: string) =>
       json(
-        `${root}/projects/${encodeURIComponent(id)}/audits?offset=${offset}&limit=50`,
+        `${root}/projects/${encodeURIComponent(id)}/audits/count${departmentId ? `?department_id=${encodeURIComponent(departmentId)}` : ''}`,
+        zRunCountDto,
+      ),
+    runs: (id: string, offset = 0, departmentId?: string) =>
+      json(
+        `${root}/projects/${encodeURIComponent(id)}/audits?offset=${offset}&limit=50${departmentId ? `&department_id=${encodeURIComponent(departmentId)}` : ''}`,
         z.array(zRunDto),
       ),
     run: (id: string) => json(audit(id) + '/progress', zRunDto),
@@ -267,80 +272,15 @@ export function useBackend() {
           '/rows?' +
           new URLSearchParams({
             focus: query.focus,
-            direction: query.direction ?? 'project',
             q: query.q,
             offset: String(query.offset),
             limit: String(query.limit ?? 10),
+            direction: query.direction ?? 'project',
           }),
         zRowsDto,
       ),
     workspace: (id: string, position: number) =>
       json(`${audit(id)}/positions/${position}/workspace`, zWorkspaceDto),
-    reviewHistory: (id: string, position: number) =>
-      json(`${audit(id)}/positions/${position}/history`, zReviewHistoryDto),
-    preparedPage: (id: string, position: number, page: number) =>
-      json(`${audit(id)}/positions/${position}/extraction?page=${page}`, zPreparedPageDto),
-    reviewImageUrl: (
-      id: string,
-      position: number,
-      kind: 'basis' | 'artifact',
-      item: string,
-      index: number,
-    ) =>
-      `${audit(id)}/positions/${position}/history/${kind}/${encodeURIComponent(item)}/images/${index}`,
-    saveBasisDraft: (id: string, position: number, payload: unknown) =>
-      json(`${audit(id)}/positions/${position}/basis/drafts`, zReviewArtifactDto, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }),
-    humanBasis: (id: string, position: number) =>
-      json(`${audit(id)}/positions/${position}/basis`, z.array(zHumanBasisDto)),
-    confirmBasis: (id: string, position: number, evidenceIndex: number) =>
-      json(`${audit(id)}/positions/${position}/basis/confirm`, z.array(zHumanBasisDto), {
-        method: 'POST',
-        body: JSON.stringify({ evidence_index: evidenceIndex }),
-      }),
-    previewBasis: (id: string, position: number, payload: unknown) =>
-      json(`${audit(id)}/positions/${position}/basis/preview`, zBasisPreviewDto, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }),
-    recognizeBasis: (id: string, position: number, payload: unknown) =>
-      json(`${audit(id)}/positions/${position}/basis/recognize`, zBasisPreviewDto, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }),
-    specifyBasis: (
-      id: string,
-      position: number,
-      payload: {
-        version_id: string
-        page: number
-        rect: number[]
-        comment: string
-        mode?: 'row' | 'area' | 'text' | 'multi'
-        rects?: number[][]
-        selection_digest?: string
-        fragments?: {
-          page: number
-          rect: number[]
-          corrected_text?: string | null
-          text_checked?: boolean
-          role?: 'work' | 'volume' | 'unit' | 'conditions' | 'other'
-        }[]
-        ocr_key?: string | null
-      },
-    ) =>
-      json(`${audit(id)}/positions/${position}/basis`, z.array(zHumanBasisDto), {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }),
-    revokeBasis: (id: string, position: number, basisId: string) =>
-      json(
-        `${audit(id)}/positions/${position}/basis/${encodeURIComponent(basisId)}`,
-        z.array(zHumanBasisDto),
-        { method: 'DELETE' },
-      ),
     structure: (id: string) =>
       json(`${root}/documents/${encodeURIComponent(id)}/structure`, zStructureDto),
     formatting: (id: string, sheet = '') => {

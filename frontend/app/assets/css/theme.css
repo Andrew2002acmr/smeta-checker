@@ -147,6 +147,33 @@
     scrollbar-color: var(--ui-border-accented) transparent;
   }
 }
+
+/* Nuxt UI focus treatment: a soft brand-colored halo instead of a hard outline. */
+:where(input, textarea, select, [role='combobox'], [role='searchbox']):focus-visible {
+  outline: none !important;
+  border-color: var(--ui-border-accented) !important;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--ui-primary) 38%, transparent),
+    0 0 0 5px color-mix(in srgb, var(--ui-primary) 16%, transparent),
+    0 0 12px 2px color-mix(in srgb, var(--ui-primary) 18%, transparent) !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .page-enter-active {
+    transition:
+      opacity 180ms ease-out,
+      transform 180ms ease-out;
+  }
+  .page-leave-active {
+    transition: opacity 80ms ease-in;
+  }
+  .page-enter-from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  .page-leave-to {
+    opacity: 0;
+  }
+}
 /* Review tables fit their pane; long names, formulas and notes wrap. */
 .table-wrap table,
 .project-table table {

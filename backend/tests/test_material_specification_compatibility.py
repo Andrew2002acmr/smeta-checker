@@ -253,6 +253,13 @@ def test_unknown_or_negated_grade_does_not_turn_into_positive_specification():
 
 def test_aggregate_grade_alone_cannot_supply_missing_mixture_designations():
     p, r, claim = fixture()
-    p.comment = 'ГОСТ Р 70458-2022\nКупл-1,26'
+    p.comment = "ГОСТ Р 70458-2022\nКупл-1,26"
     assert specification_proof(p, r) is None
-    assert next(i for i in apply_specification_compatibility(p, r)['items'] if claim in i['claim_ids'])['state'] == 'needs_facts'
+    assert (
+        next(
+            i
+            for i in apply_specification_compatibility(p, r)["items"]
+            if claim in i["claim_ids"]
+        )["state"]
+        == "needs_facts"
+    )

@@ -1,5 +1,6 @@
 """Authenticated routes for the position-scoped electrical norms pilot."""
 import re
+import sqlite3
 from urllib.parse import unquote
 from uuid import UUID
 
@@ -126,21 +127,29 @@ def register_normative_routes(router, guarded, available):
         from normative_catalog import collections
 
         profiles = []
+        profile_errors = []
         imported_hashes = set()
         for profile in ("electrical", "roads"):
             try:
                 kb = service.corpus(profile=profile)
+                profile_hashes = set()
                 with kb.connect() as db:
                     for row in db.execute("SELECT blob_path FROM sources WHERE blob_path IS NOT NULL"):
                         blob_path = (kb.root / row["blob_path"]).resolve()
                         if blob_path.is_relative_to(kb.root) and re.fullmatch(
                             r"[a-f0-9]{64}", blob_path.stem
                         ):
-                            imported_hashes.add(blob_path.stem)
-                profiles.append(manager_profile(profile))
-            except (OSError, ValueError, KeyError) as exc:
-                raise ApiError(503, "normative_unavailable", "Один из нормативных корпусов недоступен.") from exc
-        return dict(profiles=profiles, collections=collections(imported_hashes))
+                            profile_hashes.add(blob_path.stem)
+                profile_data = manager_profile(profile)
+            except (OSError, sqlite3.Error, ValueError, KeyError):
+                profile_errors.append(dict(
+                    profile=profile,
+                    message="Нормативный корпус недоступен. Проверьте подключение локальной базы.",
+                ))
+                continue
+            profiles.append(profile_data)
+            imported_hashes.update(profile_hashes)
+        return dict(profiles=profiles, collections=collections(imported_hashes), profile_errors=profile_errors)
 
     @router.get("/api/v1/normative/catalog/pdf")
     def catalog_pdf(path: str = Query(..., min_length=1, max_length=1024), context=Depends(guarded)):

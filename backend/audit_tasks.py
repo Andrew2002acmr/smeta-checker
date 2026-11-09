@@ -255,10 +255,10 @@ def prepare_run(
     )
     pool: dict[str, Any] = {}
     trace_run = TracingRun(
-        context.settings.langfuse_public_key,
-        context.settings.langfuse_secret_key,
-        context.settings.langfuse_base_url,
-        context.settings.langfuse_environment,
+        endpoint=context.settings.phoenix_collector_endpoint,
+        project=context.settings.phoenix_project_name,
+        public_url=context.settings.phoenix_public_url,
+        environment=context.settings.phoenix_environment,
         audit_run_id=str(run_id),
         request_id=request_id,
         redact_pdf=context.settings.telemetry_redact_pdf,
@@ -491,7 +491,9 @@ def _reuse_duplicate_result(
             # scope_key carry the construction scope that matters.
             source = getattr(position, "position_source", None)
             if source is None:
-                return None
+                # No provenance: never twins (synthetic rows without
+                # coordinates must not share a verdict).
+                return ("no-source", getattr(position, "index", -1))
             if hasattr(source, "model_dump"):
                 dumped = source.model_dump(mode="json")
             elif isinstance(source, dict):
@@ -787,10 +789,10 @@ def audit_position(
                 )
                 return {"position_index": position_index, "duplicate": False}
             trace_run = TracingRun(
-                context.settings.langfuse_public_key,
-                context.settings.langfuse_secret_key,
-                context.settings.langfuse_base_url,
-                context.settings.langfuse_environment,
+                endpoint=context.settings.phoenix_collector_endpoint,
+                project=context.settings.phoenix_project_name,
+                public_url=context.settings.phoenix_public_url,
+                environment=context.settings.phoenix_environment,
                 audit_run_id=str(run_id),
                 request_id=resolved_request,
                 redact_pdf=context.settings.telemetry_redact_pdf,
@@ -878,7 +880,7 @@ def audit_position(
                 track_item["trace_id"] = position_trace.trace_id
                 track_item["trace_url"] = position_trace.url()
             finally:
-                trace_run.close()
+                trace_run.close(flush=False)
         versions = (
             pdf_versions
             if pdf_versions is not None
@@ -1054,7 +1056,7 @@ def finalize_run(
         ordered = [jobs[position.index].result or {} for position in positions]
         if len(results) == len(positions):
             ordered = list(results)
-        if config.get("engine") == "langgraph-evidence-v1":
+        if config.get("engine", "langgraph-evidence-v1") == "langgraph-evidence-v1":
             from workspace_service import present_results as _present
 
             record = context.repository.load_run(run_id)
@@ -1146,6 +1148,11 @@ def finalize_run(
         )
         return {"run_id": str(run_id), "positions": len(positions), "metrics": summary}
     finally:
+        try:
+            from audit_tracing import flush_all_providers
+            flush_all_providers(timeout_millis=10000)
+        except Exception:
+            pass
         reset(token)
 
 

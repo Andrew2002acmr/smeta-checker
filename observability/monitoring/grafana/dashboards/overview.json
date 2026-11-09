@@ -1,0 +1,63 @@
+{
+  "uid": "obs-overview",
+  "title": "observability overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "GlitchTip health",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "probe_success{job=\"blackbox\",instance=\"http://glitchtip:8000/_health/\"}", "legendFormat": "glitchtip" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Grafana health",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        { "expr": "probe_success{job=\"blackbox\",instance=\"http://grafana:3000/login\"}", "legendFormat": "grafana" }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Phoenix health",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "probe_success{job=\"blackbox\",instance=\"http://phoenix:6006/\"}", "legendFormat": "phoenix" }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Prometheus targets up",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        { "expr": "sum(up)", "legendFormat": "up" }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "graph",
+      "title": "CPU usage",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        { "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "cpu" }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "graph",
+      "title": "Memory usage",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        { "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100", "legendFormat": "mem" }
+      ]
+    }
+  ]
+}

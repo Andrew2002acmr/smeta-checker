@@ -31,7 +31,7 @@ def test_standalone_relay_uses_the_same_normative_queue_as_workers():
 
 def test_completion_atomically_schedules_only_once(pipeline):
     p = pipeline
-    p.repo.update_run_config(p.run.id, {"normative_after_match": True, "engine": "legacy-matching-v1"})
+    p.repo.update_run_config(p.run.id, {"normative_after_match": True})
     p.repo.create_position_job(p.run.id, 0, queue="llm", payload={})
     p.repo.finish_position_job(p.run.id, 0, "done", result={"status": "ОК"})
     p.repo.finish_position_job(p.run.id, 0, "done", result={"status": "ОК"})

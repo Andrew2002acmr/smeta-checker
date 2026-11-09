@@ -58,47 +58,71 @@ def test_new_doubt_conflict_or_changed_provenance_is_never_overridden(change):
 
 
 def alias_setup():
-    memory,sources,item=setup()
-    sources[1].update(source_id='document-sha',page=19,label='Norm code 01',kb_identity={'sha256':'pinned'})
-    memory.remember(AgentAnswer(summary='First',items=[item]),sources,{'method'})
-    sources.append({**deepcopy(sources[1]),'id':'retrieved-again'})
-    return memory,sources,item.model_copy(update=dict(project_source_ids=[],normative_source_ids=['retrieved-again']),deep=True)
+    memory, sources, item = setup()
+    sources[1].update(
+        source_id="document-sha",
+        page=19,
+        label="Norm code 01",
+        kb_identity={"sha256": "pinned"},
+    )
+    memory.remember(AgentAnswer(summary="First", items=[item]), sources, {"method"})
+    sources.append({**deepcopy(sources[1]), "id": "retrieved-again"})
+    return (
+        memory,
+        sources,
+        item.model_copy(
+            update=dict(
+                project_source_ids=[], normative_source_ids=["retrieved-again"]
+            ),
+            deep=True,
+        ),
+    )
 
 
 def test_exact_same_normative_payload_under_new_handle_keeps_scope_edge_only():
-    memory,sources,later=alias_setup()
-    original=deepcopy(sources)
-    events=[]
-    memory.restore(AgentAnswer(summary='Later',items=[later]),sources,events)
-    assert later.project_source_ids==['p'] and later.state=='confirmed'
-    assert later.normative_source_ids==['retrieved-again'] and sources==original
-    assert events[0]['current_normative_source_sha256']['retrieved-again']
+    memory, sources, later = alias_setup()
+    original = deepcopy(sources)
+    events = []
+    memory.restore(AgentAnswer(summary="Later", items=[later]), sources, events)
+    assert later.project_source_ids == ["p"] and later.state == "confirmed"
+    assert later.normative_source_ids == ["retrieved-again"] and sources == original
+    assert events[0]["current_normative_source_sha256"]["retrieved-again"]
 
 
-@pytest.mark.parametrize('field,value',[
-    ('text','Work'),('page',20),('source_id','other-document'),('origin','ocr_unverified'),
-    ('kb_identity',{'sha256':'other-release'}),('label','Other norm'),
-    ('classification_claim_ids',['other:claim']),('page',None),
-])
-def test_same_text_or_prefix_with_different_provenance_or_permission_is_not_alias(field,value):
-    memory,sources,later=alias_setup()
-    sources[-1][field]=value
-    before=deepcopy(later)
-    memory.restore(AgentAnswer(summary='Later',items=[later]),sources,[])
-    assert later==before
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("text", "Work"),
+        ("page", 20),
+        ("source_id", "other-document"),
+        ("origin", "ocr_unverified"),
+        ("kb_identity", {"sha256": "other-release"}),
+        ("label", "Other norm"),
+        ("classification_claim_ids", ["other:claim"]),
+        ("page", None),
+    ],
+)
+def test_same_text_or_prefix_with_different_provenance_or_permission_is_not_alias(
+    field, value
+):
+    memory, sources, later = alias_setup()
+    sources[-1][field] = value
+    before = deepcopy(later)
+    memory.restore(AgentAnswer(summary="Later", items=[later]), sources, [])
+    assert later == before
 
 
-@pytest.mark.parametrize('state',['needs_facts','possible_mismatch'])
+@pytest.mark.parametrize("state", ["needs_facts", "possible_mismatch"])
 def test_alias_does_not_restore_a_conclusion_over_new_model_doubt(state):
-    memory,sources,later=alias_setup()
-    later.state=state
-    before=deepcopy(later)
-    memory.restore(AgentAnswer(summary='Later',items=[later]),sources,[])
-    assert later==before
+    memory, sources, later = alias_setup()
+    later.state = state
+    before = deepcopy(later)
+    memory.restore(AgentAnswer(summary="Later", items=[later]), sources, [])
+    assert later == before
 
 
 def test_duplicate_source_handle_fails_closed():
-    memory,sources,later=alias_setup()
+    memory, sources, later = alias_setup()
     sources.append(deepcopy(sources[0]))
-    memory.restore(AgentAnswer(summary='Later',items=[later]),sources,[])
+    memory.restore(AgentAnswer(summary="Later", items=[later]), sources, [])
     assert not later.project_source_ids

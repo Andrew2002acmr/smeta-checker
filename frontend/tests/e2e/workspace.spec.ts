@@ -26,7 +26,10 @@ async function createProject(page: Page, name: string) {
   await page.goto('/upload')
   await page.getByLabel('Название проекта', { exact: true }).fill(name)
   await page.getByRole('button', { name: 'Создать проект', exact: true }).click()
-  await expect(page).toHaveURL(/\/projects\/[^/?]+(?:\?import=1)?$/)
+  await expect(page).toHaveURL(/\/projects\/[^/?]+$/)
+  await page.locator('a[href*="/departments/"]').filter({ hasText: 'Служба изысканий' }).click()
+  await expect(page).toHaveURL(/\/projects\/[^/?]+\/departments\/[^/?]+$/)
+  await page.getByRole('button', { name: 'Добавить документы', exact: true }).click()
   await expect(page.getByRole('region', { name: 'Перетащите папку или файлы' })).toBeVisible()
 }
 test('history stays loading until audits arrive and handles an empty project list', async ({
@@ -62,7 +65,9 @@ test('dashboard filters projects and opens the permanent project workspace', asy
     timeout: 30000,
   })
   await page.getByLabel('Поиск проектов').fill('стенд')
-  await expect(page.getByRole('table')).toContainText('Синтетический стенд · интеграция')
+  await expect(page.getByRole('list', { name: 'Список проектов' })).toContainText(
+    'Синтетический стенд · интеграция',
+  )
   await page.getByLabel('Поиск проектов').fill('нет-такого-проекта')
   await expect(page.getByText('ничего не найдено', { exact: false })).toBeVisible()
   await page.getByLabel('Поиск проектов').fill('')
@@ -156,11 +161,11 @@ test('saved audit opens exact input, actual PDF and survives reload', async ({ p
   await expect
     .poll(() => dialog.evaluate((element) => element.contains(document.activeElement)))
     .toBe(true)
-  await page.getByRole('button', { name: /Оглавление ПД/ }).click()
+  await page.getByRole('button', { name: 'Оглавление', exact: true }).click()
   await expect(page.getByRole('region', { name: 'Дерево разделов PDF' })).toBeVisible()
   await expect(page.locator('.sheet-scroll')).toContainText('Copper cable')
-  // Provenance cells map address -> value; the header shows the first source-row address.
-  await expect(page.locator('.excel-pane')).toContainText('A2')
+  // The position card shows parsed work fields rather than spreadsheet column letters.
+  await expect(page.locator('.excel-pane')).toContainText('Наименование')
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
   await expect(page.getByRole('button', { name: 'Открыть позицию', exact: true })).toBeFocused()
@@ -172,7 +177,7 @@ test('saved audit opens exact input, actual PDF and survives reload', async ({ p
   await page.getByRole('button', { name: 'Закрыть сверку' }).click()
   await expect(dialog).toBeHidden()
   const download = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Скачать Word', exact: true }).click()
+  await page.getByTestId('download-word').click()
   expect((await download).suggestedFilename()).toMatch(/\.docx$/)
   await page.screenshot({ path: '../.audit_cache/e2e-results.jpg', fullPage: true })
 })
@@ -188,9 +193,7 @@ test('unsupported files are explained before upload', async ({ page }) => {
     },
   ])
   await expect(page.getByRole('alert')).toContainText('XLSX/CSV')
-  await expect(
-    page.getByRole('button', { name: 'Сохранить документы', exact: true }),
-  ).toBeDisabled()
+  await expect(page.getByTestId('save-documents')).toBeDisabled()
 })
 
 test('upload, preflight, audit, persisted results and Word export use real API', async ({
@@ -213,12 +216,12 @@ test('upload, preflight, audit, persisted results and Word export use real API',
     },
   ])
   const importDialog = page.getByRole('dialog')
-  await page.getByRole('button', { name: 'Сохранить документы', exact: true }).click()
+  await page.getByTestId('save-documents').click()
   await expect(importDialog).toBeHidden()
   await page.locator('a[href*="/documents/"]').filter({ hasText: 'vor.csv' }).first().click()
-  await page.getByRole('button', { name: 'Проверить', exact: true }).click()
+  await page.getByTestId('start-audit').click()
   await page.getByLabel('Подтверждаю запуск несмотря на критические ошибки').check()
-  await page.getByRole('button', { name: 'Проверить', exact: true }).click()
+  await page.getByTestId('start-audit').click()
   await expect(page).toHaveURL(/\/audits\/[^/?]+$/)
   await page.getByRole('button', { name: /^Готовые позиции: \d+$/ }).click()
   await expect(
@@ -229,15 +232,15 @@ test('upload, preflight, audit, persisted results and Word export use real API',
   await page.getByRole('button', { name: 'Открыть позицию', exact: true }).first().click()
   const review = page.getByRole('dialog', { name: 'Сверка ВОР с PDF' })
   await expect(review).toContainText('Позиция 1 из 2')
-  await review.getByRole('button', { name: 'Следующая позиция' }).click()
+  await review.getByTestId('next-position').click()
   await expect(review).toContainText('Позиция 2 из 2')
-  await expect(review.getByRole('button', { name: 'Следующая позиция' })).toBeDisabled()
-  await review.getByRole('button', { name: 'Предыдущая позиция' }).click()
+  await expect(review.getByTestId('next-position')).toBeDisabled()
+  await review.getByTestId('prev-position').click()
   await expect(review).toContainText('Позиция 1 из 2')
   await review.getByRole('button', { name: 'Закрыть сверку' }).click()
   await expect(review).toBeHidden()
   const downloading = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Скачать Word', exact: true }).click()
+  await page.getByTestId('download-word').click()
   expect((await downloading).suggestedFilename()).toMatch(/\.docx$/)
 })
 
@@ -257,7 +260,7 @@ test('folder picker includes nested documents without a typed path', async ({ pa
     await expect(page.getByRole('list', { name: 'Файлы к сохранению' })).toContainText(
       'project.pdf',
     )
-    await page.getByRole('button', { name: 'Сохранить документы', exact: true }).click()
+    await page.getByTestId('save-documents').click()
     await expect(page.getByRole('dialog')).toBeHidden()
     await expect(
       page.locator('a[href*="/documents/"]').filter({ hasText: 'vor.xlsx' }),

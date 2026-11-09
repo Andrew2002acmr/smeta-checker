@@ -19,7 +19,9 @@ def pair():
 def test_structural_owner_does_not_infer_units_rates_or_material_compatibility():
     tasks=pair()
     before=deepcopy(tasks)
-    assert material_links(tasks)=={}
+    link=material_links(tasks)[1]
+    assert link['index']==0 and link['relation_basis']=='explicit_workbook_owner_linear_curb'
+    assert link['conversion_verified'] is False and link['material_compatibility_verified'] is False
     owner=material_owners(tasks)[1]
     assert owner['index']==0 and owner['state']=='ownership_only'
     assert owner['conversion_verified'] is False
@@ -27,7 +29,7 @@ def test_structural_owner_does_not_infer_units_rates_or_material_compatibility()
     requirement=ownership_requirement(tasks[1],owner)
     assert requirement['state']=='needs_facts' and requirement['required'] is True
     assert requirement['declared_value']=='8.372' and requirement['unit']=='м3'
-    assert tasks==before and material_links(tasks)=={}
+    assert tasks==before and material_links(tasks)=={1:link}
 
 
 @pytest.mark.parametrize('mutate',[

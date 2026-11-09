@@ -210,8 +210,10 @@ class WorkspaceTests(unittest.TestCase):
             # New input version must not affect a prior run's declared values or sources.
             changed = fixtures._fake_vor_bytes().replace(b";45;", b";99;")
             updated = self._upload(
-                client, "ИГДИ", "vor", "vor.csv", changed, "text/csv"
+                client, "ИГДИ", "vor", "vor.csv", changed, "text/csv",
+                document_id=vor["document_id"],
             )
+            self.assertEqual(updated["document_id"], vor["document_id"])
             self.assertNotEqual(updated["version_id"], vor["version_id"])
             self.assertEqual(client.get(f"/api/v1/audits/{run}/rows").json(), rows)
             self.assertEqual(

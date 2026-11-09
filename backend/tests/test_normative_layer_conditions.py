@@ -13,7 +13,7 @@ def fixture():
             value='26',unit='см',quote='h=26 см',scope_quote=scope)],
         items=[dict(state='confirmed',claim_ids=['normative:applicability'],project_source_ids=['p'],normative_source_ids=['n'])],
         sources=[dict(id='n',kind='normative',text='При толщине нижнего слоя основания более 15 см его нормировать в два слоя.'),
-            dict(id='p',kind='project',origin='native',text=scope,version_id='pd-pin')])
+            dict(id='p',kind='project',origin='native',text=scope,version_id='pd-pin',page=1)])
     return p,result,group
 
 

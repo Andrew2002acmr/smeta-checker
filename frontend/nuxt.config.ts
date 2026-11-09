@@ -12,6 +12,7 @@ export default defineNuxtConfig({
     public: { sentryDsn: '' },
   },
   app: {
+    pageTransition: { name: 'page', mode: 'out-in' },
     // Separate build assets so an open local stand cannot reuse an older CSS dependency map.
     buildAssetsDir: '/_nuxt/' + Date.now().toString(36) + '/',
     head: {
@@ -23,6 +24,13 @@ export default defineNuxtConfig({
   icon: {
     clientBundle: {
       icons: [
+        'lucide:zap',
+        'lucide:droplets',
+        'lucide:calculator',
+        'lucide:leaf',
+        'lucide:building-2',
+        'lucide:route',
+        'lucide:map-pinned',
         'lucide:archive',
         'lucide:archive-restore',
         'lucide:arrow-left',

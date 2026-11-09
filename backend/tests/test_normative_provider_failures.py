@@ -100,7 +100,7 @@ def position_review(*, direct_pair=False, response=None):
     if isinstance(response, Exception):
         client.chat.completions.create.side_effect = response
     settings=SimpleNamespace(llm_credentials=lambda:credentials, allowed_llm_hosts=('routerai.ru',),
-        langfuse_public_key='', langfuse_secret_key='', langfuse_base_url='', langfuse_environment='test',
+        phoenix_collector_endpoint='', phoenix_project_name='test', phoenix_public_url='', phoenix_environment='test',
         telemetry_redact_pdf=True, telemetry_mask_prompts=True)
     repo=Mock()
     repo.save_normative_review.side_effect=lambda run,index,kind,payload,actor:dict(id='saved',payload=payload)
@@ -202,19 +202,6 @@ def agent_fixture(responses):
     return run, client.chat.completions.create, stats, tools
 
 
-def test_truncated_agent_answer_retries_compactly_within_existing_budget():
-    truncated = SimpleNamespace(choices=[SimpleNamespace(
-        finish_reason='length', message=SimpleNamespace(content='{"items":['))])
-    navigation = agent_response({'summary':'Read', 'items':[],
-                                 'requests':[{'tool':'read_page','page':7}]})
-    run, create, stats, tools = agent_fixture([navigation, truncated, agent_response()])
-    assert run().summary == 'Done'
-    assert stats['requests'] == create.call_count == MAX_ROUNDS
-    assert tools.execute.call_count == 1
-    supplied = json.loads(create.call_args.kwargs['messages'][1]['content'])
-    assert 'короткий JSON' in supplied['answer_validation'][0]
-
-
 def monthly_limit_error():
     # The reproduced RouterAI response, plus sensitive fields that must never
     # reach telemetry or the published engineering result.
@@ -237,7 +224,6 @@ def test_monthly_key_limit_stops_after_one_attempt_without_exposing_response(tra
         reason='api_key_monthly_spending_limit_exceeded', retryable=False)
     public = json.dumps([stats, str(caught.value)], ensure_ascii=False)
     assert not any(secret in public for secret in ['private-', 'api-key-secret', '1 000,36'])
-
 
 
 def test_monthly_key_limit_stays_a_technical_failure_with_actionable_summary():

@@ -24,27 +24,38 @@ def _scrub(event, hint):  # type: ignore[no-untyped-def]
 
 
 def init_sentry(service: str) -> None:
-    dsn = os.getenv("GLITCHTIP_DSN") or os.getenv("SENTRY_DSN") or ""
+    dsn = os.getenv("GLITCHTIP_DSN") or ""
     if not dsn.strip():
         return
     try:
         import sentry_sdk
-        from sentry_sdk.integrations.celery import CeleryIntegration
-        from sentry_sdk.integrations.fastapi import FastApiIntegration
-        from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
     except ImportError:
         return
+    integrations = []
+    try:
+        from sentry_sdk.integrations.celery import CeleryIntegration
+        integrations.append(CeleryIntegration())
+    except Exception:
+        pass
+    # API image has FastAPI/Starlette; llm-slim workers do not.
+    if service == "api":
+        try:
+            from sentry_sdk.integrations.fastapi import FastApiIntegration
+            integrations.append(FastApiIntegration())
+        except Exception:
+            pass
+    try:
+        from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+        integrations.append(SqlalchemyIntegration())
+    except Exception:
+        pass
     sentry_sdk.init(
         dsn=dsn.strip(),
         environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
         release=os.getenv("SENTRY_RELEASE", ""),
         traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.05")),
         send_default_pii=False,
-        integrations=[
-            FastApiIntegration(),
-            CeleryIntegration(),
-            SqlalchemyIntegration(),
-        ],
+        integrations=integrations,
         before_send=_scrub,
     )
     sentry_sdk.set_tag("service", service)

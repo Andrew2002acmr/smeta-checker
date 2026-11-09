@@ -1,0 +1,30 @@
+# Tailnet aliases for networks where the public IP is blocked (RKN ban).
+# Same UIs/services as observability.yml, reachable over the tailnet only.
+# Plain HTTP: encryption is provided by WireGuard itself, and the Tailscale
+# node certificate covers only the bare node name, not these aliases.
+# Clients need name resolution (MagicDNS does not do subdomains):
+#   100.98.72.30 grafana.1987817.tail3de041.ts.net glitchtip.1987817.tail3de041.ts.net phoenix.1987817.tail3de041.ts.net
+# in /etc/hosts, or a tailnet DNS split-horizon entry.
+# Services/middlewares are NOT redefined here: they come from observability.yml
+# (duplicate definitions in the file provider disable the object).
+http:
+  routers:
+    obs-grafana-ts:
+      rule: Host(`grafana.1987817.tail3de041.ts.net`)
+      service: obs-grafana
+      entryPoints: [web]
+    obs-glitchtip-ts:
+      rule: Host(`glitchtip.1987817.tail3de041.ts.net`)
+      service: obs-glitchtip
+      entryPoints: [web]
+    obs-phoenix-ts-ui:
+      rule: Host(`phoenix.1987817.tail3de041.ts.net`)
+      service: obs-phoenix
+      entryPoints: [web]
+      priority: 10
+      middlewares: [obs-phoenix-auth]
+    obs-phoenix-ts-otlp:
+      rule: Host(`phoenix.1987817.tail3de041.ts.net`) && PathPrefix(`/v1/`)
+      service: obs-phoenix
+      entryPoints: [web]
+      priority: 20

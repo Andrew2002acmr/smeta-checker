@@ -18,25 +18,26 @@ class TracingIsolationTests(unittest.TestCase):
     def test_long_lived_worker_does_not_block_on_synchronous_export(self):
         from audit_tracing import TracingRun
         from unittest.mock import Mock
-        client=Mock()
-        with patch('audit_tracing._configured_client',return_value=client):
-            run=TracingRun('public-test','secret-test',flush_on_close=False)
+        provider=Mock()
+        endpoint='http://phoenix-test:6006'
+        with patch('audit_tracing._ensure_provider',return_value=provider), patch.dict(
+                'audit_tracing._PROVIDERS',{endpoint:provider},clear=True):
+            run=TracingRun(endpoint=endpoint,project='test',flush_on_close=False)
             position=run.position({},dict(position_index=0))
             run.close()
             self.assertTrue(position.finished)
-            client.flush.assert_not_called()
-            TracingRun('public-test','secret-test').close()
-            client.flush.assert_called_once()
+            provider.force_flush.assert_not_called()
+            TracingRun(endpoint=endpoint,project='test').close()
+            provider.force_flush.assert_called_once()
 
     def test_local_trace_link_uses_public_browser_origin(self):
         trace = object.__new__(PositionTrace)
         trace.trace_id = 'trace-test'
-        trace.run = SimpleNamespace(client=SimpleNamespace(
-            get_trace_url=lambda **_: 'http://langfuse-web:3000/project/p/traces/t?view=details'))
-        with patch.dict('os.environ', {'LANGFUSE_PUBLIC_URL': 'http://localhost:3002'}):
-            self.assertEqual(trace.url(), 'http://localhost:3002/project/p/traces/t?view=details')
-        with patch.dict('os.environ', {'LANGFUSE_PUBLIC_URL': ''}):
-            self.assertEqual(trace.url(), 'http://langfuse-web:3000/project/p/traces/t?view=details')
+        trace.run = SimpleNamespace(public_url='http://phoenix-web:3000')
+        with patch.dict('os.environ', {'PHOENIX_PUBLIC_URL': 'http://localhost:3002'}):
+            self.assertEqual(trace.url(), 'http://localhost:3002/traces/trace-test')
+        with patch.dict('os.environ', {'PHOENIX_PUBLIC_URL': ''}):
+            self.assertEqual(trace.url(), 'http://phoenix-web:3000/traces/trace-test')
 
     def test_broken_exporter_does_not_turn_verified_work_into_failure(self):
         class BrokenClient:

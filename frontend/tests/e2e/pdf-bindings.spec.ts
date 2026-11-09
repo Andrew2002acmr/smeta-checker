@@ -14,6 +14,14 @@ test('binds a renamed PDF copy to a VOR reference and keeps the selection after 
   })
   expect(projectResponse.ok()).toBeTruthy()
   const project = await projectResponse.json()
+  const departmentsResponse = await page.request.get(`/api/v1/projects/${project.id}/departments`, {
+    headers,
+  })
+  expect(departmentsResponse.ok()).toBeTruthy()
+  const department = (await departmentsResponse.json()).find(
+    (item: { name: string }) => item.name === 'Служба изысканий',
+  )
+  expect(department).toBeTruthy()
   const uploaded = []
   for (const [name, kind, mime, file] of [
     [
@@ -29,6 +37,7 @@ test('binds a renamed PDF copy to a VOR reference and keeps the selection after 
       headers,
       multipart: {
         project_id: project.id,
+        department_id: department.id,
         kind: kind!,
         new_document: 'true',
         file: {
@@ -47,7 +56,7 @@ test('binds a renamed PDF copy to a VOR reference and keeps the selection after 
   const select = page.getByLabel('ПД для ссылки project.pdf', { exact: true })
   await expect(select).toBeVisible()
   await select.selectOption(copy.version_id)
-  await expect(page.getByRole('button', { name: 'Проверить', exact: true })).toBeDisabled()
+  await expect(page.getByTestId('start-audit')).toBeDisabled()
   await page.getByRole('button', { name: 'Сохранить привязки ПД', exact: true }).click()
   await expect(
     page.getByText('Привязки ПД сохранены для этой версии ВОР.', { exact: true }),

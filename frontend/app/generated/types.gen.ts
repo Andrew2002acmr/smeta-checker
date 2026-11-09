@@ -231,7 +231,7 @@ export type AuditCreateRequest = {
     /**
      * Normative Profile
      */
-    normative_profile: 'roads' | 'electrical';
+    normative_profile?: 'roads' | 'electrical';
     /**
      * Pdf Version Ids
      */
@@ -476,6 +476,10 @@ export type BodyFormattingUploadApiV1FormatChecksPost = {
  */
 export type BodyUploadDocumentApiV1DocumentsPost = {
     /**
+     * Department Id
+     */
+    department_id?: string | null;
+    /**
      * Document Id
      */
     document_id?: string | null;
@@ -526,6 +530,72 @@ export type ConfirmBasisRequest = {
 };
 
 /**
+ * DepartmentCreate
+ */
+export type DepartmentCreate = {
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * DepartmentDTO
+ */
+export type DepartmentDto = {
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Icon
+     */
+    icon: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Is System
+     */
+    is_system?: boolean;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Pdf Count
+     */
+    pdf_count?: number;
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * Run Count
+     */
+    run_count?: number;
+    /**
+     * Running Count
+     */
+    running_count?: number;
+    /**
+     * Vor Count
+     */
+    vor_count?: number;
+};
+
+/**
+ * DepartmentUpdate
+ */
+export type DepartmentUpdate = {
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * DocumentDTO
  */
 export type DocumentDto = {
@@ -537,6 +607,10 @@ export type DocumentDto = {
      * Current Version Id
      */
     current_version_id?: string | null;
+    /**
+     * Department Id
+     */
+    department_id?: string | null;
     /**
      * Id
      */
@@ -555,6 +629,10 @@ export type DocumentDto = {
      */
     project_id: string;
     /**
+     * Run Freshness
+     */
+    run_freshness?: 'current' | 'stale' | 'unavailable' | null;
+    /**
      * Title
      */
     title: string;
@@ -562,6 +640,10 @@ export type DocumentDto = {
      * Versions
      */
     versions: Array<VersionDto>;
+    /**
+     * Vor Updated
+     */
+    vor_updated?: boolean;
 };
 
 /**
@@ -1450,6 +1532,10 @@ export type NormativeManagerDto = {
      */
     collections: Array<NormativeCatalogTypeDto>;
     /**
+     * Profile Errors
+     */
+    profile_errors: Array<NormativeProfileErrorDto>;
+    /**
      * Profiles
      */
     profiles: Array<NormativeCorpusAdminDto>;
@@ -1734,6 +1820,20 @@ export type NormativePositionCheckRequest = {
      * Question
      */
     question?: string;
+};
+
+/**
+ * NormativeProfileErrorDTO
+ */
+export type NormativeProfileErrorDto = {
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Profile
+     */
+    profile: 'electrical' | 'roads';
 };
 
 /**
@@ -2087,6 +2187,10 @@ export type NormativeSourceAdminDto = {
      * Role
      */
     role?: string;
+    /**
+     * Sha256
+     */
+    sha256?: string | null;
 };
 
 /**
@@ -2895,6 +2999,16 @@ export type RowsDto = {
 };
 
 /**
+ * RunCountDTO
+ */
+export type RunCountDto = {
+    /**
+     * Count
+     */
+    count: number;
+};
+
+/**
  * RunDTO
  */
 export type RunDto = {
@@ -2908,6 +3022,10 @@ export type RunDto = {
      * Created At
      */
     created_at: string | null;
+    /**
+     * Department Id
+     */
+    department_id?: string | null;
     /**
      * Direction Counts
      */
@@ -3237,6 +3355,10 @@ export type VersionDto = {
      * Created At
      */
     created_at: string;
+    /**
+     * Department Id
+     */
+    department_id?: string | null;
     /**
      * Document Id
      */
@@ -5214,36 +5336,6 @@ export type CreateProjectApiV1ProjectsPostResponses = {
 
 export type CreateProjectApiV1ProjectsPostResponse = CreateProjectApiV1ProjectsPostResponses[keyof CreateProjectApiV1ProjectsPostResponses];
 
-export type DeleteProjectApiV1ProjectsProjectIdDeleteData = {
-    body?: never;
-    path: {
-        /**
-         * Project Id
-         */
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/projects/{project_id}';
-};
-
-export type DeleteProjectApiV1ProjectsProjectIdDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DeleteProjectApiV1ProjectsProjectIdDeleteError = DeleteProjectApiV1ProjectsProjectIdDeleteErrors[keyof DeleteProjectApiV1ProjectsProjectIdDeleteErrors];
-
-export type DeleteProjectApiV1ProjectsProjectIdDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    200: ProjectDto;
-};
-
-export type DeleteProjectApiV1ProjectsProjectIdDeleteResponse = DeleteProjectApiV1ProjectsProjectIdDeleteResponses[keyof DeleteProjectApiV1ProjectsProjectIdDeleteResponses];
-
 export type GetProjectApiV1ProjectsProjectIdGetData = {
     body?: never;
     path: {
@@ -5321,6 +5413,10 @@ export type HistoryApiV1ProjectsProjectIdAuditsGetData = {
          * Limit
          */
         limit?: number;
+        /**
+         * Department Id
+         */
+        department_id?: string | null;
     };
     url: '/api/v1/projects/{project_id}/audits';
 };
@@ -5345,6 +5441,41 @@ export type HistoryApiV1ProjectsProjectIdAuditsGetResponses = {
 
 export type HistoryApiV1ProjectsProjectIdAuditsGetResponse = HistoryApiV1ProjectsProjectIdAuditsGetResponses[keyof HistoryApiV1ProjectsProjectIdAuditsGetResponses];
 
+export type HistoryCountApiV1ProjectsProjectIdAuditsCountGetData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Department Id
+         */
+        department_id?: string | null;
+    };
+    url: '/api/v1/projects/{project_id}/audits/count';
+};
+
+export type HistoryCountApiV1ProjectsProjectIdAuditsCountGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type HistoryCountApiV1ProjectsProjectIdAuditsCountGetError = HistoryCountApiV1ProjectsProjectIdAuditsCountGetErrors[keyof HistoryCountApiV1ProjectsProjectIdAuditsCountGetErrors];
+
+export type HistoryCountApiV1ProjectsProjectIdAuditsCountGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: RunCountDto;
+};
+
+export type HistoryCountApiV1ProjectsProjectIdAuditsCountGetResponse = HistoryCountApiV1ProjectsProjectIdAuditsCountGetResponses[keyof HistoryCountApiV1ProjectsProjectIdAuditsCountGetResponses];
+
 export type CatalogApiV1ProjectsProjectIdCatalogGetData = {
     body?: never;
     path: {
@@ -5358,6 +5489,10 @@ export type CatalogApiV1ProjectsProjectIdCatalogGetData = {
          * Archived
          */
         archived?: boolean;
+        /**
+         * Department Id
+         */
+        department_id?: string | null;
     };
     url: '/api/v1/projects/{project_id}/catalog';
 };
@@ -5382,7 +5517,7 @@ export type CatalogApiV1ProjectsProjectIdCatalogGetResponses = {
 
 export type CatalogApiV1ProjectsProjectIdCatalogGetResponse = CatalogApiV1ProjectsProjectIdCatalogGetResponses[keyof CatalogApiV1ProjectsProjectIdCatalogGetResponses];
 
-export type DocumentsApiV1ProjectsProjectIdDocumentsGetData = {
+export type DepartmentsApiV1ProjectsProjectIdDepartmentsGetData = {
     body?: never;
     path: {
         /**
@@ -5391,6 +5526,175 @@ export type DocumentsApiV1ProjectsProjectIdDocumentsGetData = {
         project_id: string;
     };
     query?: never;
+    url: '/api/v1/projects/{project_id}/departments';
+};
+
+export type DepartmentsApiV1ProjectsProjectIdDepartmentsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DepartmentsApiV1ProjectsProjectIdDepartmentsGetError = DepartmentsApiV1ProjectsProjectIdDepartmentsGetErrors[keyof DepartmentsApiV1ProjectsProjectIdDepartmentsGetErrors];
+
+export type DepartmentsApiV1ProjectsProjectIdDepartmentsGetResponses = {
+    /**
+     * Response Departments Api V1 Projects  Project Id  Departments Get
+     *
+     * Successful Response
+     */
+    200: Array<DepartmentDto>;
+};
+
+export type DepartmentsApiV1ProjectsProjectIdDepartmentsGetResponse = DepartmentsApiV1ProjectsProjectIdDepartmentsGetResponses[keyof DepartmentsApiV1ProjectsProjectIdDepartmentsGetResponses];
+
+export type CreateDepartmentApiV1ProjectsProjectIdDepartmentsPostData = {
+    body: DepartmentCreate;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/departments';
+};
+
+export type CreateDepartmentApiV1ProjectsProjectIdDepartmentsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateDepartmentApiV1ProjectsProjectIdDepartmentsPostError = CreateDepartmentApiV1ProjectsProjectIdDepartmentsPostErrors[keyof CreateDepartmentApiV1ProjectsProjectIdDepartmentsPostErrors];
+
+export type CreateDepartmentApiV1ProjectsProjectIdDepartmentsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: DepartmentDto;
+};
+
+export type CreateDepartmentApiV1ProjectsProjectIdDepartmentsPostResponse = CreateDepartmentApiV1ProjectsProjectIdDepartmentsPostResponses[keyof CreateDepartmentApiV1ProjectsProjectIdDepartmentsPostResponses];
+
+export type DeleteDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+        /**
+         * Department Id
+         */
+        department_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/departments/{department_id}';
+};
+
+export type DeleteDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdDeleteError = DeleteDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdDeleteErrors[keyof DeleteDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdDeleteErrors];
+
+export type DeleteDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: DepartmentDto;
+};
+
+export type DeleteDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdDeleteResponse = DeleteDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdDeleteResponses[keyof DeleteDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdDeleteResponses];
+
+export type DepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+        /**
+         * Department Id
+         */
+        department_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/departments/{department_id}';
+};
+
+export type DepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdGetError = DepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdGetErrors[keyof DepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdGetErrors];
+
+export type DepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DepartmentDto;
+};
+
+export type DepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdGetResponse = DepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdGetResponses[keyof DepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdGetResponses];
+
+export type UpdateDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdPatchData = {
+    body: DepartmentUpdate;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+        /**
+         * Department Id
+         */
+        department_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/departments/{department_id}';
+};
+
+export type UpdateDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdPatchError = UpdateDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdPatchErrors[keyof UpdateDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdPatchErrors];
+
+export type UpdateDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: DepartmentDto;
+};
+
+export type UpdateDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdPatchResponse = UpdateDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdPatchResponses[keyof UpdateDepartmentApiV1ProjectsProjectIdDepartmentsDepartmentIdPatchResponses];
+
+export type DocumentsApiV1ProjectsProjectIdDocumentsGetData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Department Id
+         */
+        department_id?: string | null;
+    };
     url: '/api/v1/projects/{project_id}/documents';
 };
 

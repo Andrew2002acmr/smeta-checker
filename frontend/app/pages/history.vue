@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ProjectDto, RunDto } from '~/generated/types.gen'
 import type { TableColumn } from '@nuxt/ui'
+import type { SortingState } from '@tanstack/vue-table'
 import { runLabel } from '~/utils/presentation'
 const backend = useBackend(),
   route = useRoute(),
@@ -25,7 +26,7 @@ const historyColumns: TableColumn<RunDto>[] = [
   },
   { id: 'action', header: '', enableSorting: false },
 ]
-const historySorting = ref<any[]>([])
+const historySorting = ref<SortingState>([])
 const historyPagination = ref({ pageIndex: 0, pageSize: 50 })
 const projectName = computed(() => projects.value.find((p) => p.id === selected.value)?.name || '')
 let epoch = 0

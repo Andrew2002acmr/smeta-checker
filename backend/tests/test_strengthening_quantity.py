@@ -25,6 +25,8 @@ def setup():
         result["sources"].append(source)
     tools = EvidenceTools.__new__(EvidenceTools)
     tools.sources = data["sources"]
+    for source in tools.sources:
+        source.setdefault('verified_parameters', [])
     tools.cells = {}
     tools.events = []
     tools.quantity_sums = []
@@ -34,9 +36,10 @@ def setup():
     tools.coverage = {}
     tables = [[] for _ in range(99)]
     tables[88] = [data["table"]]
+    geometry=dict(height=841.8897705078125,width=1190.5511474609375,
+        matrix=[0.0,-1.0,1.0,0.0,0.0,841.8897705078125])
     tools.index = SimpleNamespace(tables=tables, texts=[""] * 99,
-        metadata=dict(page_geometry={'88':dict(height=841.8897705078125,width=1190.5511474609375,
-            matrix=[0.0,-1.0,1.0,0.0,0.0,841.8897705078125])}))
+        metadata={'page_geometry': {'88': geometry}})
     return position, result, tools
 
 

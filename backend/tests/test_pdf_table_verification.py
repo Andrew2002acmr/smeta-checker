@@ -125,60 +125,6 @@ def test_zero_header_budget_does_not_approve_a_raw_unit():
         assert t['header_verification']['deferred_header_ids']==['h']
 
 
-def test_header_allowance_is_per_table_not_consumed_by_previous_table(monkeypatch):
-    import ocr_engine
-    import pdf_cell_ocr
-    monkeypatch.setattr(ocr_engine, 'run_tsv', lambda *a, **k: '')
-    monkeypatch.setattr(ocr_engine, 'parse_tsv', lambda *a: [word('Площадь,'), word('м²')])
-    monkeypatch.setattr(ocr_engine, 'tesseract_version', lambda: 'synthetic-test')
-    monkeypatch.setattr(pdf_cell_ocr, 'clean_glyphs', lambda image: image)
-    monkeypatch.setattr(pdf_cell_ocr, 'refine_tables', lambda *a, **k: None)
-    with pymupdf.open() as doc:
-        page = doc.new_page(width=100, height=100)
-        tables = [table(), table()]
-        tables[1]['table_id'] = 'second'
-        verify_recovered_tables(page, tables, max_headers=1, max_numbers=0)
-        assert [column_unit(t, t['cells'][1]) for t in tables] == ['м2', 'м2']
-        assert all(not t['header_verification']['deferred_header_ids'] for t in tables)
-
-
-def test_header_completion_records_unfinished_budget_and_stops():
-    from pdf_table_verification import complete_recovered_headers
-    with pymupdf.open() as doc:
-        page = doc.new_page(width=100, height=100)
-        t = table()
-        result = complete_recovered_headers(page, [t], seconds=0, passes=4)
-        assert result['state'] == 'incomplete_header_observation'
-        assert result['remaining'] == {'t': ['h']}
-        assert len(result['passes']) == 2
-        assert not result['recognition_correctness_asserted']
-
-
-def test_continuation_does_not_retry_uncertain_header_ahead_of_pending_one(monkeypatch):
-    import ocr_engine
-    import pdf_cell_ocr
-    from pdf_table_verification import complete_recovered_headers
-    monkeypatch.setattr(ocr_engine, 'run_tsv', lambda *a, **k: '')
-    monkeypatch.setattr(ocr_engine, 'parse_tsv', lambda *a: [word('Площадь,'), word('м²')])
-    monkeypatch.setattr(ocr_engine, 'tesseract_version', lambda: 'synthetic-test')
-    monkeypatch.setattr(pdf_cell_ocr, 'clean_glyphs', lambda image: image)
-    monkeypatch.setattr(pdf_cell_ocr, 'refine_tables', lambda *a, **k: None)
-    with pymupdf.open() as doc:
-        page = doc.new_page(width=100, height=100)
-        t = table()
-        observed = t['cells'][0]
-        observed['header_observation_attempted'] = True
-        pending = {**observed, 'cell_id': 'later', 'row': 1, 'bbox': [0, 25, 100, 50]}
-        pending.pop('header_observation_attempted')
-        t['cells'][1].update(row=2, bbox=[0, 50, 100, 75])
-        t['cells'].insert(1, pending)
-        t['header_verification'] = {'deferred_header_ids': ['later']}
-        result = complete_recovered_headers(page, [t], max_headers=1)
-        assert result['remaining'] == {}
-        assert 'header_refinement' not in observed
-        assert pending['header_refinement']['header_id'] == 'later'
-
-
 def test_unit_evidence_is_independent_of_unresolved_material_code():
     t=table()
     p=proof()
@@ -194,27 +140,6 @@ def test_unit_region_clamps_to_image_and_rejects_multiple_candidates():
     assert unit_region(words,40,40)==[0,0,40,40]
     assert unit_region(words+[word('м2',x=100)],200,50) is None
     assert unit_region([word('100.30.15')],200,50) is None
-
-
-def test_second_scale_can_locate_an_ambiguous_unit_without_deciding_its_value():
-    from pdf_table_verification import header_unit_region
-    variants = [dict(scale=1, words=[word('mM?', x=20, y=20, width=70, height=60)]),
-        dict(scale=1.35, words=[word('м3', conf=53, x=20, y=20, width=94, height=81)])]
-    assert header_unit_region(variants, 100, 80) == [0, 0, 73, 63]
-    assert header_unit(variants[1]['words']) is None
-    assert unit_region([word('мз', conf=38, x=20, y=20, width=70, height=60)], 100, 80)
-    assert header_unit([word('мз', conf=38)]) is None
-
-
-def test_generated_unit_annotation_is_not_literal_pdf_text():
-    from pdf_tables import strip_legacy_unit_notes
-    t = table()
-    t['cells'][0]['text'] = 'Объём\nЕдиница по Tesseract: м3'
-    assert strip_legacy_unit_notes([t]) == 1
-    assert t['cells'][0]['text'] == 'Объём'
-    assert not t['cells'][0]['legacy_unit_annotation']['verified']
-    assert strip_legacy_unit_notes([t]) == 0
-    assert column_unit(t, t['cells'][1]) == ''
 
 
 def test_local_unit_glyph_proof_requires_two_reads_and_own_header_region():

@@ -34,13 +34,16 @@ def _open_repo(tmp):
 class PositionJobTests(unittest.TestCase):
     def _make_run(self, repo):
         project = repo.create_project("ИГДИ")
+        department_id = repo.list_departments(project.id)[0]["id"]
         vor = repo.add_document_version(
             project.id, b"vor-bytes", filename="vor.csv", kind="vor",
             new_document=True,
+            department_id=department_id,
         )
         pdf = repo.add_document_version(
             project.id, b"pdf-bytes", filename="project.pdf", kind="pdf",
             new_document=True,
+            department_id=department_id,
         )
         run = repo.create_run(project.id, vor.id, {"model": "qwen-test"},
                               pdf_pins={"project.pdf": pdf.id})
@@ -206,13 +209,16 @@ class TaskPipelineTests(unittest.TestCase):
         from storage_db import DocumentVersionRow
 
         project = repo.get_or_create_project("ИГДИ")
+        department_id = repo.list_departments(project.id)[0]["id"]
         vor = repo.add_document_version(
             project.id, vor_bytes, filename="vor.csv", kind="vor",
             new_document=True,
+            department_id=department_id,
         )
         pdf = repo.add_document_version(
             project.id, pdf_bytes, filename="project.pdf", kind="pdf",
             new_document=True,
+            department_id=department_id,
         )
         config = {
             "model": "qwen-test",

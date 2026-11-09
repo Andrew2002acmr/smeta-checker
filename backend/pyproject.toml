@@ -9,9 +9,10 @@ dependencies = [
     "celery==5.6.3",
     "langgraph==1.2.20",
     "langgraph-checkpoint-postgres==3.2.0",
-    "langfuse==5.0.1",
     "openai==3.24.0",
     "prometheus-client==0.21.1",
+    "opentelemetry-sdk==1.45.1",
+    "opentelemetry-exporter-otlp-proto-http==1.45.1",
     "psycopg[binary]==3.3.6",
     "pydantic==2.14.1",
     "python-dotenv==1.2.4",
@@ -47,6 +48,7 @@ dev = [
     "ruff==0.17.1",
     "pyright==1.1.414",
     "pyyaml==6.0.3",
+    "httpx>=0.28.1",
 ]
 
 [tool.pytest.ini_options]

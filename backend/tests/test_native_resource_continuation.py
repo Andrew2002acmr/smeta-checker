@@ -1,8 +1,8 @@
 """Real native geometry: independent column admission and unchanged row guards."""
 
 from copy import deepcopy
-import hashlib
 import json
+import os
 from pathlib import Path
 import sqlite3
 from types import SimpleNamespace
@@ -13,8 +13,14 @@ from scripts import normative_resource_continuation as parser
 from scripts.prepare_resource_continuation import targeted_candidates
 
 FIXTURE = Path(__file__).parent / "fixtures/gesn27_resource_continuation_12_13.json"
-ROOT = Path(__file__).resolve().parents[3] / "fact-pipeline-inputs/knowledge/road-norms"
-PIN = ROOT / "releases/road-seed-function-20261105-v9/pin.json"
+ROOT = Path(
+    os.environ.get(
+        "NORMATIVE_ROAD_KB_ROOT",
+        Path(__file__).resolve().parents[2]
+        / "normative-handoff-20261030-092929/knowledge-base/road-norms",
+    )
+)
+PIN = ROOT / "CURRENT.json"
 
 
 @pytest.fixture
@@ -231,15 +237,35 @@ def real_kb():
     if not PIN.exists():
         pytest.skip("Primary normative corpus is not installed")
     pin = json.loads(PIN.read_text(encoding="utf-8"))
-    path = ROOT / pin["database"]
-    with path.open("rb") as stream:
-        assert hashlib.file_digest(stream, "sha256").hexdigest() == pin["sha256"]
+    from normative_sqlite_cache import verified_database
+
+    path, actual_sha = verified_database(ROOT / pin["database"], pin["sha256"])
+    assert actual_sha == pin["sha256"]
     with sqlite3.connect(path.as_uri() + "?mode=ro&immutable=1", uri=True) as db:
         db.row_factory = sqlite3.Row
         yield db
 
 
-def test_full_primary_pdf_targeted_export_and_exact_review_replay(real_kb):
+@pytest.fixture
+def continuation_gap_kb(real_kb, tmp_path):
+    # The current release already includes this reviewed continuation. Simulate
+    # the pre-import gap in a separate staging database, never in the corpus.
+    staging = sqlite3.connect(tmp_path / "staging.sqlite")
+    staging.row_factory = sqlite3.Row
+    real_kb.backup(staging)
+    staging.execute(
+        "DELETE FROM resources WHERE norm_id IN "
+        "(SELECT id FROM norms WHERE source_id=? AND code=?) AND resource_code=?",
+        ("pdf-6aa5203d913dd5eb1538a4c2", "27-02-010-02", "04.1.02.05-0006"),
+    )
+    try:
+        yield staging
+    finally:
+        staging.close()
+
+
+def test_full_primary_pdf_targeted_export_and_exact_review_replay(continuation_gap_kb):
+    real_kb = continuation_gap_kb
     data = targeted_candidates(
         real_kb,
         ROOT,
@@ -269,6 +295,34 @@ def test_full_primary_pdf_targeted_export_and_exact_review_replay(real_kb):
     mutated["rows"][0]["proof"]["source_sha256"] = "0" * 64
     with pytest.raises(ValueError, match="source version differs"):
         parser.regenerate_reviewed(real_kb, ROOT, mutated)
+
+
+def test_current_release_resource_is_not_proposed_for_duplicate_import(real_kb):
+    from decimal import Decimal
+
+    rows = real_kb.execute(
+        "SELECT r.quantity,r.unit FROM resources r JOIN norms n ON n.id=r.norm_id "
+        "WHERE n.source_id=? AND n.code=? AND r.resource_code=?",
+        ("pdf-6aa5203d913dd5eb1538a4c2", "27-02-010-02", "04.1.02.05-0006"),
+    ).fetchall()
+    assert len(rows) == 1
+    assert Decimal(rows[0]["quantity"]) == Decimal("5.9") and rows[0]["unit"] == "м3"
+    result = targeted_candidates(
+        real_kb,
+        ROOT,
+        "pdf-6aa5203d913dd5eb1538a4c2",
+        12,
+        13,
+        norm_codes=["27-02-010-02"],
+        resource_codes=["04.1.02.05-0006"],
+    )
+    assert result["rows"] == []
+    assert any(
+        row.get("norm") == "27-02-010-02"
+        and row.get("code") == "04.1.02.05-0006"
+        and row.get("reason") == "resource_already_exists_no_overwrite"
+        for row in result["rejected"]
+    )
 
 
 def test_targeted_export_rejects_wrong_page_or_source_identity(real_kb):

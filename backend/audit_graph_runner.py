@@ -140,11 +140,13 @@ def run_graph_position(*, context: Any, run_id: UUID, position_index: int,
         from audit_tracing import TracingRun
 
         tracing = TracingRun(
-            context.settings.langfuse_public_key, context.settings.langfuse_secret_key,
-            context.settings.langfuse_base_url, context.settings.langfuse_environment,
+            endpoint=context.settings.phoenix_collector_endpoint,
+            project=context.settings.phoenix_project_name,
+            environment=context.settings.phoenix_environment,
             audit_run_id=str(run_id), request_id=request_id,
             redact_pdf=context.settings.telemetry_redact_pdf,
             mask_prompts=context.settings.telemetry_mask_prompts,
+            public_url=context.settings.phoenix_public_url,
         )
         trace = tracing.position(input={"position_index": position_index}, metadata={"position_index": position_index})
         stats: dict[str, Any] = {"requests": 0, "usage": {}, "responses": [], "warnings": []}

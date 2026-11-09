@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from audit_assessment import reduce_assessment
 from audit_graph_store import (
@@ -51,8 +51,10 @@ class GraphStoreTests(unittest.TestCase):
 
     def _run(self, repo):
         project = repo.create_project("Граф")
+        department_id = UUID(repo.list_departments(project.id)[0]["id"])
         vor = repo.add_document_version(
-            project.id, b"vor", filename="vor.csv", kind="vor", new_document=True
+            project.id, b"vor", filename="vor.csv", kind="vor", new_document=True,
+            department_id=department_id,
         )
         return repo.create_run(project.id, vor.id, {"pdf_versions": {}})
 

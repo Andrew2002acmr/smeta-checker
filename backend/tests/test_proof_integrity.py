@@ -523,6 +523,17 @@ def test_identical_position_reuses_finished_assessment():
             formula="",
             position_type="Работа",
             comment="",
+            position_source={
+                "document_sha256": "a" * 64,
+                "format": "xlsx",
+                "sheet": "Дорожная одежда",
+                "row": 18 + index,
+                "header_row": 17,
+                "position_id": f"r{index}",
+                "cells": {},
+                "sections": [],
+                "scope_key": "",
+            },
         )
 
     jobs = {

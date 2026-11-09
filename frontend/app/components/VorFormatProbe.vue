@@ -13,9 +13,7 @@ const result = ref<FormatDto | null>(null)
 let epoch = 0
 const pendingFile = ref<File | null>(null)
 
-const sheetItems = computed(() =>
-  (result.value?.sheets ?? []).map((name) => ({ label: name, value: name })),
-)
+const sheetItems = useFormatSheets(result)
 
 function pickFile() {
   fileInput.value?.click()

@@ -118,6 +118,19 @@ def test_latest_review_is_used_without_rewriting_older_proof(pipeline):
     assert pipeline.repo.normative_review(pipeline.run.id, 59, first['id'])['payload'] == old
 
 
+def test_position_scoped_projection_preserves_proofs_and_excludes_other_rows(pipeline):
+    data = fixture()
+    save(pipeline, data)
+    other = deepcopy(data)
+    other['position']['index'] = 60
+    save(pipeline, other, actor='other-position')
+    complete = pipeline.repo.normative_validation_context(pipeline.run.id)
+    scoped = pipeline.repo.normative_validation_context(pipeline.run.id, indices=[59])
+    assert set(scoped) == {59}
+    assert scoped[59] == complete[59]
+    assert pipeline.repo.normative_validation_context(pipeline.run.id, indices=[]) == {}
+
+
 @pytest.mark.parametrize('trace', ['missing', None, []])
 def test_legacy_missing_or_null_trace_stays_empty_and_does_not_gain_migration(pipeline, trace):
     data = fixture()

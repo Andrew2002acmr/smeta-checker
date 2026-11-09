@@ -403,6 +403,7 @@ class NormativeReleaseDTO(DTO):
 class NormativeSourceAdminDTO(DTO):
     id: str
     designation: str
+    sha256: str | None = None
     kind: str = ""
     role: str = ""
     pages: int
@@ -449,15 +450,46 @@ class NormativeCatalogTypeDTO(DTO):
     file_count: int
 
 
+class NormativeProfileErrorDTO(DTO):
+    profile: Literal["electrical", "roads"]
+    message: str
+
+
 class NormativeManagerDTO(DTO):
     profiles: list[NormativeCorpusAdminDTO]
     collections: list[NormativeCatalogTypeDTO]
+    profile_errors: list[NormativeProfileErrorDTO]
 
 class ProjectDTO(DTO):
     id: str
     name: str
     archived: bool = False
     created_at: datetime | None = None
+
+
+class RunCountDTO(DTO):
+    count: int
+
+
+class DepartmentDTO(DTO):
+    id: str
+    project_id: str
+    name: str
+    icon: str
+    is_system: bool = False
+    created_at: datetime | None = None
+    vor_count: int = 0
+    pdf_count: int = 0
+    run_count: int = 0
+    running_count: int = 0
+
+
+class DepartmentCreate(DTO):
+    name: str = Field(min_length=1, max_length=256)
+
+
+class DepartmentUpdate(DTO):
+    name: str = Field(min_length=1, max_length=256)
 
 
 class ProjectCreate(DTO):
@@ -489,6 +521,7 @@ class DocumentMetadataDTO(DTO):
 class VersionDTO(DTO):
     id: str
     project_id: str
+    department_id: str | None = None
     document_id: str
     filename: str
     kind: Literal["vor", "pdf"]
@@ -506,6 +539,7 @@ class RunDTO(DTO):
     normative_counts: dict[str, int] = Field(default_factory=dict)
     run_id: str
     project_id: str
+    department_id: str | None = None
     vor_version_id: str
     vor_filename: str
     status: Literal["running", "done", "failed", "cancelled"]
@@ -527,6 +561,7 @@ class RunDTO(DTO):
 class DocumentDTO(DTO):
     id: str
     project_id: str
+    department_id: str | None = None
     kind: Literal["vor", "pdf"]
     title: str
     archived: bool = False
@@ -534,6 +569,8 @@ class DocumentDTO(DTO):
     versions: list[VersionDTO]
     last_run: RunDTO | None = None
     pd_updated: bool = False
+    vor_updated: bool = False
+    run_freshness: Literal["current", "stale", "unavailable"] | None = None
 
 
 class DocumentPatch(DTO):
