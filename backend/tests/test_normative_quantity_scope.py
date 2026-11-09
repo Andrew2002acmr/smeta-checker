@@ -73,7 +73,7 @@ def test_sum_or_native_whole_quantity_is_not_a_partial_side_cell():
 def test_feedback_reports_pair_before_paid_final_answer_without_changing_values():
     sources=pair()
     candidate=AgentAnswer(summary='',items=[],parameters=[proposal(sources)])
-    tools=SimpleNamespace(parameter_evidence={'quantity':dict(stale=True)})
+    tools=SimpleNamespace(parameter_evidence={'quantity':dict(stale=True)},events=[])
     original=deepcopy(candidate)
     issues=answer_feedback(candidate,sources,tools,work_scope='Выравнивающий слой')
     assert len(issues)==1 and 'обе колонки' in issues[0]
@@ -95,7 +95,7 @@ def test_child_quantity_uses_parent_scope_not_material_name():
 def test_feedback_uses_owner_scope_not_unrelated_child_side_word():
     sources=pair()
     answer=AgentAnswer(summary='',items=[],parameters=[proposal(sources)])
-    issues=answer_feedback(answer,sources,SimpleNamespace(),work_scope='Материал справа',quantity_work_scope='Покрытие')
+    issues=answer_feedback(answer,sources,SimpleNamespace(events=[]),work_scope='Материал справа',quantity_work_scope='Покрытие')
     assert any('одна сторона' in issue for issue in issues)
 
 

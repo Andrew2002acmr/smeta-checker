@@ -25,8 +25,10 @@ def sum_supersedes_operand(proposal, total, sources):
 
 def _physical(source_id, sources, cells):
     source=sources.get(source_id)
-    entry=cells.get(source_id)
-    if not source or not entry or ':cell:' not in source_id:
+    from normative_source_identity import canonical_source_id
+    canonical=canonical_source_id(source)
+    entry=cells.get(source_id)or cells.get(canonical)
+    if not source or not entry or canonical is None or ':cell:' not in canonical:
         return None
     cell=entry.get('cell') or {}
     unit=entry.get('unit','')
@@ -47,8 +49,10 @@ def _physical(source_id, sources, cells):
             or not all(isinstance(x,(int,float)) and math.isfinite(x) for x in bbox)
             or not (0<=bbox[0]<bbox[2] and 0<=bbox[1]<bbox[3])):
         return None
-    namespace=hashlib.sha256(f"{source['version_id']}:{source['page']}:{entry['table_id']}:{cell['cell_id']}".encode()).hexdigest()[:24]
-    if source_id!=f"agent:p{source['page']}:cell:{namespace}":
+    from normative_source_addresses import cell_source_id
+    expected={cell_source_id(source['version_id'],source['page'],entry['table_id'],cell['cell_id'],
+        envelope_version=version)for version in (0,1)}
+    if canonical not in expected:
         return None
     text=source.get('text','')
     header=entry.get('header_text','')
@@ -86,7 +90,19 @@ def quantity_parameter_candidates(sources, cells, sums=(), *, limit=12, max_char
             lookup.pop(key,None)
         else:
             lookup[key]=source
-    physical={key:value for key in cells if (value:=_physical(key,lookup,cells)) is not None}
+    from normative_source_identity import canonical_source_id,source_content_sha256
+    canonical_envelopes={}
+    ambiguous=set()
+    for source in lookup.values():
+        canonical=canonical_source_id(source)
+        fingerprint=source_content_sha256(source)
+        if canonical is None:
+            continue
+        if canonical in canonical_envelopes and canonical_envelopes[canonical]!=fingerprint:
+            ambiguous.add(canonical)
+        canonical_envelopes[canonical]=fingerprint
+    lookup={key:source for key,source in lookup.items()if canonical_source_id(source)not in ambiguous}
+    physical={key:value for key in lookup if (value:=_physical(key,lookup,cells)) is not None}
     candidates=[]
     seen=set()
     for record in reversed(list(sums)):
@@ -120,6 +136,24 @@ def quantity_parameter_candidates(sources, cells, sums=(), *, limit=12, max_char
                 provenance=dict(kind='calculated_from_physical_cells',version_id=source['version_id'],
                     page=source['page'],operands=[o['provenance'] for o in operands])))
     for source in reversed(sources):
+        if source.get('id')not in lookup:
+            continue
+        from normative_scalar_rows import verified_components as scalar_components
+        for component in scalar_components(source):
+            proposal=_proposal(source,component['value'],component['unit'],source['text'],source['text'])
+            if proposal:
+                candidates.append(dict(proposal=proposal,scope_verified=False,
+                    provenance=dict(kind='native_scalar_row',version_id=source['version_id'],page=source['page'],
+                        **{key:source['scalar_row_context'][key] for key in
+                            ('table_id','row','unit_cell_id','value_cell_id')})))
+        from normative_paired_quantities import verified_components
+        for component in verified_components(source):
+            proposal=_proposal(source,component['value'],component['unit'],source['text'],source['text'])
+            if proposal:
+                candidates.append(dict(proposal=proposal,scope_verified=False,
+                    provenance=dict(kind='physical_row_pair',version_id=source['version_id'],page=source['page'],
+                        **{key:source['paired_measurement_context'][key]for key in
+                            ('table_id','row','unit_cell_id','value_cell_id')})))
         entry=physical.get(source.get('id'))
         if entry is None:
             continue
@@ -130,7 +164,9 @@ def quantity_parameter_candidates(sources, cells, sums=(), *, limit=12, max_char
     output=[]
     used=0
     for candidate in candidates:
-        key=candidate['proposal']['source_id']
+        proposal=candidate['proposal']
+        canonical=canonical_source_id(lookup.get(proposal['source_id']))
+        key=(canonical,proposal['value'],proposal['unit'])
         size=len(json.dumps(candidate,ensure_ascii=False))
         if key in seen or len(output)>=limit or used+size>max_chars:
             continue

@@ -9,7 +9,14 @@ from fastapi.responses import FileResponse, Response
 
 from workspace_models import (NormativeSearchRequest, NormativeSelectionRequest, NormativePositionCheckRequest,
                               NormativeReviewDTO, NormativeStateDTO, NormativeFacts,
-                              NormativeWorkbenchSearchDTO, NormativeVORCheckDTO, NormativeManagerDTO)
+                              NormativeWorkbenchSearchDTO, NormativeVORCheckDTO, NormativeManagerDTO,
+                              ResultDTO)
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class AssessmentActionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_revision: str = Field(min_length=64, max_length=64)
 
 
 def register_normative_routes(router, guarded, available):
@@ -183,11 +190,10 @@ def register_normative_routes(router, guarded, available):
         record = available(context, run_id)
         return call(lambda: service.select(context, record, position_index, payload, actor(request)))
 
-    @router.post(base + "/check", response_model=NormativeReviewDTO)
+    @router.post(base + "/check", response_model=NormativeReviewDTO, deprecated=True)
     def check(run_id: str, position_index: int, payload: NormativePositionCheckRequest, request: Request, context=Depends(guarded)):
-        from normative_position_check import check as review_position
-        record = available(context, run_id)
-        return call(lambda: review_position(context, record, position_index, payload, actor(request)))
+        from api import ApiError
+        raise ApiError(410, "normative_check_removed", "Нормативная проверка заменена единой оценкой позиции.")
 
     @router.get(base + "/library/{source_id}")
     def library_pdf(run_id: str, position_index: int, source_id: str, context=Depends(guarded)):
@@ -197,11 +203,53 @@ def register_normative_routes(router, guarded, available):
         path, designation = call(lambda: service.source_path({"payload": {"kb": kb.identity}}, source_id))
         return FileResponse(path, media_type="application/pdf", filename=designation+".pdf", content_disposition_type="inline")
 
-    @router.post(base + "/{review_id}/validate", response_model=NormativeReviewDTO)
+    @router.post(base + "/{review_id}/validate", response_model=NormativeReviewDTO, deprecated=True)
     def validate_saved(run_id: str, position_index: int, review_id: str, request: Request, context=Depends(guarded)):
-        from normative_position_check import validate_saved as validate
+        from api import ApiError
+        raise ApiError(410, "normative_validate_removed", "Проверка сохранённого ответа заменена валидацией единой оценки.")
+
+    assessment_base = "/api/v1/audits/{run_id}/positions/{position_index}/assessment"
+
+    @router.post(assessment_base + "/recheck", response_model=ResultDTO)
+    def assessment_recheck(run_id: str, position_index: int, payload: AssessmentActionRequest, context=Depends(guarded)):
+        from api import ApiError
+        from uuid import UUID
         record = available(context, run_id)
-        return call(lambda: validate(context, record, position_index, review_id, actor(request)))
+        stored = next((item["result"] for item in record["indexed_results"] if item["position_index"] == position_index), None)
+        if stored is None or stored.get("schema_version") != "evidence-assessment-v1":
+            raise ApiError(409, "assessment_not_ready", "Единая оценка позиции ещё не готова.")
+        if stored.get("revision") != payload.expected_revision:
+            raise ApiError(409, "revision_conflict", "Оценка изменилась; обновите страницу.")
+        run_uuid = UUID(str(record["id"]))
+        job = context.repository.load_position_job(run_uuid, position_index)
+        context.repository.requeue_position_job(
+            run_uuid, position_index, queue="llm",
+            payload={**dict(job.payload or {}),
+                     "execution_revision": int(stored.get("execution_revision", 0)) + 1},
+            durable=True)
+        from workspace_service import present_results
+        record = available(context, run_id)
+        row = next((item for item in present_results(context, record) if item.position_index == position_index), None)
+        if row is None:
+            raise ApiError(404, "position_not_found", "Позиция не найдена")
+        return row
+
+    @router.post(assessment_base + "/validate", response_model=ResultDTO)
+    def assessment_validate(run_id: str, position_index: int, payload: AssessmentActionRequest, context=Depends(guarded)):
+        from api import ApiError
+        record = available(context, run_id)
+        stored = next((item["result"] for item in record["indexed_results"] if item["position_index"] == position_index), None)
+        if stored is None or stored.get("schema_version") != "evidence-assessment-v1":
+            raise ApiError(409, "assessment_not_ready", "Единая оценка позиции ещё не готова.")
+        if stored.get("revision") != payload.expected_revision:
+            raise ApiError(409, "revision_conflict", "Оценка изменилась; обновите страницу.")
+        from audit_assessment import PositionAssessment
+        PositionAssessment.model_validate(stored)
+        from workspace_service import present_results
+        row = next((item for item in present_results(context, record) if item.position_index == position_index), None)
+        if row is None:
+            raise ApiError(404, "position_not_found", "Позиция не найдена")
+        return row
 
     @router.get(base + "/{review_id}/check-images/{source_id}")
     def check_image(run_id: str, position_index: int, review_id: str, source_id: str, context=Depends(guarded)):

@@ -1636,10 +1636,24 @@ class Repository(DepartmentRepositoryMixin):
             job.worker = None
             job.error = None
             if durable:
-                self._enqueue(session, run_id, f"audit:{position_index}", "audit_tasks.audit_position", {
-                    "run_id": str(run_id), "position_index": position_index,
-                    "request_id": str(payload.get("request_id", "")),
-                })
+                existing = session.scalar(select(TaskOutbox).where(
+                    TaskOutbox.run_id == run_id,
+                    TaskOutbox.task_key == f"audit:{position_index}").with_for_update())
+                if existing is None:
+                    self._enqueue(session, run_id, f"audit:{position_index}", "audit_tasks.audit_position", {
+                        "run_id": str(run_id), "position_index": position_index,
+                        "request_id": str(payload.get("request_id", "")),
+                    })
+                else:
+                    existing.status = "pending"
+                    existing.attempts = 0
+                    existing.delivery_token = None
+                    existing.lease_until = None
+                    existing.error = None
+                    existing.payload = {
+                        "run_id": str(run_id), "position_index": position_index,
+                        "request_id": str(payload.get("request_id", "")),
+                    }
             session.commit()
 
     def list_position_jobs(self, run_id: UUID, *, include_results: bool = True, indices=None) -> list[PositionJobRow]:

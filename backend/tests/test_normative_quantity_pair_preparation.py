@@ -13,7 +13,7 @@ from workspace_models import NormativeParameterProposal
 
 
 def extra106(tools):
-    data=json.loads((Path(__file__).parent/'fixtures/quantity-pair26-extra106.json').read_text())
+    data=json.loads((Path(__file__).parent/'fixtures/quantity-pair26-extra106.json').read_text(encoding='utf-8'))
     source=data['source']
     tools.sources.append(deepcopy(source))
     tools.cells[source['id']]=deepcopy(data['entry'])

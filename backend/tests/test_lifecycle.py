@@ -209,6 +209,7 @@ class LifecycleTests(unittest.TestCase):
                     "project_id": project_id,
                     "vor_version_id": vor["version_id"],
                     "pdf_version_ids": [other_pdf["version_id"]],
+                    "normative_profile": "roads",
                 },
             )
             self.assertEqual(bad.status_code, 400)
@@ -218,6 +219,7 @@ class LifecycleTests(unittest.TestCase):
                     "project_id": project_id,
                     "vor_version_id": vor["version_id"],
                     "pdf_version_ids": [pdf["version_id"]],
+                        "normative_profile": "roads",
                 },
             )
             self.assertEqual(created.status_code, 202, created.text)
@@ -278,6 +280,7 @@ class LifecycleTests(unittest.TestCase):
                     "project_id": project_id,
                     "vor_version_id": vor["version_id"],
                     "pdf_version_ids": [pdf["version_id"]],
+                        "normative_profile": "roads",
                 },
             )
             run_id = created.json()["run_id"]
@@ -551,6 +554,7 @@ class LifecycleTests(unittest.TestCase):
                     "project_id": project_id,
                     "vor_version_id": vor["version_id"],
                     "pdf_version_ids": [pdf["version_id"]],
+                        "normative_profile": "roads",
                 },
             )
             self.assertEqual(created.status_code, 202, created.text)

@@ -9,8 +9,9 @@ import hashlib
 import json
 import math
 import time
+from typing import Any
 
-VERSION = 'embedded-ruled-recovery-v1'
+VERSION = 'embedded-ruled-recovery-v2'
 
 
 def _digest(value):
@@ -20,7 +21,7 @@ def _digest(value):
 
 def collect_words(tables, matrix):
     import pymupdf
-    found = {}
+    found: dict[tuple,dict[str,Any]] = {}
     for table in tables:
         words = [*table.get('unassigned_words', []),
             *(word for cell in table['cells'] for word in cell.get('words', []))]
@@ -47,11 +48,16 @@ def raster_grid(image):
         cv2.getStructuringElement(cv2.MORPH_RECT, (max(30, width//25), 1)))
     vertical = cv2.morphologyEx(ink, cv2.MORPH_OPEN,
         cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(30, height//25))))
-    return cv2.morphologyEx(cv2.bitwise_or(horizontal, vertical), cv2.MORPH_CLOSE,
+    grid=cv2.morphologyEx(cv2.bitwise_or(horizontal, vertical), cv2.MORPH_CLOSE,
         np.ones((5, 5), dtype=np.uint8))
+    # CAD rows can stop just short of their enclosing vertical frame. Bridge
+    # only a bounded horizontal gap in the extracted rules (never text ink).
+    # Scale with raster width: at A4/300dpi this is about 3 PDF points.
+    return cv2.morphologyEx(grid,cv2.MORPH_CLOSE,
+        np.ones((1,max(5,round(width*.006))),dtype=np.uint8))
 
 
-def geometry_from_boxes(boxes, *, tolerance=6):
+def geometry_from_boxes(boxes, *, tolerance=9):
     """Accept closed nonoverlapping cells, allowing an exterior stepped edge.
 
     A tall left header can leave an empty upper-right corner. Such exterior
@@ -141,7 +147,7 @@ def rebuild(boxes, logical, words, *, page, source_table_ids=()):
     words_hash = _digest(sorted((dict(text=w['text'], bbox=w['bbox'], confidence=w.get('confidence'))
         for w in words), key=lambda w: (w['bbox'], w['text'])))
     table_id = 'ruled-'+_digest([geometry_hash, words_hash])[:16]
-    cells = [dict(row=int(r0), column=int(c0), rowspan=int(r1-r0+1), colspan=int(c1-c0+1),
+    cells: list[dict[str,Any]] = [dict(row=int(r0), column=int(c0), rowspan=int(r1-r0+1), colspan=int(c1-c0+1),
         bbox=list(map(float, box)), text='', words=[], numeric_verified=False)
         for box, (r0, r1, c0, c1) in zip(boxes, logical, strict=False)]
     if not cells:
@@ -205,7 +211,7 @@ def recover_page(page, frozen_tables, *, rotation=0, seconds=20, max_images=8, m
     """Return {tables, changed, diagnostics, version}; never mutate the PDF/cache."""
     import numpy as np
     import pymupdf
-    result = dict(tables=deepcopy(frozen_tables), changed=False, diagnostics=[], version=VERSION)
+    result: dict[str,Any] = dict(tables=deepcopy(frozen_tables), changed=False, diagnostics=[], version=VERSION)
     if rotation % 90 or not any(t.get('origin') == 'ocr' for t in frozen_tables):
         return result
     if all(t.get('origin') != 'ocr' or t.get('recovery', {}).get('version') == VERSION
@@ -239,7 +245,8 @@ def recover_page(page, frozen_tables, *, rotation=0, seconds=20, max_images=8, m
             pix = upright.get_pixmap(dpi=dpi, clip=rect, alpha=False)
             image = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
             geometries = closed_geometries(raster_grid(image))
-            observation = dict(image_bbox=list(pymupdf.Rect(rect)*inverse), dpi=dpi,
+            image_box=pymupdf.Rect(rect)*inverse
+            observation: dict[str,Any] = dict(image_bbox=[image_box[i]for i in range(4)], dpi=dpi,
                 pixels=[pix.width, pix.height], recovered=bool(geometries), grids=[])
             result['diagnostics'].append(observation)
             for boxes, logical in geometries:
@@ -259,9 +266,10 @@ def recover_page(page, frozen_tables, *, rotation=0, seconds=20, max_images=8, m
                     source_table_ids=sorted({identity for word in inside for identity in word.get('source_table_ids', [])}))
                 for item in [table, *table['cells'], *table['unassigned_words'],
                         *(word for cell in table['cells'] for word in cell['words'])]:
-                    item['bbox'] = list(pymupdf.Rect(item['bbox'])*inverse)
+                    box=pymupdf.Rect(item['bbox'])*inverse
+                    item['bbox'] = [box[i]for i in range(4)]
                 table['recovery'].update(original_rotation=page.rotation, ocr_rotation=rotation,
-                    original_to_upright=list(matrix), image_bbox=observation['image_bbox'], dpi=dpi)
+                    original_to_upright=[matrix[i]for i in range(6)], image_bbox=observation['image_bbox'], dpi=dpi)
                 recovered.append(table)
                 regions.append(table['bbox'])
                 observation['grids'].append(dict(table_id=table['table_id'], cells=len(table['cells']),

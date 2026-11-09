@@ -12,6 +12,59 @@ TRACE='validated_work_norm_measure_v1'
 TOPIC='Единица работы и измеритель выбранной нормы'
 
 
+def literal_definition_card(result, position):
+    """Read the definition's measure without selecting or approving its norm."""
+    import re
+
+    from normative_conditional_selection import TRACE as CONDITION
+    from normative_source_registry import full_text_handle, normative_evidence_identity
+    from normative_thickness_rules import definition_text, source_definition
+
+    if result.get('execution_state') != 'complete':
+        return None
+    sources = {source['id']: source for source in result.get('sources', [])}
+    cited = {sid for item in result.get('items', []) if 'normative:applicability' in item.get('claim_ids', [])
+             for sid in item.get('normative_source_ids', [])}
+    definitions = [(source, definition) for source in sources.values()
+                   if (definition := source_definition(source))]
+    candidates = [(source, definition) for source, definition in definitions if source['id'] in cited]
+    conditions = {(event['allowed_base_codes'][0], sources[event['condition_source_id']].get('source_id'))
+                  for event in result.get('evidence_trace', []) if event.get('kind') == CONDITION
+                  and event.get('reason') == 'base_selection_ambiguous'
+                  and not event.get('independent_literal_premise')
+                  and len(event.get('allowed_base_codes', [])) == 1
+                  and normative_evidence_identity(sources.get(event.get('condition_source_id'), {}))}
+    if not candidates and len(conditions) == 1:
+        candidates = [(s, d) for s, d in definitions if (d['code'], d['source_id']) in conditions]
+    if len({normative_evidence_identity(s) for s, _ in candidates}) != 1:
+        return None
+    source, definition = candidates[0]
+    prefix, marker, _ = source['id'].rpartition(':full:')
+    if (not normative_evidence_identity(source) or not marker
+            or source['id'] != full_text_handle(prefix, source['text'])):
+        return None
+    lines = re.findall(r'^\s*(Измеритель\s*:[^\r\n]+)', definition_text(definition['text']), re.I | re.M)
+    if len(lines) != 1:
+        return None
+    quote = lines[0].strip()
+    literal = re.fullmatch(r'Измеритель\s*:\s*(?:(\d+(?:[.,]\d+)?)\s+)?(м[23²³]?|шт\.?|т|кг|га)', quote, re.I)
+    if not literal:
+        return None
+    value, unit = literal[1] or '1', literal[2].lower()
+    parsed = measure(value, unit)
+    if not parsed or parsed[1] <= 0 or not unit_scale_quoted(value, unit, quote, source['text']):
+        return None
+    sid = source['id']
+    if any(card['id'] == 'unit_scale:'+sid for card in result.get('parameter_cards', [])):
+        return None
+    return dict(id='unit_scale:'+sid, role='unit_scale', label='Измеритель нормативного определения',
+        unit=position.unit, declared_value=position.volume, found_value=value, found_unit=unit,
+        state='confirmed', required=False, source_ids=[sid], quote=quote,
+        source_anchors=[dict(source_id=sid, quote=quote, rects=[])],
+        reason=f'Измеритель определения {definition["code"]} прочитан в закреплённом источнике. '
+               'Выбор нормы, её применимость и расчёт проверяются отдельно.')
+
+
 def apply(position,result,positions,relation):
     owner=positions.get((relation.get('parent') or {}).get('index'),position)
     if owner.index!=position.index:

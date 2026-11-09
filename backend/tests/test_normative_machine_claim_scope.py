@@ -212,7 +212,7 @@ def test_feedback_and_final_validation_use_the_same_local_advisory_partition():
     item['state'] = 'confirmed'
     answer = AgentAnswer(summary='', items=[CheckedItem.model_validate(item)])
     original = answer.model_dump()
-    feedback = answer_feedback(answer, f['sources'], SimpleNamespace(parameter_evidence={}),
+    feedback = answer_feedback(answer, f['sources'], SimpleNamespace(parameter_evidence={},events=[]),
         position=position(), matching_checks=f['checks'], known_claims=plan(f['checks']))
     assert feedback == [] and answer.model_dump() == original
     assert validate([item])[0]['state'] == 'confirmed'

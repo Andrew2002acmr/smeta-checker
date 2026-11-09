@@ -6,11 +6,26 @@ import pytest
 
 from normative_parameters import build_cards
 from normative_position_check import AgentAnswer,canonicalize_cell_parameters
+from normative_agent import EvidenceTools, EvidenceRequest
 
 
 def fixture():
-    source=dict(id='agent:p92:cell:known',kind='project',origin='ocr',numeric_verified=True,
-        unit_verified=True,unit='м',text='Автобусные\nостановки | Бортовой камень\nБР 100.30.18, м\nЕдиница физического столбца: м\nВсего: | \n161')
+    cells=[dict(cell_id='header',role='header',row=0,column=2,colspan=1,
+        text='Автобусные\nостановки | Бортовой камень\nБР 100.30.18, м',
+        bbox=[80,0,120,30],origin='native',header_ids=[]),
+        dict(cell_id='total',role='cell',row=1,column=0,text='Всего:',bbox=[0,30,40,50],origin='native',header_ids=[]),
+        dict(cell_id='empty',role='cell',row=1,column=1,text='',bbox=[40,30,80,50],origin='native',header_ids=[]),
+        dict(cell_id='value',role='cell',row=1,column=2,text='161',bbox=[80,30,120,50],
+            origin='ocr',numeric_verified=True,quality='usable',header_ids=['header'])]
+    table=dict(table_id='curb',origin='native',row_count=2,col_count=3,cells=cells)
+    tables=[[]for _ in range(92)]
+    tables[-1]=[table]
+    index=SimpleNamespace(texts=('',)*92,tables=tables,pending_ocr=[],errors={},quality={},
+        metadata=dict(document_version_id='pdf',preparation_complete=True,
+            page_geometry={'91':dict(width=120,height=80,matrix=[1,0,0,1,0,0])}))
+    tools=EvidenceTools.from_prepared(index,'pdf')
+    reply=tools.execute(EvidenceRequest(tool='read_table',page=92,table_id='curb',row_ids=[1],column_ids=[2]))
+    source=next(s for s in tools.sources if s['id']==reply['rows'][0]['source_id'])
     proposal=dict(parameter='quantity',operation='direct',value='161',unit='м',source_id=source['id'],
         quote='Автобусные остановки | Бортовой камень БР 100.30.18, м ... Всего: | 161',
         scope_quote='Автобусные остановки | Бортовой камень БР 100.30.18, м ... Всего: | 161',
@@ -127,7 +142,7 @@ def test_frozen_replay_uses_identical_cell_and_section_guards_without_mutating_e
     position=position.model_copy(update={'work_name':'Установка бортового камня','volume':'161','unit':'м',
         'position_source':position.position_source.model_copy(update={'sections':[SourceHeading(address='A10',text=section)]})})
     result=row['payload']['position_check']
-    result['sources']=[dict(**cell,version_id='pdf')]
+    result['sources']=[dict(cell,version_id='pdf')]
     result['items']=[]
     result['parameter_proposals']=[p.model_dump() for p in answer.parameters]
     original=deepcopy(row)

@@ -382,7 +382,7 @@ def _key(text):
     return re.sub(r'\s+', ' ', _normal(text)).strip()
 
 
-def _empty(reason, warnings=()):
+def _empty(reason, warnings=()) -> dict[str, Any]:
     diagnostic = dict(scope='same_collection_literal_navigation_only',
         coverage_complete=False, literal_chunks=[], reason=reason, warnings=list(warnings))
     return dict(sources=[], preferred_source_ids=[], context=diagnostic, reason=reason,
@@ -435,6 +435,51 @@ def _matches(item, norms):
             output.append(dict(label=start[1], candidate_ids=matched, references=references,
                                paragraph_key=_key(paragraph)))
     return output
+
+
+def ranked_collection_context(kb, candidates, *, expected_pin) -> dict[str, Any]:
+    """Route ranked definitions to the strict bounded reader.
+
+    Search results may include material standards, clauses and unrelated
+    collections. They remain addressable as search hits, but must not prevent
+    the reader from opening technical context for the leading definitions.
+    """
+    selected, seen, source_ids = [], set(), set()
+    omitted = 0
+    for candidate in candidates:
+        if (candidate.get('entity_kind') != 'norm'
+                or candidate.get('source_kind') != 'GESN'
+                or candidate.get('status') == 'native_definition_ambiguous'):
+            continue
+        key = (candidate.get('source_id'), candidate.get('id'))
+        if not all(key) or key in seen:
+            continue
+        seen.add(key)
+        if (len(selected) >= MAX_CANDIDATES
+                or key[0] not in source_ids and len(source_ids) >= MAX_SOURCES):
+            omitted += 1
+            continue
+        source_ids.add(key[0])
+        selected.append(candidate)
+    if not selected:
+        return _empty('no_ranked_norm_definitions')
+    result = collection_context(kb, selected, expected_pin=expected_pin)
+    if omitted:
+        warning = 'ranked_definitions_omitted:' + str(omitted)
+        result['warnings'] = [*result['warnings'], warning]
+        result['context']['warnings'] = result['warnings']
+    return result
+
+
+def definition_links(chunk, definition_ids):
+    """Expose a literal condition-to-definition route in the agent registry."""
+    return [
+        dict(label=match['label'], references=match['references'],
+             definition_source_ids=linked)
+        for match in chunk['matched_paragraphs']
+        if (linked := list(dict.fromkeys(definition_ids[item_id]
+            for item_id in match['candidate_ids'] if item_id in definition_ids)))
+    ]
 
 
 def collection_context(kb, candidates, *, expected_pin) -> dict[str, Any]:

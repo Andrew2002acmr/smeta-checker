@@ -105,6 +105,6 @@ def test_generic_street_caption_cannot_outrank_exact_material_and_thickness():
     assert candidates[0]['table_id']=='t' and candidates[0]['page']==2
     assert candidates[0]['calculated_sum']=='431.611'
     assert candidates[0]['section_match_terms']==[]
-    assert any(c['table_id']=='lawn' and c['section_match_terms'] for c in candidates)
+    assert all(c['table_id']!='lawn' for c in candidates)
     assert all(c['scope_verified'] is False for c in candidates)
     assert tools.index.tables==before

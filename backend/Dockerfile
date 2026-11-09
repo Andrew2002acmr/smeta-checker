@@ -40,6 +40,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-install-project --group full
 RUN .venv/bin/python -m pdf_tables --warm
+RUN .venv/bin/python -m scripts.install_header_ocr_model
+RUN .venv/bin/python -m scripts.install_paired_ocr_models
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \

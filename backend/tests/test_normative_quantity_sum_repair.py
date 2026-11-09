@@ -7,6 +7,7 @@ import pytest
 
 from audit_models import VorPosition
 from normative_agent import EvidenceRequest, EvidenceTools
+from normative_source_addresses import cell_source_id
 from normative_parameters import build_cards
 from normative_position_check import AgentAnswer, CheckedItem, answer_feedback
 from normative_quantity_sum_repair import repair_quantity_sum
@@ -15,21 +16,14 @@ from workspace_models import NormativeParameterProposal
 
 
 def fixture():
-    return json.loads((Path(__file__).parent/'fixtures/quantity-sum26-frozen.json').read_text())
+    return json.loads((Path(__file__).parent/'fixtures/quantity-sum26-frozen.json').read_text(encoding='utf-8'))
 
 
 def setup(data=None):
     data=deepcopy(data or fixture())
     table=data['table']
     tools=EvidenceTools.__new__(EvidenceTools)
-    # Reacquire this fixture's physical cells from its own table snapshot.
-    # Negative cases mutate that snapshot before acquisition; retaining the old
-    # source registry would test an identity collision instead of scope guards.
     tools.sources=[]
-    # The frozen capture predates the explicit empty header-fact list. Keep
-    # source identities strict when reacquiring the same physical cells today.
-    for source in tools.sources:
-        source.setdefault('verified_parameters',[])
     tools.cells={}
     tools.events=[]
     tools.preferred=[]
@@ -46,6 +40,30 @@ def setup(data=None):
     tools.index=SimpleNamespace(tables=tables,texts=['']*data['page'],
         metadata=dict(page_geometry={str(data['page']-1):geometry}))
     tools.execute(EvidenceRequest(tool='read_table',page=data['page'],table_id=table['table_id'],row_ids=[41],column_ids=[2,8]))
+    # Replay the frozen answer against the CURRENT physical-envelope protocol.
+    # Resolve only its original version/page/table/cell address, never its
+    # expected number, title, quote or place in the tool's source ordering.
+    mapping={}
+    reopened={source['id']:source for source in tools.sources}
+    originals=[]
+    for source in data['sources']:
+        matches={cell_source_id(source['version_id'],data['page'],table['table_id'],cell['cell_id'])
+            for cell in table['cells'] if source['id']==cell_source_id(source['version_id'],
+                data['page'],table['table_id'],cell['cell_id'],envelope_version=0)}
+        if matches:
+            assert len(matches)==1
+            current=next(iter(matches))
+            assert current in reopened
+            mapping[source['id']]=current
+            originals.append(deepcopy(reopened[current]))
+        else:
+            originals.append(deepcopy(source))
+    tools.sources=originals
+    for source in data['sources']:
+        source['id']=mapping.get(source['id'],source['id'])
+    for parameter in data['parameters']:
+        parameter['source_id']=mapping.get(parameter['source_id'],parameter['source_id'])
+        parameter['operand_source_ids']=[mapping.get(sid,sid)for sid in parameter.get('operand_source_ids',[])]
     answer=AgentAnswer(summary='Frozen live26',items=[],parameters=data['parameters'])
     kwargs=dict(owner_work=data['position']['work_name'],work_scope=data['work_scope'],
         owner_unit=data['position']['unit'],section_context=data['section_context'])
@@ -138,7 +156,9 @@ def header(data,suffix):
     lambda d:header(d,'cell6').update(column=9),
     lambda d:header(d,'cell6').update(colspan=5),
     lambda d:header(d,'cell6').update(row=2),
-    lambda d:header(d,'cell6').update(header_ids=[]),
+    # header_ids are a derived cache: removing them alone is recoverable.
+    # This removes the shared parent's physical coverage of the left branch.
+    lambda d:header(d,'cell2').update(column=8,colspan=6),
     lambda d:header(d,'cell18').update(column=7,colspan=3),
     lambda d:header(d,'cell18').update(text='ЩМА-20 на ПБВ60'),
     lambda d:header(d,'cell30').update(text='h=0,07m'),
@@ -218,6 +238,19 @@ def test_coherent_control_is_positive_and_input_order_is_irrelevant():
     data,tools,answer,kwargs=coherent(fixture())
     assert repair_quantity_sum(answer,tools,**kwargs)
     assert answer.parameters[0].value=='8920.97'
+
+
+def test_missing_cached_header_ancestry_is_reconstructed_from_unchanged_physical_anchors():
+    data=fixture()
+    primary_before={c['cell_id']:(deepcopy(c['bbox']),c['row'],c['column'],c.get('colspan',1))
+        for c in data['table']['cells']}
+    for cell in data['table']['cells']:
+        cell['header_ids']=[]
+    data,tools,answer,kwargs=setup(data)
+    assert repair_quantity_sum(answer,tools,**kwargs)
+    assert next(p for p in answer.parameters if p.parameter=='quantity').value=='8920.97'
+    assert primary_before=={c['cell_id']:(c['bbox'],c['row'],c['column'],c.get('colspan',1))
+        for c in data['table']['cells']}
 
 
 @pytest.mark.parametrize('left,right',[('А','Б'),('1','2'),('','Усиление')])

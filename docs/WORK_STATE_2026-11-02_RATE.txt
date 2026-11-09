@@ -1,0 +1,11 @@
+Local v30 workbook rate interpretation, installed 2026-11-02.
+Exact home v29 restore remains available in original images and before-rate-v30.dump.
+New images: smeta-checker-local-backend:table-rate-v30 and smeta-checker-local-workspace:table-rate-v30.
+Generic bounded literal area * explicitly dimensioned comment rate / 1000 analysis.
+Candidate related work selected by named layer + same source document/sheet/section + earlier row, never by expected quantity. Ambiguous candidates remain ambiguous. No fact is certified as PD solely from workbook adjacency/comment.
+Rate applicability and density not invented. kg/m2 -> t via /1000 is a unit conversion; l/m2 -> m3 needs density to yield tonnes.
+Model receives workbook_rate_analysis and related_area_work_candidates. Local replay preserves proof and annotates numeric cards. UI shows actual roles and reasons instead of asking for every factor as a PDF quantity.
+Formula conflicts show actual differing operands. Real row36 inconsistency remains: D=5231.08*.4/1000 vs E=5303.08*.4/1000. Earlier work row34=5303 m2. Not silently corrected or hidden.
+10 directly supported rate operations revalidated using existing pinned sources, no OCR/model calls (both _ask aliases and preparation entrypoints patched to fail). Original matching hash unchanged. Report: ../rate-v30-report.json.
+115 backend related tests passed; 12 UI unit tests passed; changed backend modules Ruff/Pyright clean; UI changed files oxlint clean; frontend production build passed.
+Limitations: expression analysis currently supports a single literal area, a unique explicit kg/m2 or l/m2 rate and /1000; additive area expressions and other semantic surface references remain handled by existing pipeline, not by this new interpreter. Named-layer relation is a candidate, not certification of area or normative applicability.

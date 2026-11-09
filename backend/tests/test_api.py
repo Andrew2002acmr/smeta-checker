@@ -5,7 +5,6 @@ through FastAPI TestClient, the LLM is a fake client factory, and
 Postgres + file blobs come from the issue-17 repository helpers.
 """
 
-import json
 import os
 import sys
 import tempfile
@@ -75,19 +74,40 @@ def _ok_client_factory():
             self.responses = SimpleNamespace(create=self.create)
 
         def create(self, **kwargs):
-            import re
-            source_id = re.findall(r"\[([a-z0-9]+)\] ", kwargs["input"])[0]
+            import json as _json
+
+            payload = _json.loads(kwargs["input"])
+            sources = payload.get("sources", []) if isinstance(payload, dict) else []
+            source = sources[0] if sources else {"id": "s0", "text": "Copper cable 45 m."}
             body = {
-                "claims": [
-                    {"claim_id": "presence", "source_ids": [source_id]},
-                    {"claim_id": "quantity", "source_ids": [source_id],
-                     "value_source_id": source_id, "unit_source_id": source_id},
-                    {"claim_id": "unit", "source_ids": [source_id]},
+                "summary": "Подтверждено синтетическим клиентом.",
+                "items": [
+                    {
+                        "topic": "Наличие работы",
+                        "state": "confirmed",
+                        "explanation": "Работа найдена в источнике.",
+                        "claim_ids": ["presence"],
+                        "project_source_ids": [source["id"]],
+                        "normative_source_ids": [],
+                    }
                 ],
-                "discrepancy_details": "Confirmed",
+                "parameters": [
+                    {
+                        "parameter": "quantity",
+                        "operation": "direct",
+                        "value": "45",
+                        "unit": "m",
+                        "source_id": source["id"],
+                        "operand_source_ids": [],
+                        "quote": str(source.get("text", ""))[:900],
+                        "scope_state": "verified",
+                        "scope_quote": str(source.get("text", ""))[:900],
+                    }
+                ],
+                "requests": [],
             }
             return SimpleNamespace(
-                output_text=json.dumps(body),
+                output_text=_json.dumps(body),
                 usage=SimpleNamespace(total_tokens=100),
             )
 
@@ -124,6 +144,7 @@ class ApiTests(unittest.TestCase):
 
         client = TestClient(app, raise_server_exceptions=False)
         self.addCleanup(client.close)
+        self.addCleanup(repo._engine.dispose)
         return client, app
 
     def _open_app_with_dispatcher(self, tmp, dispatcher):
@@ -150,6 +171,7 @@ class ApiTests(unittest.TestCase):
 
         client = TestClient(app, raise_server_exceptions=False)
         self.addCleanup(client.close)
+        self.addCleanup(repo._engine.dispose)
         return client, app
 
     def _project_id(self, client, name="ИГДИ"):
@@ -300,6 +322,7 @@ class ApiTests(unittest.TestCase):
                     "project": "ИГДИ",
                     "vor_version_id": vor["version_id"],
                     "pdf_version_ids": [pdf["version_id"]],
+                        "normative_profile": "roads",
                 },
             )
             self.assertEqual(response.status_code, 200, response.text)
@@ -318,6 +341,7 @@ class ApiTests(unittest.TestCase):
                     "project": "ИГДИ",
                     "vor_version_id": vor["version_id"],
                     "pdf_version_ids": ["00000000-0000-0000-0000-000000000000"],
+                    "normative_profile": "roads",
                 },
             )
             self.assertEqual(response.status_code, 404)
@@ -335,6 +359,7 @@ class ApiTests(unittest.TestCase):
                         "project": "ИГДИ",
                         "vor_version_id": vor["version_id"],
                         "pdf_version_ids": [pdf["version_id"]],
+                        "normative_profile": "roads",
                     },
                 )
                 elapsed = time.monotonic() - started
@@ -357,14 +382,11 @@ class ApiTests(unittest.TestCase):
             results = client.get(f"/api/v1/audits/{run_id}/results").json()
             self.assertEqual(results["status"], "done")
             self.assertEqual(len(results["results"]), 1)
-            self.assertEqual(results["results"][0]["status"], "ОК")
-            self.assertTrue(results["results"][0]["work_found"])
-            self.assertEqual(
-                results["results"][0]["pdf_sha256"],
-                app.state.context.repository.load_version(
-                    __import__("uuid").UUID(pdf["version_id"])
-                ).sha256,
-            )
+            assessment = results["results"][0]
+            self.assertEqual(assessment["schema_version"], "evidence-assessment-v1")
+            self.assertEqual(assessment["engine"], "langgraph-evidence-v1")
+            self.assertEqual(assessment["execution"]["state"], "complete")
+            self.assertIn(assessment["project"]["state"], {"confirmed", "needs_facts", "possible_mismatch"})
             report = client.get(f"/api/v1/audits/{run_id}/reports/word")
             self.assertEqual(report.status_code, 200, report.text[:200])
             self.assertTrue(report.content.startswith(b"PK"))
@@ -398,6 +420,7 @@ class ApiTests(unittest.TestCase):
                         "project": "ТКР",
                         "vor_version_id": vor["version_id"],
                         "pdf_version_ids": [pdf["version_id"]],
+                        "normative_profile": "roads",
                     },
                 )
             self.assertEqual(created.status_code, 202, created.text)
@@ -407,10 +430,10 @@ class ApiTests(unittest.TestCase):
             results = client.get(f"/api/v1/audits/{run_id}/results").json()
             self.assertEqual(len(results["results"]), 1)
             row = results["results"][0]
-            self.assertEqual(row["status"], "Ошибка")
-            self.assertIn("30/09-TKR16.GCH", row["discrepancy_details"])
-            self.assertIn("обозначения отсутствуют", row["discrepancy_details"])
-            self.assertEqual(row["requests"], 0)
+            self.assertEqual(row["project"]["state"], "possible_mismatch")
+            self.assertIn("30/09-TKR16.GCH", row["project"]["obligations"][0]["reason"])
+            self.assertIn("обозначения отсутствуют", row["project"]["obligations"][0]["reason"])
+            self.assertEqual(row["execution"]["http_attempts"], 0)
 
     def test_found_designation_passes_to_audit(self):
         with tempfile.TemporaryDirectory(prefix="smeta-api-") as tmp:
@@ -438,6 +461,7 @@ class ApiTests(unittest.TestCase):
                         "project": "ТКР",
                         "vor_version_id": vor["version_id"],
                         "pdf_version_ids": [pdf["version_id"]],
+                        "normative_profile": "roads",
                     },
                 )
             self.assertEqual(created.status_code, 202, created.text)
@@ -446,8 +470,8 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(finished["status"], "done")
             results = client.get(f"/api/v1/audits/{run_id}/results").json()
             row = results["results"][0]
-            self.assertNotIn("обозначения отсутствуют",
-                             row["discrepancy_details"])
+            reasons = " ".join(obligation.get("reason", "") for obligation in row["project"]["obligations"])
+            self.assertNotIn("обозначения отсутствуют", reasons)
 
     def test_audit_without_pdf_selection_uses_project_pool(self):
         with tempfile.TemporaryDirectory(prefix="smeta-api-") as tmp:
@@ -459,6 +483,7 @@ class ApiTests(unittest.TestCase):
                     json={
                         "project": "ИГДИ",
                         "vor_version_id": vor["version_id"],
+                        "normative_profile": "roads",
                     },
                 )
             self.assertEqual(created.status_code, 202, created.text)
@@ -466,7 +491,7 @@ class ApiTests(unittest.TestCase):
             finished = self._wait_for_run(client, run_id)
             self.assertEqual(finished["status"], "done")
             results = client.get(f"/api/v1/audits/{run_id}/results").json()
-            self.assertEqual(results["results"][0]["status"], "ОК")
+            self.assertEqual(results["results"][0]["schema_version"], "evidence-assessment-v1")
 
     def test_audit_without_any_pdf_is_explicit_error(self):
         with tempfile.TemporaryDirectory(prefix="smeta-api-") as tmp:
@@ -482,6 +507,7 @@ class ApiTests(unittest.TestCase):
                 json={
                     "project": "Пустой",
                     "vor_version_id": vor["version_id"],
+                    "normative_profile": "roads",
                 },
             )
             self.assertEqual(response.status_code, 400)
@@ -504,6 +530,7 @@ class ApiTests(unittest.TestCase):
                     "project": "ИГДИ",
                     "vor_version_id": pdf["version_id"],
                     "pdf_version_ids": [],
+                    "normative_profile": "roads",
                 },
             )
             self.assertEqual(response.status_code, 400)
@@ -520,6 +547,7 @@ class ApiTests(unittest.TestCase):
                         "project": "ИГДИ",
                         "vor_version_id": vor["version_id"],
                         "pdf_version_ids": [pdf["version_id"]],
+                        "normative_profile": "roads",
                     },
                 )
             run_id = created.json()["run_id"]
@@ -543,6 +571,7 @@ class ApiTests(unittest.TestCase):
                     "project": "ИГДИ",
                     "vor_version_id": vor["version_id"],
                     "pdf_version_ids": [pdf["version_id"]],
+                        "normative_profile": "roads",
                 },
             )
             self.assertEqual(created.status_code, 202, created.text)
@@ -572,6 +601,7 @@ class ApiTests(unittest.TestCase):
                     "project": "ИГДИ",
                     "vor_version_id": vor["version_id"],
                     "pdf_version_ids": [pdf["version_id"]],
+                        "normative_profile": "roads",
                 },
                 headers={"X-Request-ID": "req-test-123"},
             )

@@ -92,7 +92,6 @@ def _project_thickness(position,result,cards):
         project_family=_family(material_scope)
         if (proposal.get('parameter')!='thickness' or proposal.get('scope_state')!='verified'
                 or not source or source['kind']!='project'
-                or type(source.get('page')) is not int or source['page'] < 1
                 or not (_readable(source) or verified_header) or not source.get('version_id')
                 or not quoted(proposal['value'],proposal['quote'],scope)
                 or clean(scope) not in clean(source['text']) or not unit_quoted(proposal['unit'],proposal['quote'])
@@ -108,7 +107,7 @@ def _project_thickness(position,result,cards):
         candidates.append(dict(source_id=source['id'],value=candidate_value,role=role,
             single_layer=bool(re.search(r'\bоднослойн[а-яё]*\b',scope,re.I)),family=project_family,
             quote=proposal['quote'],scope_quote=scope))
-    if len(candidates)!=1:
+    if not candidates or len({(c['value'],c['role'],c['single_layer'],c['family']) for c in candidates})!=1:
         return None
     return next((c for c in candidates if c['value']==value and c['source_id'] in card.get('source_ids',[])),None)
 
@@ -243,6 +242,7 @@ def selection_findings(position,result,positions,relation,*,cards=None):
                 'base_outside_condition' if len(codes)==1 and bound else 'base_selection_ambiguous')
             findings.append(dict(kind=TRACE,reason=reason,condition_source_id=source['id'],
                 condition_quote=match[0],allowed_base_codes=bases,selected_base_codes=codes,
+                applicability_links_verified=bool(choices) and bound,
                 selected_source_ids=sorted({s['source_id'] for s in choices}),project_source_id=fact['source_id'],
                 project_quote=fact['quote'],project_scope_quote=fact['scope_quote'],layer_role=fact['role'],
                 independent_literal_premise=independent_premise,
@@ -358,6 +358,7 @@ def apply_guard(position,result,positions,relation,*,cards=None):
     operation_changed=apply_operation_guard(position,result,positions,relation,cards)
     findings=selection_findings(position,result,positions,relation,cards=cards)
     if not findings:
+        result['evidence_trace']=[e for e in result.get('evidence_trace',[]) if e.get('kind')!=TRACE]
         return adjustment_changed or operation_changed
     from normative_laying_width_scope import REASON as WIDTH_REASON,explanation as width_explanation
     unresolved_role=any(f['reason'] in {'construction_role_unresolved',WIDTH_REASON} for f in findings)
@@ -407,7 +408,10 @@ def apply_guard(position,result,positions,relation,*,cards=None):
                 if finding['reason']=='construction_role_unresolved' else
                 'Условие: «'+finding['condition_quote']+'». '
                 'База по структурированному измерителю: '+(', '.join(finding['selected_base_codes']) or 'не установлена однозначно')+
-                '; указанные условием базы: '+', '.join(finding['allowed_base_codes'])+'. Это не замечание к ВОР.'))
+                '. Указанные условием базы: '+', '.join(finding['allowed_base_codes'])+'. '
+                + ('В выводе о применимости нет проверенной ссылки на выбранное определение нормы. '
+                   if finding['selected_base_codes'] and not finding.get('applicability_links_verified') else '')
+                + 'Это не замечание к ВОР.'))
         if item not in result['items']:
             result['items'].append(item)
             changed=True

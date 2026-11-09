@@ -183,6 +183,45 @@ def test_three_pdf_groups_cannot_bypass_two_source_bound(corpus):
     assert result['context']['coverage_complete'] is False
 
 
+def test_ranked_route_does_not_lose_technical_text_to_property_or_collection_overflow(corpus):
+    alternatives = []
+    for number in (2, 3):
+        norm = deepcopy(corpus.candidates[0])
+        norm.update(id=f'norm-pdf-{number}', source_id=f'pdf-{number}')
+        corpus.entities[norm['id']] = norm
+        alternatives.append(norm)
+    candidates = [*[dict(id=f'property{i}', entity_kind='clause') for i in range(15)],
+                  *corpus.candidates, *alternatives]
+    result = context.ranked_collection_context(corpus, candidates, expected_pin=corpus.identity)
+    assert result['reason'] == 'literal_collection_context'
+    assert 'ranked_definitions_omitted:1' in result['warnings']
+    assert ('norm', 'norm-pdf-3') not in corpus.calls
+    assert result['context']['coverage_complete'] is False
+    assert all(source['automatic_application_allowed'] is False for source in result['sources'])
+
+
+def test_search_tool_returns_addressable_condition_to_definition_navigation(corpus, monkeypatch):
+    from normative_agent import EvidenceRequest, EvidenceTools
+
+    corpus.source_index = {corpus.source['id']: corpus.source}
+    hits = [dict(norm, missing_facts=[], checks=[], rules=[]) for norm in corpus.candidates]
+    monkeypatch.setattr('normative_agent.search_evidence', lambda *args, **kwargs: hits)
+    tools = EvidenceTools.__new__(EvidenceTools)
+    tools._reset([], corpus, {})
+    result = tools.execute(EvidenceRequest(tool='search_norms', query=hits[0]['code']))
+    definitions = {hit['source_id'] for hit in result['results']}
+    routes = result['technical_context']['routes']
+    assert routes and any(match['definition_source_ids'] for route in routes for match in route['matches'])
+    assert all(set(match['definition_source_ids']) <= definitions
+               for route in routes for match in route['matches'])
+    for route in routes:
+        source = next(s for s in tools.sources if s['id']==route['source_id'])
+        assert source['source_sha256']==corpus.source['sha256']
+        assert source['automatic_application_allowed'] is False
+        receipt = tools.execute(EvidenceRequest(tool='read_source', source_id=route['source_id']))
+        assert receipt['full_length']==len(source['text'])
+
+
 def test_mixed_families_inside_one_source_are_not_assumed_equivalent(corpus):
     candidate = deepcopy(corpus.candidates[0])
     candidate.update(id='other-family', family='ГЭСНм')

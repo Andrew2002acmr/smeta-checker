@@ -19,7 +19,7 @@ PATTERN = re.compile(r'(?P<label>к[\s_.-]*упл\.?|к[\s_.-]*разр\.?|'
 CONDITIONAL_PURPOSE = re.compile(r'\b(?:при|если|только|для|кроме|без|свыше|менее|более|не|до|после)\b', re.I)
 
 
-def compaction_basis(position, result, entry):
+def compaction_basis(position, result, entry, *, declared_material_only=False):
     """Check an estimator's design allowance, not a measured site coefficient.
 
     The SP78 mixture branch is deliberately narrow. Bounds come from the
@@ -40,7 +40,7 @@ def compaction_basis(position, result, entry):
     project = [sources[sid] for c in geometry for sid in c.get('source_ids', [])
         if sid in sources and sources[sid].get('kind') == 'project']
     wanted = material_fractions(position.work_name)
-    if not any(_family(s.get('text', '')) == 'щпс' and wanted
+    if not declared_material_only and not any(_family(s.get('text', '')) == 'щпс' and wanted
             and material_fractions(s.get('text', '')) == wanted for s in project):
         return None
     proofs = []
@@ -71,7 +71,7 @@ def compaction_basis(position, result, entry):
         if lo is None or hi is None or value is None or not lo <= value <= hi:
             continue
         proofs.append(dict(source_id=source['id'], normative_pdf_id=source['source_id'], quote=source['text'],
-            lower=str(lo), upper=str(hi), project_source_ids=sorted({s['id'] for s in project}),
+            lower=str(lo), upper=str(hi), project_source_ids=[] if declared_material_only else sorted({s['id'] for s in project}),
             material_strength_basis='VOR specification; project compatibility checked separately',
             purpose='estimated_material_allowance', actual_site_coefficient_proven=False))
     return proofs[0] if proofs and len({(p['lower'], p['upper']) for p in proofs}) == 1 else None
@@ -185,9 +185,9 @@ def named(position):
     return output
 
 
-def compaction_sources(kb, position):
+def compaction_sources(kb, *positions):
     """Use the existing corpus search/registry for the named allowance's rule."""
-    if not any('уплотнение' in entry['purpose'] for entry in named(position)):
+    if not any('уплотнение' in entry['purpose'] for position in positions for entry in named(position)):
         return []
     from normative_service import candidate
     from normative_source_registry import full_text_handle

@@ -14,8 +14,9 @@ from typing import Any, Literal
 
 import openai
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from normative_source_addresses import cell_source_id as cell_source_id
 
-PIPELINE_VERSION = 24
+PIPELINE_VERSION = 27
 MAX_ROUNDS = 3
 MAX_CONTEXT = 58000
 
@@ -45,23 +46,23 @@ def search_evidence(kb, query, facts, *, limit=3):
     return output[:limit]
 
 
-def cell_source_id(version, page, table_id, cell_id):
-    import hashlib
-    namespace = hashlib.sha256(f'{version}:{page}:{table_id}:{cell_id}'.encode()).hexdigest()[:24]
-    return f'agent:p{page}:cell:{namespace}'
-
-
 class EvidenceRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     tool: Literal['search_project', 'search_tables', 'read_page', 'read_source', 'read_table', 'search_norms', 'sum_cells']
     document_version_id: str = Field(default='',max_length=80)
     query: str = Field(default='', max_length=300)
     page: int = Field(default=1, ge=1)
+    header_line_offset: int = Field(default=0,ge=0,le=10000)
     table_id: str = Field(default='', max_length=200)
     offset: int = Field(default=0, ge=0, le=1000000)
     operand_ids: list[str] = Field(default_factory=list, max_length=12)
     unit: str = Field(default='', max_length=30)
     source_id: str = Field(default='', max_length=200)
+    entity_id: str = Field(default='', max_length=160)
+    entity_kind: Literal['', 'ProjectArea', 'Construction', 'Work', 'Material', 'Fact', 'Evidence'] = ''
+    entity_offset: int = Field(default=0, ge=0, le=1000000)
+    bbox: list[float] = Field(default_factory=list, max_length=4)
+    scale: float = Field(default=1, ge=0.25, le=3)
     row_ids: list[int] = Field(default_factory=list, max_length=12)
     column_ids: list[int] = Field(default_factory=list, max_length=32)
 
@@ -86,6 +87,18 @@ search_project/search_tables ищут во всех явно привязанн�
 выдержка не содержит таблицу. До 4 requests за шаг:
 search_project(query, offset): смысл работы/конструкция/участок, без ожидаемого числа ВОР;
 search_tables(query, offset): ведомости объёмов, площади, количества и заголовки таблиц;
+matched_table_observations содержит адреса ячеек и варианты чтения OCR для поиска.
+Это кандидаты, не подтверждённые факты: observation_kind=ocr_alternative/ocr_line_candidate нельзя
+цитировать как буквальный текст ПД. Открой таблицу по page/table_id/row/column.
+Это ограниченный просмотр: при matched_table_observations_truncated дочитай нужную
+таблицу. Варианты одной физической ячейки находятся в readings и не являются
+дополнительными независимыми источниками.
+read_table возвращает header_observations отдельно от буквального текста.
+Если next_line_offset задан, продолжи по read_request/header_line_offset.
+recognition_verified=false — наблюдение для поиска, а не подтверждённая цитата.
+У prepared_quantity_tables поле discovery_only=true означает только кандидат.
+parameter_mismatches требует отдельной проверки преобразования по нормативам;
+совпадение суммы само по себе не подтверждает толщину и область применения.
 offset здесь — курсор страниц результатов (первый 0), следующий — search.next_offset.
 Повтор того же запроса и курсора не добавляет доказательств. Если search.truncated=true,
 остаются другие кандидаты: уточни запрос или продолжи с next_offset. Выдача не доказывает
@@ -93,6 +106,7 @@ offset здесь — курсор страниц результатов (пер
 read_page(page, offset): следующие 3500 символов физической страницы;
 read_source(source_id, offset): дочитать конкретный источник; его текст не исчезает;
 read_table(page, table_id, row_ids, column_ids): точные строки и столбцы с заголовками
+Можно указать source_id известной ячейки или суммы одной таблицы вместо page/table_id.
 и ID ячеек. Каталог tables содержит columns и total_rows. Для общего количества
 читай итоговые строки, а не первые строки заголовка. Различай Итог по участку и Всего.
 Одинаковое число в колонке другого материала не является основанием.
@@ -143,6 +157,31 @@ claim_id: derived:rate для текущего материала, related:<inde
 from normative_verification_contract import NORMATIVE_SCOPE_INSTRUCTIONS, UNIT_SCALE_INSTRUCTIONS
 
 TOOLS += NORMATIVE_SCOPE_INSTRUCTIONS + UNIT_SCALE_INSTRUCTIONS
+TOOLS += ('\nread_table.row_measurements связывает составные значения и единицы одной физической строки '
+    'по порядку components.index: например шт./т и 114/23,53 означают 114 шт и 23,53 т, а не деление. '
+    'raw_values/raw_units остаются буквальными, source_anchors и read_request адресуют обе ячейки. '
+    'Это не доказательство принадлежности позиции ВОР. При recognition_verified=false чтение OCR ещё не проверено; '
+    'не превращай его в подтверждение. Расход вроде кг/м2 не является парой альтернативных измерителей.')
+TOOLS += ('\nrow_measurements.measurement_kind=native_scalar_row — отдельное буквальное количество '
+    'из нативной строки с явными физическими заголовками единицы и количества. value/unit связаны '
+    'с адресами обеих ячеек; это не OCR и не подтверждение инженерной принадлежности. '
+    'Используй готовый quantity_parameter_candidates.proposal и отдельно докажи scope.')
+TOOLS += ('\nsearch_project также возвращает engineering_entities: краткие сущности с устойчивыми ID. '
+    'search_project(query,entity_kind="Construction"|"Work"|"Material"|"Fact"|"ProjectArea"|"Evidence") '
+    'ищет только каталог сущностей, без страниц PDF. '
+    'Для следующих сущностей используй entity_offset из next_offset этого каталога. '
+    'read_source(entity_id, offset,entity_kind) возвращает связанные работы, участки, материалы, факты и доказательства; '
+    'entity_kind="Material"/"Fact"/"Work"/"ProjectArea"/"Evidence" выбирает только нужный тип до пагинации. '
+    'next_offset дочитывает отношения с тем же фильтром. candidate/rejected/stale не являются verified. '
+    'path_state=unresolved означает, что хотя бы одна связь всего пути ещё не подтверждена; '
+    'отдельная verified связь не подтверждает принадлежность всей конструкции. '
+    'По read_request дочитай физический источник; граф не заменяет проверку принадлежности. '
+    'read_page(document_version_id,page,bbox=[x0,y0,x1,y1],scale) получает локальный фрагмент '
+    'чертежа в координатах PDF без поворота. Это только изображение, без автоматического распознавания; '
+    'requires_visual_reader=true требует отдельной визуальной проверки. Не подтверждай величину по факту получения изображения.')
+TOOLS += ('\nЕсли ответ инструмента усечён, archive_read_request дочитывает полный JSON по '
+    'result_handle через read_source и next_offset. tool-result:* — навигационный архив, '
+    'не источник ПД и не доказательство. Для заключений цитируй только физические sources.id, найденные внутри архива.')
 
 
 def resource_sources(item, prefix, *, evidence_trace=None):
@@ -171,13 +210,25 @@ def model_result(result, budget=10000):
     """
     def shrink(value):
         if isinstance(value, dict):
-            keys = sorted(value, key=lambda k: (k not in {'rows','source_id','page','table_id','value','operands'},))
+            keys = sorted(value, key=lambda k: (k not in {'rows','source_id','page','table_id','value','operands',
+                'discovery_only','parameter_mismatches','scope_verified','recognition_verified','header_observations',
+                'parameter_match_state','missing_parameters','header_id','read_request','next_line_offset',
+                'row_measurements','engineering_paths'},))
             return {k: shrink(value[k]) for k in keys
-                if k not in {'coverage','cells','bbox','cell_id','header_ids'}}
+                if k not in {'coverage','cells','bbox','cell_id','header_ids','full_engineering_paths'}}
         if isinstance(value, list):
             return [shrink(v) for v in value]
         return value
     value = shrink(result)
+    if len(json.dumps(value, ensure_ascii=False)) <= budget:
+        return value
+    if isinstance(value, dict) and 'engineering_entities' in value:
+        # Keep a complete cursor page together. Slicing items while retaining
+        # its original next_offset silently skips entities on the next call.
+        catalogue = {k: value[k] for k in ('engineering_entities', 'result_handle', 'archive_read_request') if k in value}
+        catalogue['page_results_archived'] = True
+        if len(json.dumps(catalogue, ensure_ascii=False)) <= budget:
+            return catalogue
     # Headers are shared per physical column rather than copied for every cell.
     def bound(value, remaining):
         if isinstance(value, dict):
@@ -204,6 +255,7 @@ def model_result(result, budget=10000):
         # A very wide object still has retrievable addresses, never a giant
         # string slice that could sever a source ID or fabricate a JSON cell.
         return dict(truncated=True, read_again=True,
+            **{k: result[k] for k in ('result_handle', 'archive_read_request') if k in result},
             source_ids=[r['source_id'] for r in result.get('rows',[]) if 'source_id' in r][:32])
     return output
 
@@ -279,8 +331,7 @@ def restore_source_ids(answer, aliases, sources=()):
 
 
 class EvidenceTools:
-    def __init__(self, context, record, index, sources, kb, facts):
-        self.context, self.record = context, record
+    def _reset(self, sources, kb, facts):
         self.sources, self.kb, self.facts = sources, kb, facts
         self.cells = {}
         self.quantity_sums = []
@@ -293,10 +344,32 @@ class EvidenceTools:
         self.project_search: Any = None
         self.project_search_results = {}
         self.snapshot_refs = []
+        self.engineering_graph = None
+        self.result_archive = {}
         self.coverage: dict[str, Any] = {}
-        self.blob_store = context.blob_store
         self.filename = 'Подготовленный ПД'
         self.version = None
+
+    @classmethod
+    def from_prepared(cls, index, version_id, *, filename='Подготовленный ПД'):
+        """Source-only tools: no VOR job, provider, OCR or saved verdict needed."""
+        version_id=str(version_id)
+        if index.metadata.get('document_version_id') != version_id:
+            raise ValueError('Prepared snapshot belongs to another document version')
+        tools=cls.__new__(cls)
+        tools._reset([], None, {})
+        tools.index,tools.version,tools.filename=index,version_id,filename
+        tools.coverage=dict(state='partial' if index.pending_ocr or index.errors
+            or not index.metadata.get('preparation_complete') else 'prepared',
+            pages=len(index.texts),pending_ocr_pages=[p+1 for p in index.pending_ocr],
+            error_pages=[int(p)+1 for p in index.errors],source_only=True)
+        return tools
+
+    def __init__(self, context, record, index, sources, kb, facts):
+        self._reset(sources, kb, facts)
+        self.position_index = index
+        self.context, self.record = context, record
+        self.blob_store = context.blob_store
         try:
             job = context.repository.load_position_job(record['id'], index)
         except KeyError:
@@ -312,10 +385,16 @@ class EvidenceTools:
         from audit_snapshot import load_snapshot
         self.index = load_snapshot(context.blob_store, payload['snapshot'])
         jobs = context.repository.list_position_jobs(record['id'], include_results=False)
-        self.snapshot_refs = [j.payload['snapshot'] for j in reversed(jobs)
-            if j.payload.get('pdf_name') == self.filename and j.payload.get('snapshot')
-            and (j.payload.get('pdf_versions') or {}).get(self.filename) == self.version]
-        if self.snapshot_refs:
+        # A fully prepared PDF is normally shared by every position. Preserve
+        # newest-first fallback order without rereading an identical manifest
+        # once per position on every page that has no tables.
+        for sibling in reversed(jobs):
+            candidate = sibling.payload.get('snapshot')
+            if (candidate and sibling.payload.get('pdf_name') == self.filename
+                    and (sibling.payload.get('pdf_versions') or {}).get(self.filename) == self.version
+                    and candidate not in self.snapshot_refs):
+                self.snapshot_refs.append(candidate)
+        if self.snapshot_refs and self.snapshot_refs[0] != payload['snapshot']:
             later = load_snapshot(context.blob_store, self.snapshot_refs[0])
             same_extraction = all(later.metadata.get(k) == self.index.metadata.get(k)
                 for k in ('pdf_sha256', 'extraction_key', 'ocr_settings_key'))
@@ -325,9 +404,16 @@ class EvidenceTools:
         if refreshed:
             latest = load_snapshot(context.blob_store, refreshed)
             if latest.metadata.get('pdf_sha256') != self.index.metadata.get('pdf_sha256'):
-                raise ValueError('Prepared normative corpus belongs to another PDF')
+                from normative_preparation_lineage import transition
+                self.events.append(transition(context,record,payload,self.filename,self.version,
+                    self.index,latest,refreshed))
+                # Cross-contract fallback must not reintroduce old tables on
+                # a page where the new producer recorded missing evidence.
+                self.snapshot_refs=[]
             self.index = latest
-            self.snapshot_refs.insert(0, refreshed)
+            self.snapshot_refs = [refreshed, *(ref for ref in self.snapshot_refs if ref != refreshed)]
+        from pdf_drawing_readings import apply as apply_drawing_readings
+        self.index = apply_drawing_readings(context, record, self.version, self.index)
         prepared_tables: Any = self.index.tables
         if record['config'].get('document_preparation_version') and (
             self.index.pending_ocr or not self.index.metadata.get('preparation_complete')
@@ -345,10 +431,13 @@ class EvidenceTools:
             str(page + 1): quality['inline_raster'] for page, quality in self.index.quality.items()
             if quality.get('inline_raster', {}).get('detected')}
         self.coverage['inline_raster_coverage_measured'] = self.index.metadata.get('preparation_version', 0) >= 2
-        from pdf_page_routing import deferred_drawing_errors
-        self.coverage['deferred_visual_pages'] = list(deferred_drawing_errors(self.index).values())
+        from pdf_page_routing import coverage_for_pages
+        self.coverage.update(coverage_for_pages(self.index))
+        self.coverage['drawing_readings'] = self.index.metadata.get('drawing_readings', {})
         from normative_multidoc import attach
         attach(self,payload)
+        from normative_engineering_tools import attach as attach_engineering
+        attach_engineering(self, context, record)
 
     def _add(self, source):
         context = getattr(self, 'context', None)
@@ -365,13 +454,15 @@ class EvidenceTools:
         merge(self.sources,[source])
         return {'source_id': source['id']}
 
-    def quantity_candidates(self, query, *, unit='', height_cm=None, section_context='') -> list[dict[str, Any]]:
+    def quantity_candidates(self, query, *, unit='', height_cm=None, section_context='', limit=4) -> list[dict[str, Any]]:
         """Precompute bounded alternatives; never use the declared VOR amount."""
         if self.index is None or not self.version:
             return []
         from normative_table_candidates import grouped_totals
         from normative_retrieval import terms
+        from normative_scope_tokens import scope_tokens,compare_scopes,physical_row_labels
         scope_terms = terms(section_context)-terms(query)
+        requested_scope_ids=scope_tokens(section_context)
         ranked = []
         # Coverage is a bounded MODEL preview, not an internal search index.
         # Drawing frames can fill that preview before quantity schedules at
@@ -381,21 +472,41 @@ class EvidenceTools:
             for table in tables:
                 captions = [c['text'] for c in table['cells'] if c.get('role')=='header'
                     and c.get('colspan',1)>=table['col_count'] and c.get('text','').strip()]
-                for candidate in grouped_totals(table, section_context+' '+query, unit=unit, height_cm=height_cm, include_single=True):
+                row_labels=physical_row_labels(table)
+                # Generic labels alone ("улица", "участок") do not identify
+                # a named location. Distinctive words and typed IDs may add
+                # discovery evidence from the table's own physical rows.
+                row_wanted=scope_terms-{'улиц','участо','секци','путь','объект','проект','дорог','работ'}
+                matching_labels=[label for label in row_labels if row_wanted & terms(label['text'])]
+                row_terms=set().union(*(terms(label['text'])for label in matching_labels))
+                # Scope locates a construction; it cannot substitute for a
+                # work/material match in a wholly unrelated quantity table.
+                for candidate in grouped_totals(table, query, unit=unit, height_cm=height_cm,
+                        include_single=True,include_parameter_alternatives=True):
                     scoped_text = ' '.join([*candidate['headers'],*captions])
                     found_terms = terms(scoped_text)
                     abbreviations = re.findall(r'\b([а-я]{3,5})\.',scoped_text.casefold())
                     matched = {term for term in scope_terms if term in found_terms
-                        or any(min(len(term),len(found))>=4 and (term.startswith(found) or found.startswith(term)) for found in found_terms)
-                        or any(term.startswith(abbreviation) for abbreviation in abbreviations)}
+                        or (not term.startswith('scope:') and any(not found.startswith('scope:') and
+                            min(len(term),len(found))>=4 and (term.startswith(found) or found.startswith(term)) for found in found_terms))
+                        or (not term.startswith('scope:') and any(term.startswith(abbreviation) for abbreviation in abbreviations))}
+                    matched.update(row_wanted & row_terms)
+                    observed_scope_ids=scope_tokens(scoped_text+'\n'+'\n'.join(label['text']for label in row_labels))
                     # Section context is a bounded extra signal. A common
                     # street caption must not outrank an exact material and
                     # thickness match merely because it has one more word.
                     ranking_score=candidate['score']+min(8,2*len(matched))+2*bool(candidate['unit_verified'])
                     ranked.append(dict(**candidate, page=page+1, table_id=table['table_id'],
-                        section_match_terms=sorted(matched),context_headers=captions,ranking_score=ranking_score))
+                        section_match_terms=sorted(matched),context_headers=captions,ranking_score=ranking_score,
+                        requested_scope_identifiers=sorted(requested_scope_ids),observed_scope_identifiers=sorted(observed_scope_ids),
+                        scope_identifier_match_state=compare_scopes(requested_scope_ids,observed_scope_ids),
+                        scope_match_observations=[dict(label,read_request=dict(tool='read_table',page=page+1,
+                            document_version_id=self.version,table_id=table['table_id'],row_ids=[label['row']],column_ids=[0]))
+                            for label in matching_labels[:3]],scope_match_observation_count=len(matching_labels),
+                        scope_observations_prove_total_allocation=False))
         ranked.sort(key=lambda c: (-c['ranking_score'],not c['unit_verified'],-c['score']))
-        for candidate in ranked[:4]:
+        capped = max(1, int(limit))
+        for candidate in ranked[:capped]:
             result = self.execute(EvidenceRequest(tool='read_table', page=candidate['page'],
                 table_id=candidate['table_id'], row_ids=[candidate['row']], column_ids=candidate['columns']))
             candidate['operand_source_ids'] = [c['source_id'] for c in result['rows']
@@ -414,12 +525,78 @@ class EvidenceTools:
                         operand_source_ids=candidate['operand_source_ids'],page=candidate['page'],
                         table_id=candidate['table_id'],row=candidate['row'],columns=candidate['columns'],
                         unit=unit,scope_verified=False))
-        return ranked[:4]
+        return ranked[:capped]
 
     def execute(self, request) -> dict[str, Any]:
+        if request.tool == 'read_source' and request.source_id.startswith('tool-result:'):
+            return self._read_tool_result(request)
+        from normative_engineering_tools import execute as engineering_execute
+        related = engineering_execute(self, request)
+        if related is not None:
+            return self._archive_tool_result(related)
+        if request.tool == 'read_page' and request.bbox:
+            from normative_drawing_tool import render_region
+            return render_region(self, request)
+        if request.tool == 'read_table' and request.source_id:
+            from normative_table_navigation import resolve
+            address = resolve(self, request)
+            if isinstance(address, dict):
+                return address
+            request = address
         from normative_multidoc import route
         routed=route(self,request)
-        return routed if routed is not None else self._execute_single(request)
+        result = routed if routed is not None else self._execute_single(request)
+        if request.tool == 'search_project' and getattr(self, 'engineering_graph', None):
+            from normative_engineering_relations import search
+            result = {**result, 'engineering_entities': search(self.engineering_graph,
+                request.query, offset=request.entity_offset)}
+        return self._archive_tool_result(result)
+
+    def _archive_tool_result(self, result):
+        """Navigation archive is not a document source or a citation handle."""
+        if len(json.dumps(result, ensure_ascii=False)) <= 3500:
+            return result
+        from analysis_replay import digest
+        handle = 'tool-result:'+digest(result)[:32]
+        archive = getattr(self, 'result_archive', {})
+        self.result_archive = archive
+        if len(archive) < 256 or handle in archive:
+            archive[handle] = deepcopy(result)
+            return dict(result, result_handle=handle,
+                archive_read_request=dict(tool='read_source', source_id=handle, offset=0))
+        return dict(result, archive_error='tool_result_archive_budget_exhausted')
+
+    def _read_tool_result(self, request):
+        archive = getattr(self, 'result_archive', {})
+        value = archive.get(request.source_id)
+        if value is None:
+            # Saved tool receipts survive follow-up. Rebuild only a hash-matched
+            # archive, never accept arbitrary tool-result handles as evidence.
+            from analysis_replay import digest
+            for event in self.events:
+                candidate = event.get('result') or {}
+                if candidate.get('result_handle') == request.source_id:
+                    original = {k: v for k, v in candidate.items() if k not in {'result_handle', 'archive_read_request'}}
+                    if request.source_id == 'tool-result:'+digest(original)[:32]:
+                        value = original
+                        break
+        if value is None:
+            return {'error': 'unknown_tool_result'}
+        text = json.dumps(value, ensure_ascii=False)
+        if request.offset > len(text):
+            return {'error': 'source_offset_out_of_range', 'full_length': len(text)}
+        piece = text[request.offset:request.offset+3000]
+        def reply(part):
+            consumed = request.offset+len(part)
+            return dict(result_handle=request.source_id, text=part,
+                offset=request.offset, full_length=len(text),
+                next_offset=consumed if consumed < len(text) else None,
+                navigation_only=True, document_evidence=False)
+        # JSON escaping also consumes the response budget. The cursor follows
+        # delivered characters, never a nominal chunk that could be truncated.
+        while len(json.dumps(reply(piece), ensure_ascii=False)) > 3500:
+            piece = piece[:max(1, len(piece)*4//5)]
+        return reply(piece)
 
     def _execute_single(self, request):
         if request.tool == 'read_source':
@@ -427,19 +604,29 @@ class EvidenceTools:
             if source is None:
                 return {'error': 'unknown_source'}
             text = source['text']
+            if request.offset > len(text):
+                return {'error': 'source_offset_out_of_range', 'full_length': len(text)}
             self.preferred.append(source['id'])
             if request.offset:
                 source = {**source, 'id':source['id']+f':part:{request.offset}', 'text':text[request.offset:request.offset+3500]}
                 self.preferred.append(source['id'])
-                return self._add(source)
-            return {'source_id': source['id'], 'full_length':len(text)}
+                return {**self._add(source), 'text': source['text'], 'full_length': len(text),
+                    'offset': request.offset,
+                    'next_offset': request.offset+3500 if request.offset+3500 < len(text) else None}
+            return {'source_id': source['id'], 'full_length':len(text), 'offset': 0,
+                'next_offset': 3500 if len(text)>3500 else None}
         if request.tool == 'sum_cells':
             return self._sum(request)
         if request.tool == 'search_norms':
+            if self.kb is None:
+                return {'error': 'normative_kb_unavailable'}
+            from normative_collection_context import definition_links, ranked_collection_context
             from normative_service import candidate
             from normative_source_registry import full_text_handle
             results = []
-            for hit in search_evidence(self.kb, request.query, self.facts, limit=3):
+            definitions = {}
+            hits = search_evidence(self.kb, request.query, self.facts, limit=3)
+            for hit in hits:
                 item = candidate(self.kb, hit, self.facts)
                 if not item['citations']:
                     continue
@@ -447,13 +634,24 @@ class EvidenceTools:
                 source = dict(id=full_text_handle('agent:n:'+str(item['id']),item['text']), kind='normative',
                     source_id=ref['source_id'], page=ref['page'], label=item['designation']+' · '+item['code'],
                     origin=item['extraction_status'], text=item['text'])
-                results.append(self._add(source))
+                receipt = self._add(source)
+                results.append(receipt)
+                if item.get('entity_kind') == 'norm' and 'source_id' in receipt:
+                    definitions[item['id']] = source['id']
                 # A deliberately requested new source must survive packing.
                 # Otherwise a late raster label can disappear again behind the
                 # generic 1300-character normative preview after being found.
                 self.preferred.append(source['id'])
                 results.extend(self._add(resource) for resource in resource_sources(item,source['id'],evidence_trace=self.events))
-            return {'results': results}
+            technical = ranked_collection_context(self.kb, hits, expected_pin=getattr(self.kb, 'identity', None))
+            routes = []
+            for card, chunk in zip(technical['sources'], technical['context']['literal_chunks'], strict=True):
+                matches = definition_links(chunk, definitions)
+                if matches and 'source_id' in self._add(card):
+                    self.preferred.append(card['id'])
+                    routes.append(dict(source_id=card['id'], matches=matches))
+            return dict(results=results, technical_context=dict(state=technical['reason'],
+                warnings=technical['warnings'], routes=routes))
         if self.index is None or not self.version:
             return {'error': 'prepared_corpus_unavailable', 'coverage': self.coverage}
         if request.tool in {'search_project', 'search_tables'}:
@@ -466,11 +664,18 @@ class EvidenceTools:
             key = (request.tool, request.query, request.offset)
             if key in cache:
                 return {**deepcopy(cache[key]), 'repeated_query': True}
-            search = self.project_search.search_page(request.query,
-                tables=request.tool == 'search_tables', offset=request.offset)
+            from normative_prepared_retrieval import PreparedTableSearch, combine
+            if getattr(self,'prepared_table_search',None) is None:
+                self.prepared_table_search=PreparedTableSearch(self.index)
+            search = combine(self.project_search,self.prepared_table_search,request.query,
+                tables=request.tool == 'search_tables',offset=request.offset)
             pages = []
             for hit in search['hits']:
-                pages.append(dict(**self._page(hit['page'], hit['offset']), preview=hit['preview']))
+                pages.append(dict(**self._page(hit['page'], hit['offset']), preview=hit['preview'],
+                    **({'matched_table_observations':hit['table_observations'],
+                        'matched_table_observation_count':hit['table_observation_count'],
+                        'matched_table_observations_truncated':hit['table_observations_truncated']}
+                        if hit.get('table_observations') else {})))
             search = {k: v for k, v in search.items() if k != 'hits'}
             self.events.append(dict(kind='project_retrieval_page_v1', tool=request.tool,
                 query=request.query, **search, returned_pages=[p['page'] for p in pages]))
@@ -491,6 +696,7 @@ class EvidenceTools:
         selected = [c for c in cells if (c['row'] in request.row_ids if request.row_ids else request.offset <= c['row'] < request.offset+4)
             and (not request.column_ids or c['column'] in request.column_ids)]
         output = []
+        engineering_paths = []
         header_parameters=[]
         from pdf_saved_evidence import header_geometry
         for header in cells:
@@ -504,16 +710,13 @@ class EvidenceTools:
             if len(text)>900:
                 continue
             source_id=cell_source_id(self.version,request.page,table['table_id'],header['cell_id']).replace(':cell:',':header:')
-            header_rects=[]
-            geometry=(getattr(self.index,'metadata',{}).get('page_geometry') or {}).get(str(request.page-1))
-            if geometry and header.get('bbox'):
-                from ocr_engine import _apply_matrix
-                box=_apply_matrix(header['bbox'],geometry['matrix'])
-                header_rects=[[max(0,min(1,box[0]/geometry['width'])),max(0,min(1,box[1]/geometry['height'])),
-                    max(0,min(1,box[2]/geometry['width'])),max(0,min(1,box[3]/geometry['height']))]]
+            from pdf_source_links import source_link
+            link=source_link(self.index,self.version,request.page,table,header)
+            if link['state'] in {'invalid_geometry','source_geometry_requires_review'}:
+                continue
             self._add(dict(id=source_id,kind='project',version_id=self.version,page=request.page,
                 label=self.filename,text=text,origin='ocr_verified_header',numeric_verified=True,
-                verified_parameters=facts,rects=header_rects))
+                verified_parameters=facts,rects=link['rects'],source_anchor=link))
             header_parameters.extend(dict(**{k:v for k,v in f.items() if k!='version'},source_id=source_id,
                 scope_quote=text,scope_state='unresolved') for f in facts)
             self.preferred.append(source_id)
@@ -535,26 +738,83 @@ class EvidenceTools:
             scope_context=table_scope_context(table,cell,cell_id,self.version,request.page)
             self.cells[cell_id] = dict(cell=cell, headers=text, header_text=header_text, page=request.page,unit=resolved_unit,
                 version_id=self.version,table_id=table['table_id'])
-            geometry = (getattr(self.index, 'metadata', {}).get('page_geometry') or {}).get(str(request.page-1))
-            rects = []
-            if geometry and cell.get('bbox'):
-                from ocr_engine import _apply_matrix
-                box = _apply_matrix(cell['bbox'], geometry['matrix'])
-                rects = [[max(0,min(1,box[0]/geometry['width'])),max(0,min(1,box[1]/geometry['height'])),
-                    max(0,min(1,box[2]/geometry['width'])),max(0,min(1,box[3]/geometry['height']))]]
+            from normative_header_observations import addresses
+            from pdf_source_links import source_link
+            link=source_link(self.index,self.version,request.page,table,cell)
+            invalid_geometry=link['state'] in {'invalid_geometry','source_geometry_requires_review'}
+            if request.source_id and len(engineering_paths) < 4:
+                from normative_engineering_evidence import table_evidence_path
+                path = table_evidence_path(table, cell, version=self.version, page=request.page,
+                    source_id=cell_id, source_anchor=link, unit=resolved_unit or '')
+                if path:
+                    engineering_paths.append(path)
             output.append(self._add(dict(id=cell_id, kind='project',
                 **({'table_scope_context':scope_context} if scope_context else {}),
                 version_id=self.version, page=request.page, label=self.filename,
-                text=text, rects=rects, numeric_verified=bool(cell.get('numeric_verified')),
+                text=text, literal_text=cell['text'], source_anchor=link, rects=link['rects'],
+                header_observation_addresses=addresses(table,[cell]),table_id=table['table_id'],
+                ocr_observations=[h['header_line_observation'] for h in cells
+                    if h.get('header_line_observation') and h['cell_id'] in [cell['cell_id'],*cell.get('header_ids',[])]],
+                numeric_verified=bool(cell.get('numeric_verified')) and not invalid_geometry,
                 verified_parameters=[f for h in cells if h['cell_id'] in cell.get('header_ids',[]) for f in header_geometry(h)],
-                unit_verified=bool(resolved_unit),unit=resolved_unit,
-                origin=(cell.get('origin', 'native') if cell.get('quality', 'usable') == 'usable' else 'uncertain_table'))))
+                unit_verified=bool(resolved_unit) and not invalid_geometry,unit=resolved_unit,
+                origin=(cell.get('origin', table.get('origin', 'uncertain_table'))
+                    if cell.get('quality', 'usable') == 'usable' and not invalid_geometry else 'uncertain_table'))))
+            if not invalid_geometry and 'source_id' in output[-1]:
+                output[-1]['read_request'] = dict(tool='read_table', source_id=cell_id)
             if request.row_ids and request.column_ids:
                 self.preferred.append(cell_id)
         from normative_retrieval import terms
         wanted = terms(request.query)
         matching_rows = sorted({c['row'] for c in cells if wanted & terms(c['text'])})[:20]
-        return {'cells': output, 'header_parameters':header_parameters, 'matching_rows': matching_rows, 'columns': table_outline(table)['columns'], 'rows': [dict(**{k: c[k] for k in ('cell_id', 'row', 'column', 'text', 'header_ids', 'bbox', 'quality', 'numeric_verified','row_scope') if k in c},
+        from normative_header_observations import project
+        observations=project(table,selected,page=request.page,offset=request.header_line_offset)
+        from pdf_row_measurements import observations as paired_row_observations
+        from pdf_source_links import source_link
+        row_measurements=paired_row_observations(table,selected)
+        for measurement in row_measurements:
+            measurement.update(page=request.page,table_id=table['table_id'],
+                value_source_id=cell_source_id(self.version,request.page,table['table_id'],measurement['value_cell_id']),
+                read_request=dict(tool='read_table',page=request.page,document_version_id=self.version,
+                    table_id=table['table_id'],row_ids=[measurement['row']],
+                    column_ids=[measurement['unit_column'],measurement['value_column']]))
+            measurement['source_anchors']=[source_link(self.index,self.version,request.page,table,
+                next(c for c in cells if c['cell_id']==measurement[key]))for key in ('unit_cell_id','value_cell_id')]
+            from normative_paired_quantities import source_fields
+            from normative_paired_scope import observe,preview
+            paired_source=source_fields(table,measurement,version=self.version,
+                page=request.page,label=self.filename,
+                parent_context=observe(self.index,self.version,request.page,table,measurement))
+            measurement['source_id']=self._add(paired_source).get('source_id')
+            parent=preview(paired_source)
+            if parent:
+                measurement['parent_observation']=parent
+        from normative_scalar_rows import observations as scalar_rows
+        for row in scalar_rows(self.index, self.version, request.page, table, selected, self.filename):
+            registered = self._add(row['source'])
+            if 'source_id' in registered:
+                row_measurements.append(dict(row['preview'], source_id=registered['source_id'],
+                    measurement_kind='native_scalar_row'))
+        paths = {}
+        if engineering_paths:
+            from normative_engineering_evidence import compact_evidence_path, engineering_path_links
+            registered = {entry.get('source_id') for entry in output}
+            engineering_paths = [path for path in engineering_paths if path['source_id'] in registered]
+            source_map = {source['id']: source for source in self.sources}
+            graph = getattr(self, 'engineering_graph', None) or {}
+            position_index = getattr(self, 'position_index', None)
+            for path in engineering_paths:
+                sid = path['source_id']
+                routes = (engineering_path_links(graph, sid, position_index)
+                          if position_index is not None and source_map[sid] in graph.get('sources', []) else [])
+                path['verified_routes'] = routes
+                if any(route['evidence_role'] == 'direct' for route in routes):
+                    path['missing_links'] = [gap for gap in path['missing_links']
+                        if gap['link'] not in {'fact_to_subject', 'subject_to_vor_position'}]
+            paths = dict(engineering_paths=[dict(compact_evidence_path(path) or {},
+                    verified_routes=path['verified_routes'][:3]) for path in engineering_paths],
+                full_engineering_paths=engineering_paths)
+        return {**paths, 'row_measurements':row_measurements,'header_observations':observations,'cells': output, 'header_parameters':header_parameters, 'matching_rows': matching_rows, 'columns': table_outline(table)['columns'], 'rows': [dict(**{k: c[k] for k in ('cell_id', 'row', 'column', 'text', 'header_ids', 'bbox', 'quality', 'numeric_verified','row_scope') if k in c},
             **output[i]) for i,c in enumerate(selected)], 'next_offset': request.offset+4, 'row_count': table['row_count']}
 
     def _sum(self, request):
@@ -581,15 +841,23 @@ class EvidenceTools:
                 continue
             for table in self._tables(source['page']):
                 cell=next((c for c in table['cells']
-                    if cell_source_id(self.version,source['page'],table['table_id'],c['cell_id'])==sid),None)
+                    if sid in {cell_source_id(self.version,source['page'],table['table_id'],c['cell_id']),
+                        cell_source_id(self.version,source['page'],table['table_id'],c['cell_id'],envelope_version=0)}),None)
                 if cell is not None:
-                    self._execute_single(EvidenceRequest(tool='read_table',page=source['page'],
+                    reopened=self._execute_single(EvidenceRequest(tool='read_table',page=source['page'],
                         table_id=table['table_id'],row_ids=[cell['row']],column_ids=[cell['column']]))
+                    current=cell_source_id(self.version,source['page'],table['table_id'],cell['cell_id'])
+                    if sid!=current:
+                        return {'error':'source_handle_version_changed',
+                            'replacement_source_ids':{sid:current},'read_result':reopened}
                     break
         cells = [self.cells.get(i) for i in ids]
         if any(c is None for c in cells):
             return {'error': 'unknown_cell'}
         cells = [c for c in cells if c is not None]
+        if any((s.get('source_anchor') or {}).get('state') in {
+                'invalid_geometry','source_geometry_requires_review'} for s in self.sources if s['id'] in ids):
+            return {'error': 'source_geometry_requires_review'}
         if any((c['cell'].get('origin') == 'ocr' and not c['cell'].get('numeric_verified'))
                 or c['cell'].get('quality', 'usable') != 'usable' for c in cells):
             return {'error': 'uncertain_cells_require_image_verification'}
@@ -599,6 +867,23 @@ class EvidenceTools:
         values = [v for v in values if v is not None]
         if len({c['page'] for c in cells}) != 1:
             return {'error': 'cross_page_sum_requires_separate_scope_validation'}
+        physical_keys = set()
+        for entry in cells:
+            cell = entry.get('cell') or {}
+            bbox = cell.get('bbox')
+            key = (
+                entry.get('version_id'),
+                entry.get('page'),
+                entry.get('table_id'),
+                cell.get('cell_id'),
+                tuple(bbox) if isinstance(bbox, list) else None,
+            )
+            if key in physical_keys:
+                self.events.append(
+                    dict(kind='duplicate_schedule_skipped', key=list(key))
+                )
+                return {'error': 'duplicate_schedule_cells_require_separate_scope_validation'}
+            physical_keys.add(key)
         total = sum(values, Decimal(0))
         context = '\n'.join(dict.fromkeys(c.get('header_text', '') for c in cells))
         text = context + '\n' + ' + '.join(str(v) for v in values) + f' = {total} {request.unit}. Ячейки: ' + ', '.join(ids)
@@ -619,16 +904,24 @@ class EvidenceTools:
         text = self.index.texts[page-1]
         # Retrieve the hit itself, not always the first paragraph of a long page.
         piece = text[offset:offset+3500]
+        from pdf_inline_evidence import excerpt_origin, native_fragments
         namespace=':doc:'+str(self.version) if getattr(self,'additional_documents',None) or getattr(self,'is_supporting_document',False) else ''
         ref = self._add(dict(id=f'agent:p{page}:{offset}'+namespace, kind='project', page=page,
             version_id=self.version, label=self.filename, text=piece,
-            origin='ocr_inline_unreviewed' if (self.index.quality.get(page-1) or {}).get('inline_raster', {}).get('detected')
-                else 'ocr_unverified' if (self.index.quality.get(page-1) or {}).get('origin') == 'ocr' else 'native'))
+            origin=excerpt_origin(self.index, page, offset, len(piece))))
         if exact:
             self.preferred.append(ref.get('source_id', ''))
+        readable = []
+        if excerpt_origin(self.index, page, offset, len(piece)) == 'ocr_inline_unreviewed':
+            for fragment in native_fragments(self.index, page, offset, len(piece)):
+                source = self._add(dict(id=f"agent:p{page}:{fragment['offset']}:native:{len(fragment['text'])}"+namespace,
+                    kind='project', page=page, version_id=self.version, label=self.filename,
+                    text=fragment['text'], origin='native'))
+                readable.append(dict(**source, offset=fragment['offset'], origin='native',
+                    text=fragment['text']))
         tables = self._tables(page)
         return dict(**ref, page=page, document_version_id=self.version, next_offset=offset+3500 if offset+3500 < len(text) else None,
-            tables=[table_outline(t) for t in tables])
+            tables=[table_outline(t) for t in tables], native_fragments=readable)
 
     def _tables(self, page):
         """Read shared, SHA-verified prepared pages, never repeat PDF extraction.
@@ -685,9 +978,10 @@ def table_outline(table):
         columns=columns, total_rows=sorted({c['row'] for c in totals}), total_labels=totals)
 
 
-def run(ask, client, credentials, instructions, inputs, schema, trace, stats, tools, *, verify_answer=None):
+def run(ask, client, credentials, instructions, inputs, schema, trace, stats, tools, *,
+        verify_answer=None, evidence_timeout_seconds=120):
     """Three calls; one source-only repair for a newly exposed conditional error."""
-    from normative_context import ModelProviderResponseError
+    from normative_context import ModelOutputLimitError, ModelProviderResponseError
     started = time.monotonic()
     history = []
     feedback = []
@@ -715,6 +1009,13 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
         from normative_quantity_anchors import quantity_parameter_candidates
         supplied['quantity_parameter_candidates'] = quantity_parameter_candidates(
             tools.sources,getattr(tools,'cells',{}),getattr(tools,'quantity_sums',()))
+        if any(s.get('paired_parent_context')for s in tools.sources):
+            supplied['paired_parent_observation_rules'] = (
+                'parent_observation / paired_parent_observation связывает дочерний номер с физической родительской строкой. '
+                'Это наблюдение, а не подтверждение инженерной принадлежности или OCR описания. '
+                'Прочитай read_request, проверь операцию, участок и обозначение материала отдельно. '
+                'Одинаковое количество не отменяет различия ШТУ, прямого/кривого участка и монтажа/демонтажа. '
+                'При неоднозначности сохрани scope_state=unresolved.')
         supplied['previous_literal_parameters'] = list(getattr(tools,'parameter_evidence',{}).values())
         supplied['previous_claim_citations'] = claim_memory.context()
         owner_work=(inputs.get('normative_work_owner') or {}).get('work') or inputs.get('position',{}).get('work','')
@@ -762,6 +1063,16 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
         try:
             answer = restore_source_ids(ask(client, credentials, step_instructions, supplied, schema, trace, stage, stats),aliases,tools.sources)
             packing['response_state'] = 'completed'
+        except ModelOutputLimitError:
+            packing['response_state'] = 'output_limit'
+            if step >= MAX_ROUNDS-1:
+                raise
+            feedback = [
+                'Предыдущий ответ не поместился. Верни короткий JSON. '
+                'Не повторяй каталог источников и пояснения. Для каждого вывода оставь '
+                'точный claim_id, необходимые ссылки и одно короткое предложение.'
+            ]
+            continue
         except ValidationError as exc:
             packing['response_state'] = 'invalid_schema'
             if step >= MAX_ROUNDS-1:
@@ -829,7 +1140,7 @@ def run(ask, client, credentials, instructions, inputs, schema, trace, stats, to
                     item.explanation += ' Поиск связанных источников не завершён.'
             answer.requests = []
             return answer
-        if step >= MAX_ROUNDS-1 or time.monotonic()-started > 120:
+        if step >= MAX_ROUNDS-1 or time.monotonic()-started > evidence_timeout_seconds:
             raise TimeoutError('Evidence acquisition budget exhausted')
         history = []
         for request in requests:

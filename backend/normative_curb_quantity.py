@@ -221,7 +221,10 @@ def project(position, result, tools, relation):
             items.append(item)
     preview["items"] = items
     sid = physical["source"]["id"]
-    old_sources = [s for s in preview["sources"] if s["id"] == sid]
+    from normative_source_addresses import cell_source_handles
+    from normative_source_identity import canonical_source_id
+    handles = cell_source_handles(tools.version, page, table['table_id'], cell['cell_id'])
+    old_sources = [s for s in preview["sources"] if canonical_source_id(s) in handles]
     # Reading a header again may enrich its scope; literal quantity and PDF
     # geometry must stay unchanged for the same canonical cell identity.
     for old in old_sources:
@@ -281,7 +284,7 @@ def project(position, result, tools, relation):
     )
     if (
         original == [proposal]
-        and old_sources == [physical["source"]]
+        and physical["source"] in old_sources
         and len([i for i in result["items"] if i.get("topic") == TOPIC]) == 1
         and new_item in result["items"]
     ):

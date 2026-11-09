@@ -10,34 +10,23 @@ from uuid import UUID
 
 import openai
 import pymupdf
-from pydantic import BaseModel, ConfigDict, Field
-
+from audit_evidence_validation import (
+    AgentAnswer,
+    CheckAnswer,
+    CheckedItem,
+    answer_feedback,
+    bind_explicit_sum_sources,
+    canonicalize_cell_parameters,
+    normalize_rounded_sum,
+    validate_items,
+)
 from audit_llm import _check_llm_host
 from audit_tracing import TracingRun
 from normative_context import _ask
 from normative_agent import EvidenceRequest, EvidenceTools, PIPELINE_VERSION, resource_sources, run as run_agent
 import normative_service as service
-from workspace_models import NormativePositionCheckItem, NormativeParameterProposal
-from normative_thickness_adjustment import AdjustmentProposal,proposal_events
-
-
-class CheckedItem(NormativePositionCheckItem):
-    topic: str = Field(max_length=150)
-    explanation: str = Field(max_length=1600)
-    project_source_ids: list[str] = Field(max_length=8)
-    normative_source_ids: list[str] = Field(max_length=8)
-
-
-class CheckAnswer(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    summary: str = Field(max_length=2500)
-    items: list[CheckedItem] = Field(max_length=16)
-    parameters: list[NormativeParameterProposal] = Field(default_factory=list, max_length=16)
-
-
-class AgentAnswer(CheckAnswer):
-    requests: list[EvidenceRequest] = Field(default_factory=list, max_length=4)
-    adjustments: list[AdjustmentProposal] = Field(default_factory=list, max_length=4)
+from workspace_models import NormativeParameterProposal
+from normative_thickness_adjustment import proposal_events
 
 
 
@@ -56,110 +45,6 @@ def declared_layer_context(position,owner,related,positions):
         value if isinstance(value,(int,str)) else str(value) for key,value in group.items()}
 
 
-def validate_items(items, sources, known_claims=None, *, evidence_trace=None,matching_checks=(),replaying=False,scope_claims=None,position=None,atomic=False,parameters=()):
-    if atomic:
-        from normative_fact_contract import atomic_items
-        items = atomic_items(items, evidence_trace)
-    separated=[]
-    for item in items:
-        if 'workbook:formula' in item.claim_ids and len(item.claim_ids)>1:
-            # Arithmetic is proved by the server, while the remaining claims
-            # retain their original state and source/scope requirements.
-            separated.extend([item.model_copy(update={'claim_ids':[c for c in item.claim_ids if c!='workbook:formula']}),
-                item.model_copy(update={'claim_ids':['workbook:formula']})])
-        else:
-            separated.append(item)
-    project_ids = {s["id"] for s in sources if s["kind"] == "project"}
-    norm_ids = {s["id"] for s in sources if s["kind"] == "normative"}
-    output = []
-    # A public source (PDF) identifier is only an alias when it identifies one
-    # and only one supplied excerpt. Never repair a fabricated reference by page
-    # or by matching the expected VOR number.
-    aliases = {}
-    for source in sources:
-        for alias in (source['id'], source.get('source_id')):
-            if alias:
-                aliases.setdefault(alias,set()).add(source['id'])
-    from normative_advisory_scope import partition
-    scoped = [part for item in separated for part in partition(item, position, matching_checks,
-        known_claims if scope_claims is None else scope_claims)]
-    for item, advisory in scoped:
-        row = item.model_dump()
-        for key in ('project_source_ids','normative_source_ids'):
-            row[key] = list(dict.fromkeys(next(iter(aliases[s])) if len(aliases.get(s,()))==1 else s for s in row[key]))
-        row['required'] = True  # Only local validation may scope a warning away.
-        if known_claims is not None:
-            invalid_claims = set(row['claim_ids']) - set(known_claims)
-            row['claim_ids'] = [c for c in row['claim_ids'] if c in known_claims]
-            if invalid_claims:
-                row['state'] = 'needs_facts'
-        if row['claim_ids'] and all(c.startswith('related:') for c in row['claim_ids']):
-            row['required'] = False
-        valid = set(row["project_source_ids"]) <= project_ids and set(row["normative_source_ids"]) <= norm_ids
-        row["project_source_ids"] = [i for i in row["project_source_ids"] if i in project_ids]
-        row["normative_source_ids"] = [i for i in row["normative_source_ids"] if i in norm_ids]
-        from normative_verdict import source_supported,absence_claim,literal_project_designations
-        uncertain_norms = {s['id'] for s in sources if s['kind'] == 'normative'
-                           and str(s.get('origin', '')).startswith('ocr_unreviewed')}
-        uncertain_inline = {s['id'] for s in sources if s.get('origin') == 'ocr_inline_unreviewed'}
-        if uncertain_inline.intersection(row['project_source_ids']):
-            row['state'] = 'needs_facts'
-            row['explanation'] += ' В источнике есть непроверенные растровые символы; нужна сверка указанных областей.'
-        if uncertain_norms.intersection(row['normative_source_ids']):
-            row['state'] = 'needs_facts'
-            warning = 'Нормативное основание получено непроверенным OCR; требуется сверка с оригиналом.'
-            if warning not in row['explanation']:
-                row['explanation'] += ' ' + warning
-        ambiguous_definitions = {s['id'] for s in sources if s['kind']=='normative'
-            and s.get('origin')=='native_definition_ambiguous'}
-        if ('normative:applicability' in row['claim_ids']
-                and ambiguous_definitions.intersection(row['normative_source_ids'])):
-            row['state']='needs_facts'
-            warning='Область определения этой нормы извлечена неоднозначно; применимость требует однозначного нормативного основания.'
-            if warning not in row['explanation']:
-                row['explanation']+=' '+warning
-        from normative_source_roles import classification_only_basis, MESSAGE
-        if classification_only_basis(row, sources):
-            row['state'] = 'needs_facts'
-            if MESSAGE not in row['explanation']:
-                row['explanation'] += ' ' + MESSAGE
-        if absence_claim(row):
-            row['state']='needs_facts'
-            row['explanation']+=' Отсутствие обозначения в найденном фрагменте не доказывает несовместимость; требуется сопоставление одного свойства и шкалы.'
-        from normative_workbook_rate import project_consumption_supported
-        if (not valid or not source_supported(row)
-                or not project_consumption_supported(row,sources,position=position,parameters=parameters,
-                    items=[i.model_dump() for i in items])
-                or not literal_project_designations(row,sources,position=position)):
-            row["state"] = "needs_facts"
-            warning = " Не хватает достоверных ссылок для этого аспекта проверки: нужна сверка."
-            if warning.strip() not in row["explanation"]:
-                row["explanation"] += warning
-        from normative_item_scope import apply_scope
-        apply_scope(item.model_dump(),row,known_claims if scope_claims is None else scope_claims,
-            matching_checks,evidence_trace,replaying=replaying)
-        if advisory:
-            row['required'] = False
-        start = len(output)
-        related = [claim for claim in row['claim_ids'] if claim.startswith('related:')]
-        own = [claim for claim in row['claim_ids'] if not claim.startswith('related:')]
-        if related and own:
-            # A mixed paragraph cannot establish which owner its conclusion
-            # concerns. Preserve both obligations without making the child's
-            # rate mandatory for the work or copying a positive/red verdict.
-            split = {**row,'state':'needs_facts'}
-            split['explanation'] += ' Вывод объединяет работу и дочерний материал; основания этих аспектов проверяются отдельно.'
-            output.extend([{**split,'claim_ids':own,'required':True},
-                           {**split,'claim_ids':related,'required':False}])
-        else:
-            if evidence_trace is not None:
-                from normative_quantity_bridge import record_source_omission
-                record_source_omission(item.model_dump(),row,sources,evidence_trace)
-            output.append(row)
-        from normative_claim_migration import record_condition_conflict
-        for validated in output[start:]:
-            record_condition_conflict(item.model_dump(),validated,position,evidence_trace)
-    return output
 
 
 def _excerpt(text, size=4800):
@@ -197,302 +82,71 @@ def adjacent_material_context(owner, positions):
     return output
 
 
-def bind_explicit_sum_sources(answer,sources,tools):
-    """Bind a missing calculated handle to the model's exact chosen operands.
-
-    No operand selection, VOR substitution or scope upgrade. A fabricated
-    supplied handle, wrong value, unreadable cell or incompatible unit is not
-    repaired. The original semantic assertion stays available in the trace.
-    """
-    from normative_parameters import number
-    for proposal in answer.parameters:
-        if proposal.operation!='sum' or proposal.source_id:
-            continue
-        computed=tools.execute(EvidenceRequest(tool='sum_cells',
-            operand_ids=proposal.operand_source_ids,unit=proposal.unit))
-        if 'error' in computed or number(proposal.value)!=number(computed['value']):
-            continue
-        source=next(s for s in sources if s['id']==computed['source_id'])
-        if len(source['text'])>900:
-            continue
-        original=proposal.model_dump()
-        equation=source['text'].split('\n')[-1].partition(' Ячейки:')[0].rstrip('.')
-        proposal.source_id=source['id']
-        proposal.quote=equation
-        proposal.scope_quote=source['text']
-        tools.events.append(dict(kind='explicit_sum_source_binding_v1',
-            original_proposal=original,replacement_proposal=proposal.model_dump()))
 
 
-def answer_feedback(answer, sources, tools, *, owner_unit='', work_scope='', height_cm=None, section_context='', conditional_feedback=None, claim_definitions=(),quantity_work_scope=None,position=None,matching_checks=(),known_claims=None,project_quantity_contract=None):
-    """Return mechanical evidence errors while the agent still has a round.
-
-    No expected VOR quantity is supplied here. This checks selected source IDs,
-    literal quotes and actual cells, never fabricates engineering applicability.
-    """
-    from normative_parameters import number,unit_scale_quoted,measure,clean,construction_conflict
-    from normative_verdict import source_supported,literal_project_designations
-    from normative_parameter_feedback import literal_parameter_issues
-    from normative_source_roles import classification_only_basis, classification_source, MESSAGE
-    bind_explicit_sum_sources(answer,sources,tools)
-    canonicalize_cell_parameters(answer,sources,work_scope=work_scope,height_cm=height_cm,section_context=section_context)
-    from normative_parameter_anchors import resolve_anchors
-    from normative_workbook_rate import quantity_contract,project_consumption_supported
-    role_contract=(project_quantity_contract if project_quantity_contract is not None
-        else quantity_contract(position) if position is not None else None)
-    if role_contract and not role_contract.get('project_input'):
-        role_contract=None  # Subject metadata must not introduce a numeric input role.
-    answer.parameters = resolve_anchors(answer.parameters,sources,answer.items,
-        work_scope=work_scope,height_cm=height_cm,owner_unit=owner_unit,evidence_trace=getattr(tools,'events',None),
-        calculation_input_unit=role_contract['project_input']['unit'] if role_contract else '')
-    # The model chooses direct versus summed scope. Feedback may reject a
-    # partial reading, but must not replace it with a verified local decision.
-    lookup={s['id']:s for s in sources}
-    issues=[]
-    quantities = [p for p in answer.parameters if p.parameter == 'quantity']
-    measured=[m for p in quantities if (m:=measure(p.value,p.unit)) is not None]
-    roles={m[0] for m in measured} if role_contract else {'quantity'}
-    ambiguous=any(len({m for m in measured if not role_contract or m[0]==role})>1 for role in roles)
-    if role_contract and position is not None:
-        allowed={m[0] for unit in (position.unit,role_contract['project_input']['unit']) if (m:=measure('1',unit))}
-        if any(m[0] not in allowed for m in measured):
-            issues.append('Параметр quantity имеет размерность, отличную от собственного результата '
-                'и явно заданной площади-основания формулы. Установи назначение числа по источнику.')
-    if ambiguous:
-        issues.append('Для quantity возвращено несколько разных величин. Сам установи охват позиции по ПД: '
-            'выбери одно основание либо запроси sum_cells и верни operation=sum с точными operand_source_ids, '
-            'если источники доказывают, что эти части составляют общий объём. Код не выбирает и не складывает их вместо тебя.')
-    evidence=dict(getattr(tools,'parameter_evidence',{}))
-    tools.invalid_project_parameter_kinds=set()
-    definitions={d['claim_id']:d for d in claim_definitions}
-    from normative_advisory_scope import partition
-    scoped = [part for item in answer.items for part in partition(item, position, matching_checks, known_claims)]
-    for item, advisory in scoped:
-        unknown=(set(item.project_source_ids)|set(item.normative_source_ids))-lookup.keys()
-        if unknown:
-            issues.append('Неизвестные источники: '+', '.join(sorted(unknown)))
-        if any(c.startswith('related:') for c in item.claim_ids) and any(not c.startswith('related:') for c in item.claim_ids):
-            issues.append('Раздели основной аспект и related:* на отдельные items; коэффициент дочерней строки не относится к применимости родительской работы.')
-        if not advisory and item.state in {'confirmed','possible_mismatch'} and item.claim_ids != ['workbook:formula']:
-            correct_kinds=(all(lookup.get(s,{}).get('kind')=='project' for s in item.project_source_ids)
-                and all(lookup.get(s,{}).get('kind')=='normative' for s in item.normative_source_ids))
-            if (not correct_kinds or not source_supported(item.model_dump())
-                    or not project_consumption_supported(item.model_dump(),sources,position=position,
-                        parameters=[p.model_dump() for p in answer.parameters],items=[i.model_dump() for i in answer.items])
-                    or not literal_project_designations(item.model_dump(),sources,
-                        position=position,definitions=claim_definitions)):
-                issues.append('Аспект '+', '.join(item.claim_ids)+': подтверждённый вывод требует ссылок правильного типа. '
-                    'Наличие/геометрию/количество свяжи с ПД; для способа работ, условия комментария и нормативной применимости '
-                    'укажи ПД, задающий эту конструкцию, и применимый норматив. ПД не обязан повторять марку машины из нормы. '
-                    'Используй только существующие прямые основания; если связь не доказана, оставь needs_facts, не добавляй случайную ссылку.')
-        if not advisory and classification_only_basis(item.model_dump(), sources):
-            issues.append('Аспект '+', '.join(item.claim_ids)+': '+MESSAGE)
-        for claim in item.claim_ids:
-            definition=definitions.get(claim)
-            expected=(definition or {}).get('expected_text','')
-            if not expected or item.state=='confirmed':
-                continue
-            equipment=(claim.startswith('method:comment:equipment:')
-                and re.search(r'марк|эквивалент|модел',item.explanation,re.I))
-            child_rate=(claim.startswith('basis:comment:')
-                and re.search(r'коэффициент|Купл|расход[^.!?]{0,70}дочер',item.explanation,re.I)
-                and not re.search(r'коэффициент|Купл|расход',expected,re.I))
-            if equipment or child_rate:
-                issues.append('Аспект '+claim+' имеет точное требование «'+expected+'». '
-                    'Проверь именно его по ПД и нормативу, а не дополнительную марку машины или коэффициент дочерней строки. '
-                    'Неизвестный расход дочернего материала оставь отдельным related:*; неизвестная марка не заменяет проверку '
-                    'указанной функции/класса. Если само требование не подтверждается, сохрани needs_facts с причиной по этому требованию.')
-    for proposal in answer.parameters:
-        source=lookup.get(proposal.source_id)
-        if (proposal.parameter in {'unit_scale', 'coefficient'} and source is not None
-                and classification_source(source)):
-            evidence.pop(proposal.parameter, None)
-            issues.append('Параметр '+proposal.parameter+': '+MESSAGE)
-            continue
-        if proposal.parameter=='quantity':
-            from normative_quantity_scope import partial_side_issue,unresolved_layer_issue
-            partial=partial_side_issue(proposal.model_dump(),sources,
-                work_scope if quantity_work_scope is None else quantity_work_scope,section_context)
-            if partial:
-                tools.invalid_project_parameter_kinds.add('quantity')
-                evidence.pop('quantity',None)
-                issues.append(partial['reason'])
-                continue
-            layer_issue=unresolved_layer_issue(proposal.model_dump(),source,
-                work_scope if quantity_work_scope is None else quantity_work_scope,height_cm)
-            if layer_issue:
-                tools.invalid_project_parameter_kinds.add('quantity')
-                evidence.pop('quantity',None)
-                issues.append(layer_issue)
-                continue
-        if proposal.parameter in {'quantity','thickness'} and source is not None:
-            scope=(source['text'] if ':cell:' in source['id'] or source.get('origin')=='calculated_from_cells'
-                else proposal.scope_quote)
-            if construction_conflict(scope,work_scope,height_cm):
-                if proposal.scope_state=='verified':
-                    tools.invalid_project_parameter_kinds.add(proposal.parameter)
-                issues.append('Параметр '+proposal.parameter+': выбранная цитата относится к другому материалу или полной проектной толщине. '
-                    'Проверь literal parameter_candidates и заголовки той же конструкции; для технологических слоёв сопоставляй '
-                    'полную толщину vor_layer_group, а не толщину одной операции. Не подставляй ожидаемое число ВОР '
-                    'и не переноси цитату соседнего слоя; если нужный источник не установлен, scope_state=unresolved.')
-                continue
-        if proposal.operation=='sum':
-            result=tools.execute(EvidenceRequest(tool='sum_cells',operand_ids=proposal.operand_source_ids,unit=proposal.unit))
-            if 'error' in result:
-                issues.append('Сумма: '+result['error']+'. Проверь operand_source_ids в quantity_candidates; не используй пустые или соседние ячейки.')
-                continue
-            if number(proposal.value)!=number(result['value']):
-                issues.append('Параметр '+proposal.parameter+': value не равно точной сумме заявленных operand_source_ids. '
-                    'Используй точное значение из sum_cells / quantity_parameter_candidates, без округления до ВОР; '
-                    'сравнение и допустимое округление выполняются сервером позже. Это не доказательство ошибки ВОР.')
-                continue
-            if proposal.source_id != result['source_id']:
-                issues.append('Параметр '+proposal.parameter+': source_id не относится к сумме заявленных operand_source_ids. '
-                    'Скопируй source_id результата sum_cells, не ссылку на отдельную ячейку или страницу.')
-                continue
-            source=next((source for source in tools.sources if source['id']==result['source_id']),None)
-            errors=literal_parameter_issues(proposal,source)
-            issues.extend(errors)
-            if not errors and proposal.scope_state=='verified':
-                evidence[proposal.parameter]=proposal.model_dump()
-        else:
-            source=lookup.get(proposal.source_id)
-            if proposal.parameter == 'unit_scale':
-                if source is None or source.get('kind') != 'normative':
-                    issues.append('Параметр unit_scale: нужен нормативный источник выбранной нормы работы, а не ПД. Дочитай её read_source и скопируй строку «Измеритель».')
-                    continue
-                if ('измеритель' not in clean(proposal.quote)
-                        or not unit_scale_quoted(proposal.value, proposal.unit, proposal.quote, source['text'])):
-                    issues.append('Параметр unit_scale: число и единицу бери из буквальной строки «Измеритель» нормы работы, не из количества или единицы ресурса. Дочитай read_source указанного норматива.')
-                    continue
-                scale,owner=measure(proposal.value,proposal.unit),measure('1',owner_unit)
-                dimensions={owner[0]} if owner else set()
-                if role_contract and (input_measure:=measure('1',role_contract['project_input']['unit'])):
-                    dimensions.add(input_measure[0])
-                if scale and dimensions and scale[0] not in dimensions:
-                    issues.append('Параметр unit_scale: размерность измерителя не совпадает с normative_work_owner.unit '
-                        'или типизированным project_quantity_contract.project_input.unit. Установи выбранную норму '
-                        'и роль её измерителя. Для независимого количества материала или площади input:area '
-                        'unit_scale не обязателен; если расход взят из рабочей нормы, её условия и пересчёт обязательны.')
-                    continue
-                if proposal.scope_state=='verified':
-                    evidence[proposal.parameter]=proposal.model_dump()
-            else:
-                errors=literal_parameter_issues(proposal,source)
-                issues.extend(errors)
-                if errors and proposal.parameter in {'quantity','thickness'} and proposal.scope_state=='verified':
-                    tools.invalid_project_parameter_kinds.add(proposal.parameter)
-                if not errors and source is not None and proposal.scope_state=='verified':
-                    evidence[proposal.parameter]=proposal.model_dump()
-    if conditional_feedback is not None:
-        issues.extend(conditional_feedback(answer))
-    tools.parameter_evidence=evidence
-    return list(dict.fromkeys(issues))[:8]
-
-
-def canonicalize_cell_parameters(answer,sources,*,work_scope='',height_cm=None,section_context=''):
-    """Repair formatting in the exact verified cell or certified operand sum.
-
-    Never search other cells, borrow the VOR value or promote unresolved scope.
-    Every non-ellipsis scope fragment must already occur in that same source.
-    """
-    from normative_parameters import clean,measure,number,construction_conflict
-    from vor_material_links import _family
-    from normative_retrieval import terms
-    # Subsite/side/axis ownership needs its own semantic proof. This narrow
-    # formatting repair is not the place to infer such a physical partition.
-    if not work_scope or re.search(r'\b(?:слева|справа|пк\s*\d)|\b(?:лев|прав)\w*\s+(?:ос|сторон)',
-            work_scope+' '+section_context,re.I):
-        return
-    lookup={source['id']:source for source in sources}
-    for proposal in answer.parameters:
-        source=lookup.get(proposal.source_id)
-        if (proposal.parameter == 'quantity' and proposal.operation == 'sum' and proposal.scope_state == 'verified'
-                and source and source.get('kind') == 'project' and source.get('origin') == 'calculated_from_cells'
-                and source.get('numeric_verified') and source.get('unit_verified')
-                and not construction_conflict(source['text'],work_scope,height_cm)):
-            from normative_parent_basis import _proposal_dependencies
-            from normative_parameters import quoted
-            text = source['text']
-            fragments = [clean(piece) for piece in re.split(r'\.{3,}|…',proposal.scope_quote) if clean(piece)]
-            def literal_fragment(fragment, *, unit=proposal.unit, text=text):
-                # Models may put a verified column unit beside its label while
-                # the extractor stores it in a separate header line. Remove
-                # only that exact unit annotation, never material/site words.
-                normalized = re.sub(r'(\b(?:площадь|объем|длина)\s*,)\s*'
-                    + re.escape(clean(unit)) + r'(?![\w/])',r'\1',fragment)
-                return fragment in clean(text) or normalized in clean(text)
-            cells = [lookup[sid] for sid in proposal.operand_source_ids if sid in lookup]
-            source_rects = sorted(tuple(rect) for rect in source.get('rects', []))
-            cell_rects = sorted(tuple(rect) for cell in cells for rect in cell.get('rects', []))
-            if (len(text) <= 900 and _proposal_dependencies(proposal.model_dump(),lookup)
-                    and source_rects and source_rects == cell_rects
-                    and all(clean(re.sub(r'\n(?:Всего|Итого|Total)\s*:?\s*$', '',
-                        cell['text'].rsplit('\n',1)[0],flags=re.I)) in clean(text) for cell in cells)
-                    and quoted(proposal.value,proposal.quote,text)
-                    and fragments and all(literal_fragment(fragment) for fragment in fragments)
-                    and any(len(fragment)>=15 and re.search(r'[а-яa-z]{3,}',fragment) for fragment in fragments)):
-                proposal.scope_quote = text
-            continue
-        if (proposal.parameter!='quantity' or proposal.operation!='direct' or proposal.scope_state!='verified'
-                or not source or source.get('kind')!='project' or ':cell:' not in source['id']
-                or not source.get('numeric_verified') or not source.get('unit_verified')
-                or source.get('origin')=='uncertain_table'
-                or proposal.operand_source_ids not in ([],[proposal.source_id])):
-            continue
-        text=source.get('text','')
-        literal=text.rsplit('\n',1)[-1].strip()
-        source_measure=measure('1',source.get('unit',''))
-        if (number(literal) is None or number(literal)!=number(proposal.value) or not source_measure
-                or measure('1',proposal.unit)!=source_measure
-                or construction_conflict(text,work_scope,height_cm)):
-            continue
-        wanted_family,found_family=_family(work_scope),_family(text)
-        if wanted_family and wanted_family!=found_family:
-            continue
-        section_terms=terms(section_context)-terms('Раздел')
-        source_terms=terms(text)
-        if any(not any(a==b or min(len(a),len(b))>=4 and (a.startswith(b) or b.startswith(a))
-                for b in source_terms) for a in section_terms):
-            continue
-        fragments=[clean(piece) for piece in re.split(r'\.{3,}|…',proposal.scope_quote) if clean(piece)]
-        if (not fragments or not all(piece in clean(text) for piece in fragments)
-                or not any(len(piece)>=15 and re.search(r'[а-яa-z]{3,}',piece) for piece in fragments)
-                or len(text)>900):
-            continue
-        # The source is a single physical cell with its original header chain.
-        # Use that chain as the literal quotation, preserving the model's scope
-        # state; downstream material/layer/section validation remains active.
-        proposal.quote=text
-        proposal.scope_quote=text
-        proposal.operand_source_ids=[]
 
 
 def retain_literal_parameters(answer, sources, tools):
-    """Do not lose a valid numeric read while correcting an unrelated claim.
+    """Retain all omitted literal candidates, independently of their scope.
 
-    Only mechanical evidence is retained. Scope/card and verdict validation
-    still run afterwards; an explicit unresolved scope is never overridden.
+    Memory keys may be parameter names or resume fingerprints. Read the actual
+    parameter field and never select one of several conflicting candidates.
+    Explicit new scope/composition/selection is preserved; ordinary scope/card
+    guards still decide ownership. This does not issue another tool/model call.
     """
-    from normative_parameters import quoted
+    from normative_parameter_feedback import literal_parameter_issues
+    from normative_parent_basis import _proposal_dependencies
+    from normative_source_identity import canonical_source_id
+    from normative_parameters import _parameter_claim
     from workspace_models import NormativeParameterProposal
-    lookup={s['id']:s for s in sources}
-    for kind,p in getattr(tools,'parameter_evidence',{}).items():
-        if kind not in {'quantity','thickness'}:
+    from analysis_replay import digest
+
+    lookup = {s['id']: s for s in sources}
+
+    def literal_valid(proposal):
+        source = lookup.get(proposal.source_id)
+        if (source is None or canonical_source_id(source) is None
+                or source.get('kind') != 'project' or source.get('origin') == 'uncertain_table'
+                or source.get('origin', '').startswith('ocr') and not source.get('numeric_verified')):
+            return False
+        literal = proposal.model_copy(update={'scope_state': 'unresolved', 'scope_quote': ''})
+        if literal_parameter_issues(literal, source):
+            return False
+        try:
+            dependencies = _proposal_dependencies(proposal.model_dump(), lookup)
+        except (KeyError, TypeError, ValueError):
+            return False
+        return bool(dependencies) and all(canonical_source_id(lookup[sid]) is not None for sid in dependencies)
+
+    candidates = {}
+    for raw in getattr(tools, 'parameter_evidence', {}).values():
+        try:
+            proposal = NormativeParameterProposal.model_validate(raw)
+        except (TypeError, ValueError):
             continue
-        current=[v for v in answer.parameters if v.parameter==kind]
-        if any(v.scope_state=='unresolved' for v in current):
+        if proposal.parameter in {'quantity', 'thickness'} and literal_valid(proposal):
+            candidates.setdefault(proposal.parameter, {})[digest(proposal.model_dump())] = proposal
+    for kind, saved in candidates.items():
+        current = [v for v in answer.parameters if v.parameter == kind]
+        if any(v.scope_state == 'unresolved' or v.operation == 'sum' for v in current):
+            # A new unresolved scope or explicitly chosen composition is not an
+            # omission. In particular, never replace a sum with a saved part.
             continue
-        if any(v.operation=='sum' for v in current):
-            # A newly selected composition is not an omission during an
-            # unrelated repair. Never replace it by an old single-side read.
+        if any(literal_valid(v) for v in current):
             continue
-        valid=any(('error' not in tools.execute(EvidenceRequest(tool='sum_cells',operand_ids=v.operand_source_ids,unit=v.unit)))
-            if v.operation=='sum' else v.source_id in lookup and quoted(v.value,v.quote,lookup[v.source_id]['text']) for v in current)
-        if valid:
-            continue
-        answer.parameters=[v for v in answer.parameters if v.parameter!=kind]+[NormativeParameterProposal(**p)]
-        tools.events.append(dict(kind='retained_literal_parameter',parameter=kind,source_id=p['source_id']))
+        retained = []
+        for proposal in saved.values():
+            disputed = any(item.state == 'needs_facts'
+                and any(_parameter_claim(claim, kind) or kind == 'quantity' and claim == 'input:area'
+                    for claim in item.claim_ids)
+                and proposal.source_id in item.project_source_ids for item in answer.items)
+            if disputed:
+                # Preserve the literal, not the withdrawn ownership assertion.
+                proposal = proposal.model_copy(update={'scope_state': 'unresolved'})
+            retained.append(proposal)
+            tools.events.append(dict(kind='retained_literal_parameter', parameter=kind,
+                source_id=proposal.source_id, scope_state=proposal.scope_state))
+        answer.parameters = [v for v in answer.parameters if v.parameter != kind] + retained
     return answer
 
 
@@ -668,6 +322,7 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
         if (item['entity_kind'],item['id']) not in seen_candidates)
     candidates = [service.candidate(kb,item,facts.model_dump()) for item in raw_candidates]
     resource_evidence = []
+    definition_ids = {}
     for item in candidates:
         refs = item["citations"][:1]
         if not refs:
@@ -677,6 +332,8 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
         from normative_source_registry import full_text_handle
         sources.append(dict(id=full_text_handle("n"+str(len(sources)),text), kind="normative", label=item["designation"]+" · "+item["code"],
             source_id=ref["source_id"], page=ref["page"], text=text, origin=item["extraction_status"]))
+        if item['entity_kind'] == 'norm':
+            definition_ids[item['id']] = sources[-1]['id']
         sources.extend(resource_sources(item,sources[-1]['id'],evidence_trace=resource_evidence))
     tools = EvidenceTools(context, record, index, sources, kb, facts.model_dump())
     from normative_laying_width_scope import supply_pass_width
@@ -747,11 +404,11 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
     tracing = TracingRun(
         endpoint=context.settings.phoenix_collector_endpoint,
         project=context.settings.phoenix_project_name,
-        public_url=context.settings.phoenix_public_url,
         environment=context.settings.phoenix_environment,
         audit_run_id=str(record["id"]),
         redact_pdf=context.settings.telemetry_redact_pdf,
         mask_prompts=context.settings.telemetry_mask_prompts,
+        public_url=context.settings.phoenix_public_url,
         flush_on_close=False)
     trace = tracing.position(input={"operation": "normative-position-check", "position_index": index},
         metadata={"operation": "normative-position-check", "position_index": index, "model": credentials.model_name})
@@ -797,10 +454,16 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
         manufacturer=manufacturer_context(kb,position.comment,definitions,expected_pin=kb.identity)
         merge(sources,manufacturer['sources'])
         tools.preferred.extend(manufacturer['preferred_source_ids'])
-        from normative_collection_context import collection_context
-        collection=collection_context(kb,raw_candidates,expected_pin=kb.identity)
+        from normative_collection_context import definition_links, ranked_collection_context
+        collection=ranked_collection_context(kb,raw_candidates,expected_pin=kb.identity)
+        for chunk in collection['context']['literal_chunks']:
+            chunk['matched_paragraphs'] = definition_links(chunk, definition_ids)
         merge(sources,collection['sources'])
         tools.preferred.extend(collection['preferred_source_ids'])
+        tools.events.append(dict(kind='normative_collection_navigation_v1', stage='preflight',
+            state=collection['reason'], warnings=collection['warnings'],
+            routes=[dict(source_id=chunk['source_id'], matches=chunk['matched_paragraphs'])
+                for chunk in collection['context']['literal_chunks']]))
         from normative_material_search import definition_sources
         material_definitions = definition_sources(kb, position)
         merge(sources, material_definitions)
@@ -808,9 +471,26 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
         from normative_coefficient_policy import named as named_coefficients, compaction_sources
         coefficient_sources = []
         if tools.coverage['coefficient_policy'] == 'estimator_value_normative_conditions':
-            coefficient_sources = compaction_sources(kb, position)
+            coefficient_sources = compaction_sources(
+                kb, position, *(positions[child['material_index']] for child in relation['children']))
             merge(sources, coefficient_sources)
             tools.preferred.extend(source['id'] for source in coefficient_sources)
+        # A clause explicitly referenced by this row is a primary input for
+        # applicability, even when broader preflight results fill the window.
+        clause_refs = set(re.findall(r'\bп\.\s*(\d+(?:\.\d+)+)\b', position.comment, re.I))
+        cited_clauses = [
+            source['id'] for source in sources if source['kind'] == 'normative'
+            and (prefix := re.match(r'\s*(\d+(?:\.\d+)+)\b', source['text']))
+            and prefix[1] in clause_refs
+        ]
+        tools.preferred[:0] = cited_clauses
+        from normative_work_method import method_candidates
+        for definition in definitions:
+            task = definition.get('evidence_task') or {}
+            if task.get('kind') == 'equipment_function_and_method_compatibility':
+                method_sources = method_candidates(definition['expected_text'], definition['claim_id'], sources)
+                if method_sources:
+                    task['candidate_sources'] = method_sources[:4]
         inputs: dict[str, Any] = dict(question=payload.question, prepared_quantity_tables=table_discovery,
             project_quantity_contract=project_quantity_contract,
             material_property_search=material_search,
@@ -1039,11 +719,14 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
                 continue
             source = next(s for s in sources if s['id'] == computed['source_id'])
             equation = source['text'].split('\n')[-1].partition(' Ячейки:')[0].rstrip('.')
+            normalize_rounded_sum(proposal, computed, source, tools.events)
             if number(proposal.value) != number(computed['value']):
                 proposal.scope_state = 'unresolved'
             proposal.source_id = source['id']
             proposal.quote = equation[:900]
-            proposal.scope_quote = equation[:900]
+            from normative_parameters import clean
+            if not proposal.scope_quote or clean(proposal.scope_quote) not in clean(source['text']):
+                proposal.scope_quote = equation[:900]
             for item in parsed.items:
                 if set(item.project_source_ids) & set(proposal.operand_source_ids):
                     item.project_source_ids = list(dict.fromkeys([*item.project_source_ids,source['id']]))[:8]
@@ -1088,6 +771,17 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
     if execution_state == 'complete':
         from normative_resource_recovery import hydrate
         hydrate(kb,result,facts.model_dump())
+        if (prepared_schedule_candidates and prepared_schedule_candidates.get('construction_candidate')
+                and parent_position is None):
+            from normative_schedule_quantity import project as bind_schedule
+            from vor_material_ownership import material_owners
+            owners = material_owners([p.legacy_task() for p in positions.values()])
+            materials = [positions[i].work_name for i, owner in owners.items()
+                         if owner['index'] == position.index]
+            bind_schedule(position, result, tools, materials, positions=positions)
+        if parent_position is None:
+            from normative_engineering_evidence import resolve_native_geometry
+            resolve_native_geometry(position, positions, tools, result)
         result=bind_parent_basis(context,record,result,positions,relation,position=position,expected_kb=kb.identity)
         result = enrich(position, result, positions, relation)
     from normative_verdict import finalize_state, readable_review
@@ -1099,10 +793,9 @@ def check(context, record, index, payload, actor, *, automatic=False, continuati
             matching=matching,raw_items=raw_equipment_items)
         result = finalize_state(result,matching,service.position_key(position),derived=bool(parent),position=position,relation=relation)
     if continuation is not None:
-        result.setdefault('coverage',{})['evidence_followup'] = dict(
-            round=1, origin_review_id=str(continuation['review']['id']),
-            attempted_fingerprints=[a['retry_fingerprint'] for a in continuation['plan']['actions']])
-    from normative_fact_ledger import store as store_facts
+        from normative_evidence_followup import complete_followup
+        complete_followup(result, continuation)
+    from normative_engineering_tools import persist as store_facts
     store_facts(context,record,position,result,positions,relation)
     snapshot = dict(work_item_id=f"{record['id']}:{index}", query=payload.question or position.work_name, kind="ALL", mode="context",
         context_analysis=None, position_check=result, work_relations=relation, facts=facts.model_dump(), fact_origins=origins, kb=kb.identity,
@@ -1206,13 +899,15 @@ def validate_agent_saved(context, record, index, row, actor, *, register=True):
         work_scope=work_scope,
         height_cm=group['height'] if group else None, owner_unit=owner.unit,evidence_trace=result.setdefault('evidence_trace',[]))
     result['parameter_proposals'] = [p.model_dump() for p in proposals]
+    if owner.index == position.index and result.get('pipeline_version', 0) >= 6:
+        from normative_engineering_evidence import resolve_native_geometry
+        resolve_native_geometry(position, positions,
+            EvidenceTools(context, record, index, result['sources'], kb, data.get('facts') or {}), result)
     # Anchor repair can change a sum's scope quote. Freeze transferred geometry
     # only after that repair, as on the initial agent path: its proof must bind
     # the actual proposals consumed by enrich/publish, not an earlier envelope.
     result = bind_parent_basis(context, record, result, positions, relation,expected_kb=kb.identity,position=position)
     result=readable_review(enrich(position,result,positions,relation))
-    raw=next(r['result'] for r in record['indexed_results'] if r['position_index']==index)
-    matching=review_source(raw,{**position.legacy_task(),'derived_material':relation.get('parent')})
     from normative_equipment_class_proof import apply_equipment_class_proof
     result=apply_equipment_class_proof(position,result,kb=kb,expected_pin=data['kb'],
         project_versions=pins,matching=matching)
@@ -1224,7 +919,7 @@ def validate_agent_saved(context, record, index, row, actor, *, register=True):
         elapsed_seconds=round(time.monotonic()-started,3),trace_id=None,trace_url=None)
     data['position_check']=result
     if result.get('pipeline_version',0)>=6:
-        from normative_fact_ledger import store as store_facts
+        from normative_engineering_tools import persist as store_facts
         store_facts(context,record,position,result,positions,relation)
     data['status']='candidate' if result['state']=='confirmed' else result['state']
     saved=context.repository.save_normative_review(record['id'],index,'check',data,actor)

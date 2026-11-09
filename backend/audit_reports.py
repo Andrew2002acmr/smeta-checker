@@ -21,9 +21,10 @@ from pdf_binding import split_pdf_refs
 DISCREPANCY = "Обнаружено расхождение"
 MANUAL = "Требуется ручная проверка"
 NOT_CHECKED = "Проверка не выполнена"
-STATUS_ORDER = {DISCREPANCY: 0, MANUAL: 1, NOT_CHECKED: 2, "ОК": 3}
+PENDING = "Проверяется по нормативам"
+STATUS_ORDER = {DISCREPANCY: 0, MANUAL: 1, NOT_CHECKED: 2, "ОК": 3, PENDING: 4}
 STATUS_COLORS = {DISCREPANCY: "FEE2E2", MANUAL: "FEF3C7",
-                 NOT_CHECKED: "E5E7EB", "ОК": "DCFCE7"}
+                 NOT_CHECKED: "E5E7EB", "ОК": "DCFCE7", PENDING: "DBEAFE"}
 REPORT_COLUMNS = ["№", "Наименование работ", "Статус аудита", "Что не так",
                   "Наименование файла", "Где проверить"]
 

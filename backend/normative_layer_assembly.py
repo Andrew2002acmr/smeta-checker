@@ -51,7 +51,8 @@ def layer_assembly(position, positions):
             return None
         own_height=Decimal(str(own['height']))
         other_height=Decimal(str(layer['height']))
-        return dict(height=own_height+other_height,first=own_height,second=other_height,
+        first, second = (own_height, other_height) if own['stage'] == 1 else (other_height, own_height)
+        return dict(height=own_height+other_height,first=first,second=second,
             kind=own['kind'],other_row=row,work_indices=sorted([position.index,other.index]),
             operation_quantities=[str(position.volume),str(other.volume)],
             quantity_shared=False,basis='explicit_adjacent_work_stages_same_workbook_section')
@@ -99,8 +100,10 @@ def recover_thickness(position,result,positions):
     if not family:
         return
     candidates={}
+    from normative_source_identity import canonical_source_id
     for source in result.get('sources',[]):
-        if source.get('kind')!='project' or source.get('origin')!='native' or not source.get('version_id'):
+        if (source.get('kind')!='project' or source.get('origin')!='native' or not source.get('version_id')
+                or canonical_source_id(source) is None):
             continue
         anchors=parameter_candidates([source])
         if len(anchors)>=32:
@@ -131,11 +134,11 @@ def recover_thickness(position,result,positions):
         # Alias identity and the entire project envelope must agree. Do not
         # append a second reading of the exact literal already verified by the
         # model; keep its original handle and engineering scope unchanged.
-        physical=source.get('physical_source_id',source['id'])
-        target_physical=target.get('physical_source_id',target['id'])
-        return bool(physical==target_physical
-            and {k:v for k,v in source.items() if k not in {'id','physical_source_id'}}
-                =={k:v for k,v in target.items() if k not in {'id','physical_source_id'}}
+        physical=canonical_source_id(source)
+        target_physical=canonical_source_id(target)
+        return bool(physical is not None and physical==target_physical
+            and {k:v for k,v in source.items() if k not in {'id','physical_source_id','source_alias'}}
+                =={k:v for k,v in target.items() if k not in {'id','physical_source_id','source_alias'}}
             and proposal.get('operation','direct')=='direct'
             and not proposal.get('operand_source_ids')
             and proposal.get('quote')==candidate.get('quote')
@@ -188,7 +191,7 @@ def single_base_price_application(position, result, positions, relation, *, card
         if not _region(src) or not _sections(src):
             return None
         if (_region(src) == _region(own) and src['sections'] == own['sections']
-                and other.index != position.index and str(other.position_type).casefold() == 'работа'
+                and other.index != position.index and str(getattr(other,'position_type','')).casefold() == 'работа'
                 and re.search(r'устройств\w*\s+[^.]*основан', other.work_name, re.I)):
             return None
     sources = result.get('sources') or []
@@ -447,7 +450,7 @@ def material_allocation_proof(position, result, positions, relation):
     if (not isinstance(positions, dict) or position.index not in positions
             or any(key != row.index for key, row in positions.items())
             or position.model_dump(mode='json') != positions[position.index].model_dump(mode='json')
-            or str(position.position_type).casefold() != 'материал'
+            or str(getattr(position,'position_type','')).casefold() != 'материал'
             or _family(position.work_name) != 'щпс'):
         return None
     # A gross/actual or loss-inclusive claim requires a different consumption

@@ -362,8 +362,9 @@ def workspace_router(get_context) -> APIRouter:
             str(record["vor_version_id"]),
             *record["config"].get("pdf_versions", {}).values(),
         }
+        progress = run_progress(context, record)
         return {
-            "run": run_progress(context, record),
+            "run": progress,
             "ready_positions": [r.position_index for r in ready],
             "project": {"id": str(owner.id), "name": owner.name},
             "queues": dict(
@@ -372,12 +373,14 @@ def workspace_router(get_context) -> APIRouter:
             "documents": [
                 v for v in context.repository.list_versions(owner.id) if v["id"] in ids
             ],
+            "completion_counts": progress.completion_counts,
+            "direction_counts": progress.direction_counts,
         }
-
     @router.get("/api/v1/audits/{run_id}/rows", response_model=RowsDTO)
     def rows(
         run_id: str,
         focus: str = Query("all", pattern="^(all|fix|review|missing|ok|pending)$"),
+        direction: str = Query("project", pattern="^(project|normative|relationships)$"),
         q: str = Query("", max_length=500),
         offset: int = Query(0, ge=0),
         limit: int = Query(10, ge=1, le=200),
@@ -385,10 +388,21 @@ def workspace_router(get_context) -> APIRouter:
     ):
         records = present_results(context, available(context, run_id))
         query = q.strip().casefold()
+
+        def matches(row) -> bool:
+            if focus == "all":
+                return True
+            if row.result_origin != "graph" or direction == "project":
+                return row.queue == focus
+            assessment = row.assessment
+            state = getattr(getattr(assessment, direction), "state", "pending") if assessment else "pending"
+            mapping = {"possible_mismatch": "fix", "needs_facts": "review", "pending": "pending", "confirmed": "ok"}
+            return mapping.get(state, "missing") == focus
+
         records = [
             r
             for r in records
-            if (focus == "all" or r.queue == focus)
+            if matches(r)
             and (
                 not query
                 or query

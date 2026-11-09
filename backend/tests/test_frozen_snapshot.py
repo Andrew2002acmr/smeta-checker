@@ -53,16 +53,18 @@ def _ok_client_factory():
             self.responses = SimpleNamespace(create=self.create)
 
         def create(self, **kwargs):
-            import re
-            source_id = re.findall(r"\[([a-z0-9]+)\] ", kwargs["input"])[0]
+            import json as _json
+            payload = _json.loads(kwargs["input"])
+            sources = payload.get("sources", []) if isinstance(payload, dict) else []
+            source_id = sources[0]["id"] if sources else "s0"
             body = {
-                "claims": [
-                    {"claim_id": "presence", "source_ids": [source_id]},
-                    {"claim_id": "quantity", "source_ids": [source_id],
-                     "value_source_id": source_id, "unit_source_id": source_id},
-                    {"claim_id": "unit", "source_ids": [source_id]},
-                ],
-                "discrepancy_details": "Confirmed",
+                "summary": "Confirmed",
+                "items": [{
+                    "topic": "Presence", "state": "confirmed", "explanation": "Found.",
+                    "claim_ids": ["presence"], "project_source_ids": [source_id],
+                    "normative_source_ids": [],
+                }],
+                "parameters": [], "requests": [],
             }
             return SimpleNamespace(
                 output_text=json.dumps(body),
@@ -257,9 +259,9 @@ class FrozenPropagationTests(unittest.TestCase):
                 result = audit_position(context, run.id, 0, worker="llm-test")
             self.assertFalse(result["duplicate"])
             loaded = repo.load_run(run.id)
-            self.assertEqual(
-                loaded["results"][0].get("corpus_id"), job.payload.get("corpus_id")
-            )
+            assessment = loaded["results"][0]
+            self.assertEqual(assessment.get("schema_version"), "evidence-assessment-v1")
+            self.assertEqual(assessment.get("execution", {}).get("state"), "complete")
             self.assertNotIn("pdf_files", job.payload)
 
     def test_missing_snapshot_is_explicit_prep_error_with_workbook_kept(self):
@@ -288,11 +290,9 @@ class FrozenPropagationTests(unittest.TestCase):
             with patch("audit_tracing._configured_client", return_value=None):
                 audit_position(context, run.id, 0, worker="llm-test")
             stored = repo.load_run(run.id)["results"][0]
-            self.assertEqual(stored["status"], "Технический сбой")
-            self.assertIn("снимок корпуса", stored["discrepancy_details"].lower())
-            # Workbook identity/checks survive the PDF-side failure.
-            self.assertIsNotNone(stored.get("position_source"))
-            self.assertEqual(stored.get("workbook_notes"), [])
+            self.assertEqual(stored.get("schema_version"), "evidence-assessment-v1")
+            self.assertEqual(stored["project"]["state"], "needs_facts")
+            self.assertIn("pdf-binding", stored.get("open_gaps", []))
             again = repo.load_position_job(run.id, 0)
             self.assertEqual(again.status, "done")
 

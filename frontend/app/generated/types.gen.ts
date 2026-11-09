@@ -5,9 +5,233 @@ export type ClientOptions = {
 };
 
 /**
+ * AssessmentActionRequest
+ */
+export type AssessmentActionRequest = {
+    /**
+     * Expected Revision
+     */
+    expected_revision: string;
+};
+
+/**
+ * AssessmentDirection
+ */
+export type AssessmentDirection = {
+    /**
+     * Obligations
+     */
+    obligations?: Array<AssessmentObligation>;
+    /**
+     * State
+     */
+    state?: 'confirmed' | 'needs_facts' | 'possible_mismatch' | 'not_applicable' | 'pending';
+    /**
+     * Summary
+     */
+    summary?: string;
+};
+
+/**
+ * AssessmentExecution
+ */
+export type AssessmentExecution = {
+    /**
+     * Error
+     */
+    error?: string;
+    /**
+     * Http Attempts
+     */
+    http_attempts?: number;
+    /**
+     * State
+     */
+    state?: 'pending' | 'running' | 'complete' | 'technical_failure' | 'cancelled';
+    /**
+     * Stop Reason
+     */
+    stop_reason?: string;
+    /**
+     * Tool Executions
+     */
+    tool_executions?: number;
+};
+
+/**
+ * AssessmentFact
+ *
+ * Addressable evidence leaf shared across directions.
+ */
+export type AssessmentFact = {
+    /**
+     * Calculation State
+     */
+    calculation_state?: 'verified' | 'unresolved' | 'not_applicable';
+    /**
+     * Dimension
+     */
+    dimension?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Literal State
+     */
+    literal_state?: 'verified' | 'unresolved';
+    /**
+     * Operand Source Ids
+     */
+    operand_source_ids?: Array<string>;
+    /**
+     * Page
+     */
+    page?: number | null;
+    /**
+     * Parameter
+     */
+    parameter: string;
+    /**
+     * Quote
+     */
+    quote?: string;
+    /**
+     * Role
+     */
+    role?: string;
+    /**
+     * Scope Quote
+     */
+    scope_quote?: string;
+    /**
+     * Source Id
+     */
+    source_id?: string;
+    /**
+     * Subject State
+     */
+    subject_state?: 'verified' | 'unresolved';
+    /**
+     * Unit
+     */
+    unit?: string;
+    /**
+     * Value
+     */
+    value?: string;
+    /**
+     * Version Id
+     */
+    version_id?: string | null;
+};
+
+/**
+ * AssessmentObligation
+ *
+ * One checkable obligation with provenance, not a verdict sentence.
+ */
+export type AssessmentObligation = {
+    /**
+     * Basis
+     */
+    basis?: string;
+    /**
+     * Comparable
+     */
+    comparable?: boolean;
+    /**
+     * Domain
+     */
+    domain: string;
+    /**
+     * Fact Ids
+     */
+    fact_ids?: Array<string>;
+    /**
+     * Gap
+     */
+    gap?: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Mismatch Level
+     */
+    mismatch_level?: 'proved' | 'suspected' | null;
+    /**
+     * Policy
+     */
+    policy?: 'blocking' | 'advisory' | 'not_applicable';
+    /**
+     * Reason
+     */
+    reason?: string;
+    /**
+     * Required
+     */
+    required?: boolean;
+    /**
+     * Requirement
+     */
+    requirement?: string;
+    /**
+     * Source Ids
+     */
+    source_ids?: Array<string>;
+    /**
+     * State
+     */
+    state?: 'confirmed' | 'needs_facts' | 'possible_mismatch' | 'not_applicable' | 'pending';
+    /**
+     * Subject
+     */
+    subject: string;
+};
+
+/**
+ * AssessmentSource
+ */
+export type AssessmentSource = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind?: 'project' | 'normative' | 'workbook';
+    /**
+     * Label
+     */
+    label?: string;
+    /**
+     * Origin
+     */
+    origin?: string;
+    /**
+     * Page
+     */
+    page?: number | null;
+    /**
+     * Text
+     */
+    text?: string;
+    /**
+     * Version Id
+     */
+    version_id?: string | null;
+};
+
+/**
  * AuditCreateRequest
  */
 export type AuditCreateRequest = {
+    /**
+     * Normative Profile
+     */
+    normative_profile?: 'roads' | 'electrical';
     /**
      * Pdf Version Ids
      */
@@ -2158,6 +2382,54 @@ export type NormativeWorkbenchSearchDto = {
 };
 
 /**
+ * OwnQuantity
+ *
+ * The row's own declared amount, assessed separately from its inputs.
+ */
+export type OwnQuantity = {
+    /**
+     * Basis
+     */
+    basis?: Array<string>;
+    /**
+     * Conditions
+     */
+    conditions?: Array<string>;
+    /**
+     * Declared Value
+     */
+    declared_value?: string;
+    /**
+     * Explanation
+     */
+    explanation?: string;
+    /**
+     * Found Unit
+     */
+    found_unit?: string | null;
+    /**
+     * Found Value
+     */
+    found_value?: string | null;
+    /**
+     * Kind
+     */
+    kind?: 'direct' | 'derived';
+    /**
+     * Operands
+     */
+    operands?: Array<string>;
+    /**
+     * State
+     */
+    state?: 'confirmed' | 'consistent_unproven' | 'conditional' | 'unresolved';
+    /**
+     * Unit
+     */
+    unit?: string;
+};
+
+/**
  * PdfBindingsDTO
  */
 export type PdfBindingsDto = {
@@ -2205,6 +2477,75 @@ export type PdfRegionDto = {
      * Width
      */
     width: number;
+};
+
+/**
+ * PositionAssessment
+ */
+export type PositionAssessment = {
+    /**
+     * Completion
+     */
+    completion?: 'pending' | 'complete' | 'incomplete' | 'unknown';
+    /**
+     * Contract
+     */
+    contract?: 'assessment-obligations-v1';
+    /**
+     * Engine
+     */
+    engine?: 'langgraph-evidence-v1';
+    execution?: AssessmentExecution;
+    /**
+     * Execution Revision
+     */
+    execution_revision: number;
+    /**
+     * Fact Bundle Ref
+     */
+    fact_bundle_ref?: string;
+    /**
+     * Facts
+     */
+    facts?: Array<AssessmentFact>;
+    /**
+     * Fingerprint
+     */
+    fingerprint?: {
+        [key: string]: unknown;
+    };
+    normative?: AssessmentDirection;
+    /**
+     * Open Gaps
+     */
+    open_gaps?: Array<string>;
+    own_quantity?: OwnQuantity;
+    /**
+     * Position Index
+     */
+    position_index: number;
+    project?: AssessmentDirection;
+    relationships?: AssessmentDirection;
+    /**
+     * Revision
+     */
+    revision: string;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Schema Version
+     */
+    schema_version?: 'evidence-assessment-v1';
+    /**
+     * Source Registry Ref
+     */
+    source_registry_ref?: string;
+    /**
+     * Sources
+     */
+    sources?: Array<AssessmentSource>;
 };
 
 /**
@@ -2462,7 +2803,8 @@ export type ResultDto = {
      * Action
      */
     action: string;
-    audit_status: AuditStatus;
+    assessment?: PositionAssessment | null;
+    audit_status?: AuditStatus | null;
     /**
      * Cells
      */
@@ -2472,7 +2814,7 @@ export type ResultDto = {
     /**
      * Comment Confirmed
      */
-    comment_confirmed: boolean;
+    comment_confirmed?: boolean | null;
     /**
      * Declared Quantity
      */
@@ -2529,6 +2871,10 @@ export type ResultDto = {
      */
     report_status: ReportStatus | 'Проверяется по нормативам';
     /**
+     * Result Origin
+     */
+    result_origin?: 'graph' | 'legacy';
+    /**
      * Sheet
      */
     sheet: string;
@@ -2543,15 +2889,15 @@ export type ResultDto = {
     /**
      * Unit Confirmed
      */
-    unit_confirmed: boolean;
+    unit_confirmed?: boolean | null;
     /**
      * Volume Confirmed
      */
-    volume_confirmed: boolean;
+    volume_confirmed?: boolean | null;
     /**
      * Work Found
      */
-    work_found: boolean;
+    work_found?: boolean | null;
 };
 
 /**
@@ -2667,6 +3013,12 @@ export type RunCountDto = {
  */
 export type RunDto = {
     /**
+     * Completion Counts
+     */
+    completion_counts?: {
+        [key: string]: number;
+    };
+    /**
      * Created At
      */
     created_at: string | null;
@@ -2674,6 +3026,14 @@ export type RunDto = {
      * Department Id
      */
     department_id?: string | null;
+    /**
+     * Direction Counts
+     */
+    direction_counts?: {
+        [key: string]: {
+            [key: string]: number;
+        };
+    };
     /**
      * Done
      */
@@ -2686,6 +3046,10 @@ export type RunDto = {
      * Finished At
      */
     finished_at: string | null;
+    /**
+     * Input Position Count
+     */
+    input_position_count?: number | null;
     /**
      * Normative Counts
      */
@@ -2716,6 +3080,10 @@ export type RunDto = {
      * Running
      */
     running: number;
+    /**
+     * Selected Position Count
+     */
+    selected_position_count?: number | null;
     /**
      * Stage
      */
@@ -2919,6 +3287,20 @@ export type StructurePageDto = {
  * SummaryDTO
  */
 export type SummaryDto = {
+    /**
+     * Completion Counts
+     */
+    completion_counts?: {
+        [key: string]: number;
+    };
+    /**
+     * Direction Counts
+     */
+    direction_counts?: {
+        [key: string]: {
+            [key: string]: number;
+        };
+    };
     /**
      * Documents
      */
@@ -3253,6 +3635,74 @@ export type CancelAuditApiV1AuditsRunIdCancelPostResponses = {
 };
 
 export type CancelAuditApiV1AuditsRunIdCancelPostResponse = CancelAuditApiV1AuditsRunIdCancelPostResponses[keyof CancelAuditApiV1AuditsRunIdCancelPostResponses];
+
+export type AssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostData = {
+    body: AssessmentActionRequest;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/assessment/recheck';
+};
+
+export type AssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostError = AssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostErrors[keyof AssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostErrors];
+
+export type AssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResultDto;
+};
+
+export type AssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostResponse = AssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostResponses[keyof AssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostResponses];
+
+export type AssessmentValidateApiV1AuditsRunIdPositionsPositionIndexAssessmentValidatePostData = {
+    body: AssessmentActionRequest;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/assessment/validate';
+};
+
+export type AssessmentValidateApiV1AuditsRunIdPositionsPositionIndexAssessmentValidatePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AssessmentValidateApiV1AuditsRunIdPositionsPositionIndexAssessmentValidatePostError = AssessmentValidateApiV1AuditsRunIdPositionsPositionIndexAssessmentValidatePostErrors[keyof AssessmentValidateApiV1AuditsRunIdPositionsPositionIndexAssessmentValidatePostErrors];
+
+export type AssessmentValidateApiV1AuditsRunIdPositionsPositionIndexAssessmentValidatePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResultDto;
+};
+
+export type AssessmentValidateApiV1AuditsRunIdPositionsPositionIndexAssessmentValidatePostResponse = AssessmentValidateApiV1AuditsRunIdPositionsPositionIndexAssessmentValidatePostResponses[keyof AssessmentValidateApiV1AuditsRunIdPositionsPositionIndexAssessmentValidatePostResponses];
 
 export type HumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetData = {
     body?: never;
@@ -4120,6 +4570,10 @@ export type RowsApiV1AuditsRunIdRowsGetData = {
          * Focus
          */
         focus?: string;
+        /**
+         * Direction
+         */
+        direction?: string;
         /**
          * Q
          */

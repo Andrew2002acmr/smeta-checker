@@ -2,6 +2,7 @@
 from copy import deepcopy
 import hashlib
 import re
+from typing import Any
 
 from analysis_replay import digest, get, put
 from pdf_table_verification import refresh_header_ancestry, verified_header_text
@@ -106,8 +107,10 @@ def validated_table_scope_context(source):
             or len(reviews)<2 or len(set(reviews))!=len(reviews)
             or any(not re.fullmatch('[0-9a-f]{64}',str(value)) for value in [*hashes,*reviews])):
         return None
-    expected=hashlib.sha256(f"{binding['version_id']}:{binding['page']}:{binding.get('table_id')}:{binding['cell_id']}".encode()).hexdigest()[:24]
-    if binding['source_id']!=f"agent:p{binding['page']}:cell:{expected}":
+    from normative_source_addresses import cell_source_id
+    expected={cell_source_id(binding['version_id'],binding['page'],binding.get('table_id'),binding['cell_id'],
+        envelope_version=version)for version in (0,1)}
+    if binding['source_id'] not in expected:
         return None
     return deepcopy(context)
 
@@ -168,7 +171,8 @@ def apply(context, record, version, page, tables, events):
         ident=identity(record['project_id'],version,page,table)
         payload=get(context,ident)
         if payload is None:
-            result.append(table)
+            restored = restore_visual_observation(context, record, version, page, table, events)
+            result.append(restored if restored is not None else table)
             continue
         if payload.get('provenance') not in {'independent_physical_header_ocr','independent_visual_header_transcription'}:
             raise ValueError('Invalid header correction provenance')
@@ -182,3 +186,118 @@ def apply(context, record, version, page, tables, events):
         if event not in events:
             events.append(event)
     return result
+
+
+def restore_visual_observation(context, record, version, page, table, events):
+    """Reuse a reviewed physical header after unrelated table OCR changes.
+
+    An unchanged raw header, geometry, original PDF bytes and archived crop
+    are required. A different new crop or conflicting reading is never replaced.
+    The old image/proof is restored intact; no proof hash is manufactured.
+    """
+    from uuid import UUID
+    from pdf_table_verification import visual_header_text
+    lookup = getattr(context.repository, 'visual_header_artifacts', None)
+    if not callable(lookup):
+        return None
+    candidates: Any = lookup(record['project_id'], str(version), page, table['table_id'])
+    if not candidates:
+        return None
+    document = context.repository.load_version(UUID(str(version)))
+    restored = []
+    for candidate in candidates:
+        ident, payload = candidate['identity'], candidate['payload']
+        if (ident.get('project_id') != str(record['project_id'])
+                or ident.get('version_id') != str(version) or ident.get('page') != page
+                or ident.get('table_id') != table['table_id']
+                or payload.get('provenance') != 'independent_visual_header_transcription'):
+            continue
+        prepared = deepcopy(table)
+        by_id = {cell['cell_id']: cell for cell in prepared['cells']}
+        headers = deepcopy(payload.get('headers') or [])
+        if not headers:
+            continue
+        valid = True
+        for header in headers:
+            proof = header.get('visual_transcription') or {}
+            refinement = header.get('header_refinement') or {}
+            cell = by_id.get(header.get('cell_id'))
+            if (not visual_header_text(header) or cell is None
+                    or proof.get('document_version_id') != str(version)
+                    or proof.get('pdf_sha256') != document.sha256 or proof.get('page') != page
+                    or any(cell.get(k) != header.get(k) for k in ('cell_id', 'bbox', 'row', 'column', 'colspan'))
+                    or cell.get('text') != header.get('raw_recovered_text')
+                    or not refinement.get('image_sha256')
+                    or (cell.get('header_refinement') and
+                        cell['header_refinement'].get('image_sha256') != refinement['image_sha256'])):
+                valid = False
+                break
+            if not verified_observation_crop(context.blob_store, document, page, refinement):
+                valid = False
+                break
+            cell['header_refinement'] = deepcopy(refinement)
+            # OCR quality describes the new extraction, not the immutable
+            # visual observation. Do not upgrade it from an older snapshot.
+            if 'quality' in cell:
+                header['quality'] = cell['quality']
+            else:
+                header.pop('quality', None)
+        if not valid:
+            continue
+        try:
+            projected = _replace(prepared, headers)
+        except ValueError:
+            continue
+        restored.append((projected, candidate['key']))
+    if not restored or len({digest(value) for value, _ in restored}) != 1:
+        return None
+    projected, key = restored[0]
+    events.append(dict(kind='visual_header_observation_reused_v1', artifact_key=key,
+        version_id=str(version), original_pdf_sha256=document.sha256, page=page,
+        table_id=table['table_id'], old_table_sha256=table_scope_digest(candidates, key),
+        new_raw_table_sha256=digest(table),
+        basis='same_original_pdf_geometry_raw_header_and_verified_archived_crop',
+        model_verdict_reused=False, ocr_requests=0))
+    return projected
+
+
+def table_scope_digest(candidates, key):
+    return next(c['identity']['table_sha256'] for c in candidates if c['key'] == key)
+
+
+def verified_observation_crop(blobs, document, page, refinement):
+    """Verify an archived crop, or reproduce identical pixels without OCR."""
+    expected = refinement.get('image_sha256', '')
+    if not re.fullmatch('[0-9a-f]{64}', expected):
+        return False
+    key = refinement.get('image_key') or f'{expected[:2]}/{expected[2:4]}/{expected}'
+    try:
+        return hashlib.sha256(blobs.get(key)).hexdigest() == expected
+    except (FileNotFoundError, KeyError):
+        pass
+    if refinement.get('dpi') != 600 or refinement.get('rotation') not in {0, 90, 180, 270}:
+        return False
+    import pymupdf
+    import ocr_engine
+    try:
+        raw = blobs.get(document.blob_key)
+        if hashlib.sha256(raw).hexdigest() != document.sha256:
+            return False
+        with pymupdf.open(stream=raw, filetype='pdf') as pdf, pymupdf.open() as private:
+            if not 1 <= page <= len(pdf):
+                return False
+            private.insert_pdf(pdf, from_page=page-1, to_page=page-1, annots=False, links=False)
+            render = private[0]
+            render.set_rotation(0)
+            box = pymupdf.Rect(refinement['bbox'])
+            if (box.is_empty or box.is_infinite or box != (box & render.rect)
+                    or box.width * box.height * (600 / 72) ** 2 > 4_000_000):
+                return False
+            pix = render.get_pixmap(dpi=600, clip=box, alpha=False)
+            crop = ocr_engine._to_png(ocr_engine._rotate(ocr_engine._pil_from_pixmap(pix), refinement['rotation']))
+        if hashlib.sha256(crop).hexdigest() != expected:
+            return False
+        saved = blobs.put(crop)
+        return saved.sha256 == expected
+    except (OSError, ValueError, KeyError):
+        return False

@@ -22,7 +22,6 @@ const creating = ref(false),
   newDepartmentName = ref(''),
   createBusy = ref(false),
   createError = ref('')
-const createForm = ref<HTMLElement | null>(null)
 const projectRenameOpen = ref(false),
   projectNameDraft = ref(''),
   projectBusy = ref(false),
@@ -55,11 +54,6 @@ function cancelCreate() {
   newDepartmentName.value = ''
   createError.value = ''
   creating.value = false
-}
-function cancelCreateOnOutsideClick(event: PointerEvent) {
-  if (!creating.value || createBusy.value) return
-  const target = event.target
-  if (target instanceof Node && !createForm.value?.contains(target)) cancelCreate()
 }
 function openDepartment(item: DepartmentDto) {
   if (renamingId.value !== item.id) void router.push(departmentPath(item))
@@ -194,15 +188,11 @@ watch(projectId, () => {
   renamingId.value = null
   void load()
 })
-onMounted(() => {
-  document.addEventListener('pointerdown', cancelCreateOnOutsideClick)
-  void load()
-})
+onMounted(() => void load())
 onBeforeUnmount(() => {
   active = false
   epoch++
   if (refreshTimer) clearTimeout(refreshTimer)
-  document.removeEventListener('pointerdown', cancelCreateOnOutsideClick)
 })
 </script>
 
@@ -280,12 +270,7 @@ onBeforeUnmount(() => {
               class="department-card"
               role="listitem"
               :aria-label="`Отдел ${item.name}`"
-              :ui="{
-                container: 'p-4 sm:p-4 gap-y-0',
-                wrapper: 'min-w-0 w-full',
-                header: 'w-full mb-3',
-                body: 'min-w-0 w-full',
-              }"
+              :ui="{ wrapper: 'min-w-0 w-full', header: 'w-full', body: 'min-w-0 w-full' }"
               @click="openDepartment(item)"
             >
               <template #header>
@@ -308,7 +293,6 @@ onBeforeUnmount(() => {
                   v-if="renamingId !== item.id"
                   :to="departmentPath(item)"
                   class="department-name"
-                  :title="item.name"
                   @click.stop
                   >{{ item.name }}</NuxtLink
                 >
@@ -348,9 +332,8 @@ onBeforeUnmount(() => {
                 ><div class="department-meta">
                   <UBadge color="neutral" variant="outline">ВОР · {{ item.vor_count }}</UBadge
                   ><UBadge color="neutral" variant="outline">ПД · {{ item.pdf_count }}</UBadge
-                  ><UBadge color="neutral" variant="outline"
-                    >Проверок · {{ item.run_count }}</UBadge
-                  >
+                  ><UBadge color="neutral" variant="outline">Проверок · {{ item.run_count }}</UBadge
+                  ><UBadge v-if="item.is_system" color="neutral" variant="soft">Системный</UBadge>
                 </div></template
               >
             </UPageCard>
@@ -367,26 +350,16 @@ onBeforeUnmount(() => {
             </button>
             <form
               v-else-if="!project.archived"
-              ref="createForm"
               class="department-create-card department-create-form"
               role="listitem"
               @submit.prevent="createDepartment"
             >
-              <UFormField
-                label="Название отдела"
-                class="w-full department-floating-field"
-                :ui="{
-                  root: 'relative',
-                  labelWrapper: 'absolute start-3 top-1.5 z-10 pointer-events-none',
-                  label: 'text-xs font-medium text-muted',
-                  container: 'mt-0',
-                }"
-              >
+              <UFormField label="Название отдела" class="w-full">
                 <UInput
                   v-model="newDepartmentName"
                   autofocus
                   class="w-full"
-                  :ui="{ base: 'pt-6 pb-2' }"
+                  placeholder="Введите название"
                   :maxlength="256"
                   :disabled="createBusy"
                 />
@@ -413,36 +386,32 @@ onBeforeUnmount(() => {
       </template>
       <UModal v-model:open="actionOpen" title="Удалить отдел?"
         ><template #body
-          ><form @submit.prevent="confirmAction">
-            <p class="modal-text">
-              Отдел «{{ actionTarget?.name }}» будет удалён без восстановления. Можно удалить только
-              пустой отдел.
-            </p>
-            <UFormField label="Введите название отдела" class="department-delete-field"
-              ><UInput
-                v-model="confirmName"
-                autofocus
-                class="w-full"
-                aria-label="Название отдела для подтверждения удаления"
-            /></UFormField>
-            <p v-if="actionError" class="text-error mt-3" role="alert">{{ actionError }}</p>
-            <div class="toolbar spread modal-footer">
-              <UButton
-                type="button"
-                color="neutral"
-                variant="ghost"
-                :disabled="mutationBusy"
-                @click="actionOpen = false"
-                >Отмена</UButton
-              ><UButton
-                type="submit"
-                color="error"
-                :loading="mutationBusy"
-                :disabled="confirmName.trim() !== actionTarget?.name"
-                >Удалить</UButton
-              >
-            </div>
-          </form></template
+          ><p class="modal-text">
+            Отдел «{{ actionTarget?.name }}» будет удалён без восстановления. Можно удалить только
+            пустой отдел.
+          </p>
+          <UFormField label="Введите название отдела" class="department-delete-field"
+            ><UInput
+              v-model="confirmName"
+              class="w-full"
+              aria-label="Название отдела для подтверждения удаления"
+          /></UFormField>
+          <p v-if="actionError" class="text-error mt-3" role="alert">{{ actionError }}</p>
+          <div class="toolbar spread modal-footer">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              :disabled="mutationBusy"
+              @click="actionOpen = false"
+              >Отмена</UButton
+            ><UButton
+              color="error"
+              :loading="mutationBusy"
+              :disabled="confirmName.trim() !== actionTarget?.name"
+              @click="confirmAction"
+              >Удалить</UButton
+            >
+          </div></template
         ></UModal
       >
       <UModal v-model:open="projectRenameOpen" title="Переименовать проект"
@@ -509,14 +478,11 @@ onBeforeUnmount(() => {
 }
 .department-grid {
   display: grid;
-  grid-template-columns: minmax(0, 330px);
-  justify-content: start;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 .department-create-card {
-  width: 100%;
-  min-height: 152px;
+  min-height: 224px;
   display: grid;
   place-content: center;
   justify-items: center;
@@ -539,15 +505,11 @@ onBeforeUnmount(() => {
   justify-items: stretch;
   text-align: left;
   cursor: default;
-  border-width: 1px;
-  border-style: solid;
-  border-color: var(--ui-border);
-  background: var(--ui-bg);
 }
 .department-create-form:hover {
-  border-color: var(--ui-border);
+  border-color: color-mix(in srgb, var(--ui-border-accented) 70%, transparent);
   color: var(--ui-text-muted);
-  background: var(--ui-bg);
+  background: color-mix(in srgb, var(--ui-bg) 60%, transparent);
 }
 .department-create-actions {
   display: flex;
@@ -574,14 +536,14 @@ onBeforeUnmount(() => {
 }
 .department-card {
   min-width: 0;
-  width: 100%;
+  height: 100%;
   cursor: pointer;
 }
 .department-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 20px;
   gap: 12px;
 }
 .department-icon {
@@ -596,14 +558,10 @@ onBeforeUnmount(() => {
 }
 .department-name {
   display: block;
-  width: 100%;
-  min-width: 0;
   color: var(--ui-text-highlighted);
   font-size: 17px;
   font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .department-name:hover {
   text-decoration: underline;
@@ -638,17 +596,12 @@ onBeforeUnmount(() => {
 }
 @media (min-width: 700px) {
   .department-grid {
-    grid-template-columns: repeat(2, minmax(0, 330px));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (min-width: 1100px) {
   .department-grid {
-    grid-template-columns: repeat(3, minmax(0, 330px));
-  }
-}
-@media (min-width: 1440px) {
-  .department-grid {
-    grid-template-columns: repeat(4, minmax(0, 330px));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 @media (max-width: 699px) {

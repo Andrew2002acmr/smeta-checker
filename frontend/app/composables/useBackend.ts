@@ -263,7 +263,10 @@ export function useBackend() {
       ),
     run: (id: string) => json(audit(id) + '/progress', zRunDto),
     summary: (id: string) => json(audit(id) + '/summary', zSummaryDto),
-    rows: (id: string, query: { focus: string; q: string; offset: number; limit?: number }) =>
+    rows: (
+      id: string,
+      query: { focus: string; q: string; offset: number; limit?: number; direction?: string },
+    ) =>
       json(
         audit(id) +
           '/rows?' +
@@ -272,6 +275,7 @@ export function useBackend() {
             q: query.q,
             offset: String(query.offset),
             limit: String(query.limit ?? 10),
+            direction: query.direction ?? 'project',
           }),
         zRowsDto,
       ),

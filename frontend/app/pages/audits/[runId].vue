@@ -24,6 +24,7 @@ const route = useRoute(),
   cancelling = ref(false),
   resuming = ref(false),
   focus = ref('all'),
+  direction = ref('project'),
   query = ref(''),
   offset = ref(0)
 const position = computed(() =>
@@ -39,6 +40,11 @@ const queues: { id: QueueId; label: string }[] = [
   { id: 'ok', label: queueLabel('ok') },
   { id: 'pending', label: queueLabel('pending') },
   { id: 'all', label: 'Готовые позиции' },
+]
+const directions = [
+  { id: 'project', label: 'ПД' },
+  { id: 'normative', label: 'Нормативы' },
+  { id: 'relationships', label: 'Расчёты' },
 ]
 const vorFileName = computed(() => formatFileName(run.value?.vor_filename || ''))
 const auditHeading = computed(() => summary.value?.project.name || 'Проверка документов')
@@ -107,6 +113,7 @@ async function loadRows() {
   try {
     const data = await backend.rows(runId.value, {
       focus: focus.value,
+      direction: direction.value,
       q: query.value,
       offset: offset.value,
       limit: 10,
@@ -124,6 +131,11 @@ async function loadRows() {
 }
 function changePage(delta: number) {
   offset.value = Math.max(0, offset.value + delta)
+  loadRows()
+}
+function setDirection(id: string) {
+  direction.value = id
+  offset.value = 0
   loadRows()
 }
 function setPage(page: number) {
@@ -394,6 +406,18 @@ onBeforeUnmount(() => {
               @click="focus = item.id"
             >
               <span class="filter-count" aria-hidden="true">{{ queueCount(item.id) }}</span>
+              <span>{{ item.label }}</span>
+            </button>
+          </div>
+          <div class="filters" role="group" aria-label="Направление проверки">
+            <button
+              v-for="item in directions"
+              :key="item.id"
+              type="button"
+              class="filter"
+              :aria-pressed="direction === item.id"
+              @click="setDirection(item.id)"
+            >
               <span>{{ item.label }}</span>
             </button>
           </div>

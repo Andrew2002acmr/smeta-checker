@@ -135,12 +135,16 @@ def _bounded_clip_dpi(clip, dpi, max_pixels, max_side):
 
 
 def run_tsv(png_bytes, language="rus+eng", psm=OVERVIEW_PSM,
-            timeout:float=PASS_TIMEOUT_S):
+            timeout:float=PASS_TIMEOUT_S, *, tessdata_dir=None, oem=None):
     """Run one Tesseract TSV pass; timeouts and nonzero exits raise."""
     if shutil.which("tesseract") is None:
         raise RuntimeError("Tesseract недоступен: бинарь tesseract не найден в PATH")
     cmd = ["tesseract", "stdin", "stdout", "--psm", str(psm),
-           "-l", language, "tsv"]
+           "-l", language, "-c", "tessedit_create_tsv=1"]
+    if tessdata_dir is not None:
+        cmd.extend(['--tessdata-dir',str(tessdata_dir)])
+    if oem is not None:
+        cmd.extend(['--oem',str(oem)])
     try:
         proc = subprocess.run(
             cmd, input=png_bytes, stdout=subprocess.PIPE,
@@ -150,7 +154,10 @@ def run_tsv(png_bytes, language="rus+eng", psm=OVERVIEW_PSM,
     if proc.returncode != 0:
         detail = proc.stderr.decode("utf-8", "replace").strip()[:200]
         raise RuntimeError("Tesseract TSV (PSM %d): %s" % (psm, detail or "exit %d" % proc.returncode))
-    return proc.stdout.decode("utf-8", "replace")
+    text=proc.stdout.decode("utf-8", "replace")
+    if not text.startswith('level\tpage_num\tblock_num\t'):
+        raise RuntimeError('Tesseract returned no TSV header')
+    return text
 
 
 def parse_tsv(tsv_text):

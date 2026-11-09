@@ -48,7 +48,9 @@ def test_selection_never_uses_expected_vor_amount():
     assert project(position, result, tools, materials)
     event = result['evidence_trace'][-1]
     assert event['kind'] == 'located_schedule_area_v1' and event['value'] == '106.00'
-    assert not any(p['parameter'] == 'quantity' for p in result['parameter_proposals'])
+    quantities = [p for p in result['parameter_proposals'] if p['parameter'] == 'quantity']
+    assert len(quantities) == 1
+    assert quantities[0]['value'] == '106.00' and quantities[0]['scope_state'] == 'unresolved'
     assert not any(i['state'] == 'possible_mismatch' for i in result['items'])
 
 
@@ -71,6 +73,10 @@ def test_unknown_or_conflicting_scope_cannot_confirm(change):
         for c in table['cells']:
             if c.get('role') == 'header':
                 c['text'] = c['text'].replace('м2', 'м3').replace('м²', 'м³').replace('Площадь', 'Объем')
+                # A cleared derived cache is recoverable from independent
+                # unit reads. This case also removes their physical proof.
+                c.pop('header_refinement',None)
+                c.pop('visual_transcription',None)
     elif change == 'scoped_conflict':
         result['parameter_proposals'].append(dict(parameter='quantity', scope_state='verified', source_id='other', value='1'))
     else:

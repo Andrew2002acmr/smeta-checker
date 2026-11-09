@@ -333,6 +333,21 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
             c['reason'] = 'Источник относится к другому материалу или проектной толщине; сравнение не выполнено.'
             return c
         found = measure(p['value'], p['unit'])
+        from normative_source_identity import row_source_protocol, row_proposal_matches
+        if row_source_protocol(source) == 'scalar' and kind != 'quantity':
+            c['reason']='Нативный источник количества строки не подтверждает другой числовой параметр.'
+            return c
+        if kind=='quantity' and row_source_protocol(source):
+            if not row_proposal_matches(p,source):
+                c['reason']=('Число и единица не образуют одну пару в физической строке таблицы.'
+                    if row_source_protocol(source) == 'paired' else
+                    'Число и единица не подтверждены физической строкой таблицы.')
+                return c
+            from normative_paired_scope import scope_issue
+            issue=scope_issue(source,work_scope)
+            if p.get('scope_state')=='verified'and issue:
+                c['reason']=issue
+                return c
         from normative_parameter_feedback import header_parameter_verified
         if not header_parameter_verified(p,source):
             c['reason']='Число физической ячейки проверено отдельно; толщина в OCR-заголовке не имеет независимого подтверждения.'
@@ -351,8 +366,14 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
             return c
         c.update(found_value=p['value'], found_unit=p['unit'], source_ids=[p['source_id']], quote=p['quote'],
             source_anchors=[dict(source_id=p['source_id'], quote=p['quote'], rects=source.get('rects', []))])
-        if (source['origin'].startswith('ocr') and not source.get('numeric_verified')) or source['origin'] == 'uncertain_table':
-            c['reason'] = 'Распознано OCR: требуется подтверждение по изображению.'
+        from normative_source_roles import ocr_cell_quantity_unit_supported, OCR_CELL_UNIT_MESSAGE
+        if kind == 'quantity' and not ocr_cell_quantity_unit_supported(p, source):
+            c['reason'] = OCR_CELL_UNIT_MESSAGE
+            return c
+        from normative_source_roles import unread_visual_source, UNREAD_VISUAL_MESSAGE
+        if (source['origin'].startswith('ocr') and not source.get('numeric_verified')) or source['origin'] == 'uncertain_table' or unread_visual_source(source):
+            c['reason'] = (UNREAD_VISUAL_MESSAGE if unread_visual_source(source)
+                else 'Распознано OCR: требуется подтверждение по изображению.')
             return c
         if result.get('pipeline_version', 1) >= 3 and kind in {'quantity', 'thickness'}:
             scope = p.get('scope_quote', '')
@@ -532,7 +553,22 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
                 c.update(role='calculation', state='confirmed', reason=control_reason)
                 cards.append(c)
             elif is_factor:
-                cards.append(compare(c, 'coefficient'))
+                compared = compare(c, 'coefficient')
+                from normative_coefficient_policy import CONDITIONAL, compaction_basis, named
+                if (compared['state'] == 'needs_facts' and arithmetic_confirmed
+                        and result.get('coverage', {}).get('coefficient_policy') == CONDITIONAL):
+                    entry = next((entry for entry in named(work)
+                                  if number(entry['value']) == number(value)), None)
+                    if entry:
+                        proof = compaction_basis(work, result, entry, declared_material_only=True)
+                        if proof:
+                            compared.update(state='confirmed', source_ids=[proof['source_id']],
+                                quote=proof['quote'],
+                                source_anchors=[dict(source_id=proof['source_id'], quote=proof['quote'], rects=[])],
+                                reason=f"Сметное значение для материала, указанного в ВОР, входит в диапазон "
+                                       f"СП 78.13330.2012 п. 10.2: {proof['lower']}–{proof['upper']}. "
+                                       "Соответствие материала ПД проверяется отдельно.")
+                cards.append(compared)
             else:
                 c['reason']='Нужно установить назначение числа и источник: объём связанной работы, геометрический параметр, расход или перевод единиц.'
                 if re.search(r'/\s*\(?\s*'+literal+r'\s*\)?(?:$|[+*/-])',expression):
@@ -542,7 +578,10 @@ def build_cards(position, result, positions, relation, *, resource_proofs=None):
     for p in proposals:
         if p['parameter'] != 'unit_scale' or p['source_id'] not in sources:
             continue
-        s, scale, declared = sources[p['source_id']], measure(p['value'], p['unit']), measure(owner.volume, owner.unit)
+        s = sources[p['source_id']]
+        if s['kind'] != 'normative':
+            continue  # A rejected project citation is not a new mandatory norm check.
+        scale = measure(p['value'], p['unit'])
         input_scale=bool(recipe and scale and scale[0]=='area')
         declared_value,declared_unit=(recipe['area'],'м2') if recipe is not None and input_scale else (owner.volume,owner.unit)
         declared=measure(declared_value,declared_unit)
@@ -717,7 +756,11 @@ def enrich(position, result, positions, relation):
         append_quantity_bridge(position, output, positions, relation)
     from normative_coefficient_policy import apply as apply_coefficient_policy
     from normative_material_search import apply_specification_compatibility
-    return apply_specification_compatibility(position,apply_coefficient_policy(position,output))
+    output = apply_specification_compatibility(position,apply_coefficient_policy(position,output))
+    from normative_unit_measure import literal_definition_card
+    if (literal_card := literal_definition_card(output, position)) is not None:
+        output['parameter_cards'].append(literal_card)
+    return output
 
 
 def numeric_card_keys(claims):
@@ -729,11 +772,14 @@ def inherit_work_evidence(result, parent, index):
     """Reuse verified work geometry for a linked material, retaining source IDs."""
     if not parent.get('local_work_basis'):
         return result
+    from normative_source_identity import shared_source
+    aliases = {s['id']:shared_source(s,index,namespace='work')for s in parent['sources']}
+    if any(source is None for source in aliases.values()):
+        return result
     output = deepcopy(result)
-    mapping = {s['id']: f'work-{index}:{s["id"]}' for s in parent['sources']}
+    mapping = {sid:source['id']for sid,source in aliases.items()if source is not None}
     output['sources'] = [s for s in output['sources'] if s['id'] not in mapping.values()]
-    output['sources'] += [{**deepcopy(s), 'id':mapping[s['id']],
-        'physical_source_id':s.get('physical_source_id',s['id'])} for s in parent['sources']]
+    output['sources'] += [source for source in aliases.values()if source is not None]
     basis = deepcopy(parent['local_work_basis'])
     for key in ('project_source_ids','normative_source_ids'):
         basis[key] = [mapping[i] for i in basis[key]]

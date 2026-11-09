@@ -58,7 +58,8 @@ def layer_group(position, related, positions=None) -> dict[str, Any] | None:
     if len(matches) != 1:
         return None
     row, other = matches[0]
-    return dict(height=own['height']+other['height'], first=own['height'], second=other['height'], kind=own['kind'],
+    first, second = (own, other) if own['stage'] == 1 else (other, own)
+    return dict(height=own['height']+other['height'], first=first['height'], second=second['height'], kind=own['kind'],
         other_row=row.get('row'), quantity=quantity)
 
 

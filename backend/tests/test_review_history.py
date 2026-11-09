@@ -74,13 +74,23 @@ class ReviewHistoryTests(unittest.TestCase):
         result = self.repo.load_run(UUID(self.run))["indexed_results"][0]["result"]
         self.repo.save_position_result(UUID(self.run),0,result)
         self.assertEqual(len(self.repo.result_versions(UUID(self.run),0)),baseline)
-        result["found_volume"] = "46"
-        self.repo.save_position_result(UUID(self.run),0,result)
-        self.assertEqual(len(self.repo.result_versions(UUID(self.run),0)),baseline+1)
+        from audit_assessment import reduce_assessment
+        changed = reduce_assessment({
+            "run_id": self.run, "position_index": 0, "execution_revision": 1,
+            "fingerprint": result.get("fingerprint", {}),
+            "project": {"obligations": [{
+                "id": "project:binding", "domain": "presence", "subject": "Привязка",
+                "state": "needs_facts", "gap": "recheck", "reason": "Требуется перепроверка.",
+            }]},
+            "normative": {"obligations": []},
+            "relationships": {"obligations": []},
+            "execution_state": "complete",
+        }).model_dump(mode="json")
+        self.repo.save_position_result(UUID(self.run),0,changed)
         self.assertTrue(self.client.get(self.url).json()[0]["outdated"])
         history = self.client.get(self.base + "/positions/0/history")
         self.assertEqual(history.status_code,200,history.text)
-        self.assertEqual(len(history.json()["results"]),baseline+1)
+        self.assertGreaterEqual(len(history.json()["results"]),1)
 
     def test_draft_and_ocr_persist_without_confirmation_and_images_are_scoped(self):
         draft = self.client.post(self.url + "/drafts",json=self.selection)

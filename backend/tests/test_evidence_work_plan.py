@@ -84,7 +84,7 @@ def test_material_query_uses_identity_and_section_and_ignores_expected_amount():
 def test_parent_dependency_and_unbound_items_remain_explicit_obligations():
     review = dict(sources=[], items=[dict(claim_ids=[], state='needs_facts'),
         dict(claim_ids=['derived:parent'], state='needs_facts')])
-    plan = build_work_plan(dict(work_name='Смесь', unit='т'), review, {}, derived=True,
+    plan = build_work_plan(dict(index=0, volume='1', work_name='Смесь', unit='т'), review, {}, derived=True,
         relation=dict(parent=dict(index=45)))
     parent = next(a for a in plan['actions'] if a['key'] == 'claim:derived:parent')
     assert parent['dependency_position'] == 45

@@ -3,9 +3,125 @@
 import * as z from 'zod';
 
 /**
+ * AssessmentActionRequest
+ */
+export const zAssessmentActionRequest = z.object({
+    expected_revision: z.string().length(64)
+});
+
+/**
+ * AssessmentExecution
+ */
+export const zAssessmentExecution = z.object({
+    error: z.string().max(1000).optional().default(''),
+    http_attempts: z.int().gte(0).lte(10000).optional().default(0),
+    state: z.enum([
+        'pending',
+        'running',
+        'complete',
+        'technical_failure',
+        'cancelled'
+    ]).optional().default('pending'),
+    stop_reason: z.string().max(512).optional().default(''),
+    tool_executions: z.int().gte(0).lte(100000).optional().default(0)
+});
+
+/**
+ * AssessmentFact
+ *
+ * Addressable evidence leaf shared across directions.
+ */
+export const zAssessmentFact = z.object({
+    calculation_state: z.enum([
+        'verified',
+        'unresolved',
+        'not_applicable'
+    ]).optional().default('not_applicable'),
+    dimension: z.string().max(32).nullish(),
+    id: z.string().min(1).max(128),
+    literal_state: z.enum(['verified', 'unresolved']).optional().default('unresolved'),
+    operand_source_ids: z.array(z.string()).max(12).optional(),
+    page: z.int().gte(1).nullish(),
+    parameter: z.string().min(1).max(64),
+    quote: z.string().max(2400).optional().default(''),
+    role: z.string().max(32).optional().default('output'),
+    scope_quote: z.string().max(2400).optional().default(''),
+    source_id: z.string().max(256).optional().default(''),
+    subject_state: z.enum(['verified', 'unresolved']).optional().default('unresolved'),
+    unit: z.string().max(32).optional().default(''),
+    value: z.string().max(64).optional().default(''),
+    version_id: z.string().max(64).nullish()
+});
+
+/**
+ * AssessmentObligation
+ *
+ * One checkable obligation with provenance, not a verdict sentence.
+ */
+export const zAssessmentObligation = z.object({
+    basis: z.string().max(800).optional().default(''),
+    comparable: z.boolean().optional().default(true),
+    domain: z.string().min(1).max(64),
+    fact_ids: z.array(z.string()).max(32).optional(),
+    gap: z.string().max(800).optional().default(''),
+    id: z.string().min(1).max(128),
+    mismatch_level: z.enum(['proved', 'suspected']).nullish(),
+    policy: z.enum([
+        'blocking',
+        'advisory',
+        'not_applicable'
+    ]).optional().default('blocking'),
+    reason: z.string().max(2000).optional().default(''),
+    required: z.boolean().optional().default(true),
+    requirement: z.string().max(1600).optional().default(''),
+    source_ids: z.array(z.string()).max(32).optional(),
+    state: z.enum([
+        'confirmed',
+        'needs_facts',
+        'possible_mismatch',
+        'not_applicable',
+        'pending'
+    ]).optional().default('pending'),
+    subject: z.string().min(1).max(512)
+});
+
+/**
+ * AssessmentDirection
+ */
+export const zAssessmentDirection = z.object({
+    obligations: z.array(zAssessmentObligation).max(64).optional(),
+    state: z.enum([
+        'confirmed',
+        'needs_facts',
+        'possible_mismatch',
+        'not_applicable',
+        'pending'
+    ]).optional().default('pending'),
+    summary: z.string().max(4000).optional().default('')
+});
+
+/**
+ * AssessmentSource
+ */
+export const zAssessmentSource = z.object({
+    id: z.string().min(1).max(256),
+    kind: z.enum([
+        'project',
+        'normative',
+        'workbook'
+    ]).optional().default('project'),
+    label: z.string().max(512).optional().default(''),
+    origin: z.string().max(64).optional().default(''),
+    page: z.int().gte(1).nullish(),
+    text: z.string().max(12000).optional().default(''),
+    version_id: z.string().max(64).nullish()
+});
+
+/**
  * AuditCreateRequest
  */
 export const zAuditCreateRequest = z.object({
+    normative_profile: z.enum(['roads', 'electrical']).optional().default('roads'),
     pdf_version_ids: z.array(z.string()).optional(),
     project: z.string().max(256).optional().default(''),
     project_id: z.string().nullish(),
@@ -771,6 +887,29 @@ export const zNormativeWorkbenchSearchDto = z.object({
 });
 
 /**
+ * OwnQuantity
+ *
+ * The row's own declared amount, assessed separately from its inputs.
+ */
+export const zOwnQuantity = z.object({
+    basis: z.array(z.string()).max(12).optional(),
+    conditions: z.array(z.string()).max(12).optional(),
+    declared_value: z.string().max(64).optional().default(''),
+    explanation: z.string().max(2000).optional().default(''),
+    found_unit: z.string().max(32).nullish(),
+    found_value: z.string().max(64).nullish(),
+    kind: z.enum(['direct', 'derived']).optional().default('direct'),
+    operands: z.array(z.string()).max(12).optional(),
+    state: z.enum([
+        'confirmed',
+        'consistent_unproven',
+        'conditional',
+        'unresolved'
+    ]).optional().default('unresolved'),
+    unit: z.string().max(32).optional().default('')
+});
+
+/**
  * PdfBindingsDTO
  */
 export const zPdfBindingsDto = z.object({
@@ -879,6 +1018,36 @@ export const zHumanBasisDto = z.object({
     revoked_at: z.iso.datetime().nullish(),
     revoked_by: z.string().nullish(),
     run_id: z.string()
+});
+
+/**
+ * PositionAssessment
+ */
+export const zPositionAssessment = z.object({
+    completion: z.enum([
+        'pending',
+        'complete',
+        'incomplete',
+        'unknown'
+    ]).optional().default('pending'),
+    contract: z.literal('assessment-obligations-v1').optional().default('assessment-obligations-v1'),
+    engine: z.literal('langgraph-evidence-v1').optional().default('langgraph-evidence-v1'),
+    execution: zAssessmentExecution.optional(),
+    execution_revision: z.int().gte(0),
+    fact_bundle_ref: z.string().max(128).optional().default(''),
+    facts: z.array(zAssessmentFact).max(128).optional(),
+    fingerprint: z.record(z.string(), z.unknown()).optional(),
+    normative: zAssessmentDirection.optional(),
+    open_gaps: z.array(z.string()).max(64).optional(),
+    own_quantity: zOwnQuantity.optional(),
+    position_index: z.int().gte(0),
+    project: zAssessmentDirection.optional(),
+    relationships: zAssessmentDirection.optional(),
+    revision: z.string().length(64),
+    run_id: z.string().min(1).max(64),
+    schema_version: z.literal('evidence-assessment-v1').optional().default('evidence-assessment-v1'),
+    source_registry_ref: z.string().max(128).optional().default(''),
+    sources: z.array(zAssessmentSource).max(96).optional()
 });
 
 /**
@@ -1072,9 +1241,10 @@ export const zReportStatus = z.enum([
  */
 export const zResultDto = z.object({
     action: z.string(),
-    audit_status: zAuditStatus,
+    assessment: zPositionAssessment.nullish(),
+    audit_status: zAuditStatus.nullish(),
     cells: z.record(z.string(), z.string()),
-    comment_confirmed: z.boolean(),
+    comment_confirmed: z.boolean().nullish(),
     declared_quantity: z.string(),
     details: z.string(),
     formula: z.string(),
@@ -1098,12 +1268,13 @@ export const zResultDto = z.object({
         zReportStatus,
         z.literal('Проверяется по нормативам')
     ]),
+    result_origin: z.enum(['graph', 'legacy']).optional().default('legacy'),
     sheet: z.string(),
     source_row: z.int().nullable(),
     unit: z.string(),
-    unit_confirmed: z.boolean(),
-    volume_confirmed: z.boolean(),
-    work_found: z.boolean()
+    unit_confirmed: z.boolean().nullish(),
+    volume_confirmed: z.boolean().nullish(),
+    work_found: z.boolean().nullish()
 });
 
 /**
@@ -1140,11 +1311,14 @@ export const zRunCountDto = z.object({
  * RunDTO
  */
 export const zRunDto = z.object({
+    completion_counts: z.record(z.string(), z.int()).optional(),
     created_at: z.iso.datetime().nullable(),
     department_id: z.string().nullish(),
+    direction_counts: z.record(z.string(), z.record(z.string(), z.int())).optional(),
     done: z.int(),
     failed: z.int(),
     finished_at: z.iso.datetime().nullable(),
+    input_position_count: z.int().nullish(),
     normative_counts: z.record(z.string(), z.int()).optional(),
     preparation_done: z.int().optional().default(0),
     preparation_total: z.int().nullish(),
@@ -1152,6 +1326,7 @@ export const zRunDto = z.object({
     queued: z.int(),
     run_id: z.string(),
     running: z.int(),
+    selected_position_count: z.int().nullish(),
     stage: z.enum([
         'preparing',
         'auditing',
@@ -1355,6 +1530,8 @@ export const zDocumentDto = z.object({
  * SummaryDTO
  */
 export const zSummaryDto = z.object({
+    completion_counts: z.record(z.string(), z.int()).optional(),
+    direction_counts: z.record(z.string(), z.record(z.string(), z.int())).optional(),
     documents: z.array(zVersionDto),
     project: zProjectDto,
     queues: z.record(z.string(), z.int()),
@@ -1446,6 +1623,30 @@ export const zCancelAuditApiV1AuditsRunIdCancelPostPath = z.object({
  * Successful Response
  */
 export const zCancelAuditApiV1AuditsRunIdCancelPostResponse = zRunDto;
+
+export const zAssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostBody = zAssessmentActionRequest;
+
+export const zAssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Successful Response
+ */
+export const zAssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostResponse = zResultDto;
+
+export const zAssessmentValidateApiV1AuditsRunIdPositionsPositionIndexAssessmentValidatePostBody = zAssessmentActionRequest;
+
+export const zAssessmentValidateApiV1AuditsRunIdPositionsPositionIndexAssessmentValidatePostPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Successful Response
+ */
+export const zAssessmentValidateApiV1AuditsRunIdPositionsPositionIndexAssessmentValidatePostResponse = zResultDto;
 
 export const zHumanBasisListApiV1AuditsRunIdPositionsPositionIndexBasisGetPath = z.object({
     run_id: z.string(),
@@ -1700,6 +1901,7 @@ export const zRowsApiV1AuditsRunIdRowsGetPath = z.object({
 
 export const zRowsApiV1AuditsRunIdRowsGetQuery = z.object({
     focus: z.string().regex(/^(all|fix|review|missing|ok|pending)$/).optional().default('all'),
+    direction: z.string().regex(/^(project|normative|relationships)$/).optional().default('project'),
     q: z.string().max(500).optional().default(''),
     offset: z.int().gte(0).optional().default(0),
     limit: z.int().gte(1).lte(200).optional().default(10)

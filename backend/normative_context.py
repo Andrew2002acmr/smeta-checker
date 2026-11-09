@@ -70,6 +70,16 @@ class ModelProviderQuotaError(ModelResponseError):
             'Повтор возможен после снятия ограничения ключа.')
 
 
+class ModelRateLimitError(ModelResponseError):
+    """Transient provider throttling (RPM/TPM/concurrency); backoff and retry."""
+
+    code = 429
+    reason = 'provider_rate_limited'
+
+    def __init__(self):
+        super().__init__('Провайдер временно ограничил частоту запросов. '
+            'Нормативная проверка технически не завершена; это не замечание к ВОР. '
+            'Повтор выполняется автоматически с ожиданием.')
 def _monthly_key_limit(code, body):
     # Classify only the reproduced provider statement. Never publish arbitrary
     # exception strings, response bodies, account amounts or credentials.
@@ -79,6 +89,13 @@ def _monthly_key_limit(code, body):
     message = error.get('message') if isinstance(error, dict) else None
     return isinstance(message, str) and message.startswith('API key monthly spending limit exceeded:')
 
+
+def _transient_rate_limit(code, body):
+    # Any other 429 is provider throttling (requests/tokens per minute,
+    # concurrent connections), not a spent budget. Retryable with backoff.
+    if code not in (429, '429'):
+        return False
+    return not _monthly_key_limit(code, body)
 
 def _record_transport_error(exc, stats, observation, stage, max_tokens):
     quota = _monthly_key_limit(exc.status_code, exc.body)
@@ -111,7 +128,7 @@ def response_token_limit(credentials):
     return 8192 if (urlparse(credentials.base_url).hostname or '').lower() == 'routerai.ru' and credentials.model_name.startswith('deepseek/') else 2500
 
 
-def _ask(client, credentials, instructions, data, schema, trace, stage, stats):
+def _ask(client, credentials, instructions, data, schema, trace, stage, stats, *, response_sink=None):
     instructions += '\nВерни только JSON по следующей схеме. Имена полей и типы соблюдай точно:\n' + json.dumps(schema.model_json_schema(),ensure_ascii=False)
     from normative_context_packing import serialize_context
     serialized = serialize_context(data)
@@ -129,10 +146,11 @@ def _ask(client, credentials, instructions, data, schema, trace, stage, stats):
             # This bounded tool protocol already supplies explicit evidence and
             # deterministic arithmetic. DeepSeek's low mode exhausted the shared
             # completion budget before closing JSON even for a navigation step.
-            if stage.startswith('normative-evidence-') and options.get('reasoning_effort') == 'low':
+            bounded = stage.startswith(('normative-evidence-', 'graph-request-evidence'))
+            if bounded and options.get('reasoning_effort') == 'low':
                 options['reasoning_effort'] = 'none'
             reasoning = options.get('extra_body', {}).get('reasoning', {})
-            if stage.startswith('normative-evidence-') and reasoning.get('effort') == 'low':
+            if bounded and reasoning.get('effort') == 'low':
                 reasoning['effort'] = 'none'
             try:
                 response = client.chat.completions.create(model=credentials.model_name, messages=messages,
@@ -172,6 +190,9 @@ def _ask(client, credentials, instructions, data, schema, trace, stage, stats):
                 error=diagnostic, max_tokens=max_tokens))
             observation.update(output=dict(error=diagnostic), usage_details=usage)
             raise failure
+        if response_sink is not None:
+            response_sink(dict(stage=stage, response_id=getattr(response, 'id', None),
+                finish_reason=finish_reason, text=text or '', usage=dict(usage), max_tokens=max_tokens))
         observation.update(output=[{"role": "assistant", "content": text}], usage_details=usage)
         stats.setdefault('responses', []).append(dict(stage=stage, response_id=getattr(response,'id',None),
             finish_reason=finish_reason, text=(text or '')[:30000], max_tokens=max_tokens))

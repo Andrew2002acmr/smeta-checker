@@ -8,6 +8,40 @@ from audit_models import VorPosition
 from normative_unit_measure import apply, TOPIC
 
 
+@pytest.mark.parametrize('case', ['valid', 'bad_hash', 'conflicting_definitions', 'compound_measure', 'no_binding'])
+def test_literal_candidate_measure_never_selects_norm(case):
+    from normative_source_registry import full_text_handle
+    from normative_unit_measure import literal_definition_card
+
+    position, _ = setup()
+    code = '15-01-001-01'
+    text = f'Измеритель: 1000 м2\n{code} Устройство покрытия'
+    if case == 'compound_measure':
+        text = text.replace('1000 м2', '1000 м2; 100 м3')
+    definition = dict(id=full_text_handle('definition', text), kind='normative', label=f'ГЭСН · {code}',
+                      page=5, source_id='pdf-pin', text=text, origin='extracted_native_unreviewed')
+    if case == 'bad_hash':
+        definition['text'] += '.'
+    condition = dict(id='condition', kind='normative', source_id='pdf-pin', page=2,
+                     text='Условие техчасти', label='ГЭСН · техчасть', origin='native')
+    result = dict(execution_state='complete', sources=[definition, condition], items=[],
+                  evidence_trace=[dict(kind='conditional_norm_selection_v1', reason='base_selection_ambiguous',
+                                       allowed_base_codes=[code], condition_source_id='condition')])
+    if case == 'conflicting_definitions':
+        result['sources'].append(dict(definition, id=full_text_handle('other', definition['text']), page=6))
+    if case == 'no_binding':
+        result['evidence_trace'].clear()
+    before = deepcopy(result)
+    card = literal_definition_card(result, position)
+    assert result == before
+    if case == 'valid':
+        assert card and card['state'] == 'confirmed' and card['found_value'] == '1000'
+        assert not card['required']
+        assert card['source_ids'] == [definition['id']]
+    else:
+        assert card is None
+
+
 def setup():
     data = json.loads(
         (Path(__file__).parent / "fixtures/work-norm-measure22.json").read_text(

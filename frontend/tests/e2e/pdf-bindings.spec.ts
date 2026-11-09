@@ -65,7 +65,7 @@ test('binds a renamed PDF copy to a VOR reference and keeps the selection after 
   await expect(select).toHaveValue(copy.version_id)
   const preflight = await page.request.post('/api/v1/documents/preflight', {
     headers,
-    data: { project_id: project.id, vor_version_id: vor.version_id },
+    data: { project_id: project.id, vor_version_id: vor.version_id, normative_profile: 'roads' },
   })
   expect(preflight.ok()).toBeTruthy()
   const result = await preflight.json()

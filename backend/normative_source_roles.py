@@ -51,3 +51,49 @@ def classification_only_basis(item, sources):
             return True
         proof.append(matches[0])
     return len(claims) != 1 or not proof[0].get('kb_identity') or proof[0]['kb_identity'] != proof[1].get('kb_identity')
+
+
+UNREAD_VISUAL_MESSAGE = ('Изображение фрагмента получено, но визуальное извлечение фактов ещё не выполнено; '
+    'оно не подтверждает утверждение или расхождение.')
+
+
+def unread_visual_source(source):
+    """An acquired crop is navigation, even when a transport drops its tag.
+
+    Existing reviewed ``drawing:`` readings use a different namespace and keep
+    their own integrity/quality validators. No flag on an unread crop promotes
+    it to a visual reading; that requires a separately validated reading.
+    """
+    return bool(source.get('origin') == 'drawing_region_unread'
+        or any(str(source.get(key, '')).startswith('drawing-region:')
+            for key in ('id', 'physical_source_id')))
+
+
+OCR_CELL_UNIT_MESSAGE = ('Число OCR-ячейки прочитано, но единица её физического столбца не подтверждена; '
+    'нужен проверенный заголовок либо сохранённое экспертное подтверждение этой ячейки.')
+
+
+def ocr_cell_quantity_unit_supported(proposal, source):
+    """A verified body number does not certify its OCR header's unit.
+
+    Paragraphs/native cells and separate typed row protocols keep their own
+    validators. A unit match includes its scale, not merely its dimension.
+    """
+    from normative_source_identity import canonical_source_id, row_source_protocol
+    if (proposal.get('parameter', 'quantity') != 'quantity' or source.get('kind') != 'project'
+            or not str(source.get('origin', '')).startswith('ocr') or row_source_protocol(source)):
+        return True
+    canonical = canonical_source_id(source)
+    metadata = source.get('source_alias') or {}
+    handles = [canonical, *(source.get(k, '') for k in ('id', 'physical_source_id')),
+        metadata.get('canonical_id') if isinstance(metadata, dict) else None]
+    if not any(':cell:' in str(handle or '') for handle in handles):
+        return True
+    if canonical is None or ':cell:' not in canonical:
+        return False
+    from normative_parameters import measure
+    from normative_confirmed_units import unit_confirmed
+    wanted = measure('1', proposal.get('unit', ''))
+    return bool(wanted and (source.get('unit_verified') is True
+        and measure('1', source.get('unit', '')) == wanted
+        or unit_confirmed(source, proposal.get('unit', ''))))

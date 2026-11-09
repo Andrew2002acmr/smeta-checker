@@ -10,7 +10,7 @@ def plan_for(payload):
     if (
         result.get("pipeline_version", 0) < 6
         or result.get("execution_state") != "complete"
-        or result.get("state") != "needs_facts"
+        or result.get("state") not in {"needs_facts", "possible_mismatch"}
         or (result.get("coverage") or {}).get("evidence_followup")
     ):
         return None
@@ -21,12 +21,25 @@ def plan_for(payload):
     ]
     if not plans:
         return None
+    def still_open(action):
+        key = action.get("key", "")
+        if key.startswith("card:"):
+            selected = [c for c in result.get("parameter_cards", []) if c.get("id") == key.removeprefix("card:")]
+        elif key.startswith("claim:"):
+            selected = [i for i in result.get("items", []) if key.removeprefix("claim:") in i.get("claim_ids", [])]
+        else:
+            selected = []
+        # An established mismatch is an outcome, not a request to search until
+        # the value agrees. Other open assertions of that position still need
+        # their own proof even when its overall state is possible_mismatch.
+        return not selected or any(item.get("state") not in {"confirmed", "possible_mismatch"} for item in selected)
+
     # A dependent parent's result and image verification are separate jobs.
     # Do not spend a model request reasserting that those are unavailable.
     actions = [
         a
         for a in plans[-1]["actions"]
-        if a["action"] not in {"resolve_parent_basis", "verify_source_quality"}
+        if a["action"] not in {"resolve_parent_basis", "verify_source_quality"} and still_open(a)
     ]
     # Establish project operands before spending the bounded pass on detailed
     # normative conditions. Never rank by a numerical match to VOR.
@@ -42,15 +55,26 @@ def plan_for(payload):
     actions = sorted(actions, key=lambda a: priority.get(a.get("family"), 7))[:8]
     if not actions:
         return None
+    actions = deepcopy(actions)
+    expected = {"project_scope": "project_scope_or_quantity", "formula_operand": "calculation_operand",
+        "numeric_basis": "literal_numeric_basis", "norm_selection": "norm_and_applicability_condition",
+        "consumption_basis": "material_consumption_basis", "material_or_condition": "material_or_condition",
+        "work_method": "project_work_method"}
+    for action in actions:
+        action["goal"] = action["key"]
+        action["expected_evidence_type"] = expected.get(action.get("family"), "claim_evidence")
+        action["budget"] = dict(shared_pass=True, additional_model_calls_limit=3)
     return dict(
-        schema=1,
-        actions=deepcopy(actions),
+        schema=2,
+        actions=actions,
         input_fingerprint=digest(actions),
         additional_calls_limit=3,
+        budget=dict(additional_model_calls_limit=3, max_actions=8, automatic_passes_limit=1),
+        completion_reason="pending",
         instructions="Проверь открытые аспекты целевыми чтениями. Сохрани независимые "
         "подтверждённые факты. Не повторяй прежний поиск без нового запроса или чтения. "
-        "Для read_registered_source используй сохранённые read_requests: источник уже найден, "
-        "но его полный текст не был передан в последнем успешно завершённом контексте. "
+        "Для read_registered_source сначала проверь уже дочитанные выдержки. Если текст "
+        "по-прежнему неполон, используй оставшиеся read_requests или next_offset. "
         "Для verify_applicability_conditions проверь pending_condition_ids условного расчётного "
         "кандидата. Его итог не требуется искать буквальной цитатой; вычисление не доказывает "
         "применимость и не подтверждает зависимое количество. Отсутствие проектного расхода "
@@ -75,28 +99,130 @@ def preserve_completed(continuation, failed):
     The previous verdict is preserved, never promoted. The failed attempt has
     its own execution state, telemetry and link; it is not a cacheable answer.
     """
-    previous = deepcopy(continuation["review"]["payload"]["position_check"])
-    if previous.get("execution_state") != "complete":
-        raise ValueError("Completed initial evidence required for follow-up recovery")
-    failure = dict(
-        execution_state="technical_failure",
-        original_review_id=str(continuation["review"]["id"]),
-        summary=failed["summary"],
-        telemetry=deepcopy(failed["telemetry"]),
-        coverage=deepcopy(failed.get("coverage") or {}),
-    )
-    previous.setdefault("coverage", {})["evidence_followup_failure"] = failure
-    previous["telemetry"] = deepcopy(failed["telemetry"])
-    previous.setdefault("evidence_trace", []).append(
-        dict(
-            kind="evidence_followup_failure_v1",
-            original_review_id=failure["original_review_id"],
-            execution_state="technical_failure",
-            previous_state=previous.get("state"),
-            requests=failed["telemetry"]["requests"],
-        )
-    )
+    previous=deepcopy(continuation['review']['payload']['position_check'])
+    if previous.get('execution_state')!='complete':
+        raise ValueError('Completed initial evidence required for follow-up recovery')
+    failure=dict(execution_state='technical_failure',original_review_id=str(continuation['review']['id']),
+        summary=failed['summary'],telemetry=deepcopy(failed['telemetry']),
+        coverage=deepcopy(failed.get('coverage') or {}))
+    previous.setdefault('coverage',{})['evidence_followup_failure']=failure
+    previous['telemetry']=deepcopy(failed['telemetry'])
+    previous.setdefault('evidence_trace',[]).append(dict(kind='evidence_followup_failure_v1',
+        original_review_id=failure['original_review_id'],execution_state='technical_failure',
+        previous_state=previous.get('state'),requests=failed['telemetry']['requests']))
     return previous
+
+
+def complete_followup(result, continuation):
+    """Record a bounded search outcome without treating a search as evidence.
+
+    Completion describes the attempt; claim/card states remain the ordinary
+    validators' decisions. A technical failure preserves the initial facts and
+    consumes this one automatic pass rather than starting an unbounded retry.
+    """
+    previous = continuation["review"]["payload"]["position_check"]
+    plan = continuation["plan"]
+    before_ids = {s["id"] for s in previous.get("sources", [])}
+    current_ids = {s["id"] for s in result.get("sources", [])}
+    failure = (result.get("coverage") or {}).get("evidence_followup_failure")
+    cards = {c["id"]: c for c in result.get("parameter_cards", [])}
+    outcomes = []
+    for action in plan["actions"]:
+        key = action["key"]
+        if key.startswith("card:"):
+            selected = [cards[key.removeprefix("card:")]] if key.removeprefix("card:") in cards else []
+            source_ids = {sid for c in selected for sid in c.get("source_ids", [])}
+        elif key.startswith("claim:"):
+            claim = key.removeprefix("claim:")
+            selected = [item for item in result.get("items", []) if claim in item.get("claim_ids", [])]
+            source_ids = {sid for item in selected
+                for field in ("project_source_ids", "normative_source_ids") for sid in item.get(field, [])}
+        else:
+            selected, source_ids = [], set()
+        states = {item.get("state") for item in selected}
+        state = ("technical_failure" if failure else "possible_mismatch" if "possible_mismatch" in states
+            else "confirmed" if states == {"confirmed"} else "needs_facts")
+        outcomes.append(dict(goal=action.get("goal", key),
+            expected_evidence_type=action.get("expected_evidence_type", "claim_evidence"),
+            retry_fingerprint=action["retry_fingerprint"], state=state,
+            source_ids=sorted(source_ids & current_ids),
+            new_source_ids=sorted(source_ids & (current_ids - before_ids)),
+            reason=("Дополнительный поиск завершился техническим сбоем; исходные факты сохранены."
+                if failure else "Основания проверены обычными валидаторами."
+                if state in {"confirmed", "possible_mismatch"} else
+                "После ограниченного поиска доказательств для этого утверждения недостаточно.")))
+    result.setdefault("coverage", {})["evidence_followup"] = dict(
+        round=1, origin_review_id=str(continuation["review"]["id"]),
+        attempted_fingerprints=[a["retry_fingerprint"] for a in plan["actions"]],
+        budget=deepcopy(plan.get("budget") or dict(additional_model_calls_limit=3, max_actions=8,
+            automatic_passes_limit=1)),
+        completion_reason=("technical_failure_initial_evidence_preserved" if failure
+            else "completed_with_open_obligations" if any(o["state"] == "needs_facts" for o in outcomes)
+            else "completed_with_validated_outcomes"),
+        new_source_ids=sorted(current_ids - before_ids), results=outcomes,
+        automatic_retry_allowed=False,
+    )
+    return result
+
+
+def _resume_tool_receipts(tools, result, origin_review_id):
+    """Restore bounded navigation archives, never document evidence or claims."""
+    archive = getattr(tools, "result_archive", {})
+    tools.result_archive = archive
+    imported, rejected = 0, 0
+    for event in result.get("evidence_trace", []):
+        candidate = event.get("result") if isinstance(event, dict) else None
+        if not isinstance(candidate, dict) or "result_handle" not in candidate:
+            continue
+        handle = candidate["result_handle"]
+        original = {key: value for key, value in candidate.items()
+            if key not in {"result_handle", "archive_read_request"}}
+        if not isinstance(handle, str) or handle != "tool-result:" + digest(original)[:32]:
+            rejected += 1
+            continue
+        if handle in archive:
+            if archive[handle] != original:
+                raise ValueError("Follow-up tool result identity collision")
+            continue
+        if len(archive) >= 256:
+            rejected += 1
+            continue
+        archive[handle] = deepcopy(original)
+        tools.events.append(dict(kind="resumed_tool_result_v1", origin_review_id=str(origin_review_id),
+            request=deepcopy(event.get("request") or {}),
+            result=dict(deepcopy(original), result_handle=handle,
+                archive_read_request=dict(tool="read_source", source_id=handle, offset=0))))
+        imported += 1
+    tools.coverage["resumed_tool_results"] = dict(imported=imported, rejected=rejected,
+        navigation_only=True, document_evidence=False, limit=256)
+
+
+def _read_open_registered_sources(tools, plan, available):
+    """Execute bounded exact reads from the saved plan before asking again."""
+    from normative_agent import EvidenceRequest
+
+    seen = set()
+    registered = {source["id"] for source in tools.sources}
+    for action in plan["actions"]:
+        if action.get("action") != "read_registered_source":
+            continue
+        for raw in action.get("read_requests", []):
+            if not isinstance(raw, dict) or raw.get("tool") != "read_source":
+                continue
+            sid, offset = raw.get("source_id"), raw.get("offset", 0)
+            if (not isinstance(sid, str) or len(sid) > 200 or sid not in available or sid not in registered
+                    or sid not in action.get("source_ids", [])
+                    or type(offset) is not int or not 0 <= offset <= 1_000_000
+                    or offset >= len(available[sid].get("text") or "")
+                    or (sid, offset) in seen):
+                continue
+            request = EvidenceRequest(tool="read_source", source_id=sid, offset=offset)
+            receipt = tools.execute(request)
+            seen.add((sid, offset))
+            tools.events.append(dict(kind="followup_registered_source_read",
+                request=request.model_dump(), result=receipt))
+            if len(seen) == 4:
+                return
 
 
 def resume_evidence(tools, continuation, record, position, kb):
@@ -121,27 +247,23 @@ def resume_evidence(tools, continuation, record, position, kb):
     # must still refer to the exact same immutable content.
     current = {s["id"]: s for s in tools.sources}
     from normative_source_registry import rect_order_equivalent
-
-    if any(
-        s["id"] in current and not rect_order_equivalent(current[s["id"]], s)
-        for s in sources
-    ):
+    if any(s["id"] in current and not rect_order_equivalent(current[s["id"]],s) for s in sources):
         raise ValueError("Follow-up source ID collision")
     for source in sources:
-        existing = current.get(source["id"])
-        if existing is not None and existing != source:
+        existing=current.get(source['id'])
+        if existing is not None and existing!=source:
             # Retain the frozen bytes and citation hashes. Rectangle ordering
             # only affects painting; it is not a different numerical source.
-            tools.sources[tools.sources.index(existing)] = deepcopy(source)
-            tools.events.append(
-                dict(kind="source_geometry_order_normalized", source_id=source["id"])
-            )
+            tools.sources[tools.sources.index(existing)]=deepcopy(source)
+            tools.events.append(dict(kind='source_geometry_order_normalized',source_id=source['id']))
     candidates = [
         dict(proposal=deepcopy(p))
         for p in result.get("parameter_proposals", [])
         if p.get("source_id") in available and _proposal_dependencies(p, available)
     ]
     supply(tools, dict(sources=sources, candidates=candidates))
+    _resume_tool_receipts(tools, result, continuation["review"]["id"])
+    _read_open_registered_sources(tools, continuation["plan"], available)
     tools.parameter_evidence = {
         digest(c["proposal"]): c["proposal"] for c in candidates
     }
@@ -152,6 +274,7 @@ def resume_evidence(tools, continuation, record, position, kb):
         attempted_fingerprints=[
             a["retry_fingerprint"] for a in continuation["plan"]["actions"]
         ],
+        completion_reason="in_progress",
     )
     tools.events.append(
         dict(

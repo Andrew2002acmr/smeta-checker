@@ -15,18 +15,10 @@ VERSION = "verification-relations-v4"
 def contract(claim_id, spec=None):
     prop = getattr(spec, "property_label", "")
     advisory = spec is not None and not spec.required and spec.predicate == "advisory"
-    if claim_id in {
-        "presence",
-        "quantity",
-        "unit",
-        "thickness",
-        "input:area",
-    } or claim_id.startswith("geometry:"):
+    if claim_id in {"presence", "quantity", "unit", "thickness", "input:area"} or claim_id.startswith("geometry:"):
         family, relation = "project_requirement", "same_subject_and_project_value"
         routes = ["project"]
-    elif prop == "normative_instruction" or claim_id.startswith(
-        ("normative:", "method")
-    ):
+    elif prop == "normative_instruction" or claim_id.startswith(("normative:", "method")):
         family, relation = "normative_condition", "condition_applies_to_project_facts"
         routes = ["project", "normative"]
     elif claim_id.startswith(("derived:", "basis:", "workbook:", "related:")):
@@ -40,17 +32,12 @@ def contract(claim_id, spec=None):
         routes = ["project", "normative"]
     if advisory:
         relation = "informational_only"
-    return dict(
-        version=VERSION,
-        family=family,
-        relation=relation,
-        property=prop,
-        source_routes=routes,
+    return dict(version=VERSION, family=family, relation=relation,
+        property=prop, source_routes=routes,
         project_literal_required=family == "project_requirement",
         required=getattr(spec, "required", True),
         automatic_confirmation=False,
-        missing_project_literal_is_mismatch=False,
-    )
+        missing_project_literal_is_mismatch=False)
 
 
 NORMATIVE_SCOPE_INSTRUCTIONS = """
@@ -123,6 +110,7 @@ scope_state=verified и scope_quote связывают измеритель с �
 """
 
 
+
 def quantity_subject(position) -> dict[str, Any]:
     """Describe the VOR quantity being audited; never certify its operands.
 
@@ -131,113 +119,53 @@ def quantity_subject(position) -> dict[str, Any]:
     silently change that frame. Dimensioned rates retain their density limits.
     """
     from normative_workbook_rate import analyze
-
-    text = " ".join(
-        str(getattr(position, key, "") or "") for key in ("work_name", "comment")
-    )
-    text = re.sub(r"\s+", " ", text).casefold().replace("ё", "е")
-    gross = bool(
-        re.search(
-            r"(?:полный|суммарный|общий)\s+(?:сметный\s+)?расход|"
-            r"с\s+учетом\s+(?:трудноустранимых\s+)?(?:потерь|отходов)",
-            text,
-        )
-    )
-    recipe = analyze(position)
-    expression = (getattr(position, "calculation", None) or {}).get(
-        "expression"
-    ) or getattr(position, "formula", "")
-    bounded_product = (
-        isinstance(expression, str)
-        and len(expression) <= 250
-        and bool(re.fullmatch(r"[0-9.,\s*/()=×]+", expression))
-    )
+    text=' '.join(str(getattr(position,key,'') or '') for key in ('work_name','comment'))
+    text=re.sub(r'\s+',' ',text).casefold().replace('ё','е')
+    gross=bool(re.search(r'(?:полный|суммарный|общий)\s+(?:сметный\s+)?расход|'
+        r'с\s+учетом\s+(?:трудноустранимых\s+)?(?:потерь|отходов)',text))
+    recipe=analyze(position)
+    expression=(getattr(position,'calculation',None) or {}).get('expression') or getattr(position,'formula','')
+    bounded_product=isinstance(expression,str) and len(expression)<=250 and bool(
+        re.fullmatch(r'[0-9.,\s*/()=×]+',expression))
     if bounded_product:
         try:
-            tree = ast.parse(
-                expression.strip().lstrip("=").replace(",", ".").replace("×", "*"),
-                mode="eval",
-            )
-            bounded_product = len(list(ast.walk(tree))) <= 30 and all(
-                isinstance(
-                    n, (ast.Expression, ast.BinOp, ast.Mult, ast.Div, ast.Constant)
-                )
-                and (
-                    not isinstance(n, ast.Constant)
-                    or isinstance(n.value, (int, float))
-                    and n.value > 0
-                )
-                for n in ast.walk(tree)
-            )
-        except SyntaxError, ValueError:
-            bounded_product = False
-    volume = str(getattr(position, "unit", "")).casefold().replace(
-        "³", "3"
-    ).strip().rstrip(".") in {"м3", "m3"}
-    adjustment = bool(
-        re.search(
-            r"купл|коэффициент[^.;]*уплотнен|коэффициент\s+(?:запаса|расхода)", text
-        )
-    )
-    density_required = bool(recipe and recipe["density_required"])
+            tree=ast.parse(expression.strip().lstrip('=').replace(',','.').replace('×','*'),mode='eval')
+            bounded_product=len(list(ast.walk(tree)))<=30 and all(
+                isinstance(n,(ast.Expression,ast.BinOp,ast.Mult,ast.Div,ast.Constant))
+                and (not isinstance(n,ast.Constant) or isinstance(n.value,(int,float)) and n.value>0)
+                for n in ast.walk(tree))
+        except (SyntaxError,ValueError):
+            bounded_product=False
+    volume=str(getattr(position,'unit','')).casefold().replace('³','3').strip().rstrip('.') in {'м3','m3'}
+    adjustment=bool(re.search(r'купл|коэффициент[^.;]*уплотнен|коэффициент\s+(?:запаса|расхода)',text))
+    density_required=bool(recipe and recipe['density_required'])
     if gross:
-        subject = "normative_total_consumption"
+        subject='normative_total_consumption'
     elif volume and not density_required and (not expression or bounded_product):
-        subject = (
-            "project_volume_with_declared_adjustment"
-            if adjustment
-            else "project_physical_volume"
-        )
+        subject='project_volume_with_declared_adjustment' if adjustment else 'project_physical_volume'
     else:
-        subject = "unresolved"
-    return dict(
-        quantity_subject=subject,
-        quantity_subject_basis=dict(
-            audit_frame="vor_project_physical_quantities",
-            output_unit=str(getattr(position, "unit", "")),
-            dimensioned_rate=recipe["rate_unit"] if recipe else "",
-            bounded_numeric_recipe=bounded_product,
-            explicit_adjustment=adjustment,
-            explicit_total_claim=gross,
-        ),
-        losses_required_when="declared_quantity_is_total_normative_resource_consumption",
-        proof_limits=dict(
-            scope_classification_only=True,
-            numbers_verified=False,
-            geometry_verified=False,
-            properties_verified=False,
-            adjustments_verified=False,
-            allocation_verified=False,
-            density_required=density_required,
-            total_resource_consumption_verified=False,
-            losses_included_verified=False,
-            zero_losses_verified=False,
-        ),
-    )
+        subject='unresolved'
+    return dict(quantity_subject=subject,
+        quantity_subject_basis=dict(audit_frame='vor_project_physical_quantities',
+            output_unit=str(getattr(position,'unit','')),dimensioned_rate=recipe['rate_unit'] if recipe else '',
+            bounded_numeric_recipe=bounded_product,explicit_adjustment=adjustment,explicit_total_claim=gross),
+        losses_required_when='declared_quantity_is_total_normative_resource_consumption',
+        proof_limits=dict(scope_classification_only=True,numbers_verified=False,geometry_verified=False,
+            properties_verified=False,adjustments_verified=False,allocation_verified=False,
+            density_required=density_required,total_resource_consumption_verified=False,
+            losses_included_verified=False,zero_losses_verified=False))
 
 
 def review_scope(position):
-    material = getattr(position, "position_type", "").strip().casefold() == "материал"
-    return dict(
-        subject=(
-            "material_specification_and_quantity_basis"
-            if material
-            else "work_norm_applicability"
-        ),
-        required=True,
-        work_cost_method_is_separate=material,
+    material = getattr(position, 'position_type', '').strip().casefold() == 'материал'
+    return dict(subject=('material_specification_and_quantity_basis' if material
+            else 'work_norm_applicability'),
+        required=True, work_cost_method_is_separate=material,
         **(quantity_subject(position) if material else {}),
-        work_norm_conditions_required_when=(
-            "quantity_depends_on_work_norm_resource_rate"
-            if material
-            else "work_norm_selected"
-        ),
-        unit_scale_required_when=(
-            "calculation_uses_selected_work_norm_measure"
-            if material
-            else "work_norm_selected"
-        ),
-    )
+        work_norm_conditions_required_when=('quantity_depends_on_work_norm_resource_rate'
+            if material else 'work_norm_selected'),
+        unit_scale_required_when=('calculation_uses_selected_work_norm_measure'
+            if material else 'work_norm_selected'))
 
 
 def _comment_layer_thresholds(position, specs):
@@ -247,73 +175,41 @@ def _comment_layer_thresholds(position, specs):
     standalone ClaimSpec/definition has no full comment and keeps its existing
     routing; only the position-aware verification plan can bind this context.
     """
-    comment = str(getattr(position, "comment", "") or "")
-    conditions = list(
-        re.finditer(
-            r"при\s+толщин\w*[^.!?]{0,220}?(?P<operator>более|свыше|не\s+менее|не\s+более)\s*"
-            r"(?P<value>\d+(?:[.,]\d+)?)\s*(?P<unit>мм|см|м)\b\s+"
-            r"(?:(?:его|е[её]|их)\s+)?(?:(?:следует|необходимо)\s+)?"
-            r"(?P<action>нормир\w*\s+в\s+два\s+слоя)",
-            comment,
-            re.I,
-        )
-    )
-
+    comment = str(getattr(position, 'comment', '') or '')
+    conditions = list(re.finditer(
+        r'при\s+толщин\w*[^.!?]{0,220}?(?P<operator>более|свыше|не\s+менее|не\s+более)\s*'
+        r'(?P<value>\d+(?:[.,]\d+)?)\s*(?P<unit>мм|см|м)\b\s+'
+        r'(?:(?:его|е[её]|их)\s+)?(?:(?:следует|необходимо)\s+)?'
+        r'(?P<action>нормир\w*\s+в\s+два\s+слоя)', comment, re.I))
     def clean(text):
-        return re.sub(r"\s+", " ", text).strip().casefold()
-
-    instructions = [
-        s
-        for s in specs.values()
-        if s.property_label == "normative_instruction"
-        and s.claim_id.startswith("basis:comment:")
-    ]
+        return re.sub(r'\s+', ' ', text).strip().casefold()
+    instructions = [s for s in specs.values() if s.property_label == 'normative_instruction'
+        and s.claim_id.startswith('basis:comment:')]
     found = {}
     for spec in specs.values():
-        if (
-            not spec.claim_id.startswith("geometry:comment:thickness:")
-            or spec.property_label != "thickness"
-            or spec.predicate != "measurement"
-        ):
+        if (not spec.claim_id.startswith('geometry:comment:thickness:')
+                or spec.property_label != 'thickness' or spec.predicate != 'measurement'):
             continue
         matches = [m for m in conditions if clean(spec.label) in clean(m[0])]
         if len(matches) != 1:
             continue
         match = matches[0]
-        related = [
-            s.claim_id
-            for s in instructions
-            if clean(s.label).startswith(clean(match["action"]))
-            and clean(s.label) in clean(comment)
-        ]
+        related = [s.claim_id for s in instructions if clean(s.label).startswith(clean(match['action']))
+            and clean(s.label) in clean(comment)]
         if len(related) != 1:
             continue
-        operator = clean(match["operator"])
-        found[spec.claim_id] = dict(
-            kind="normative_condition",
-            subject=match[0],
-            threshold=dict(
-                operator={
-                    "более": "gt",
-                    "свыше": "gt",
-                    "не менее": "ge",
-                    "не более": "le",
-                }[operator],
-                operator_text=match["operator"],
-                value=match["value"],
-                unit=match["unit"],
-            ),
-            related_claim_ids=related,
-            comment_context=dict(field="position.comment", quote=comment),
-            required_proofs=[
-                "Буквальное условие норматива с тем же оператором и порогом.",
-                "Фактическая толщина той же конструкции ПД и применимость полной предпосылки условия.",
-            ],
-            scope_boundary="Порог комментария не является требованием буквальной толщины ПД. "
-            "Сохрани роль слоя и контекст нормирования в два слоя; числовое сравнение "
-            "не подтверждает применимость ветви, выбранную норму или остальные условия.",
-            automatic_confirmation=False,
-        )
+        operator = clean(match['operator'])
+        found[spec.claim_id] = dict(kind='normative_condition', subject=match[0],
+            threshold=dict(operator={'более': 'gt', 'свыше': 'gt', 'не менее': 'ge',
+                'не более': 'le'}[operator], operator_text=match['operator'],
+                value=match['value'], unit=match['unit']), related_claim_ids=related,
+            comment_context=dict(field='position.comment', quote=comment),
+            required_proofs=['Буквальное условие норматива с тем же оператором и порогом.',
+                'Фактическая толщина той же конструкции ПД и применимость полной предпосылки условия.'],
+            scope_boundary='Порог комментария не является требованием буквальной толщины ПД. '
+                'Сохрани роль слоя и контекст нормирования в два слоя; числовое сравнение '
+                'не подтверждает применимость ветви, выбранную норму или остальные условия.',
+            automatic_confirmation=False)
     return found
 
 
@@ -321,35 +217,24 @@ def plan(position, claim_ids):
     from audit_core import build_claim_specs
 
     specs = {spec.claim_id: spec for spec in build_claim_specs(position)}
-    result: list[dict[str, Any]] = [
-        dict(
-            claim_id=claim,
-            expected_text=getattr(specs.get(claim), "expected_text", ""),
-            verification=contract(claim, specs.get(claim)),
-        )
-        for claim in sorted(claim_ids)
-    ]
+    result:list[dict[str,Any]]=[dict(claim_id=claim, expected_text=getattr(specs.get(claim), "expected_text", ""),
+        verification=contract(claim, specs.get(claim))) for claim in sorted(claim_ids)]
     thresholds = _comment_layer_thresholds(position, specs)
     for task in result:
-        if task["claim_id"] in thresholds:
-            task["verification"].update(
-                family="normative_condition",
-                relation="condition_applies_to_project_facts",
-                source_routes=["project", "normative"],
-                project_literal_required=False,
-            )
-            task["evidence_task"] = thresholds[task["claim_id"]]
-    if getattr(position, "position_type", "").strip().casefold() == "материал":
+        if task['claim_id'] in thresholds:
+            task['verification'].update(family='normative_condition',
+                relation='condition_applies_to_project_facts', source_routes=['project', 'normative'],
+                project_literal_required=False)
+            task['evidence_task'] = thresholds[task['claim_id']]
+    if getattr(position,'position_type','').strip().casefold()=='материал':
         for task in result:
-            if task["claim_id"] == "normative:applicability":
-                task["verification"].update(
-                    **review_scope(position),
-                    required_relation="Соответствие материала проектной конструкции; основание собственного "
-                    "количества в переданном quantity_subject, единиц, заявленных коэффициентов и распределения. "
-                    "Потери и отходы обязательны для явно заявленного суммарного расхода; "
-                    "физический объём не подтверждает полноту расхода П или нулевые потери. Условия нормы способа "
-                    "родительской работы обязательны для расхода из этой нормы, а не для независимой геометрии.",
-                )
+            if task['claim_id']=='normative:applicability':
+                task['verification'].update(**review_scope(position),
+                    required_relation='Соответствие материала проектной конструкции; основание собственного '
+                        'количества в переданном quantity_subject, единиц, заявленных коэффициентов и распределения. '
+                        'Потери и отходы обязательны для явно заявленного суммарного расхода; '
+                        'физический объём не подтверждает полноту расхода П или нулевые потери. Условия нормы способа '
+                        'родительской работы обязательны для расхода из этой нормы, а не для независимой геометрии.')
     return result
 
 
@@ -358,17 +243,14 @@ def definitions_for_plan(specs, tasks):
     from copy import deepcopy
     from normative_claim_definitions import definition
 
-    thresholds = {
-        task["claim_id"]: task
-        for task in tasks
-        if "threshold" in task.get("evidence_task", {})
-    }
+    thresholds = {task['claim_id']: task for task in tasks
+        if 'threshold' in task.get('evidence_task', {})}
     definitions = [definition(spec) for spec in specs]
     for value in definitions:
-        task = thresholds.get(value["claim_id"])
+        task = thresholds.get(value['claim_id'])
         if task:
-            value["verification"] = deepcopy(task["verification"])
-            value["evidence_task"] = deepcopy(task["evidence_task"])
+            value['verification'] = deepcopy(task['verification'])
+            value['evidence_task'] = deepcopy(task['evidence_task'])
     return definitions
 
 

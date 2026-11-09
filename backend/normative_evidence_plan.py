@@ -86,6 +86,30 @@ def _family(claim):
     return 'claim_identity'
 
 
+def _open_reason(verification, spec, card):
+    """Name the missing verification without claiming the source is absent."""
+    if card is not None:
+        label = card.get('label') or card['id']
+        return f'Проверка «{label}» пока не имеет подтверждённого основания в текущем заключении.'
+    expected = ' '.join((getattr(spec, 'expected_text', '') or getattr(spec, 'label', '')).split())
+    subject = f' «{expected[:240]}»' if expected else ''
+    if verification.get('property') == 'equipment_function':
+        return (f'Для указанной операции{subject} не привязано доказательство, '
+                'что функция или класс машины соответствует условиям применимой нормы и условиям проекта.')
+    relation = verification.get('relation')
+    if relation == 'same_subject_and_project_value':
+        return f'Не привязан факт ПД{subject} о том же участке, конструкции и проверяемом параметре.'
+    if relation == 'condition_applies_to_project_facts':
+        return (f'Не привязано доказательство применимости нормативного условия{subject} '
+                'к проверяемой проектной операции и её характеристикам.')
+    if relation == 'operands_units_and_derivation':
+        return f'Не установлена проверяемая цепочка исходных величин, единиц и расчёта{subject}.'
+    if relation == 'satisfies_project_constraints':
+        return (f'Для требования ВОР{subject} не привязано проектное основание '
+                'или проверяемое обоснование совместимости с условиями ПД.')
+    return f'В текущем заключении нет проверяемой привязки к обязательному требованию{subject}.'
+
+
 def _appendix_candidate(position, review, sources):
     """Plan from a bound derived candidate; never treat it as certification.
 
@@ -189,13 +213,9 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
     from normative_parent_basis import verified_geometry_dependency
     from normative_verdict import verified_allocation_dependency
     from audit_models import VorPosition
-    from pydantic import ValidationError
-    try:
-        current_position = VorPosition.model_validate(position)
-    except ValidationError:
-        current_position = None  # A partial planning context cannot certify a dependency.
-    geometry_dependency = derived and current_position is not None and verified_geometry_dependency(review, current_position)
-    allocation_dependency = derived and current_position is not None and verified_allocation_dependency(review, current_position)
+    current_position = VorPosition.model_validate(position) if derived else None
+    geometry_dependency = derived and verified_geometry_dependency(review, current_position)
+    allocation_dependency = derived and verified_allocation_dependency(review, current_position)
     confirmed = {claim for item in items if item.get('state') == 'confirmed'
         and source_supported(item) for claim in item.get('claim_ids', [])
         if claim != 'derived:parent' or item.get('normative_source_ids')
@@ -207,10 +227,10 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
         for claim in item.get('claim_ids', []))
     from normative_workbook_arithmetic import arithmetic_claims
     confirmed.update(arithmetic_claims(review))
-    if current_position is not None and any(e.get('kind')=='named_coefficient_policy_v1' for e in review.get('evidence_trace',[])):
+    if any(e.get('kind')=='named_coefficient_policy_v1' for e in review.get('evidence_trace',[])):
         from audit_models import VorPosition
         from normative_coefficient_policy import accepted_claims
-        confirmed.update(accepted_claims(current_position,review))
+        confirmed.update(accepted_claims(VorPosition.model_validate(position),review))
     if geometry_dependency or allocation_dependency:
         confirmed.add('derived:parent')
     if confirmed_comment_aggregate(matching, confirmed):
@@ -232,6 +252,16 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
     actions = []
 
     def append(key, family, references, *, card=None, item=None):
+        spec, verification, method_routes = None, {}, []
+        if key.startswith('claim:'):
+            from normative_verification_contract import contract
+            claim = key.removeprefix('claim:')
+            spec = semantic_specs.get(claim)
+            verification = contract(claim, spec)
+            if spec and verification.get('property') == 'equipment_function':
+                from normative_work_method import method_candidates
+                method_routes = method_candidates(spec.expected_text, spec.claim_id, sources.values())
+                references = [*references, *(route['source_id'] for route in method_routes)]
         parameter = (('quantity' if card['id'] == 'input:area' else card['id'])
             if card and card['id'] in {'quantity','thickness','input:area'} else
             'coefficient' if card and card.get('role') == 'coefficient' else
@@ -261,23 +291,24 @@ def build_work_plan(position, review, matching, *, derived=False, relation=None)
         if unread and not unreadable and not (set(refs) - sources.keys()) and dependency is None:
             action = 'read_registered_source'
         numeric = {k: card.get(k) for k in ('id', 'state', 'declared_value', 'found_value', 'unit', 'found_unit')} if card else None
+        reason = ((card or item or {}).get('reason') or (item or {}).get('explanation')
+                  or _open_reason(verification, spec, card))
         actions.append(dict(key=key, family=family, state=state, action=action,
             dependency_position=dependency, source_ids=refs, unreadable_source_ids=unreadable,
             model_delivery=delivery,
             read_requests=[dict(tool='read_source',source_id=sid,
                 offset=delivery['next_offset_by_source'].get(sid, 0)) for sid in unread]
                 if action == 'read_registered_source' else [],
-            proposal_count=len(proposals), reason=(card or item or {}).get('reason') or
-                (item or {}).get('explanation', ''),
+            proposal_count=len(proposals), reason=reason,
             retry_fingerprint=_identity([scope, key, numeric, available, proposals,
                 delivery['source_states'],delivery['next_offset_by_source']])))
-        if key.startswith('claim:'):
-            from normative_verification_contract import contract
-            claim = key.removeprefix('claim:')
-            actions[-1]['verification'] = contract(claim, semantic_specs.get(claim))
+        if verification:
+            actions[-1]['verification'] = verification
             # A changed proof obligation is new work even with the same sources.
             actions[-1]['retry_fingerprint'] = _identity([
                 actions[-1]['retry_fingerprint'], actions[-1]['verification']])
+        if method_routes:
+            actions[-1]['method_candidate_routes'] = method_routes
 
     for claim in sorted(open_claims):
         relevant = [i for i in items if claim in i.get('claim_ids', []) and i.get('state') != 'confirmed']

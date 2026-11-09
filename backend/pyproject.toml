@@ -7,6 +7,8 @@ requires-python = "==3.14.*"
 dependencies = [
     # LLM worker set: queue + db + model client + tracing. No PDF/VOR/HTTP.
     "celery==5.6.3",
+    "langgraph==1.2.20",
+    "langgraph-checkpoint-postgres==3.2.0",
     "openai==3.24.0",
     "prometheus-client==0.21.1",
     "opentelemetry-sdk==1.45.1",
@@ -68,5 +70,5 @@ package = false
 [tool.pyright]
 typeCheckingMode = "basic"
 pythonVersion = "3.14"
-include = ["pdf_binding.py", "audit_delivery.py", "audit_models.py", "workspace_models.py", "normative_corpus.py"]
+include = ["pdf_binding.py", "audit_delivery.py", "audit_models.py", "workspace_models.py", "normative_corpus.py", "audit_assessment.py", "audit_graph.py", "audit_graph_store.py", "audit_graph_runner.py", "audit_evidence_tools.py", "audit_evidence_validation.py"]
 reportMissingImports = true

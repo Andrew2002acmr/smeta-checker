@@ -59,6 +59,17 @@ def literal_parameter_issues(proposal, source):
     wanted_kind = 'project' if proposal.parameter in {'quantity', 'thickness'} else 'normative'
     if source.get('kind') != wanted_kind:
         return [prefix+'тип выбранного источника не соответствует параметру.'+hint]
+    from normative_source_roles import unread_visual_source, UNREAD_VISUAL_MESSAGE
+    if unread_visual_source(source):
+        return [prefix + UNREAD_VISUAL_MESSAGE + hint]
+    from normative_source_identity import row_proposal_matches, row_source_protocol
+    if row_source_protocol(source) == 'scalar' and proposal.parameter != 'quantity':
+        return [prefix+'этот источник подтверждает количество строки, а не другой числовой параметр.'+hint]
+    if proposal.parameter=='quantity' and not row_proposal_matches(proposal.model_dump(), source):
+        message = ('число и единица не образуют одну пару в физической строке таблицы.'
+            if row_source_protocol(source) == 'paired' else
+            'число и единица не подтверждены физической строкой таблицы.')
+        return [prefix+message+hint]
     if not header_parameter_verified(proposal.model_dump(),source):
         return [prefix+'проверка числа физической ячейки не подтверждает толщину в её OCR-заголовке; '
             'нужен независимо проверенный заголовок или нативное описание того же слоя.'+hint]
@@ -75,6 +86,9 @@ def literal_parameter_issues(proposal, source):
                 or measure('1',proposal.unit)!=measure('1',source['unit']))):
         return [prefix+'единица не совпадает с независимо подтверждённой единицей физического столбца; '
             'упоминание другой единицы в заголовке не меняет измеритель этой ячейки.'+hint]
+    from normative_source_roles import ocr_cell_quantity_unit_supported, OCR_CELL_UNIT_MESSAGE
+    if not ocr_cell_quantity_unit_supported(proposal.model_dump(), source):
+        return [prefix + OCR_CELL_UNIT_MESSAGE + hint]
     scope = proposal.scope_quote
     if (scope and (clean(scope) not in clean(source['text'])
             or not quoted(proposal.value, proposal.quote, scope))):

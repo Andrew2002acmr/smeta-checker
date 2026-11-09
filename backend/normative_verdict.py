@@ -66,6 +66,30 @@ def absence_claim(item):
 def readable_review(review):
     """Ephemeral model handles belong in traces, not the engineer's prose."""
     result=deepcopy(review)
+    # Saved raw reviews also pass here before publication. A crop's source ID
+    # proves acquisition only, not a semantic or numerical interpretation.
+    from normative_source_roles import unread_visual_source, UNREAD_VISUAL_MESSAGE
+    unread = {s['id'] for s in result.get('sources', []) if unread_visual_source(s)}
+    visual_downgraded = False
+    for item in result.get('items', []):
+        if (item.get('state') in {'confirmed', 'possible_mismatch'}
+                and unread.intersection(item.get('project_source_ids', []) + item.get('normative_source_ids', []))):
+            result.setdefault('evidence_trace', []).append(dict(kind='unread_visual_source_downgrade_v1',
+                original_item=deepcopy(item)))
+            item['state'] = 'needs_facts'
+            if UNREAD_VISUAL_MESSAGE not in item.get('explanation', ''):
+                item['explanation'] = item.get('explanation', '') + ' ' + UNREAD_VISUAL_MESSAGE
+            visual_downgraded = True
+    for card in result.get('parameter_cards', []):
+        if card.get('state') in {'confirmed', 'possible_mismatch'} and unread.intersection(card.get('source_ids', [])):
+            result.setdefault('evidence_trace', []).append(dict(kind='unread_visual_card_downgrade_v1',
+                original_card=deepcopy(card)))
+            card.update(state='needs_facts', reason=UNREAD_VISUAL_MESSAGE)
+            visual_downgraded = True
+    if visual_downgraded:
+        result['state'] = ('possible_mismatch' if any(i.get('state') == 'possible_mismatch'
+            for i in result.get('items', [])) else 'needs_facts')
+        result['requires_engineer_review'] = True
     labels={f's{i}':('ПД' if s['kind']=='project' and s.get('origin')!='explicit_expert_method_basis' else s.get('label','Норматив'))+
         (f", стр. {s['page']}" if s.get('page') else '') for i,s in enumerate(result.get('sources',[]))}
     def readable(text):
@@ -283,7 +307,8 @@ def publish(report, stored, position_key, validation, *, enabled=False, derived=
         return output
     supported = [v for v in items if source_supported(v) and project_consumption_supported(v,
         review.get('sources',[]),position=position,parameters=review.get('parameter_proposals',[]),items=items)]
-    contradictions = [v for v in supported if v.get('state') == 'possible_mismatch' and not absence_claim(v)]
+    contradictions = [v for v in supported if v.get('required', True)
+        and v.get('state') == 'possible_mismatch' and not absence_claim(v)]
     from normative_parent_basis import verified_geometry_dependency
     geometry_dependency = derived and verified_geometry_dependency(review,position)
     from normative_layer_assembly import verified_material_allocation
@@ -323,7 +348,7 @@ def publish(report, stored, position_key, validation, *, enabled=False, derived=
     card_gaps = [c for c in cards if c.get('required', True) and c['state'] != 'confirmed']
     def disputed_scope(card):
         key = card.get('id')
-        return any(v.get('state') == 'needs_facts' and any(
+        return any(v.get('required', True) and v.get('state') == 'needs_facts' and any(
             claim == 'quantity' if key == 'quantity' else 'thickness' in claim if key == 'thickness' else False
             for claim in v.get('claim_ids', [])) for v in items)
     card_conflicts = [c for c in card_gaps if c['state'] == 'possible_mismatch' and not disputed_scope(c)]
@@ -389,6 +414,11 @@ def finalize_state(result, stored, position_key, *, derived=False, position=None
     it cannot promote an unsupported model assertion.
     """
     output = deepcopy(result)
+    from normative_source_roles import unread_visual_source
+    if any(unread_visual_source(source) for source in output.get('sources', [])):
+        # Keep persisted assertion/card states as conservative as the published
+        # view, even for a direct caller that skipped main item validation.
+        output = readable_review(output)
     if position is not None:
         from normative_workbook_conflicts import conflicts,PROOF
         output['evidence_trace']=[event for event in output.get('evidence_trace',[]) if event.get('kind')!=PROOF]
@@ -401,6 +431,9 @@ def finalize_state(result, stored, position_key, *, derived=False, position=None
     if position is not None:
         from normative_evidence_plan import VERSION, build_work_plan, position_data
         output['evidence_trace'] = [e for e in output.get('evidence_trace', []) if e.get('kind') != VERSION]
-        output['evidence_trace'].append(build_work_plan(position_data(position), output,
-            stored, derived=derived, relation=relation))
+        plan = build_work_plan(position_data(position), output, stored, derived=derived, relation=relation)
+        output['evidence_trace'].append(plan)
+        from normative_review_directions import assess
+        output.setdefault('coverage', {})['audit_directions'] = assess(
+            position, output, stored, plan, derived=derived, relation=relation)
     return output

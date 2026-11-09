@@ -40,6 +40,7 @@ _MARKDOWN_BATCH = 8
 CACHE_SCHEMA_VERSION = 3
 # PyMuPDF4LLM table rendering; part of the Markdown cache key.
 TABLE_OUTPUT = "html"
+SOURCE_BYTES_CONTRACT = 'original-upload-v1'
 _MARKDOWN_KWARGS = {
     "page_chunks": True,
     "table_output": TABLE_OUTPUT,
@@ -264,9 +265,12 @@ class PDFTextSource:
         checkpoint=None,
         native_state=None,
         full_document=False,
+        store_image=None,
+        source_bytes=None,
     ):
         self._progress = progress
         self._checkpoint = checkpoint
+        self._store_image = store_image
         self._owner_thread = threading.get_ident()
         if min(dpi, max_pixels, max_side) <= 0:
             raise ValueError("Параметры OCR должны быть положительными")
@@ -274,6 +278,21 @@ class PDFTextSource:
             raise ValueError(
                 "PDF-документ закрыт: переоткройте файл и повторите подготовку позиции"
             )
+        original_stream = getattr(doc, 'stream', None)
+        unchanged = not getattr(doc, 'is_dirty', False)
+        if source_bytes is not None:
+            if not isinstance(source_bytes, (bytes, bytearray, memoryview)) or not source_bytes or not unchanged:
+                raise ValueError('Original PDF bytes require an unchanged parsed document')
+            source_bytes = bytes(source_bytes)
+            if getattr(doc, 'name', ''):
+                with Path(doc.name).open('rb') as original:
+                    same = hashlib.file_digest(original, 'sha256').digest() == hashlib.sha256(source_bytes).digest()
+            else:
+                same = isinstance(original_stream, (bytes, bytearray, memoryview)) and original_stream == source_bytes
+            if not same:
+                raise ValueError('Original PDF bytes differ from the parsed document')
+        elif unchanged and isinstance(original_stream, (bytes, bytearray, memoryview)):
+            source_bytes = original_stream
         self._pdf_bytes = b""
         self._tmp_path = None
         if getattr(doc, "name", "") and not getattr(doc, "is_dirty", False):
@@ -289,7 +308,10 @@ class PDFTextSource:
             )
             try:
                 with open(fd, "wb") as tmp:
-                    tmp.write(doc.tobytes(no_new_id=True))
+                    # Re-serializing an unchanged streamed PDF can rewrite its
+                    # cross-reference layout. OCR and provenance must use the
+                    # exact uploaded bytes, not that equivalent new PDF.
+                    tmp.write(source_bytes if source_bytes is not None else doc.tobytes(no_new_id=True))
             except BaseException:
                 Path(self._tmp_path).unlink(missing_ok=True)
                 self._tmp_path = None
@@ -576,6 +598,9 @@ class PDFTextSource:
         if doc.name and not doc.is_dirty:
             with Path(doc.name).open("rb") as source:
                 return hashlib.file_digest(source, "sha256").hexdigest()
+        stream = getattr(doc, 'stream', None)
+        if not getattr(doc, 'is_dirty', False) and isinstance(stream, (bytes, bytearray, memoryview)):
+            return hashlib.sha256(stream).hexdigest()
         return hashlib.sha256(doc.tobytes(no_new_id=True)).hexdigest()
 
     @staticmethod
@@ -584,6 +609,7 @@ class PDFTextSource:
         raw = _cache_payload(
             {
                 "schema": CACHE_SCHEMA_VERSION,
+                "source_bytes_contract": SOURCE_BYTES_CONTRACT,
                 "engine": "rag-no-layout-v2",
                 "max_vector_paths": MAX_VECTOR_PATHS,
                 "pymupdf": pymupdf_version,
@@ -633,6 +659,7 @@ class PDFTextSource:
         from pdf_header_geometry import VERSION as GEOMETRY_VERSION
         from pdf_row_sections import VERSION as ROW_SECTION_VERSION
         from pdf_cell_ocr import VERSION as CELL_VERSION, NUMERIC_RECOVERY_VERSION
+        from pdf_ruled_recovery import VERSION as RULED_VERSION
 
         raw = _cache_payload(
             {
@@ -640,6 +667,7 @@ class PDFTextSource:
                 "pymupdf": str(engine),
                 "max_cell_chars": max_cell_chars,
                 "physical_cells": VERSION,
+                "ruled_recovery": RULED_VERSION,
                 "header_verification": HEADER_VERSION,
                 "semantic_header_verification": SEMANTIC_VERSION,
                 "header_geometry_verification": GEOMETRY_VERSION,
@@ -947,6 +975,8 @@ class PDFTextSource:
 
         try:
             tables = native_tables(page, self._native_cell_text)
+            from pdf_geometry_contract import validate_tables
+            validate_tables(page, tables)
         except SoftTimeLimitExceeded:
             raise
         except Exception as exc:
@@ -1015,16 +1045,18 @@ class PDFTextSource:
             orientation = (self._ocr_pages.get(idx, {}).get("quality") or {}).get(
                 "rotation", 0
             )
-            tables = raster_tables(self._doc[idx], rotation=int(orientation))
+            tables: Any = raster_tables(self._doc[idx], rotation=int(orientation))
+            from pdf_geometry_contract import validate_tables
+            validate_tables(self._doc[idx], tables)
             from pdf_tables import verify_numeric_cells, recover_unit_headers
             recover_unit_headers(tables, (self._ocr_pages.get(idx) or {}).get('words') or [])
             verify_numeric_cells(tables, (self._ocr_pages.get(idx) or {}).get('words') or [])
             from pdf_cell_ocr import refine_tables
             from pdf_table_verification import verify_recovered_tables
             refine_tables(self._doc[idx],[t for t in tables if not t.get('recovery')],
-                rotation=int(orientation),cache_dir=self._cache_dir)
+                rotation=int(orientation),cache_dir=self._cache_dir, store_image=self._store_image)
             verify_recovered_tables(self._doc[idx],tables,rotation=int(orientation),
-                cache_dir=self._cache_dir,seconds=90,max_headers=32,max_numbers=32)
+                cache_dir=self._cache_dir,store_image=self._store_image,seconds=90,max_headers=32,max_numbers=32)
             # Reuse the pipeline's locale normalization without changing source words.
             for table in tables:
                 for cell in table["cells"]:
@@ -1344,6 +1376,37 @@ class PDFTextSource:
                             cell['header_ids'] = [ids.get(h,h) for h in cell['header_ids']]
                     combined.append(table)
                 self._store_tables(idx, combined, origin='ocr')
+        # Resume bounded header work even when the raster table itself came
+        # from cache. Position checks must never need to run OCR to fill it.
+        from pdf_table_verification import complete_recovered_headers
+        tables = self._structured_tables.get(idx, [])
+        from pdf_geometry_contract import validate_tables
+        geometry_preparation = validate_tables(self._doc[idx], tables)
+        if geometry_preparation['changed_boxes']:
+            self._store_tables(idx, tables, origin=self._table_origins.get(idx, 'ocr'))
+        header_preparation = complete_recovered_headers(
+            self._doc[idx], tables,
+            rotation=int((self._ocr_pages.get(idx, {}).get('quality') or {}).get('rotation', 0)),
+            cache_dir=self._cache_dir,
+            store_image=self._store_image,
+            checkpoint=lambda current, _: self._store_tables(idx, current, origin='ocr'),
+        )
+        if header_preparation.get('literal_headers_cleaned'):
+            self._store_tables(idx, tables, origin='ocr')
+        if header_preparation['remaining']:
+            self._table_errors[idx] = 'incomplete_header_observation'
+        from pdf_numeric_preparation import complete_recovered_numbers
+        numeric_preparation = complete_recovered_numbers(self._doc[idx], tables,
+            rotation=int((self._ocr_pages.get(idx, {}).get('quality') or {}).get('rotation', 0)),
+            cache_dir=self._cache_dir, store_image=self._store_image,
+            checkpoint=lambda current, _: self._store_tables(idx, current, origin='ocr'))
+        if numeric_preparation['passes']:
+            self._store_tables(idx, tables, origin='ocr')
+        incomplete = [message for message, result in (
+            ('incomplete_header_observation', header_preparation),
+            ('incomplete_numeric_observation', numeric_preparation)) if result['remaining']]
+        if incomplete:
+            self._table_errors[idx] = '; '.join(incomplete)
         text = self._merge_text(native, self._ocr_texts.get(idx, ''))
         rows, locators = self._table_rows.get(idx, ((), ()))
         locators = [dict(c) for c in locators]
@@ -1356,9 +1419,12 @@ class PDFTextSource:
             errors.append(self._ocr_errors[idx])
         if idx in self._table_errors:
             errors.append(self._table_errors[idx])
-        quality = dict(record.get('quality') or {}) if record else dict(
+        quality: dict[str, Any] = dict(record.get('quality') or {}) if record else dict(
             state='failed' if errors else 'usable', origin='native')
         quality.pop('words', None)
+        quality['table_header_preparation'] = header_preparation
+        quality['table_geometry_preparation'] = geometry_preparation
+        quality['table_numeric_preparation'] = numeric_preparation
         from pdf_inline_evidence import prepare_inline, inline_text, coverage as inline_coverage
         inline = prepare_inline(self._doc[idx], self._pdf_hash, language=self.language)
         quality['inline_raster'] = inline_coverage(inline)

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   clampPage,
+  ownQuantityText,
   queueColor,
   quantityDelta,
   quantityText,
@@ -66,5 +67,22 @@ describe('physical page clamp', () => {
     expect(clampPage(-3, 10)).toBe(1)
     expect(clampPage(11, 10)).toBe(10)
     expect(clampPage(Number.NaN, 10)).toBe(1)
+  })
+})
+
+describe('own quantity explanation', () => {
+  it('stays silent when confirmed or missing', () => {
+    expect(ownQuantityText('confirmed')).toBe('')
+    expect(ownQuantityText(null)).toBe('')
+    expect(ownQuantityText(undefined)).toBe('')
+  })
+  it('explains an unproven sum split without new UI sections', () => {
+    expect(ownQuantityText('consistent_unproven')).toBe(
+      'Общая площадь подтверждена, распределение по видам работ не доказано.',
+    )
+  })
+  it('covers conditional and unresolved states', () => {
+    expect(ownQuantityText('conditional')).toContain('условный расчёт')
+    expect(ownQuantityText('unresolved')).toBe('Собственное количество не подтверждено.')
   })
 })

@@ -139,7 +139,7 @@ class WorkspaceTests(unittest.TestCase):
             progress = client.get(f"/api/v1/audits/{run}/progress")
             self.assertEqual(progress.json()["status"], "done")
             self.assertEqual(
-                repo.load_run(__import__("uuid").UUID(run))["results"][0]["requests"], 0
+                repo.load_run(__import__("uuid").UUID(run))["results"][0]["execution"]["http_attempts"], 0
             )
 
     def test_windows_file_url_writes_into_configured_store(self):
@@ -162,6 +162,7 @@ class WorkspaceTests(unittest.TestCase):
                 "project_id": project_id,
                 "vor_version_id": vor["version_id"],
                 "pdf_version_ids": [pdf["version_id"]],
+                        "normative_profile": "roads",
             },
         )
         self.assertEqual(response.status_code, 202, response.text)
@@ -261,6 +262,7 @@ class WorkspaceTests(unittest.TestCase):
                 "project_id": other["id"],
                 "vor_version_id": vor["version_id"],
                 "pdf_version_ids": [pdf["version_id"]],
+                        "normative_profile": "roads",
             }
             for path in ("documents/preflight", "audits"):
                 response = client.post("/api/v1/" + path, json=body)

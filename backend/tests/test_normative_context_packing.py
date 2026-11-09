@@ -36,7 +36,7 @@ def test_actual_context_preserves_metadata_and_complete_work_evidence(case):
     lookup = {s['id']: s for s in sources}
     preview = {s['id']: s for s in result['sources']}
     if case['name'].startswith('actual0'):
-        essential = ['n2', 'n2:resources:25', 'n8', 'agent:p50:0',
+        essential = ['n0', 'n2', 'n2:resources:25', 'n8', 'agent:p50:0',
             'agent:p89:cell:feb8114d3c30a3c1318def97',
             'agent:p89:cell:b10b80c2f6781706ffd1f953',
             'agent:sum:ea3f8bc61fa62ef5f0b6f647']
