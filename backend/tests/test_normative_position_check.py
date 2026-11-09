@@ -105,8 +105,12 @@ class PositionCheckTests(unittest.TestCase):
         assert repo.load_run(UUID(self.run))['indexed_results'] == before
 
     def test_only_one_position_is_reviewed_and_batch_result_survives(self):
+        from normative_position_check import check as check_position, validate_saved
+        from workspace_models import NormativePositionCheckRequest
+
         repo = self.app.state.context.repository
-        before = repo.load_run(UUID(self.run))["indexed_results"]
+        run_id = UUID(self.run)
+        before = repo.load_run(run_id)["indexed_results"]
         calls = []
 
         def complete(**kwargs):
@@ -130,10 +134,23 @@ class PositionCheckTests(unittest.TestCase):
         context.settings.llm_base_url = "https://anymodel.org/v1"
         context.settings.allowed_llm_hosts = ("anymodel.org",)
         self.app.state.context = replace(context, client_factory=lambda **kwargs: SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=complete)), close=lambda: None))
+        context = self.app.state.context
+
+        def run_check(*, pages, question=""):
+            return check_position(
+                context, repo.load_run(run_id), 0,
+                NormativePositionCheckRequest(pages=pages, question=question), "test",
+            )
+
+        def replay_check(review_id):
+            return validate_saved(context, repo.load_run(run_id), 0, str(review_id), "test")
+
         with patch.dict(os.environ, {"NORMATIVE_ROAD_KB_ROOT": str(ROAD)}), patch("normative_service.profile_for", return_value="roads"):
             result = self.client.post(self.base + "/check", json=dict(pages=[1], question="Проверить 1.27.18"))
-            assert result.status_code == 200, result.text
-            data = result.json()
+            assert result.status_code == 410, result.text
+            assert result.json()["error"]["code"] == "normative_check_removed"
+            assert not calls
+            data = run_check(pages=[1], question="Проверить 1.27.18")
             assert data["kind"] == "check"
             check = data["payload"]["position_check"]
             assert len(calls) == 1
@@ -149,12 +166,17 @@ class PositionCheckTests(unittest.TestCase):
             raw = read_answer(artifact['payload'], artifact['payload']['content']['binding'])
             assert raw['answer']['items'][0]['state'] == 'confirmed'
             assert raw['unresolved_source_ids'] == []
-            assert self.client.get(self.base).json()["latest_check"]["id"] == data["id"]
+            assert self.client.get(self.base).json()["latest_check"]["id"] == str(data["id"])
             published = self.client.get(f'/api/v1/audits/{self.run}/rows').json()['rows'][0]
-            assert published['queue'] == 'review'  # A generic confirmed aspect cannot clear all claims.
+            obligations = before[0]["result"]["normative"]["obligations"]
+            assert {item["id"] for item in obligations if item["required"] and item["policy"] == "blocking"} == {
+                "normative:applicability",
+            }
+            assert published["queue"] == "ok"
             assert self.client.get(f'/api/v1/audits/{self.run}/reports/word').status_code == 200
             assert repo.load_run(UUID(self.run))["indexed_results"] == before
-            assert self.client.post(self.base + "/check", json=dict(pages=[9999])).status_code == 409
+            with self.assertRaisesRegex(ValueError, "Страница выходит за пределы"):
+                run_check(pages=[9999])
             assert len(calls) == 1
             from normative_background import review_position
             repo.update_run_config(UUID(self.run), {"normative_after_match": True})
@@ -162,16 +184,17 @@ class PositionCheckTests(unittest.TestCase):
             assert len(calls) == 1
             with patch('normative_position_check._ask', side_effect=AssertionError('Local replay must not call model')),\
                     patch('normative_context._ask', side_effect=AssertionError('Local replay must not call model')):
-                replay = self.client.post(self.base + '/' + data['id'] + '/validate')
-                assert replay.status_code == 200, replay.text
-                replayed = replay.json()
+                legacy = self.client.post(f"{self.base}/{data['id']}/validate")
+                assert legacy.status_code == 410, legacy.text
+                assert legacy.json()["error"]["code"] == "normative_validate_removed"
+                replayed = replay_check(data["id"])
                 assert replayed['id'] != data['id']
                 assert replayed['payload']['position_check']['telemetry']['requests'] == 0
                 assert replayed['payload']['position_check']['state'] == 'needs_facts'
-                second = self.client.post(self.base + '/' + replayed['id'] + '/validate')
-                assert second.status_code == 200, second.text
-                assert second.json()['payload']['position_check']['state'] == 'needs_facts'
-                assert self.client.post(self.base + '/' + data['id'] + '/validate').status_code >= 400
+                second = replay_check(replayed["id"])
+                assert second['payload']['position_check']['state'] == 'needs_facts'
+                with self.assertRaisesRegex(ValueError, "последний результат"):
+                    replay_check(data["id"])
             assert len(calls) == 1
             assert repo.load_run(UUID(self.run))['indexed_results'] == before
             import analysis_replay
@@ -181,9 +204,8 @@ class PositionCheckTests(unittest.TestCase):
             with patch('analysis_replay.algorithm', side_effect=changed_verdict),\
                     patch('normative_position_check._ask', side_effect=AssertionError('Automatic replay must not call model')),\
                     patch('normative_context._ask', side_effect=AssertionError('Automatic replay must not call model')):
-                automatic = self.client.post(self.base + '/check', json=dict(pages=[1], question='Проверить 1.27.18'))
-                assert automatic.status_code == 200, automatic.text
-                auto_check = automatic.json()['payload']['position_check']
+                automatic = run_check(pages=[1], question="Проверить 1.27.18")
+                auto_check = automatic['payload']['position_check']
                 assert auto_check['telemetry']['requests'] == 0
                 assert auto_check['state'] == 'needs_facts'
                 assert any(e['kind']=='original_agent_evidence_replay' for e in auto_check['evidence_trace'])
