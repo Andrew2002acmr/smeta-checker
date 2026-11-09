@@ -144,17 +144,44 @@ def graph_ask(*, repository: Any, blob_store: Any, run_id: UUID, position_index:
             execution_revision=execution_revision, reserved_tokens=reserved,
             request_ref={"prompt_sha": sha}, position_cap=position_cap, run_cap=run_cap)
     receipts: list[dict[str, Any]] = []
-    try:
-        answer = _ask(client, credentials, instructions, payload, schema, trace,
-                       "graph-request-evidence", stats, response_sink=receipts.append)
-    except ModelProviderQuotaError:
-        record_model_receipt(repository=repository, call_id=call["id"], response_ref={},
-                             state="failed", error_code="429")
-        raise
-    except Exception as exc:
-        record_model_receipt(repository=repository, call_id=call["id"], response_ref={},
-                             state="outcome_unknown", error_code=type(exc).__name__[:16])
-        raise
+    from normative_context import ModelProviderResponseError, ModelRateLimitError, _monthly_key_limit
+    import time as _time
+
+    def _throttled(exc: Exception) -> bool:
+        status = getattr(exc, "status_code", None)
+        body = getattr(exc, "body", None)
+        if status in (429, "429"):
+            return not _monthly_key_limit(status, body if isinstance(body, dict) else {})
+        # Transient gateway failures (HTML error pages, overloaded
+        # upstream): same backoff as throttling, same as the legacy
+        # agent's transient class.
+        if status in (500, 502, 503, 504, "500", "502", "503", "504"):
+            return True
+        if isinstance(exc, ModelProviderResponseError) and exc.code in (429, "429"):
+            return True
+        return False
+    answer = None
+    for attempt in range(4):
+        try:
+            answer = _ask(client, credentials, instructions, payload, schema, trace,
+                           "graph-request-evidence", stats, response_sink=receipts.append)
+            break
+        except ModelProviderQuotaError:
+            record_model_receipt(repository=repository, call_id=call["id"], response_ref={},
+                                 state="failed", error_code="429")
+            raise
+        except Exception as exc:
+            if _throttled(exc) and attempt < 3:
+                _time.sleep((5, 15, 45)[attempt])
+                continue
+            if _throttled(exc):
+                record_model_receipt(repository=repository, call_id=call["id"], response_ref={},
+                                     state="failed", error_code="rate_limited")
+                raise ModelRateLimitError() from exc
+            record_model_receipt(repository=repository, call_id=call["id"], response_ref={},
+                                 state="outcome_unknown", error_code=type(exc).__name__[:16])
+            raise
+    assert answer is not None
     envelope = receipts[0] if receipts else {"text": "", "usage": {}}
     stored = blob_store.put(json.dumps(envelope, ensure_ascii=False).encode("utf-8"))
     record_model_receipt(

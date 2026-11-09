@@ -25,14 +25,15 @@ TOOL_STATE_VERSION = 1
 
 def load_prepared_tools(*, blob_store: Any, snapshot_refs: list[dict[str, Any]],
                         version_id: str, filename: str = "Подготовленный ПД",
-                        kb: Any = None, facts: dict[str, Any] | None = None) -> EvidenceTools:
+                        kb: Any = None, facts: dict[str, Any] | None = None,
+                        prepared_index: Any = None) -> EvidenceTools:
     """Build tools from one pinned prepared corpus; missing data fails closed."""
     from audit_snapshot import load_snapshot
 
     if not snapshot_refs or not version_id:
         raise ValueError("Prepared snapshot refs and a pinned version are required")
     refs = [dict(ref) for ref in snapshot_refs]
-    index = load_snapshot(blob_store, refs[0])
+    index = prepared_index if prepared_index is not None else load_snapshot(blob_store, refs[0])
     tools = EvidenceTools.from_prepared(index, str(version_id), filename=filename)
     tools.snapshot_refs = []
     tools.kb = kb
@@ -106,7 +107,8 @@ def tool_bundle(tools: EvidenceTools) -> dict[str, Any]:
 def restore_tool_bundle(*, blob_store: Any, bundle: dict[str, Any],
                         snapshot_refs: list[dict[str, Any]],
                         supporting: dict[str, dict[str, Any]] | None = None,
-                        kb: Any = None, facts: dict[str, Any] | None = None) -> EvidenceTools:
+                        kb: Any = None, facts: dict[str, Any] | None = None,
+                        prepared_index: Any = None) -> EvidenceTools:
     """Restore tools from an explicit bundle and the same pinned corpora."""
     if bundle.get("version") != TOOL_STATE_VERSION:
         raise ValueError("Unsupported evidence tool bundle")
@@ -117,6 +119,7 @@ def restore_tool_bundle(*, blob_store: Any, bundle: dict[str, Any],
         filename=str(bundle.get("filename") or "Подготовленный ПД"),
         kb=kb,
         facts=facts,
+        prepared_index=prepared_index,
     )
     attach_supporting_tools(tools, blob_store=blob_store, documents=supporting or {})
     expected = sorted((supporting or {}).keys())
@@ -440,6 +443,18 @@ def prepared_quantity_candidates(tools: Any, position: Any, run_config: dict[str
                 unit = str(owner.get("unit", "")) or unit
     except Exception:
         pass
+    if not isinstance(position, dict):
+        try:
+            from normative_workbook_rate import quantity_contract
+
+            contract = quantity_contract(position)
+            if contract is not None:
+                # A derived row (emulsion tonnes from area x rate) has no
+                # tonne column in PD: retrieve candidates in the input area
+                # unit so the area base can be found and verified.
+                unit = str((contract.get("project_input") or {}).get("unit", "")) or unit
+        except Exception:
+            pass
     if section_texts and inputs:
         try:
             joined = " | ".join(section_texts)

@@ -867,6 +867,23 @@ class EvidenceTools:
         values = [v for v in values if v is not None]
         if len({c['page'] for c in cells}) != 1:
             return {'error': 'cross_page_sum_requires_separate_scope_validation'}
+        physical_keys = set()
+        for entry in cells:
+            cell = entry.get('cell') or {}
+            bbox = cell.get('bbox')
+            key = (
+                entry.get('version_id'),
+                entry.get('page'),
+                entry.get('table_id'),
+                cell.get('cell_id'),
+                tuple(bbox) if isinstance(bbox, list) else None,
+            )
+            if key in physical_keys:
+                self.events.append(
+                    dict(kind='duplicate_schedule_skipped', key=list(key))
+                )
+                return {'error': 'duplicate_schedule_cells_require_separate_scope_validation'}
+            physical_keys.add(key)
         total = sum(values, Decimal(0))
         context = '\n'.join(dict.fromkeys(c.get('header_text', '') for c in cells))
         text = context + '\n' + ' + '.join(str(v) for v in values) + f' = {total} {request.unit}. Ячейки: ' + ', '.join(ids)

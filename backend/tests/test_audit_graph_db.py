@@ -229,6 +229,54 @@ class GraphStoreTests(unittest.TestCase):
                 states = sorted(row.state for row in session.scalars(select(AuditModelCall)).all())
             self.assertEqual(states, ["outcome_unknown", "responded"])
 
+    def test_graph_ask_retries_throttling_with_backoff_then_succeeds(self):
+        import httpx
+        import openai
+        from unittest.mock import patch
+        from audit_evidence_validation import AgentAnswer
+
+        with tempfile.TemporaryDirectory(prefix="smeta-graph-db-") as tmp:
+            repo = self._open(tmp)
+            blobs = FileBlobStore(tmp)
+            run = self._run(repo)
+            task_id, token = self._delivery(repo, run)
+            credentials = SimpleNamespace(model_name="test-model", base_url="https://example.test/v1", folder="folder")
+
+            class _Observation:
+                def update(self, *args, **kwargs):
+                    return None
+
+            class _Stage:
+                def __enter__(self):
+                    return _Observation()
+
+                def __exit__(self, *args):
+                    return False
+
+            trace = SimpleNamespace(stage=lambda *args, **kwargs: _Stage())
+            answer = AgentAnswer(summary="Готово", items=[], parameters=[])
+            throttle = openai.RateLimitError(
+                "throttled", response=httpx.Response(429, request=httpx.Request("POST", "https://example.test")),
+                body={"error": {"message": "Rate limit exceeded: 60 per minute.", "code": 429}})
+            ok = SimpleNamespace(
+                id="resp-2", usage={"total": 10},
+                choices=[SimpleNamespace(finish_reason="stop", message=SimpleNamespace(content=answer.model_dump_json()))],
+            )
+            client = Mock()
+            client.chat.completions.create.side_effect = [throttle, throttle, ok]
+            stats: dict = {"requests": 0, "usage": {}, "responses": []}
+            sleeps = []
+            with patch("time.sleep", side_effect=lambda s: sleeps.append(s)):
+                result, did_http = graph_ask(
+                    repository=repo, blob_store=blobs, run_id=run.id, position_index=0,
+                    execution_revision=0, task_id=task_id, token=token, client=client,
+                    credentials=credentials, instructions="Проверь.", payload={"sources": [{"id": "retry"}]},
+                    schema=AgentAnswer, trace=trace, stats=stats, position_cap=6, run_cap=6,
+                )
+            self.assertEqual(result.summary, "Готово")
+            self.assertTrue(did_http)
+            self.assertEqual(client.chat.completions.create.call_count, 3)
+            self.assertEqual(sleeps, [5, 15])
 
 if __name__ == "__main__":
     unittest.main()

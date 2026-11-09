@@ -239,6 +239,7 @@ def test_monthly_key_limit_stops_after_one_attempt_without_exposing_response(tra
     assert not any(secret in public for secret in ['private-', 'api-key-secret', '1 000,36'])
 
 
+
 def test_monthly_key_limit_stays_a_technical_failure_with_actionable_summary():
     saved, record, original, client = position_review(response=monthly_limit_error())
     review = saved['payload']['position_check']

@@ -22,39 +22,53 @@ SCHEMA_VERSION = "evidence-assessment-v1"
 ENGINE = "langgraph-evidence-v1"
 ASSESSMENT_CONTRACT = "assessment-obligations-v1"
 
-DirectionState = Literal["confirmed", "needs_facts", "possible_mismatch", "not_applicable", "pending"]
-ExecutionState = Literal["pending", "running", "complete", "technical_failure", "cancelled"]
+DirectionState = Literal[
+    "confirmed", "needs_facts", "possible_mismatch", "not_applicable", "pending"
+]
+ExecutionState = Literal[
+    "pending", "running", "complete", "technical_failure", "cancelled"
+]
 CompletionState = Literal["pending", "complete", "incomplete", "unknown"]
-ObligationState = Literal["confirmed", "needs_facts", "possible_mismatch", "not_applicable", "pending"]
+ObligationState = Literal[
+    "confirmed", "needs_facts", "possible_mismatch", "not_applicable", "pending"
+]
 ObligationPolicy = Literal["blocking", "advisory", "not_applicable"]
-OwnQuantityState = Literal["confirmed", "conditional", "unresolved"]
+OwnQuantityState = Literal[
+    "confirmed", "consistent_unproven", "conditional", "unresolved"
+]
 MismatchLevel = Literal["proved", "suspected"] | None
 
 
-PROJECT_DOMAINS = frozenset({
-    "presence",
-    "project_property",
-    "quantity",
-    "unit",
-    "thickness",
-    "material_specification",
-    "project_constraint",
-})
-NORMATIVE_DOMAINS = frozenset({
-    "norm_selection",
-    "applicability_condition",
-    "coefficient_basis",
-    "method_basis",
-    "unit_scale_basis",
-})
-RELATIONSHIP_DOMAINS = frozenset({
-    "quantity_subject",
-    "calculation",
-    "allocation",
-    "transfer",
-    "workbook_arithmetic",
-    "parent_dependency",
-})
+PROJECT_DOMAINS = frozenset(
+    {
+        "presence",
+        "project_property",
+        "quantity",
+        "unit",
+        "thickness",
+        "material_specification",
+        "project_constraint",
+    }
+)
+NORMATIVE_DOMAINS = frozenset(
+    {
+        "norm_selection",
+        "applicability_condition",
+        "coefficient_basis",
+        "method_basis",
+        "unit_scale_basis",
+    }
+)
+RELATIONSHIP_DOMAINS = frozenset(
+    {
+        "quantity_subject",
+        "calculation",
+        "allocation",
+        "transfer",
+        "workbook_arithmetic",
+        "parent_dependency",
+    }
+)
 DOMAIN_BY_DIRECTION = {
     "project": PROJECT_DOMAINS,
     "normative": NORMATIVE_DOMAINS,
@@ -92,7 +106,11 @@ class AssessmentObligation(BaseModel):
             raise ValueError("obligation id must be a stable non-space token")
         if self.policy == "not_applicable" and self.state != "not_applicable":
             raise ValueError("not_applicable obligations keep a not_applicable state")
-        if self.policy != "not_applicable" and self.required is False and self.policy != "advisory":
+        if (
+            self.policy != "not_applicable"
+            and self.required is False
+            and self.policy != "advisory"
+        ):
             raise ValueError("optional obligations are advisory")
         if self.state == "possible_mismatch" and not self.comparable:
             raise ValueError("a non-comparable obligation cannot be a mismatch")
@@ -133,7 +151,9 @@ class AssessmentFact(BaseModel):
     operand_source_ids: list[str] = Field(default_factory=list, max_length=12)
     literal_state: Literal["verified", "unresolved"] = "unresolved"
     subject_state: Literal["verified", "unresolved"] = "unresolved"
-    calculation_state: Literal["verified", "unresolved", "not_applicable"] = "not_applicable"
+    calculation_state: Literal["verified", "unresolved", "not_applicable"] = (
+        "not_applicable"
+    )
     role: str = Field(default="output", max_length=32)
 
     @field_validator("operand_source_ids", mode="before")
@@ -176,7 +196,9 @@ class OwnQuantity(BaseModel):
         return sorted(set(value or []))
 
     def model_post_init(self, _context: Any) -> None:
-        if self.state == "confirmed" and (self.found_value is None or self.found_unit is None):
+        if self.state == "confirmed" and (
+            self.found_value is None or self.found_unit is None
+        ):
             raise ValueError("confirmed own quantity keeps its compared value/unit")
 
 
@@ -309,16 +331,143 @@ def _project_source(item: Any) -> dict[str, Any]:
     }
 
 
+def sum_covers_declared(
+    declared_value: str,
+    declared_unit: str,
+    proposals: list[dict[str, Any]],
+) -> bool:
+    """Decide whether a routed sum equals the position's own declared amount.
+
+    A sum proves the total only when its value matches the declared quantity
+    within the same tolerance the quantity cards use (exact, two float ULPs,
+    or HALF_UP rounding to the declared precision). A declared share that is
+    merely part of a larger sum is not covered: the total never confirms its
+    own split. Units must share a dimension; unknown values fail closed.
+    """
+    from decimal import Decimal, ROUND_HALF_UP
+
+    from normative_parameters import measure, number, same_numeric_result
+
+    expected = measure(declared_value, declared_unit)
+    if expected is None:
+        return False
+    for proposal in proposals:
+        if not isinstance(proposal, dict):
+            continue
+        if (
+            proposal.get("parameter") != "quantity"
+            or proposal.get("operation") != "sum"
+        ):
+            continue
+        found = measure(proposal.get("value", ""), proposal.get("unit", ""))
+        if found is None or expected[0] != found[0]:
+            continue
+        if expected[1] == found[1] or same_numeric_result(expected[1], found[1]):
+            return True
+        precision = number(declared_value)
+        base_unit = measure("1", declared_unit)
+        if precision is None or base_unit is None:
+            continue
+        normalized = precision.normalize() if precision != 0 else precision
+        precision_exp = min(int(normalized.as_tuple().exponent), 0)
+        if expected[0] == "count":
+            continue
+        try:
+            rounded = (found[1] / base_unit[1]).quantize(
+                Decimal(1).scaleb(precision_exp), rounding=ROUND_HALF_UP
+            )
+        except Exception:
+            continue
+        if rounded == normalized:
+            return True
+    return False
+
+
+def proof_is_independent(
+    own_position_index: int,
+    proposals: list[dict[str, Any]],
+    sources: list[dict[str, Any]] | list[Any],
+) -> bool:
+    """Decide whether a sum routed to this position can confirm its own amount.
+
+    A sum ``S = A + B`` proves the total, never the split. The sum may confirm
+    the current position only when a ``quantity`` proposal of this position
+    explicitly routes it (``operation == "sum"``) and every operand resolves
+    to a ``project`` cell through the strict dependency check — never another
+    VOR position's amount, a repeated handle, or an unknown source. Absent or
+    unroutable sums fail closed.
+    """
+    if own_position_index < 0 or not proposals:
+        return False
+    by_id: dict[str, Any] = {}
+    for source in sources or []:
+        sid = (
+            source.get("id")
+            if isinstance(source, dict)
+            else getattr(source, "id", None)
+        )
+        if sid:
+            by_id[str(sid)] = source
+    routed = [
+        proposal
+        for proposal in proposals
+        if isinstance(proposal, dict)
+        and proposal.get("parameter") == "quantity"
+        and proposal.get("operation") == "sum"
+        and proposal.get("source_id") in by_id
+    ]
+    if not routed:
+        return False
+    from normative_parent_basis import _proposal_dependencies
+
+    plain = {
+        sid: (
+            dict(item)
+            if isinstance(item, dict)
+            else {"id": sid, "kind": getattr(item, "kind", "")}
+        )
+        for sid, item in by_id.items()
+    }
+    for proposal in routed:
+        try:
+            dependencies = _proposal_dependencies(
+                {
+                    "source_id": proposal.get("source_id"),
+                    "operation": "sum",
+                    "unit": proposal.get("unit", ""),
+                    "value": proposal.get("value", ""),
+                    "operand_source_ids": list(
+                        proposal.get("operand_source_ids") or []
+                    ),
+                },
+                plain,
+            )
+        except Exception:
+            continue
+        if dependencies:
+            return True
+    return False
+
+
 def revision_for(payload: dict[str, Any]) -> str:
     canonical = dict(payload)
     canonical.pop("revision", None)
-    text = json.dumps(canonical, sort_keys=True, ensure_ascii=False, separators=(",", ":"), default=str)
+    text = json.dumps(
+        canonical,
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        default=str,
+    )
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-def _direction_state(obligations: list[AssessmentObligation], execution: ExecutionState) -> DirectionState:
+def _direction_state(
+    obligations: list[AssessmentObligation], execution: ExecutionState
+) -> DirectionState:
     blocking = [
-        obligation for obligation in obligations
+        obligation
+        for obligation in obligations
         if obligation.policy == "blocking" and obligation.required
     ]
     if not blocking:
@@ -330,7 +479,9 @@ def _direction_state(obligations: list[AssessmentObligation], execution: Executi
     if execution in {"pending", "running"}:
         return "pending"
     if execution in {"technical_failure", "cancelled"}:
-        if any(obligation.state in {"pending", "needs_facts"} for obligation in blocking):
+        if any(
+            obligation.state in {"pending", "needs_facts"} for obligation in blocking
+        ):
             return "needs_facts"
         if any(obligation.state == "possible_mismatch" for obligation in blocking):
             return "possible_mismatch"
@@ -371,11 +522,15 @@ def reduce_assessment(payload: AssessmentInput) -> PositionAssessment:
         for item in raw.get("obligations", []) or []:
             data = dict(item)
             data.setdefault("required", True)
-            data.setdefault("policy", "blocking" if data.get("required", True) else "advisory")
+            data.setdefault(
+                "policy", "blocking" if data.get("required", True) else "advisory"
+            )
             data.setdefault("state", "pending")
             data.setdefault("comparable", True)
             if data.get("domain") not in DOMAIN_BY_DIRECTION[name]:
-                raise ValueError(f"{name} obligation has an unexpected domain: {data.get('domain')}")
+                raise ValueError(
+                    f"{name} obligation has an unexpected domain: {data.get('domain')}"
+                )
             obligations.append(AssessmentObligation.model_validate(data))
         direction = AssessmentDirection(
             state="pending",
@@ -392,8 +547,13 @@ def reduce_assessment(payload: AssessmentInput) -> PositionAssessment:
         for obligation in project.obligations
     ):
         raise ValueError("project keeps a mandatory construction binding")
-    facts = [AssessmentFact.model_validate(item) for item in payload.get("facts", []) or []]
-    sources = [AssessmentSource.model_validate(_project_source(item)) for item in payload.get("sources", []) or []]
+    facts = [
+        AssessmentFact.model_validate(item) for item in payload.get("facts", []) or []
+    ]
+    sources = [
+        AssessmentSource.model_validate(_project_source(item))
+        for item in payload.get("sources", []) or []
+    ]
     own_quantity = OwnQuantity.model_validate(payload.get("own_quantity", {}) or {})
     execution = AssessmentExecution(
         state=execution_state,
@@ -402,13 +562,22 @@ def reduce_assessment(payload: AssessmentInput) -> PositionAssessment:
         stop_reason=str(payload.get("stop_reason", "")),
         error=str(payload.get("error", "")),
     )
-    completion = _completion([project, directions["normative"], directions["relationships"]], execution_state)
-    open_gaps = sorted({
-        obligation.gap or obligation.id
-        for direction in (project, directions["normative"], directions["relationships"])
-        for obligation in direction.obligations
-        if obligation.policy == "blocking" and obligation.state in {"pending", "needs_facts"}
-    })
+    completion = _completion(
+        [project, directions["normative"], directions["relationships"]], execution_state
+    )
+    open_gaps = sorted(
+        {
+            obligation.gap or obligation.id
+            for direction in (
+                project,
+                directions["normative"],
+                directions["relationships"],
+            )
+            for obligation in direction.obligations
+            if obligation.policy == "blocking"
+            and obligation.state in {"pending", "needs_facts"}
+        }
+    )
     unsigned = {
         "schema_version": SCHEMA_VERSION,
         "engine": ENGINE,
@@ -476,7 +645,9 @@ def obligation_ids(position: VorPosition) -> dict[str, list[str]]:
     return output
 
 
-def assessment_fingerprint(*, position: VorPosition, run_config: dict[str, Any], prompt_schema: str) -> dict[str, Any]:
+def assessment_fingerprint(
+    *, position: VorPosition, run_config: dict[str, Any], prompt_schema: str
+) -> dict[str, Any]:
     payload = {
         "position_key": {
             "index": position.index,
@@ -486,7 +657,9 @@ def assessment_fingerprint(*, position: VorPosition, run_config: dict[str, Any],
             "comment": position.comment,
             "formula": position.formula,
             "position_type": position.position_type,
-            "position_source": position.position_source.model_dump(mode="json") if position.position_source else None,
+            "position_source": position.position_source.model_dump(mode="json")
+            if position.position_source
+            else None,
         },
         "pdf_versions": dict(run_config.get("pdf_versions", {}) or {}),
         "preparation": {

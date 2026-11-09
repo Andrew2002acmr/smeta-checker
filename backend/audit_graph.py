@@ -26,6 +26,7 @@ from audit_evidence_tools import (
     tool_bundle,
 )
 from audit_evidence_validation import AgentAnswer, answer_feedback, validated_items
+
 MAX_HTTP_ATTEMPTS = 6
 MAX_REQUEST_ROUNDS = 6
 MAX_TOKEN_RESERVE = 120000
@@ -62,7 +63,9 @@ GRAPH_INSTRUCTIONS = (
     "scope_state=verified устанавливай только при доказанной связи участка, материала, конструкции и слоя. "
     "Если расход указан в л/м2, деление на 1000 даёт м3: для тонн нужна плотность. "
     "Не придумывай факты, номера норм, страницы, плотности и условия. "
-    "Если источников недостаточно, верни requests (до 4) и пустые items/parameters; окончательный ответ — только без requests.")
+    "Если источников недостаточно, верни requests (до 4) и пустые items/parameters; окончательный ответ — только без requests."
+)
+
 
 class GraphState(TypedDict, total=False):
     run_id: str
@@ -105,6 +108,7 @@ class GraphContext:
     supporting: dict[str, dict[str, Any]]
     kb: Any = None
     facts: dict[str, Any] | None = None
+    prepared_index: Any = None
     client_factory: Any = None
     credentials: Any = None
     trace: Any = None
@@ -113,6 +117,7 @@ class GraphContext:
     ask: Any = None
     request_sink: Any = None
     proposals_sink: Any = None
+
 
 def _position_payload(context: GraphContext) -> dict[str, Any]:
     position = context.position
@@ -126,7 +131,10 @@ def _require_complete_preparation(context: GraphContext) -> None:
 
     if not context.snapshot_refs:
         raise ValueError("Prepared snapshot refs are required")
-    index = load_snapshot(context.blob_store, context.snapshot_refs[0])
+    index = context.prepared_index
+    if index is None:
+        index = load_snapshot(context.blob_store, context.snapshot_refs[0])
+        context.prepared_index = index
     if index.pending_ocr or not index.metadata.get("preparation_complete"):
         raise ValueError("Prepared document is incomplete")
     expected = str(context.record.get("vor_version_id") or "")
@@ -178,11 +186,17 @@ def derive_requirements(state: GraphState, runtime: Any) -> dict[str, Any]:
                 if obligation_id == "project:binding":
                     obligation_domain, subject = "presence", "Привязка к конструкции ПД"
                 elif obligation_id == "project:own_quantity_inputs":
-                    obligation_domain, subject = "quantity", "Входные проектные факты количества"
+                    obligation_domain, subject = (
+                        "quantity",
+                        "Входные проектные факты количества",
+                    )
                 elif obligation_id == "project:unit":
                     obligation_domain, subject = "unit", "Единица проектного количества"
                 elif obligation_id == "project:quantity_subject":
-                    obligation_domain, subject = "quantity", "Предмет собственного количества"
+                    obligation_domain, subject = (
+                        "quantity",
+                        "Предмет собственного количества",
+                    )
                 elif obligation_id.startswith("project:property:"):
                     obligation_domain, subject = "project_property", obligation_id
                 elif obligation_id.startswith("project:constraint:"):
@@ -197,19 +211,23 @@ def derive_requirements(state: GraphState, runtime: Any) -> dict[str, Any]:
                 obligation_domain, subject = "calculation", obligation_id
                 if "workbook" in obligation_id:
                     obligation_domain = "workbook_arithmetic"
-            items.append({
-                "id": obligation_id,
-                "domain": obligation_domain,
-                "subject": subject,
-                "required": True,
-                "policy": "blocking",
-                "state": "pending",
-            })
+            items.append(
+                {
+                    "id": obligation_id,
+                    "domain": obligation_domain,
+                    "subject": subject,
+                    "required": True,
+                    "policy": "blocking",
+                    "state": "pending",
+                }
+            )
         obligations[direction] = items
     return {
         "obligations": obligations,
         "quantity_kind": quantity_kind,
-        "gap_ids": sorted({item["id"] for items in obligations.values() for item in items}),
+        "gap_ids": sorted(
+            {item["id"] for items in obligations.values() for item in items}
+        ),
     }
 
 
@@ -223,10 +241,14 @@ def _restore_tools(context: GraphContext, state: GraphState):
             supporting=context.supporting,
             kb=context.kb,
             facts=context.facts,
+            prepared_index=context.prepared_index,
         )
     from audit_snapshot import load_snapshot
 
-    index = load_snapshot(context.blob_store, context.snapshot_refs[0])
+    index = context.prepared_index
+    if index is None:
+        index = load_snapshot(context.blob_store, context.snapshot_refs[0])
+        context.prepared_index = index
     version_id = str(index.metadata.get("document_version_id") or "")
     if not version_id:
         raise ValueError("Prepared snapshot has no pinned document version")
@@ -236,6 +258,7 @@ def _restore_tools(context: GraphContext, state: GraphState):
         version_id=version_id,
         kb=context.kb,
         facts=context.facts,
+        prepared_index=index,
     )
 
 
@@ -263,9 +286,100 @@ def discover_sources(state: GraphState, runtime: Any) -> dict[str, Any]:
         tools.execute(EvidenceRequest(tool="search_project", query=query))
         executed += 1
     if executed < MAX_TOOL_EXECUTIONS:
-        tools.execute(EvidenceRequest(tool="search_tables", query=short[:300] or work[:300]))
+        tools.execute(
+            EvidenceRequest(tool="search_tables", query=short[:300] or work[:300])
+        )
         executed += 1
-    return {"tool_bundle": tool_bundle(tools), "tool_executions": executed, "progress_made": True}
+    # Deterministic head start: verified sum/single-cell proposals go to
+    # validation before the first model round. The model then only binds
+    # scope instead of hunting numbers — fewer rounds, same validators.
+    seeded: list[dict[str, Any]] = []
+    try:
+        from normative_quantity_anchors import quantity_parameter_candidates
+
+        for candidate in quantity_parameter_candidates(
+            tools.sources, tools.cells, tools.quantity_sums, limit=6
+        ):
+            proposal = dict(candidate.get("proposal") or {})
+            if proposal.get("parameter") == "quantity" and proposal.get("source_id"):
+                seeded.append(proposal)
+    except Exception:
+        seeded = []
+    return {
+        "tool_bundle": tool_bundle(tools),
+        "tool_executions": executed,
+        "proposals": seeded,
+        "progress_made": True,
+    }
+
+
+def _apply_workbook_conflicts(
+    context: GraphContext, obligations: dict[str, list[dict[str, Any]]]
+) -> None:
+    """Mark proved workbook-row contradictions without any model round.
+
+    Reuses the legacy typed D/E conflict proof and the formula/comment rate
+    check; only the current source row is examined. A missing formula or an
+    uncalculated cell is not a mismatch.
+    """
+    position = context.position
+    if position is None or not (
+        getattr(position, "formula", "")
+        or (getattr(position, "calculation", None) or {})
+    ):
+        return
+    messages: list[str] = []
+    try:
+        from human_basis import position_key
+        from normative_workbook_conflicts import conflicts
+
+        findings = conflicts(position, position_key(position))
+        messages.extend(
+            str(finding.get("message", ""))
+            for finding in findings[:3]
+            if finding.get("message")
+        )
+    except Exception:
+        pass
+    try:
+        from normative_rate_consistency import check_rate_consistency
+
+        calc = getattr(position, "calculation", None) or {}
+        expression = str(
+            calc.get("expression", "") or getattr(position, "formula", "") or ""
+        )
+        rate_findings = check_rate_consistency(
+            formula_text=expression,
+            comment=str(getattr(position, "comment", "") or ""),
+            unit=str(getattr(position, "unit", "") or ""),
+        )
+        messages.extend(
+            str(finding.get("message", ""))
+            for finding in rate_findings[:2]
+            if finding.get("message")
+        )
+    except Exception:
+        pass
+    if not messages:
+        return
+    reason = "; ".join(messages)[:1900]
+    for direction in obligations.values():
+        for obligation in direction:
+            if obligation.get("id") != "relationships:workbook_arithmetic":
+                continue
+            if obligation.get("state") == "possible_mismatch":
+                prior = str(obligation.get("reason", ""))
+                if reason and reason not in prior:
+                    obligation["reason"] = (prior + "; " + reason if prior else reason)[
+                        :2000
+                    ]
+                continue
+            obligation.update(
+                state="possible_mismatch",
+                comparable=True,
+                mismatch_level="proved",
+                reason=reason,
+            )
 
 
 def validate_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
@@ -276,7 +390,13 @@ def validate_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
     previous_facts = [dict(item) for item in state.get("facts", [])]
     if proposals or items:
         try:
-            answer = AgentAnswer.model_validate({"summary": "Промежуточные предложения", "items": items, "parameters": proposals})
+            answer = AgentAnswer.model_validate(
+                {
+                    "summary": "Промежуточные предложения",
+                    "items": items,
+                    "parameters": proposals,
+                }
+            )
         except Exception as exc:
             return {
                 "tool_bundle": tool_bundle(tools),
@@ -289,12 +409,22 @@ def validate_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
                 "progress_made": False,
                 "execution_error": f"ProposalValidationError: {str(exc)[:300]}",
                 "stop_reason": "proposal_validation",
-                "iterations_without_progress": int(state.get("iterations_without_progress", 0)) + 1,
+                "iterations_without_progress": int(
+                    state.get("iterations_without_progress", 0)
+                )
+                + 1,
             }
         position = _position_payload(context)
-        work_scope = f"{position.get('work_name', '')} {position.get('comment', '')}".strip()
-        issues = answer_feedback(answer, tools.sources, tools, position=context.position,
-                                 work_scope=work_scope)
+        work_scope = (
+            f"{position.get('work_name', '')} {position.get('comment', '')}".strip()
+        )
+        issues = answer_feedback(
+            answer,
+            tools.sources,
+            tools,
+            position=context.position,
+            work_scope=work_scope,
+        )
         validated = validated_items(answer, tools.sources)
         proposals = [proposal.model_dump(mode="json") for proposal in answer.parameters]
     else:
@@ -333,7 +463,8 @@ def validate_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
     except Exception:
         layer_linked = False
     global_issues = [
-        issue for issue in issues
+        issue
+        for issue in issues
         if not str(issue).startswith("Параметр ")
         and not (_is_ambiguity(issue) and ambiguity_resolved)
         and not (_is_layer_warning(issue) and layer_linked)
@@ -342,7 +473,10 @@ def validate_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
     def _proposal_blocked(proposal: dict[str, Any]) -> bool:
         if global_issues:
             return True
-        source = next((item for item in tools.sources if item["id"] == proposal.get("source_id")), None)
+        source = next(
+            (item for item in tools.sources if item["id"] == proposal.get("source_id")),
+            None,
+        )
         try:
             typed = _ProposalModel.model_validate(proposal)
         except Exception:
@@ -353,8 +487,13 @@ def validate_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
             from audit_evidence_tools import EvidenceRequest as _EvidenceRequest
 
             try:
-                result = tools.execute(_EvidenceRequest(
-                    tool="sum_cells", operand_ids=list(typed.operand_source_ids), unit=typed.unit))
+                result = tools.execute(
+                    _EvidenceRequest(
+                        tool="sum_cells",
+                        operand_ids=list(typed.operand_source_ids),
+                        unit=typed.unit,
+                    )
+                )
             except Exception:
                 return True
             if not isinstance(result, dict) or "error" in result:
@@ -363,7 +502,14 @@ def validate_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
                 return True
             if typed.source_id != result.get("source_id"):
                 return True
-            source = next((item for item in tools.sources if item["id"] == result.get("source_id")), source)
+            source = next(
+                (
+                    item
+                    for item in tools.sources
+                    if item["id"] == result.get("source_id")
+                ),
+                source,
+            )
         try:
             own = _literal_issues(typed, source)
         except Exception:
@@ -371,13 +517,20 @@ def validate_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
         return bool(own)
 
     for proposal in proposals:
-        source = next((item for item in tools.sources if item["id"] == proposal.get("source_id")), None)
+        source = next(
+            (item for item in tools.sources if item["id"] == proposal.get("source_id")),
+            None,
+        )
         if source is None:
             continue
         fact_id = f"fact:{proposal.get('parameter')}:{source['id']}"
         verified = not _proposal_blocked(proposal)
         literal = "verified" if verified else "unresolved"
-        subject = "verified" if proposal.get("scope_state") == "verified" and verified else "unresolved"
+        subject = (
+            "verified"
+            if proposal.get("scope_state") == "verified" and verified
+            else "unresolved"
+        )
         if fact_id in known:
             # Revalidation may upgrade an earlier unresolved fact when a
             # later answer verifies its scope. Upgrade states and quotes,
@@ -391,25 +544,29 @@ def validate_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
                 stored["scope_quote"] = str(proposal.get("scope_quote", ""))[:2400]
             continue
         known.add(fact_id)
-        facts.append({
-            "id": fact_id,
-            "parameter": proposal.get("parameter", "quantity"),
-            "value": str(proposal.get("value", "")),
-            "unit": str(proposal.get("unit", "")),
-            "source_id": source["id"],
-            "version_id": source.get("version_id"),
-            "page": source.get("page"),
-            "quote": str(proposal.get("quote", ""))[:2400],
-            "scope_quote": str(proposal.get("scope_quote", ""))[:2400],
-            "operand_source_ids": list(proposal.get("operand_source_ids", [])),
-            "literal_state": literal,
-            "subject_state": subject,
-        })
+        facts.append(
+            {
+                "id": fact_id,
+                "parameter": proposal.get("parameter", "quantity"),
+                "value": str(proposal.get("value", "")),
+                "unit": str(proposal.get("unit", "")),
+                "source_id": source["id"],
+                "version_id": source.get("version_id"),
+                "page": source.get("page"),
+                "quote": str(proposal.get("quote", ""))[:2400],
+                "scope_quote": str(proposal.get("scope_quote", ""))[:2400],
+                "operand_source_ids": list(proposal.get("operand_source_ids", [])),
+                "literal_state": literal,
+                "subject_state": subject,
+            }
+        )
     obligations = deepcopy(state.get("obligations", {}) or {})
     bound = [fact for fact in facts if fact.get("subject_state") == "verified"]
     literal = [fact for fact in facts if fact.get("literal_state") == "verified"]
     confirmed_items = [item for item in validated if item.get("state") == "confirmed"]
-    mismatched_items = [item for item in validated if item.get("state") == "possible_mismatch"]
+    mismatched_items = [
+        item for item in validated if item.get("state") == "possible_mismatch"
+    ]
     # An item closes only obligations its claims cover: a unit-only verdict
     # must not confirm binding, presence, or quantity inputs. Core project
     # obligations require verified facts: an item verdict alone (no numeric
@@ -417,8 +574,11 @@ def validate_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
     # amounts. The same holds for mismatch: without facts no proved
     # comparability exists.
     _FACTS_REQUIRED = {
-        "project:binding", "project:presence", "project:own_quantity_inputs",
-        "project:quantity_subject", "project:unit",
+        "project:binding",
+        "project:presence",
+        "project:own_quantity_inputs",
+        "project:quantity_subject",
+        "project:unit",
     }
 
     def _covers(item: dict[str, Any], obligation_id: str) -> bool:
@@ -429,7 +589,9 @@ def validate_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
             return bool(claims & {"quantity"})
         if obligation_id == "project:unit":
             return bool(claims & {"unit"})
-        if obligation_id.startswith("project:property:") or obligation_id.startswith("project:constraint:"):
+        if obligation_id.startswith("project:property:") or obligation_id.startswith(
+            "project:constraint:"
+        ):
             suffix = obligation_id.rsplit(":", 1)[-1]
             return suffix in claims
         return False
@@ -439,42 +601,118 @@ def validate_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
             if obligation.get("state") != "pending":
                 continue
             if obligation["id"] in {"project:binding", "project:presence"} and bound:
-                obligation.update(state="confirmed", reason="Предмет привязан к источнику.",
+                obligation.update(
+                    state="confirmed",
+                    reason="Предмет привязан к источнику.",
                     fact_ids=[fact["id"] for fact in bound][:8],
-                    source_ids=[fact["source_id"] for fact in bound][:8])
-            elif obligation["id"] in {"project:own_quantity_inputs", "project:quantity_subject"} and literal:
-                obligation.update(state="confirmed", reason="Проектный факт количества проверен.",
+                    source_ids=[fact["source_id"] for fact in bound][:8],
+                )
+            elif (
+                obligation["id"]
+                in {"project:own_quantity_inputs", "project:quantity_subject"}
+                and literal
+            ):
+                if obligation["id"] == "project:quantity_subject" and any(
+                    isinstance(proposal, dict)
+                    and proposal.get("parameter") == "quantity"
+                    and proposal.get("operation") == "sum"
+                    for proposal in proposals
+                ):
+                    from audit_assessment import (
+                        proof_is_independent,
+                        sum_covers_declared,
+                    )
+
+                    position_index = position.get("index", -1)
+                    try:
+                        position_index = int(position_index)
+                    except TypeError, ValueError:
+                        position_index = -1
+                    sum_ok = proof_is_independent(
+                        position_index, proposals, list(tools.sources)
+                    )
+                    total_ok = sum_covers_declared(
+                        str(position.get("volume", "")),
+                        str(position.get("unit", "")),
+                        proposals,
+                    )
+                    if not (sum_ok and total_ok):
+                        obligation.update(
+                            state="needs_facts",
+                            gap="распределение суммы не доказано",
+                            reason="Сумма сходится, распределение по составляющим не доказано.",
+                        )
+                        continue
+                obligation.update(
+                    state="confirmed",
+                    reason="Проектный факт количества проверен.",
                     fact_ids=[fact["id"] for fact in literal][:8],
-                    source_ids=[fact["source_id"] for fact in literal][:8])
+                    source_ids=[fact["source_id"] for fact in literal][:8],
+                )
             elif obligation["id"] == "project:unit" and literal:
-                obligation.update(state="confirmed", reason="Единица подтверждена тем же источником.",
+                obligation.update(
+                    state="confirmed",
+                    reason="Единица подтверждена тем же источником.",
                     fact_ids=[fact["id"] for fact in literal][:8],
-                    source_ids=[fact["source_id"] for fact in literal][:8])
+                    source_ids=[fact["source_id"] for fact in literal][:8],
+                )
             elif obligation["id"].startswith("project:"):
                 if obligation["id"] in _FACTS_REQUIRED and not (bound or literal):
                     continue
-                covering = next((item for item in confirmed_items if _covers(item, obligation["id"])), None)
+                covering = next(
+                    (
+                        item
+                        for item in confirmed_items
+                        if _covers(item, obligation["id"])
+                    ),
+                    None,
+                )
                 if covering is not None:
-                    linked = [fact for fact in facts
-                              if fact.get("source_id") in set(covering.get("project_source_ids", []))]
-                    obligation.update(state="confirmed", reason=covering.get("explanation", ""),
+                    linked = [
+                        fact
+                        for fact in facts
+                        if fact.get("source_id")
+                        in set(covering.get("project_source_ids", []))
+                    ]
+                    obligation.update(
+                        state="confirmed",
+                        reason=covering.get("explanation", ""),
                         fact_ids=[fact["id"] for fact in linked][:8],
-                        source_ids=list(covering.get("project_source_ids", []))[:8])
+                        source_ids=list(covering.get("project_source_ids", []))[:8],
+                    )
                     continue
-                mismatch = next((item for item in mismatched_items if _covers(item, obligation["id"])), None)
+                mismatch = next(
+                    (
+                        item
+                        for item in mismatched_items
+                        if _covers(item, obligation["id"])
+                    ),
+                    None,
+                )
                 if mismatch is not None:
-                    linked = [fact for fact in facts
-                              if fact.get("source_id") in set(mismatch.get("project_source_ids", []))]
-                    obligation.update(state="possible_mismatch", comparable=True, mismatch_level="proved",
+                    linked = [
+                        fact
+                        for fact in facts
+                        if fact.get("source_id")
+                        in set(mismatch.get("project_source_ids", []))
+                    ]
+                    obligation.update(
+                        state="possible_mismatch",
+                        comparable=True,
+                        mismatch_level="proved",
                         reason=mismatch.get("explanation", ""),
                         fact_ids=[fact["id"] for fact in linked][:8],
-                        source_ids=list(mismatch.get("project_source_ids", []))[:8])
-    remaining = sorted({
-        obligation["id"]
-        for direction in obligations.values()
-        for obligation in direction
-        if obligation.get("state") == "pending"
-    })
+                        source_ids=list(mismatch.get("project_source_ids", []))[:8],
+                    )
+    _apply_workbook_conflicts(context, obligations)
+    remaining = sorted(
+        {
+            obligation["id"]
+            for direction in obligations.values()
+            for obligation in direction
+            if obligation.get("state") == "pending"
+        }
+    )
     return {
         "tool_bundle": tool_bundle(tools),
         "facts": facts,
@@ -495,7 +733,9 @@ def _run_positions(context: GraphContext) -> dict[int, Any]:
         inputs = list((context.record.get("config") or {}).get("position_inputs") or [])
         positions = {}
         for number, item in enumerate(inputs):
-            entry = _VorPosition.model_validate(item) if isinstance(item, dict) else item
+            entry = (
+                _VorPosition.model_validate(item) if isinstance(item, dict) else item
+            )
             positions[int(getattr(entry, "index", number))] = entry
         positions[int(context.position.index)] = context.position
         return positions
@@ -516,15 +756,23 @@ def _run_relation(context: GraphContext, positions: dict[int, Any]) -> dict[str,
         links = material_links(tasks)
         index = int(context.position.index)
         children = [
-            dict(link, material_index=child,
-                 work=str(positions[child].work_name)[:600],
-                 quantity=str(getattr(positions[child], "volume", "")),
-                 unit=str(getattr(positions[child], "unit", "")))
+            dict(
+                link,
+                material_index=child,
+                work=str(positions[child].work_name)[:600],
+                quantity=str(getattr(positions[child], "volume", "")),
+                unit=str(getattr(positions[child], "unit", "")),
+            )
             for child, link in links.items()
-            if isinstance(link, dict) and link.get("index") == index and child in positions
+            if isinstance(link, dict)
+            and link.get("index") == index
+            and child in positions
         ]
-        return {"parent": links.get(index), "children": children[:12],
-                "children_truncated": len(children) > 12}
+        return {
+            "parent": links.get(index),
+            "children": children[:12],
+            "children_truncated": len(children) > 12,
+        }
     except Exception:
         return {"parent": None, "children": [], "children_truncated": False}
 
@@ -533,25 +781,33 @@ def _related_positions(context: GraphContext) -> list[dict[str, Any]]:
     try:
         source = context.position.position_source
         sheet = getattr(source, "sheet", None)
-        sections = [s.model_dump(mode="json") if hasattr(s, "model_dump") else s
-                    for s in getattr(source, "sections", []) or []]
+        sections = [
+            s.model_dump(mode="json") if hasattr(s, "model_dump") else s
+            for s in getattr(source, "sections", []) or []
+        ]
         related = []
         index = int(context.position.index)
         for other in (context.record.get("config") or {}).get("position_inputs") or []:
             if not isinstance(other, dict):
                 continue
             src = other.get("position_source") or {}
-            if (src.get("sheet") == sheet and src.get("sections") == sections
-                    and abs(int(other.get("index", -999)) - index) <= 7
-                    and int(other.get("index", -999)) != index):
-                related.append({
-                    "index": other.get("index"), "row": src.get("row"),
-                    "work": str(other.get("work_name", ""))[:600],
-                    "quantity": str(other.get("volume") or ""),
-                    "unit": other.get("unit") or "",
-                    "formula": other.get("formula") or "",
-                    "comment": str(other.get("comment") or "")[:700],
-                })
+            if (
+                src.get("sheet") == sheet
+                and src.get("sections") == sections
+                and abs(int(other.get("index", -999)) - index) <= 7
+                and int(other.get("index", -999)) != index
+            ):
+                related.append(
+                    {
+                        "index": other.get("index"),
+                        "row": src.get("row"),
+                        "work": str(other.get("work_name", ""))[:600],
+                        "quantity": str(other.get("volume") or ""),
+                        "unit": other.get("unit") or "",
+                        "formula": other.get("formula") or "",
+                        "comment": str(other.get("comment") or "")[:700],
+                    }
+                )
         return related
     except Exception:
         return []
@@ -566,32 +822,78 @@ def derive_quantities(state: GraphState, runtime: Any) -> dict[str, Any]:
     if proposals and sources:
         from normative_parameters import build_cards
 
-        cards = build_cards(context.position, {
-            "sources": sources,
-            "parameter_proposals": proposals,
-            "items": state.get("items", []),
-            "related_positions": _related_positions(context),
-            "pipeline_version": 3,
-        }, _run_positions(context), _run_relation(context, _run_positions(context)))
+        cards = build_cards(
+            context.position,
+            {
+                "sources": sources,
+                "parameter_proposals": proposals,
+                "items": state.get("items", []),
+                "related_positions": _related_positions(context),
+                "pipeline_version": 3,
+            },
+            _run_positions(context),
+            _run_relation(context, _run_positions(context)),
+        )
     quantity = next((card for card in cards if card.get("id") == "quantity"), {})
     area = next((card for card in cards if card.get("id") == "input:area"), {})
     kind = state.get("quantity_kind", "direct")
     own_state = "unresolved"
     found_value = quantity.get("found_value")
     found_unit = quantity.get("found_unit")
-    if quantity.get("state") == "confirmed":
+    sum_routed = any(
+        isinstance(proposal, dict)
+        and proposal.get("parameter") == "quantity"
+        and proposal.get("operation") == "sum"
+        for proposal in proposals
+    )
+    sum_independent = True
+    if sum_routed:
+        from audit_assessment import proof_is_independent, sum_covers_declared
+
+        position_index = position.get("index", -1)
+        try:
+            position_index = int(position_index)
+        except TypeError, ValueError:
+            position_index = -1
+        sum_independent = proof_is_independent(
+            position_index, [dict(p) for p in proposals if isinstance(p, dict)], sources
+        )
+        # A valid sum proves the total; it confirms this position only when
+        # the total equals the position's own declared amount.
+        sum_independent = sum_independent and sum_covers_declared(
+            str(position.get("volume", "")),
+            str(position.get("unit", "")),
+            [dict(p) for p in proposals if isinstance(p, dict)],
+        )
+    if quantity.get("state") == "confirmed" and (not sum_routed or sum_independent):
         own_state = "confirmed"
+    elif sum_routed and not sum_independent and quantity.get("state") == "confirmed":
+        own_state = "consistent_unproven"
     elif kind == "derived" and area.get("state") == "confirmed":
         own_state = "conditional"
+    conditions = [] if own_state == "confirmed" else ["quantity_inputs_unresolved"]
+    explanation = quantity.get("reason", "") or area.get("reason", "")
+    if own_state == "consistent_unproven":
+        conditions = sorted(set(conditions) | {"sum_distribution_unproven"})
+        explanation = (
+            explanation + " " if explanation else ""
+        ) + "Сумма сходится, распределение по составляющим не доказано."
     own_quantity = {
         "kind": kind,
         "state": own_state,
         "unit": str(position.get("unit", "")),
         "declared_value": str(position.get("volume", "")),
-        "operands": sorted({source_id for card in (quantity, area) if card for source_id in card.get("source_ids", [])}),
+        "operands": sorted(
+            {
+                source_id
+                for card in (quantity, area)
+                if card
+                for source_id in card.get("source_ids", [])
+            }
+        ),
         "basis": [area.get("reason", "")] if area.get("reason") else [],
-        "conditions": [] if own_state == "confirmed" else ["quantity_inputs_unresolved"],
-        "explanation": quantity.get("reason", "") or area.get("reason", ""),
+        "conditions": conditions,
+        "explanation": explanation,
     }
     if found_value is not None and found_unit is not None:
         own_quantity.update(found_value=found_value, found_unit=found_unit)
@@ -602,28 +904,37 @@ def assess(state: GraphState, runtime: Any) -> dict[str, Any]:
     from audit_assessment import AssessmentInput
 
     _ = runtime
-    obligations = state.get("obligations", {}) or {"project": [], "normative": [], "relationships": []}
-    payload = cast(AssessmentInput, {
-        "run_id": state.get("run_id", ""),
-        "position_index": int(state.get("position_index", 0)),
-        "execution_revision": int(state.get("execution_revision", 0)),
-        "fingerprint": state.get("fingerprint", {}),
-        "project": {"obligations": obligations.get("project", [])},
-        "normative": {"obligations": obligations.get("normative", [])},
-        "relationships": {"obligations": obligations.get("relationships", [])},
-        "own_quantity": state.get("own_quantity", {}),
-        "facts": state.get("facts", []),
-        "sources": state.get("sources", []),
-        "execution_state": "running",
-        "http_attempts": int(state.get("http_attempts", 0)),
-        "tool_executions": int(state.get("tool_executions", 0)),
-        "stop_reason": str(state.get("stop_reason", "")),
-    })
+    obligations = state.get("obligations", {}) or {
+        "project": [],
+        "normative": [],
+        "relationships": [],
+    }
+    payload = cast(
+        AssessmentInput,
+        {
+            "run_id": state.get("run_id", ""),
+            "position_index": int(state.get("position_index", 0)),
+            "execution_revision": int(state.get("execution_revision", 0)),
+            "fingerprint": state.get("fingerprint", {}),
+            "project": {"obligations": obligations.get("project", [])},
+            "normative": {"obligations": obligations.get("normative", [])},
+            "relationships": {"obligations": obligations.get("relationships", [])},
+            "own_quantity": state.get("own_quantity", {}),
+            "facts": state.get("facts", []),
+            "sources": state.get("sources", []),
+            "execution_state": "running",
+            "http_attempts": int(state.get("http_attempts", 0)),
+            "tool_executions": int(state.get("tool_executions", 0)),
+            "stop_reason": str(state.get("stop_reason", "")),
+        },
+    )
     assessment: PositionAssessment = reduce_assessment(payload)
     return {"assessment": assessment.model_dump(mode="json")}
 
 
-def route_gap(state: GraphState, runtime: Any) -> Literal["request_evidence", "publish"]:
+def route_gap(
+    state: GraphState, runtime: Any
+) -> Literal["request_evidence", "publish"]:
     context: GraphContext = runtime.context
     if context.validation_only:
         return "publish"
@@ -632,6 +943,12 @@ def route_gap(state: GraphState, runtime: Any) -> Literal["request_evidence", "p
     if int(state.get("request_rounds", 0)) >= MAX_REQUEST_ROUNDS:
         return "publish"
     if int(state.get("tool_executions", 0)) >= MAX_TOOL_EXECUTIONS:
+        return "publish"
+    # Two consecutive rounds without new proposals, items, requests, or
+    # successful tool reads: the model is circling empty ground. Stop early
+    # instead of burning the remaining budget (each stalled round adds 2,
+    # one per request_evidence and read_evidence).
+    if int(state.get("iterations_without_progress", 0)) >= 4:
         return "publish"
     gaps = state.get("gap_ids", [])
     if not gaps:
@@ -643,7 +960,11 @@ def _model_payload(context: GraphContext, state: GraphState) -> dict[str, Any]:
     tools = _restore_tools(context, state)
     position = _position_payload(context)
     from audit_core import build_claim_specs
-    from normative_verification_contract import definitions_for_plan, plan as verification_plan
+    from normative_verification_contract import (
+        definitions_for_plan,
+        plan as verification_plan,
+    )
+
     specs = build_claim_specs(context.position)
     known = sorted({spec.claim_id for spec in specs} | {"normative:applicability"})
     tasks = verification_plan(context.position, known)
@@ -656,16 +977,18 @@ def _model_payload(context: GraphContext, state: GraphState) -> dict[str, Any]:
         link_tasks = []
         for number, item in enumerate(inputs):
             entry = dict(item) if isinstance(item, dict) else {}
-            link_tasks.append({
-                "idx": int(entry.get("index", number)),
-                "number": str(entry.get("number", "")),
-                "w_name": str(entry.get("work_name", "")),
-                "w_vol": str(entry.get("volume", "")),
-                "w_unit": str(entry.get("unit", "")),
-                "position_type": str(entry.get("position_type", "")),
-                "calculation": entry.get("calculation") or {},
-                "position_source": entry.get("position_source"),
-            })
+            link_tasks.append(
+                {
+                    "idx": int(entry.get("index", number)),
+                    "number": str(entry.get("number", "")),
+                    "w_name": str(entry.get("work_name", "")),
+                    "w_vol": str(entry.get("volume", "")),
+                    "w_unit": str(entry.get("unit", "")),
+                    "position_type": str(entry.get("position_type", "")),
+                    "calculation": entry.get("calculation") or {},
+                    "position_source": entry.get("position_source"),
+                }
+            )
         links = material_links(link_tasks)
         current: int | None = int(context.position.index)
         seen_chain = {current}
@@ -675,15 +998,20 @@ def _model_payload(context: GraphContext, state: GraphState) -> dict[str, Any]:
             if parent_index is None or int(parent_index) in seen_chain:
                 break
             seen_chain.add(int(parent_index))
-            owner = next((e for e in inputs if int(e.get("index", -1)) == int(parent_index)), None)
+            owner = next(
+                (e for e in inputs if int(e.get("index", -1)) == int(parent_index)),
+                None,
+            )
             if owner is None:
                 break
-            basis_chain.append({
-                "index": int(parent_index),
-                "work": str(owner.get("work_name", ""))[:300],
-                "unit": str(owner.get("unit", "")),
-                "formula": str(owner.get("formula", ""))[:200],
-            })
+            basis_chain.append(
+                {
+                    "index": int(parent_index),
+                    "work": str(owner.get("work_name", ""))[:300],
+                    "unit": str(owner.get("unit", "")),
+                    "formula": str(owner.get("formula", ""))[:200],
+                }
+            )
             current = int(parent_index)
     except Exception:
         basis_chain = []
@@ -702,7 +1030,9 @@ def _model_payload(context: GraphContext, state: GraphState) -> dict[str, Any]:
         "facts": state.get("facts", []),
         "sources": tools.sources,
         "quantity_candidates": prepared_quantity_candidates(
-            tools, context.position, context.record.get("config", {}),
+            tools,
+            context.position,
+            context.record.get("config", {}),
         ),
         "allowed_claim_ids": known,
         "required_validation_claims": sorted(state.get("gap_ids", [])),
@@ -726,7 +1056,9 @@ def request_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
     prepared = _model_payload(context, state)
     receipts: list[dict[str, Any]] = []
     try:
-        outcome = context.ask(prepared["payload"], AgentAnswer, response_sink=receipts.append)
+        outcome = context.ask(
+            prepared["payload"], AgentAnswer, response_sink=receipts.append
+        )
     except (ModelResponseError, ValueError) as exc:
         return {
             "execution_error": f"{type(exc).__name__}: {str(exc)[:300]}",
@@ -736,7 +1068,12 @@ def request_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
         }
     except Exception as exc:
         kind = type(exc).__name__
-        if kind not in {"APIConnectionError", "APITimeoutError", "APIStatusError", "RateLimitError"}:
+        if kind not in {
+            "APIConnectionError",
+            "APITimeoutError",
+            "APIStatusError",
+            "RateLimitError",
+        }:
             raise
         return {
             "execution_error": f"{kind}: transport failure, retryable by recheck",
@@ -749,15 +1086,29 @@ def request_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
     else:
         # Legacy in-process ask implementations returned the answer directly.
         answer, did_http = outcome, True
-    restored = restore_source_ids(answer, prepared["aliases"], _restore_tools(context, state).sources)
+    restored = restore_source_ids(
+        answer, prepared["aliases"], _restore_tools(context, state).sources
+    )
     proposals = [dict(item) for item in state.get("proposals", [])]
     seen: dict[tuple, int] = {}
     for position, item in enumerate(proposals):
-        seen[(item.get("parameter"), item.get("source_id"), item.get("value"), item.get("unit"))] = position
+        seen[
+            (
+                item.get("parameter"),
+                item.get("source_id"),
+                item.get("value"),
+                item.get("unit"),
+            )
+        ] = position
     added_proposals = 0
     for proposal in restored.parameters:
         dumped = proposal.model_dump(mode="json")
-        key = (dumped.get("parameter"), dumped.get("source_id"), dumped.get("value"), dumped.get("unit"))
+        key = (
+            dumped.get("parameter"),
+            dumped.get("source_id"),
+            dumped.get("value"),
+            dumped.get("unit"),
+        )
         if key not in seen:
             seen[key] = len(proposals)
             proposals.append(dumped)
@@ -768,7 +1119,10 @@ def request_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
             # never downgrade or blank them.
             stored = proposals[seen[key]]
             upgraded = False
-            if stored.get("scope_state") != "verified" and dumped.get("scope_state") == "verified":
+            if (
+                stored.get("scope_state") != "verified"
+                and dumped.get("scope_state") == "verified"
+            ):
                 stored["scope_state"] = "verified"
                 upgraded = True
             for field in ("quote", "scope_quote", "operand_source_ids"):
@@ -778,7 +1132,10 @@ def request_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
             if upgraded:
                 added_proposals += 1
     items = [dict(item) for item in state.get("items", [])]
-    seen_items = {json.dumps(item, sort_keys=True, ensure_ascii=False, default=str) for item in items}
+    seen_items = {
+        json.dumps(item, sort_keys=True, ensure_ascii=False, default=str)
+        for item in items
+    }
     added_items = 0
     for item in restored.items:
         dumped = item.model_dump(mode="json")
@@ -788,20 +1145,26 @@ def request_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
         seen_items.add(key)
         items.append(dumped)
         added_items += 1
-    added_requests = len(restored.requests)
     receipt_ids = list(state.get("receipt_ids", []))
-    receipt_ids.extend(f"receipt:{len(receipt_ids) + index}" for index in range(len(receipts)))
+    receipt_ids.extend(
+        f"receipt:{len(receipt_ids) + index}" for index in range(len(receipts))
+    )
     if context.request_sink is not None:
         context.request_sink(receipts)
     if context.proposals_sink is not None:
         context.proposals_sink(proposals, items)
     stalled = int(state.get("iterations_without_progress", 0))
-    progressed = bool(added_proposals or added_items or added_requests)
+    # Bare tool requests are not progress: the model sends them almost
+    # every round. Successful reads reset the counter via read_evidence;
+    # only new proposals/items count here, otherwise early-stop never fires.
+    progressed = bool(added_proposals or added_items)
     rounds = int(state.get("request_rounds", 0))
     return {
         "proposals": proposals,
         "items": items,
-        "pending_requests": [request.model_dump(mode="json") for request in restored.requests],
+        "pending_requests": [
+            request.model_dump(mode="json") for request in restored.requests
+        ],
         "receipt_ids": receipt_ids,
         "tool_bundle": prepared.get("tool_bundle") or state.get("tool_bundle"),
         "http_attempts": attempts + (1 if did_http else 0),
@@ -825,8 +1188,11 @@ def read_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
         if consumed >= 4 or executed >= MAX_TOOL_EXECUTIONS:
             break
         request = EvidenceRequest.model_validate(raw)
-        fingerprint = hashlib.sha256(_json.dumps(
-            request.model_dump(mode="json"), sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+        fingerprint = hashlib.sha256(
+            _json.dumps(
+                request.model_dump(mode="json"), sort_keys=True, ensure_ascii=False
+            ).encode()
+        ).hexdigest()
         consumed += 1
         if fingerprint in processed:
             continue
@@ -850,26 +1216,60 @@ def publish(state: GraphState, runtime: Any) -> dict[str, Any]:
     from audit_assessment import AssessmentInput
 
     _ = runtime
-    obligations = state.get("obligations", {}) or {"project": [], "normative": [], "relationships": []}
-    payload = cast(AssessmentInput, {
-        "run_id": state.get("run_id", ""),
-        "position_index": int(state.get("position_index", 0)),
-        "execution_revision": int(state.get("execution_revision", 0)),
-        "fingerprint": state.get("fingerprint", {}),
-        "project": {"obligations": obligations.get("project", [])},
-        "normative": {"obligations": obligations.get("normative", [])},
-        "relationships": {"obligations": obligations.get("relationships", [])},
-        "own_quantity": state.get("own_quantity", {}),
-        "facts": state.get("facts", []),
-        "sources": state.get("sources", []),
-        "execution_state": "complete" if not state.get("execution_error") else "technical_failure",
-        "http_attempts": int(state.get("http_attempts", 0)),
-        "tool_executions": int(state.get("tool_executions", 0)),
-        "stop_reason": str(state.get("stop_reason", "")),
-        "error": str(state.get("execution_error", "")),
-    })
+    obligations = state.get("obligations", {}) or {
+        "project": [],
+        "normative": [],
+        "relationships": [],
+    }
+    # Terminal translation: the graph is done, so no obligation may stay
+    # pending ("still working"). Unclosed blocking work becomes needs_facts
+    # with an honest gap — the engineer sees review, not eternal checking.
+    http_attempts = int(state.get("http_attempts", 0))
+    for direction in obligations.values():
+        for obligation in direction:
+            if not isinstance(obligation, dict) or obligation.get("state") != "pending":
+                continue
+            if obligation.get("policy", "blocking") != "blocking" or not obligation.get("required", True):
+                continue
+            reason = str(obligation.get("reason", "") or "")
+            gap = str(obligation.get("gap", "") or "")
+            if not reason:
+                if http_attempts > 0:
+                    reason = (
+                        f"Основание не найдено за {http_attempts} обращений к модели; "
+                        "требуется ручная проверка.")
+                else:
+                    reason = "Основание не проверялось моделью; требуется ручная проверка."
+            if not gap:
+                gap = "основание не найдено в отведённом бюджете"
+            obligation.update(state="needs_facts", reason=reason, gap=gap)
+    payload = cast(
+        AssessmentInput,
+        {
+            "run_id": state.get("run_id", ""),
+            "position_index": int(state.get("position_index", 0)),
+            "execution_revision": int(state.get("execution_revision", 0)),
+            "fingerprint": state.get("fingerprint", {}),
+            "project": {"obligations": obligations.get("project", [])},
+            "normative": {"obligations": obligations.get("normative", [])},
+            "relationships": {"obligations": obligations.get("relationships", [])},
+            "own_quantity": state.get("own_quantity", {}),
+            "facts": state.get("facts", []),
+            "sources": state.get("sources", []),
+            "execution_state": "complete"
+            if not state.get("execution_error")
+            else "technical_failure",
+            "http_attempts": int(state.get("http_attempts", 0)),
+            "tool_executions": int(state.get("tool_executions", 0)),
+            "stop_reason": str(state.get("stop_reason", "")),
+            "error": str(state.get("execution_error", "")),
+        },
+    )
     assessment: PositionAssessment = reduce_assessment(payload)
-    return {"assessment": assessment.model_dump(mode="json"), "execution_state": assessment.execution.state}
+    return {
+        "assessment": assessment.model_dump(mode="json"),
+        "execution_state": assessment.execution.state,
+    }
 
 
 def build_graph(*, checkpointer=None):
@@ -889,10 +1289,14 @@ def build_graph(*, checkpointer=None):
     builder.add_edge("discover_sources", "validate_evidence")
     builder.add_edge("validate_evidence", "derive_quantities")
     builder.add_edge("derive_quantities", "assess")
-    builder.add_conditional_edges("assess", route_gap, {
-        "request_evidence": "request_evidence",
-        "publish": "publish",
-    })
+    builder.add_conditional_edges(
+        "assess",
+        route_gap,
+        {
+            "request_evidence": "request_evidence",
+            "publish": "publish",
+        },
+    )
     builder.add_edge("request_evidence", "read_evidence")
     builder.add_edge("read_evidence", "validate_evidence")
     builder.add_edge("publish", END)

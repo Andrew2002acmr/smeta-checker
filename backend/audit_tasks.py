@@ -458,6 +458,90 @@ def prepare_run(
         reset(token)
 
 
+def _reuse_duplicate_result(
+    context: TaskContext,
+    run_id: UUID,
+    position_index: int,
+    *,
+    dispatch: Any = None,
+    request_id: str = "",
+) -> dict[str, Any] | None:
+    """Copy a finished identical position's assessment instead of re-running the graph.
+
+    Key: (work_name, volume, unit, formula, position_type, comment,
+    position_source). Only earlier done jobs qualify, so the source
+    assessment is final. The copied payload gets the current position_index,
+    a recomputed fingerprint and revision; facts and sources are identical
+    because the inputs are identical. Any anomaly fails open to the normal
+    graph path (returns None).
+    """
+    try:
+        from workspace_service import inputs_for_run
+
+        record = context.repository.load_run(run_id, include_results=False)
+        run_config = record.get("config", {}) or {}
+        positions = {p.index: p for p in inputs_for_run(context, record)}
+        own = positions.get(position_index)
+        if own is None:
+            return None
+
+        def _source_key(position: Any) -> Any:
+            # Scope identity only: row/position_id/cells always differ
+            # between VOR rows, even full duplicates. Sheet, sections and
+            # scope_key carry the construction scope that matters.
+            source = getattr(position, "position_source", None)
+            if source is None:
+                return None
+            if hasattr(source, "model_dump"):
+                dumped = source.model_dump(mode="json")
+            elif isinstance(source, dict):
+                dumped = dict(source)
+            else:
+                return str(source)
+            return {k: dumped.get(k) for k in (
+                "document_sha256", "format", "sheet", "header_row",
+                "sections", "scope_key")}
+
+        key = (
+            own.work_name, own.volume, own.unit, own.formula,
+            own.position_type, own.comment, repr(_source_key(own)),
+        )
+        # Candidates first from inputs (no DB payloads), then point loads:
+        # a full job-table scan per position is O(N^2) heavy results.
+        twins = sorted(
+            index for index, other in positions.items()
+            if index < position_index
+            and (
+                other.work_name, other.volume, other.unit, other.formula,
+                other.position_type, other.comment, repr(_source_key(other)),
+            ) == key
+        )
+        for index in twins:
+            try:
+                job = context.repository.load_position_job(run_id, index)
+            except KeyError:
+                continue
+            if job.status != "done" or not job.result:
+                continue
+            from audit_assessment import PositionAssessment, assessment_fingerprint, revision_for
+            from audit_graph import GRAPH_PROMPT_SCHEMA
+
+            copied = dict(job.result)
+            if copied.get("schema_version") != "evidence-assessment-v1":
+                continue
+            copied["position_index"] = position_index
+            copied["fingerprint"] = assessment_fingerprint(
+                position=own, run_config=run_config, prompt_schema=GRAPH_PROMPT_SCHEMA)
+            copied["revision"] = revision_for(copied)
+            validated = PositionAssessment.model_validate(copied).model_dump(mode="json")
+            context.repository.finish_position_job(run_id, position_index, "done", result=validated)
+            _maybe_chain_finalize(context, run_id, dispatch=dispatch, request_id=request_id)
+            return {"position_index": position_index, "duplicate": False, "reused": True}
+    except Exception:
+        return None
+    return None
+
+
 def audit_position(
     context: TaskContext,
     run_id: UUID,
@@ -504,6 +588,9 @@ def audit_position(
     if job.status == "done" and job.result:
         return {"position_index": position_index, "duplicate": True}
     record = context.repository.load_run(run_id, include_results=False)
+    reused = _reuse_duplicate_result(context, run_id, position_index, dispatch=dispatch, request_id=request_id)
+    if reused is not None:
+        return reused
     if (record.get("config", {}) or {}).get("engine", "langgraph-evidence-v1") == "langgraph-evidence-v1":
         from audit_graph_runner import run_graph_position
 

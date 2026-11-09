@@ -70,6 +70,16 @@ class ModelProviderQuotaError(ModelResponseError):
             'Повтор возможен после снятия ограничения ключа.')
 
 
+class ModelRateLimitError(ModelResponseError):
+    """Transient provider throttling (RPM/TPM/concurrency); backoff and retry."""
+
+    code = 429
+    reason = 'provider_rate_limited'
+
+    def __init__(self):
+        super().__init__('Провайдер временно ограничил частоту запросов. '
+            'Нормативная проверка технически не завершена; это не замечание к ВОР. '
+            'Повтор выполняется автоматически с ожиданием.')
 def _monthly_key_limit(code, body):
     # Classify only the reproduced provider statement. Never publish arbitrary
     # exception strings, response bodies, account amounts or credentials.
@@ -78,6 +88,14 @@ def _monthly_key_limit(code, body):
     error = body.get('error', body)
     message = error.get('message') if isinstance(error, dict) else None
     return isinstance(message, str) and message.startswith('API key monthly spending limit exceeded:')
+
+
+def _transient_rate_limit(code, body):
+    # Any other 429 is provider throttling (requests/tokens per minute,
+    # concurrent connections), not a spent budget. Retryable with backoff.
+    if code not in (429, '429'):
+        return False
+    return not _monthly_key_limit(code, body)
 
 
 def _record_transport_error(exc, stats, observation, stage, max_tokens):
