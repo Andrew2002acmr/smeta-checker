@@ -631,12 +631,49 @@ def test_graph_row_waits_for_normative_review_when_after_match():
     from workspace_service import _projected_graph_row
 
     vor = position(index=16, volume="5303.0", unit="м2")
-    assessment = reduce_assessment(confirmed_project_input()).model_dump(mode="json")
+    payload = confirmed_project_input()
+    payload["normative"]["obligations"].append(
+        {
+            "id": "normative:condition:method",
+            "domain": "applicability_condition",
+            "subject": "Метод укладки",
+            "state": "needs_facts",
+            "required": True,
+            "policy": "blocking",
+        }
+    )
+    assessment = reduce_assessment(payload).model_dump(mode="json")
     record = {"id": "run-1", "config": {"normative_after_match": True}}
     row = _projected_graph_row(record, vor, assessment, normative_review=None)
     assert row.queue == "pending"
     assert row.report_status == "Проверяется по нормативам"
-    row = _projected_graph_row(record, vor, assessment, normative_review={"id": "r"})
+    # Generic single-aspect review cannot clear all claims.
+    row = _projected_graph_row(
+        record,
+        vor,
+        assessment,
+        normative_review={
+            "items": [{"state": "confirmed", "claim_ids": ["normative:applicability"]}]
+        },
+    )
+    assert row.queue == "review"
+    # Full review covering every obligation clears.
+    row = _projected_graph_row(
+        record,
+        vor,
+        assessment,
+        normative_review={
+            "items": [
+                {
+                    "state": "confirmed",
+                    "claim_ids": [
+                        "normative:applicability",
+                        "normative:condition:method",
+                    ],
+                }
+            ]
+        },
+    )
     assert row.queue == "ok"
     row = _projected_graph_row({"id": "run-1", "config": {}}, vor, assessment)
     assert row.queue == "ok"

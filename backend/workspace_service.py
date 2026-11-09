@@ -101,6 +101,37 @@ def _provenance(position: VorPosition) -> tuple[str, int | None, dict[str, str]]
         return "", None, {}
     return source.sheet, source.row, dict(source.cells)
 
+def _normative_review_covers(parsed: Any, review: dict[str, Any]) -> bool:
+    """Mirror normative_verdict.publish needed<=confirmed for graph rows.
+
+    Required claims come from the assessment's blocking normative
+    obligations; confirmed claims come from the external review's
+    confirmed items. Cards and rate/allocation routes stay in publish;
+    a shortfall here means review, never ok.
+    """
+    from normative_verdict import required_claims
+
+    checks = [
+        {
+            "claim_id": obligation.id,
+            "required": True,
+            "state": "confirmed" if obligation.state == "confirmed" else "open",
+        }
+        for obligation in parsed.normative.obligations
+        if obligation.policy == "blocking" and obligation.required
+    ]
+    needed = required_claims({"checks": checks}, "ОК", derived=False)
+    confirmed = {
+        claim
+        for item in review.get("items") or []
+        if item.get("state") == "confirmed"
+        for claim in item.get("claim_ids") or []
+    }
+    if not needed:
+        return True
+    return needed <= confirmed
+
+
 
 def _projected_graph_row(record, position, assessment, *, normative_review=None) -> ResultDTO:
     from audit_assessment import PositionAssessment
@@ -126,13 +157,13 @@ def _projected_graph_row(record, position, assessment, *, normative_review=None)
     if queue != "fix" and parsed.relationships.state == "possible_mismatch":
         queue, report_status = "fix", "Обнаружено расхождение"
     # Normative-after-match gate: a project-confirmed graph row still waits
-    # for the external normative review before it may clear.
-    if (
-        queue == "ok"
-        and (record.get("config") or {}).get("normative_after_match")
-        and normative_review is None
-    ):
-        queue, report_status = "pending", "Проверяется по нормативам"
+    # for the external normative review before it may clear, and a generic
+    # confirmed aspect cannot clear all claims (needed <= confirmed).
+    if queue == "ok" and (record.get("config") or {}).get("normative_after_match"):
+        if normative_review is None:
+            queue, report_status = "pending", "Проверяется по нормативам"
+        elif not _normative_review_covers(parsed, normative_review):
+            queue, report_status = "review", "Требуется ручная проверка"
     found_quantity = own.found_value if own.state == "confirmed" else None
     found_unit = own.found_unit if own.state == "confirmed" else None
     severity = {
