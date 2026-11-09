@@ -2318,7 +2318,7 @@ export type OwnQuantity = {
     /**
      * State
      */
-    state?: 'confirmed' | 'conditional' | 'unresolved';
+    state?: 'confirmed' | 'consistent_unproven' | 'conditional' | 'unresolved';
     /**
      * Unit
      */

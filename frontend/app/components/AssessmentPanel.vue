@@ -35,6 +35,7 @@
 
 <script setup lang="ts">
 import type { PositionAssessment } from '~/generated/types.gen'
+import { ownQuantityText as ownQuantityLabel } from '~/utils/presentation'
 
 const props = defineProps<{ assessment: PositionAssessment | null | undefined }>()
 
@@ -74,14 +75,7 @@ const completionLabel = computed(() => {
         : 'неизвестна'
 })
 
-const ownQuantityText = computed(() => {
-  const own = assessment.value?.own_quantity
-  if (!own) return ''
-  if (own.state === 'confirmed') return ''
-  if (own.state === 'conditional')
-    return 'Собственное количество — условный расчёт: входы подтверждены, основание неполное.'
-  return 'Собственное количество не подтверждено.'
-})
+const ownQuantityText = computed(() => ownQuantityLabel(assessment.value?.own_quantity?.state))
 </script>
 
 <style scoped>

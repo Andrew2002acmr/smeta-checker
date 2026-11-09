@@ -44,6 +44,15 @@ export function quantityDelta(
   const text = quantityText(String(Math.abs(diff)))
   return (diff > 0 ? '+' : '−') + text
 }
+export function ownQuantityText(state: string | null | undefined): string {
+  if (!state || state === 'confirmed') return ''
+  if (state === 'consistent_unproven')
+    return 'Общая площадь подтверждена, распределение по видам работ не доказано.'
+  if (state === 'conditional')
+    return 'Собственное количество — условный расчёт: входы подтверждены, основание неполное.'
+  return 'Собственное количество не подтверждено.'
+}
+
 export function queueLabel(queue: string) {
   return (
     {

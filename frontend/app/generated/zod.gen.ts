@@ -861,6 +861,7 @@ export const zOwnQuantity = z.object({
     operands: z.array(z.string()).max(12).optional(),
     state: z.enum([
         'confirmed',
+        'consistent_unproven',
         'conditional',
         'unresolved'
     ]).optional().default('unresolved'),

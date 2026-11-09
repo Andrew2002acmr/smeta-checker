@@ -3939,6 +3939,7 @@
             "default": "unresolved",
             "enum": [
               "confirmed",
+              "consistent_unproven",
               "conditional",
               "unresolved"
             ],
