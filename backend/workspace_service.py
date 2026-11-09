@@ -7,7 +7,7 @@ from collections import Counter
 from html.parser import HTMLParser
 from html import escape
 from uuid import UUID
-from typing import Literal
+from typing import Any, Literal
 
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
@@ -102,7 +102,7 @@ def _provenance(position: VorPosition) -> tuple[str, int | None, dict[str, str]]
     return source.sheet, source.row, dict(source.cells)
 
 
-def _projected_graph_row(record, position, assessment) -> ResultDTO:
+def _projected_graph_row(record, position, assessment, *, normative_review=None) -> ResultDTO:
     from audit_assessment import PositionAssessment
 
     parsed = PositionAssessment.model_validate(assessment)
@@ -125,6 +125,14 @@ def _projected_graph_row(record, position, assessment) -> ResultDTO:
         queue, report_status = "review", "Требуется ручная проверка"
     if queue != "fix" and parsed.relationships.state == "possible_mismatch":
         queue, report_status = "fix", "Обнаружено расхождение"
+    # Normative-after-match gate: a project-confirmed graph row still waits
+    # for the external normative review before it may clear.
+    if (
+        queue == "ok"
+        and (record.get("config") or {}).get("normative_after_match")
+        and normative_review is None
+    ):
+        queue, report_status = "pending", "Проверяется по нормативам"
     found_quantity = own.found_value if own.state == "confirmed" else None
     found_unit = own.found_unit if own.state == "confirmed" else None
     severity = {
@@ -191,6 +199,11 @@ def present_results(context, record, only=None) -> list[ResultDTO]:
     jobs = {
         j.position_index: j for j in context.repository.list_position_jobs(record["id"])
     }
+    needs_normative = bool((record.get("config") or {}).get("normative_after_match"))
+    validation: dict[int, dict[str, Any]] = {}
+    if needs_normative:
+        validation = context.repository.normative_validation_context(
+            record["id"], wanted if wanted is not None else None)
     graph_rows: list[ResultDTO] = []
     legacy_items: list[dict] = []
     for item in record["indexed_results"]:
@@ -201,7 +214,9 @@ def present_results(context, record, only=None) -> list[ResultDTO]:
             position = positions.get(item["position_index"])
             if position is None:
                 raise ValueError("Исходная позиция результата не найдена")
-            graph_rows.append(_projected_graph_row(record, position, stored))
+            graph_rows.append(_projected_graph_row(
+                record, position, stored,
+                normative_review=(validation.get(item["position_index"]) or {}).get("review")))
         else:
             legacy_items.append(item)
     if not legacy_items:
@@ -221,8 +236,11 @@ def present_results(context, record, only=None) -> list[ResultDTO]:
             parent = (links.get(index) or {}).get('index')
             if isinstance(parent, int):
                 wanted.add(parent)
-    validation = context.repository.normative_validation_context(
-        record['id'], wanted if wanted is not None else None)
+        if needs_normative:
+            validation = context.repository.normative_validation_context(record['id'], wanted)
+    if not needs_normative:
+        validation = context.repository.normative_validation_context(
+            record['id'], wanted if wanted is not None else None)
     jobs = {
         j.position_index: j for j in context.repository.list_position_jobs(
             record["id"], indices=wanted if wanted is not None else None)

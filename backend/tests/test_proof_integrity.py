@@ -624,3 +624,19 @@ def test_different_comment_blocks_assessment_reuse():
     finally:
         workspace_service.inputs_for_run = real_inputs
     assert out is None
+
+
+def test_graph_row_waits_for_normative_review_when_after_match():
+    """Queue: project-confirmed graph row stays pending until normative review."""
+    from workspace_service import _projected_graph_row
+
+    vor = position(index=16, volume="5303.0", unit="м2")
+    assessment = reduce_assessment(confirmed_project_input()).model_dump(mode="json")
+    record = {"id": "run-1", "config": {"normative_after_match": True}}
+    row = _projected_graph_row(record, vor, assessment, normative_review=None)
+    assert row.queue == "pending"
+    assert row.report_status == "Проверяется по нормативам"
+    row = _projected_graph_row(record, vor, assessment, normative_review={"id": "r"})
+    assert row.queue == "ok"
+    row = _projected_graph_row({"id": "run-1", "config": {}}, vor, assessment)
+    assert row.queue == "ok"
