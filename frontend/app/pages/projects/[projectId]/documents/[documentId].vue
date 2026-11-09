@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PreflightResponse, PreflightRow, RunDto } from '~/generated/types.gen'
+import type { DocumentDto, PreflightResponse, PreflightRow, RunDto } from '~/generated/types.gen'
 import type { TableColumn } from '@nuxt/ui'
 const backend = useBackend()
 const route = useRoute()
@@ -14,6 +14,12 @@ let historyEpoch = 0
 type Backend = typeof backend
 type DocumentDetail = Awaited<ReturnType<Backend['document']>>
 type RichVersion = DocumentDetail['versions'][number]
+type BindingOption = {
+  label: string
+  value: string
+  filename: string
+  documentTitle: string
+}
 
 const projectId = computed(() => String(route.params.projectId || ''))
 const documentId = computed(() => String(route.params.documentId || ''))
@@ -34,6 +40,10 @@ const titleBusy = ref(false)
 
 const revisionInput = ref<HTMLInputElement | null>(null)
 const uploadBusy = ref(false)
+const importOpen = ref(false)
+const catalogDocuments = ref<DocumentDto[]>([])
+const pendingDocumentDelete = ref<DocumentDto | null>(null)
+const documentDeleteBusy = ref(false)
 
 const preflight = ref<PreflightResponse | null>(null)
 const preflightBusy = ref(false)
@@ -43,18 +53,6 @@ const starting = ref(false)
 const startedRunId = ref('')
 const normativeProfile = ref<'roads' | 'electrical'>('roads')
 let preflightEpoch = 0
-
-const metadataBusy = ref(false)
-const metadataDraft = ref<Record<string, string>>({})
-const editingMetadata = ref(false)
-function openMetadataEditor() {
-  const revision = selectedVersion.value
-  if (revision)
-    metadataDraft.value = Object.fromEntries(
-      metadataEntries(revision).map((row) => [row.key, String(row.value)]),
-    )
-  editingMetadata.value = true
-}
 
 const pendingDelete = ref<RichVersion | null>(null)
 const deleteBusy = ref(false)
@@ -66,6 +64,8 @@ const historyRuns = ref<RunDto[]>([])
 const historyBusy = ref(false)
 const historyError = ref('')
 const historyHasMore = ref(false)
+const revisionsOpen = ref(true)
+const runsOpen = ref(false)
 const preflightColumns: TableColumn<PreflightRow>[] = [
   { accessorKey: 'vor', header: 'ВОР' },
   { accessorKey: 'pdf', header: 'PDF' },
@@ -90,6 +90,9 @@ const kindLabel = computed(() => (document.value?.kind === 'pdf' ? 'ПД' : 'В�
 const sortedVersions = computed<RichVersion[]>(() => document.value?.versions ?? [])
 const isVor = computed(() => document.value?.kind === 'vor')
 const isPdf = computed(() => document.value?.kind === 'pdf')
+const manageableDocuments = computed(() =>
+  catalogDocuments.value.filter((item) => item.id !== document.value?.id && !item.archived),
+)
 const selectedVersion = computed<RichVersion | null>(() => {
   if (!sortedVersions.value.length) return null
   const wanted = requestedVersion.value || document.value?.current_version_id || ''
@@ -103,11 +106,60 @@ const selectedVersion = computed<RichVersion | null>(() => {
 const bindingReferences = ref<string[]>([])
 const bindingDraft = ref<Record<string, string>>({})
 const savedBindings = ref('{}')
-const bindingOptions = ref<{ label: string; value: string }[]>([])
+const bindingOptions = ref<BindingOption[]>([])
 const bindingsBusy = ref(false)
 const bindingsError = ref('')
+const bindingsManualOpen = ref(true)
 let bindingEpoch = 0
 const bindingsDirty = computed(() => JSON.stringify(bindingDraft.value) !== savedBindings.value)
+const fileTypeLabel = computed(() => {
+  if (isPdf.value) return 'PDF'
+  const extension = selectedVersion.value?.filename.split('.').pop()?.toUpperCase()
+  return extension === 'CSV' ? 'CSV' : 'XLSX'
+})
+function cleanBindingName(value: string) {
+  return value.replaceAll('\\', '/').split('/').pop()?.trim().toLocaleLowerCase('ru-RU') || ''
+}
+function bindingStem(value: string) {
+  return cleanBindingName(value)
+    .replace(/\.[^.]+$/, '')
+    .replace(/[^a-zA-Zа-яА-Я0-9]/g, '')
+}
+function resolveBindingOption(reference: string) {
+  const explicit = bindingDraft.value[reference]
+  if (explicit) return bindingOptions.value.find((item) => item.value === explicit) || null
+  const clean = cleanBindingName(reference)
+  const exact = bindingOptions.value.filter((item) => cleanBindingName(item.filename) === clean)
+  if (exact.length === 1) return exact[0] || null
+  const target = bindingStem(reference)
+  const fuzzy = bindingOptions.value.filter((item) => {
+    const candidate = bindingStem(item.filename)
+    return (
+      target &&
+      candidate &&
+      (target === candidate || target.includes(candidate) || candidate.includes(target))
+    )
+  })
+  return fuzzy.length === 1 ? fuzzy[0] || null : null
+}
+const resolvedBindingGroups = computed(() => {
+  const groups = new Map<
+    string,
+    { key: string; option: BindingOption | null; references: string[] }
+  >()
+  for (const reference of bindingReferences.value) {
+    const option = resolveBindingOption(reference)
+    const key = option?.value || `unresolved:${reference}`
+    const existing = groups.get(key)
+    if (existing) existing.references.push(reference)
+    else groups.set(key, { key, option, references: [reference] })
+  }
+  return Array.from(groups.values())
+})
+const latestRun = computed(() => historyRuns.value[0] || null)
+const auditStatusLabel = (status: string) =>
+  ({ done: 'Завершена', failed: 'Ошибка', running: 'Выполняется', queued: 'В очереди' })[status] ||
+  status
 async function loadBindings() {
   const revision = selectedVersion.value
   const current = ++bindingEpoch
@@ -123,6 +175,7 @@ async function loadBindings() {
       backend.catalog(projectId.value, false, document.value?.department_id || undefined),
     ])
     if (!active || current !== bindingEpoch) return
+    catalogDocuments.value = catalog
     bindingReferences.value = data.references
     bindingDraft.value = { ...data.bindings }
     savedBindings.value = JSON.stringify(bindingDraft.value)
@@ -132,12 +185,45 @@ async function loadBindings() {
         d.versions.map((v) => ({
           value: v.id,
           label: `${d.title || v.filename} · версия ${v.number} · ${v.filename}`,
+          filename: v.filename,
+          documentTitle: d.title || v.filename,
         })),
       )
   } catch (e) {
     if (active && current === bindingEpoch) bindingsError.value = readableError(e)
   } finally {
     if (current === bindingEpoch) bindingsBusy.value = false
+  }
+}
+
+async function refreshCatalog() {
+  catalogDocuments.value = await backend.catalog(
+    projectId.value,
+    false,
+    document.value?.department_id || undefined,
+  )
+}
+
+async function afterDocumentsSaved() {
+  importOpen.value = false
+  await loadDocument()
+  await loadBindings()
+  notice.value = 'Документы добавлены.'
+}
+
+async function confirmDocumentDelete() {
+  const target = pendingDocumentDelete.value
+  if (!target || documentDeleteBusy.value || locksMutations.value) return
+  documentDeleteBusy.value = true
+  try {
+    await backend.deleteDocument(target.id)
+    pendingDocumentDelete.value = null
+    await loadBindings()
+    notice.value = `Документ «${target.title}» удалён.`
+  } catch (e) {
+    error.value = readableError(e)
+  } finally {
+    documentDeleteBusy.value = false
   }
 }
 async function saveBindings() {
@@ -195,28 +281,6 @@ function currentRevisionId() {
   )
 }
 
-function metadataEntries(version: RichVersion) {
-  const meta = version.metadata
-  const overrides = version.metadata_overrides || {}
-  return [
-    {
-      key: 'construction_title',
-      label: 'Объект строительства',
-      extracted: meta.construction_title,
-    },
-    { key: 'raw_title', label: 'Название из файла', extracted: meta.raw_title },
-    { key: 'document_code', label: 'Шифр документа', extracted: meta.document_code },
-    { key: 'pd_reference', label: 'Ссылка на ПД', extracted: meta.pd_reference },
-  ].map((row) => ({ ...row, value: overrides[row.key] ?? row.extracted ?? '' }))
-}
-
-function metadataProvenance(version: RichVersion, key: string) {
-  const source = version.metadata.sources?.[key]
-  if (!source) return 'Источник не зафиксирован'
-  const parts = [source.sheet, source.cell].filter(Boolean).join(' ')
-  return parts ? `Источник: ${parts}` : 'Источник не зафиксирован'
-}
-
 function resetPreflight() {
   preflightEpoch++
   preflightBusy.value = false
@@ -252,7 +316,6 @@ async function loadDocument() {
     }
     titleDraft.value = detail.title
     resetPreflight()
-    editingMetadata.value = false
     historyOffset.value = 0
     await loadHistory()
   } catch (e) {
@@ -293,7 +356,6 @@ async function loadHistory() {
 
 function selectVersion(id: string) {
   resetPreflight()
-  editingMetadata.value = false
   historyOffset.value = 0
   router.replace({ query: { ...route.query, version: id } })
 }
@@ -328,28 +390,6 @@ async function setCurrent(id: string) {
       : 'Текущая редакция ВОР обновлена.'
   } catch (e) {
     error.value = readableError(e)
-  }
-}
-
-async function saveMetadata() {
-  const revision = selectedVersion.value
-  if (!revision || metadataBusy.value || locksMutations.value) return
-  metadataBusy.value = true
-  error.value = ''
-  try {
-    const allowed = ['construction_title', 'raw_title', 'document_code', 'pd_reference']
-    const fields: Record<string, string> = {}
-    for (const key of allowed) {
-      fields[key] = (metadataDraft.value[key] ?? '').trim()
-    }
-    await backend.updateMetadata(revision.id, fields)
-    editingMetadata.value = false
-    await loadDocument()
-    notice.value = 'Метаданные сохранены. Извлечённые значения не изменены.'
-  } catch (e) {
-    error.value = readableError(e)
-  } finally {
-    metadataBusy.value = false
   }
 }
 
@@ -502,7 +542,6 @@ function downloadRevision(version: RichVersion) {
 
 watch(requestedVersion, () => {
   resetPreflight()
-  editingMetadata.value = false
   historyOffset.value = 0
   void loadHistory()
 })
@@ -573,6 +612,7 @@ onBeforeUnmount(() => {
           >
             Восстановить
           </UButton>
+          <DocumentFormatCheck v-if="isVor && selectedVersion" :version="selectedVersion" />
         </div>
       </div>
 
@@ -629,10 +669,29 @@ onBeforeUnmount(() => {
       </div>
 
       <template v-if="document && selectedVersion">
-        <section class="panel revision-panel" aria-label="Выбор редакции">
-          <div class="toolbar spread revision-bar">
+        <section class="panel revision-panel revision-overview" aria-label="Текущая редакция">
+          <div class="revision-copy">
+            <div
+              class="file-mark"
+              :class="isVor ? 'file-mark-xlsx' : 'file-mark-pdf'"
+              aria-hidden="true"
+            >
+              <span>{{ fileTypeLabel }}</span>
+            </div>
+            <div class="revision-identity">
+              <span class="section-kicker">Текущая редакция</span>
+              <strong class="source-name" :title="selectedVersion.filename">
+                {{ selectedVersion.filename }}
+              </strong>
+              <span class="muted">
+                Редакция {{ selectedVersion.number }} · {{ formatBytes(selectedVersion.size) }} ·
+                {{ formatDate(selectedVersion.created_at) }}
+              </span>
+            </div>
+          </div>
+          <div class="revision-controls">
             <div class="revision-select">
-              <label class="muted" for="revision-select">Редакция документа</label>
+              <label class="muted" for="revision-select">Выбрать редакцию</label>
               <USelect
                 id="revision-select"
                 :model-value="selectedVersion.id"
@@ -646,7 +705,7 @@ onBeforeUnmount(() => {
                 @update:model-value="selectVersion(String($event))"
               />
             </div>
-            <div class="toolbar">
+            <div class="toolbar revision-actions">
               <input
                 ref="revisionInput"
                 type="file"
@@ -671,18 +730,10 @@ onBeforeUnmount(() => {
               >
                 Скачать
               </UButton>
-              <DocumentFormatCheck v-if="isVor" :version="selectedVersion" />
             </div>
           </div>
-          <p class="muted source-name" :title="selectedVersion.filename">
-            Исходный файл: {{ selectedVersion.filename }}, редакция {{ selectedVersion.number }} ·
-            {{ formatBytes(selectedVersion.size) }} ·
-            {{ formatDate(selectedVersion.created_at) }}
-            <span v-if="selectedVersion.id === document.current_version_id">· действующая</span>
-          </p>
-          <div class="toolbar">
+          <div v-if="selectedVersion.id !== document.current_version_id" class="revision-current">
             <UButton
-              v-if="selectedVersion.id !== document.current_version_id"
               variant="outline"
               :disabled="!!locksMutations"
               :aria-label="`Сделать действующей редакцию ${selectedVersion.number}`"
@@ -690,150 +741,190 @@ onBeforeUnmount(() => {
             >
               Сделать действующей
             </UButton>
-            <span v-else class="muted" role="status">Действующая редакция</span>
           </div>
         </section>
 
-        <section class="panel" aria-label="Реквизиты редакции">
-          <div class="toolbar spread">
+        <section
+          v-if="isVor"
+          class="panel binding-panel"
+          aria-label="Связи ВОР и проектной документации"
+        >
+          <div class="binding-heading">
             <div>
-              <h2>Реквизиты</h2>
-              <p class="muted">Извлечённые значения сохраняются; правки лежат поверх извлечения.</p>
-            </div>
-            <UButton
-              v-if="!editingMetadata"
-              variant="outline"
-              :disabled="!!locksMutations"
-              aria-label="Уточнить реквизиты"
-              @click="openMetadataEditor()"
-            >
-              Уточнить реквизиты
-            </UButton>
-          </div>
-          <dl v-if="!editingMetadata" class="metadata-read">
-            <div
-              v-for="row in metadataEntries(selectedVersion)"
-              :key="row.key"
-              class="metadata-line"
-            >
-              <dt>{{ row.label }}</dt>
-              <dd class="metadata-value" :title="String(row.value || '')">
-                {{ row.value || '—' }}
-              </dd>
-              <dd
-                class="muted metadata-source"
-                :title="metadataProvenance(selectedVersion, row.key)"
-              >
-                {{ metadataProvenance(selectedVersion, row.key) }}
-              </dd>
-            </div>
-          </dl>
-          <template v-else>
-            <div
-              v-for="row in metadataEntries(selectedVersion)"
-              :key="row.key"
-              class="metadata-row"
-            >
-              <div class="metadata-head">
-                <label :for="`metadata-${row.key}`">{{ row.label }}</label>
-                <span
-                  class="muted metadata-source"
-                  :title="metadataProvenance(selectedVersion, row.key)"
-                >
-                  {{ metadataProvenance(selectedVersion, row.key) }}
-                </span>
-              </div>
-              <UInput
-                :id="`metadata-${row.key}`"
-                v-model="metadataDraft[row.key]"
-                :placeholder="row.extracted || '—'"
-                :aria-label="`${row.label}, извлечено: ${row.extracted || 'пусто'}`"
-                class="metadata-input"
-              />
-              <p class="muted metadata-raw" :title="String(row.extracted || '')">
-                Извлечено: {{ row.extracted || '—' }}
+              <h2>Связи ВОР и проектной документации</h2>
+              <p class="muted">
+                Сначала система сопоставит ссылки из ведомости с PDF по имени файла.
               </p>
             </div>
-            <div class="toolbar">
+            <div class="binding-heading-side">
               <UButton
-                color="primary"
-                :loading="metadataBusy"
-                :disabled="metadataBusy || !!locksMutations"
-                aria-label="Сохранить метаданные редакции"
-                @click="saveMetadata()"
+                variant="outline"
+                icon="i-lucide-files"
+                :disabled="!!locksMutations"
+                @click="importOpen = true"
               >
-                Сохранить метаданные
-              </UButton>
-              <UButton
-                variant="ghost"
-                :disabled="metadataBusy"
-                aria-label="Отменить уточнение реквизитов"
-                @click="editingMetadata = false"
-              >
-                Отмена
+                Добавить PDF или XLSX
               </UButton>
             </div>
-          </template>
-        </section>
-
-        <section v-if="isVor" class="panel" aria-label="Проверка и запуск">
-          <h2>Проверка и запуск</h2>
-          <p class="muted">
-            Укажите, какой загруженный PDF соответствует ссылке из ВОР. Явная привязка имеет
-            приоритет над именем файла: можно выбрать копию или нужную редакцию ПД. Обозначения и
-            содержимое документа продолжат проверяться.
-          </p>
-          <div class="preflight-block" aria-label="Привязки ВОР и ПД">
+          </div>
+          <div class="binding-canvas" aria-label="Привязки ВОР и ПД">
             <p v-if="bindingsBusy" role="status">Загружаем или сохраняем привязки…</p>
             <p v-if="bindingsError" class="error-box" role="alert">{{ bindingsError }}</p>
-            <div v-for="reference in bindingReferences" :key="reference" class="preflight-block">
-              <label :for="`binding-${reference}`">Ссылка из ВОР: {{ reference }}</label>
-              <select
-                :id="`binding-${reference}`"
-                v-model="bindingDraft[reference]"
-                :aria-label="`ПД для ссылки ${reference}`"
-                :disabled="bindingsBusy || !!locksMutations"
-                class="binding-select"
-              >
-                <option value="">Автоматически по имени файла</option>
-                <option v-for="item in bindingOptions" :key="item.value" :value="item.value">
-                  {{ item.label }}
-                </option>
-                <option
-                  v-if="
-                    bindingDraft[reference] &&
-                    !bindingOptions.some((item) => item.value === bindingDraft[reference])
-                  "
-                  :value="bindingDraft[reference]"
-                >
-                  Выбранная версия недоступна — выберите другой PDF
-                </option>
-              </select>
-            </div>
-            <p v-if="!bindingsBusy && !bindingsError && !bindingReferences.length" class="muted">
-              В этой версии ВОР нет ссылок на файлы ПД.
-            </p>
-            <UButton
-              v-if="bindingReferences.length"
-              :loading="bindingsBusy"
-              :disabled="!bindingsDirty || !!locksMutations"
-              @click="saveBindings"
-              >Сохранить привязки ПД</UButton
+            <div
+              v-if="!bindingsBusy && !bindingsError && bindingReferences.length"
+              class="binding-auto-summary"
             >
-            <p v-if="bindingsDirty" class="muted">
-              Сохраните привязки перед запуском проверки. Действующие проверки сохраняют прежние
-              привязки.
-            </p>
+              <div class="binding-summary-head">
+                <div class="binding-auto-icon" aria-hidden="true">
+                  <UIcon name="i-lucide-wand-sparkles" />
+                </div>
+                <div class="binding-auto-copy">
+                  <strong>Связи определены по именам файлов</strong>
+                  <span class="muted">
+                    {{ resolvedBindingGroups.filter((group) => group.option).length }} из
+                    {{ resolvedBindingGroups.length }} определено автоматически
+                  </span>
+                </div>
+                <UButton
+                  variant="outline"
+                  :icon="bindingsManualOpen ? 'i-lucide-chevron-up' : 'i-lucide-settings-2'"
+                  :aria-expanded="bindingsManualOpen"
+                  @click="bindingsManualOpen = !bindingsManualOpen"
+                >
+                  {{ bindingsManualOpen ? 'Скрыть настройку' : 'Настроить вручную' }}
+                </UButton>
+              </div>
+              <ul class="binding-map-list" aria-label="Автоматически определённые связи">
+                <li v-for="group in resolvedBindingGroups" :key="group.key" class="binding-map-row">
+                  <div class="binding-map-file binding-map-xlsx">
+                    <span class="binding-file-tile">{{ fileTypeLabel }}</span>
+                    <div>
+                      <strong :title="selectedVersion.filename">{{
+                        selectedVersion.filename
+                      }}</strong>
+                    </div>
+                  </div>
+                  <div class="binding-map-link" aria-hidden="true">
+                    <UIcon :name="group.option ? 'i-lucide-arrow-right' : 'i-lucide-circle-help'" />
+                    <span>{{ group.option ? 'Связан' : 'Не определён' }}</span>
+                  </div>
+                  <div
+                    class="binding-map-file binding-map-pdf"
+                    :class="{ 'binding-map-unresolved': !group.option }"
+                  >
+                    <span class="binding-file-tile">{{ group.option ? 'PDF' : '?' }}</span>
+                    <div>
+                      <strong :title="group.option?.filename || group.references.join(', ')">
+                        {{ group.option?.filename || 'PDF не определён' }}
+                      </strong>
+                      <span v-if="!group.option" class="muted">Нужно выбрать вручную</span>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div v-if="bindingsManualOpen && bindingReferences.length" class="binding-manual">
+              <div class="binding-manual-note">
+                <strong>Ручные исключения</strong>
+                <span class="muted"
+                  >Меняйте только ссылки, которые система не смогла определить однозначно.</span
+                >
+              </div>
+              <div
+                v-for="(reference, index) in bindingReferences"
+                :key="reference"
+                class="binding-row"
+              >
+                <div class="binding-source">
+                  <span class="binding-index">{{ index + 1 }}</span>
+                  <div>
+                    <span class="binding-label">Ссылка в XLSX</span>
+                    <strong :title="reference">{{ reference }}</strong>
+                  </div>
+                </div>
+                <div class="binding-arrow" aria-hidden="true">
+                  <UIcon name="i-lucide-arrow-right" />
+                </div>
+                <div
+                  class="binding-target"
+                  :class="{ 'binding-target-linked': bindingDraft[reference] }"
+                >
+                  <div class="binding-target-head">
+                    <span class="binding-label">Редакция PDF</span>
+                    <UBadge
+                      :color="bindingDraft[reference] ? 'success' : 'neutral'"
+                      variant="soft"
+                      :label="bindingDraft[reference] ? 'Выбрано вручную' : 'Автоподбор'"
+                    />
+                  </div>
+                  <label :for="`binding-${reference}`" class="visually-hidden">
+                    ПД для ссылки {{ reference }}
+                  </label>
+                  <select
+                    :id="`binding-${reference}`"
+                    v-model="bindingDraft[reference]"
+                    :aria-label="`ПД для ссылки ${reference}`"
+                    :disabled="bindingsBusy || !!locksMutations"
+                    class="binding-select"
+                  >
+                    <option value="">Автоматически по имени файла</option>
+                    <option v-for="item in bindingOptions" :key="item.value" :value="item.value">
+                      {{ item.label }}
+                    </option>
+                    <option
+                      v-if="
+                        bindingDraft[reference] &&
+                        !bindingOptions.some((item) => item.value === bindingDraft[reference])
+                      "
+                      :value="bindingDraft[reference]"
+                    >
+                      Выбранная версия недоступна — выберите другой PDF
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div
+              v-if="!bindingsBusy && !bindingsError && !bindingReferences.length"
+              class="binding-empty"
+            >
+              <UIcon name="i-lucide-file-check-2" />
+              <div>
+                <strong>Ссылки на PDF не найдены</strong>
+                <p class="muted">Проверку можно запустить без ручных привязок.</p>
+              </div>
+            </div>
           </div>
-          <div class="preflight-block">
-            <label class="profile-row">
-              Нормативный профиль
-              <select v-model="normativeProfile" aria-label="Нормативный профиль">
-                <option value="roads">Дороги · ГЭСН27/47</option>
-                <option value="electrical">Электрика · ГЭСНм08</option>
-              </select>
-            </label>
-            <div class="toolbar">
+          <div class="launch-bar">
+            <div class="launch-copy">
+              <strong>{{
+                bindingsDirty ? 'Есть несохранённые изменения' : 'Можно запускать проверку'
+              }}</strong>
+              <span class="muted">
+                {{
+                  bindingsDirty
+                    ? 'Сначала сохраните выбранные PDF.'
+                    : 'Привязки фиксируются внутри нового запуска.'
+                }}
+              </span>
+            </div>
+            <div class="toolbar launch-actions">
+              <label class="profile-row">
+                Нормативный профиль
+                <select v-model="normativeProfile" aria-label="Нормативный профиль">
+                  <option value="roads">Дороги · ГЭСН27/47</option>
+                  <option value="electrical">Электрика · ГЭСНм08</option>
+                </select>
+              </label>
+              <UButton
+                v-if="bindingsManualOpen && bindingReferences.length"
+                variant="outline"
+                :loading="bindingsBusy"
+                :disabled="!bindingsDirty || !!locksMutations"
+                @click="saveBindings"
+              >
+                Сохранить привязки ПД
+              </UButton>
               <UButton
                 data-testid="start-audit"
                 color="primary"
@@ -846,12 +937,14 @@ onBeforeUnmount(() => {
                   bindingsDirty ||
                   !!bindingsError
                 "
-                aria-label="Проверить"
+                aria-label="Запустить проверку"
                 @click="checkAndStart()"
               >
-                Проверить
+                Запустить проверку
               </UButton>
             </div>
+          </div>
+          <div class="preflight-block">
             <p v-if="preflightError" class="error-box" role="alert">{{ preflightError }}</p>
             <div v-if="preflight" class="preflight-result">
               <UBadge
@@ -896,26 +989,56 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <section v-else class="panel" aria-label="Редакции ПД">
-          <h2>Редакции ПД</h2>
-          <p class="muted">Действующая редакция выделяется явно и участвует в проверке.</p>
-          <ul class="revision-list" aria-label="Все редакции ПД">
+        <section
+          class="panel disclosure-panel"
+          :aria-label="isVor ? 'История редакций ВОР' : 'История редакций ПД'"
+        >
+          <button
+            type="button"
+            class="disclosure-trigger"
+            :aria-label="isVor ? 'История редакций ВОР' : 'История редакций ПД'"
+            :aria-expanded="revisionsOpen"
+            @click="revisionsOpen = !revisionsOpen"
+          >
+            <span class="disclosure-title">
+              <UIcon name="i-lucide-layers-3" />
+              <span>
+                <strong>{{ isVor ? 'История редакций ВОР' : 'История редакций ПД' }}</strong>
+                <small
+                  >{{ sortedVersions.length }} редакций · текущая №
+                  {{ selectedVersion.number }}</small
+                >
+              </span>
+            </span>
+            <UIcon :name="revisionsOpen ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" />
+          </button>
+          <ul
+            v-if="revisionsOpen"
+            class="revision-list disclosure-content"
+            :aria-label="isVor ? 'Все редакции ведомости' : 'Все редакции ПД'"
+          >
             <li
               v-for="version in sortedVersions"
               :key="version.id"
               class="revision-row"
               :class="{ 'revision-row-current': version.id === document.current_version_id }"
             >
-              <div class="revision-main">
-                <span
-                  class="revision-name"
-                  :title="`${version.filename}, редакция ${version.number}`"
-                >
+              <div class="revision-number" aria-hidden="true">
+                <span>№</span>
+                <strong>{{ version.number }}</strong>
+              </div>
+              <div class="revision-history-copy">
+                <strong class="revision-name" :title="version.filename">
                   {{ version.filename }}, редакция {{ version.number }}
+                </strong>
+                <span class="muted">
+                  {{ formatDate(version.created_at) }} · {{ formatBytes(version.size) }}
                 </span>
+              </div>
+              <div class="revision-state">
                 <UBadge
                   v-if="version.id === document.current_version_id"
-                  color="primary"
+                  color="success"
                   variant="soft"
                   label="Действующая"
                 />
@@ -923,103 +1046,52 @@ onBeforeUnmount(() => {
                   v-if="version.id === selectedVersion.id"
                   color="neutral"
                   variant="soft"
-                  label="Выбрана"
+                  label="Открыта"
                 />
               </div>
-              <div class="toolbar">
+              <div class="revision-history-actions">
                 <UButton
-                  variant="link"
+                  v-if="version.id !== selectedVersion.id"
+                  variant="ghost"
+                  color="neutral"
+                  icon="i-lucide-arrow-right"
                   :aria-label="`Выбрать редакцию ${version.number}`"
                   @click="selectVersion(version.id)"
                 >
-                  Выбрать
+                  Открыть
                 </UButton>
                 <UButton
-                  v-if="version.id !== document.current_version_id"
-                  variant="link"
-                  :disabled="!!locksMutations"
-                  :aria-label="`Сделать действующей редакцию ${version.number}`"
-                  @click="setCurrent(version.id)"
-                >
-                  Сделать действующей
-                </UButton>
-                <UButton
-                  variant="link"
+                  variant="ghost"
+                  color="neutral"
+                  icon="i-lucide-download"
                   :aria-label="`Скачать ${version.filename}, редакция ${version.number}`"
                   @click="downloadRevision(version)"
                 >
                   Скачать
                 </UButton>
                 <UButton
-                  variant="link"
+                  variant="ghost"
                   color="error"
+                  icon="i-lucide-trash-2"
                   :disabled="!!locksMutations"
                   :aria-label="`Удалить редакцию ${version.number}`"
                   @click="askDelete(version)"
                 >
-                  Удалить
+                  <span class="visually-hidden">Удалить</span>
                 </UButton>
               </div>
             </li>
           </ul>
         </section>
 
-        <section v-if="isVor" class="panel" aria-label="История редакций ВОР">
-          <h2>История редакций</h2>
-          <ul class="revision-list" aria-label="Все редакции ведомости">
-            <li
-              v-for="version in sortedVersions"
-              :key="version.id"
-              class="revision-row"
-              :class="{ 'revision-row-current': version.id === document.current_version_id }"
-            >
-              <div class="revision-main">
-                <span
-                  class="revision-name"
-                  :title="`${version.filename}, редакция ${version.number}`"
-                >
-                  {{ version.filename }}, редакция {{ version.number }} ·
-                  {{ formatDate(version.created_at) }}
-                </span>
-                <UBadge
-                  v-if="version.id === document.current_version_id"
-                  color="primary"
-                  variant="soft"
-                  label="Действующая"
-                />
-              </div>
-              <div class="toolbar">
-                <UButton
-                  variant="link"
-                  :aria-label="`Выбрать редакцию ${version.number}`"
-                  @click="selectVersion(version.id)"
-                >
-                  Выбрать
-                </UButton>
-                <UButton
-                  variant="link"
-                  :aria-label="`Скачать ${version.filename}, редакция ${version.number}`"
-                  @click="downloadRevision(version)"
-                >
-                  Скачать
-                </UButton>
-                <UButton
-                  variant="link"
-                  color="error"
-                  :disabled="!!locksMutations"
-                  :aria-label="`Удалить редакцию ${version.number}`"
-                  @click="askDelete(version)"
-                >
-                  Удалить
-                </UButton>
-              </div>
-            </li>
-          </ul>
-        </section>
-
-        <section v-if="isVor" class="panel" aria-label="Проверки выбранной редакции">
-          <h2>Проверки редакции</h2>
-          <p class="muted">Неизменяемые запуски для редакции {{ selectedVersion.number }}.</p>
+        <section v-if="isVor" class="panel runs-panel" aria-label="Проверки выбранной редакции">
+          <div class="runs-heading">
+            <div>
+              <span class="section-kicker">Редакция {{ selectedVersion.number }}</span>
+              <h2>Проверки</h2>
+            </div>
+            <UBadge variant="soft" color="neutral" :label="`${historyRuns.length} запусков`" />
+          </div>
           <p v-if="historyBusy" class="empty" role="status">Загружаем запуски…</p>
           <p v-else-if="historyError" class="error-box" role="alert">
             {{ historyError }}
@@ -1028,54 +1100,90 @@ onBeforeUnmount(() => {
             </UButton>
           </p>
           <p v-else-if="!historyRuns.length" class="empty" role="status">
-            {{
-              historyOffset || historyHasMore
-                ? 'На этой странице истории запусков этой редакции нет.'
-                : 'Для этой редакции запусков пока нет.'
-            }}
+            Запусков с этим документом пока нет.
           </p>
-          <div v-else class="table-wrap">
-            <UTable
-              sticky="header"
-              :data="historyRuns"
-              :columns="historyColumns"
-              class="results max-h-[60vh] overflow-auto"
+          <template v-else>
+            <NuxtLink :to="`/audits/${latestRun?.run_id}`" class="latest-run">
+              <div class="latest-run-icon"><UIcon name="i-lucide-file-check-2" /></div>
+              <div class="latest-run-copy">
+                <span class="binding-label">Последняя проверка</span>
+                <strong>{{ formatDate(latestRun?.created_at) }}</strong>
+                <span class="muted">{{ latestRun?.vor_filename }}</span>
+              </div>
+              <UBadge
+                :color="
+                  latestRun?.status === 'done'
+                    ? 'success'
+                    : latestRun?.status === 'failed'
+                      ? 'error'
+                      : 'warning'
+                "
+                variant="soft"
+                :label="auditStatusLabel(latestRun?.status || '')"
+              />
+              <span class="latest-run-count">
+                {{ (latestRun?.done || 0) + (latestRun?.failed || 0) }} /
+                {{ latestRun?.total ?? '…' }}
+              </span>
+              <UIcon name="i-lucide-arrow-up-right" class="latest-run-arrow" />
+            </NuxtLink>
+            <button
+              v-if="historyRuns.length > 1"
+              type="button"
+              class="runs-trigger"
+              :aria-expanded="runsOpen"
+              @click="runsOpen = !runsOpen"
             >
-              <template #run-cell="{ row }">
-                <span class="cell-wrap" :title="row.original.vor_filename">
-                  {{ row.original.vor_filename }} · {{ formatDate(row.original.created_at) }}
-                </span>
-              </template>
-              <template #status-cell="{ row }">
-                <UBadge
-                  :color="
-                    row.original.status === 'done'
-                      ? 'success'
-                      : row.original.status === 'failed'
-                        ? 'error'
-                        : 'warning'
-                  "
-                  variant="soft"
-                  :label="row.original.status"
-                />
-              </template>
-              <template #count-cell="{ row }">
-                <span class="numbers"
-                  >{{ row.original.done + row.original.failed }} /
-                  {{ row.original.total ?? '…' }}</span
-                >
-              </template>
-              <template #action-cell="{ row }">
-                <UButton
-                  variant="link"
-                  :to="`/audits/${row.original.run_id}`"
-                  :aria-label="`Открыть запуск ${row.original.vor_filename}`"
-                >
-                  Открыть
-                </UButton>
-              </template>
-            </UTable>
-          </div>
+              <span>{{
+                runsOpen
+                  ? 'Скрыть остальные проверки'
+                  : `Показать остальные · ${historyRuns.length - 1}`
+              }}</span>
+              <UIcon :name="runsOpen ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" />
+            </button>
+            <div v-if="runsOpen && historyRuns.length > 1" class="table-wrap runs-table">
+              <UTable
+                sticky="header"
+                :data="historyRuns.slice(1)"
+                :columns="historyColumns"
+                class="results max-h-[60vh] overflow-auto"
+              >
+                <template #run-cell="{ row }">
+                  <span class="cell-wrap" :title="row.original.vor_filename">
+                    {{ row.original.vor_filename }} · {{ formatDate(row.original.created_at) }}
+                  </span>
+                </template>
+                <template #status-cell="{ row }">
+                  <UBadge
+                    :color="
+                      row.original.status === 'done'
+                        ? 'success'
+                        : row.original.status === 'failed'
+                          ? 'error'
+                          : 'warning'
+                    "
+                    variant="soft"
+                    :label="row.original.status"
+                  />
+                </template>
+                <template #count-cell="{ row }">
+                  <span class="numbers"
+                    >{{ row.original.done + row.original.failed }} /
+                    {{ row.original.total ?? '…' }}</span
+                  >
+                </template>
+                <template #action-cell="{ row }">
+                  <UButton
+                    variant="link"
+                    :to="`/audits/${row.original.run_id}`"
+                    :aria-label="`Открыть запуск ${row.original.vor_filename}`"
+                  >
+                    Открыть
+                  </UButton>
+                </template>
+              </UTable>
+            </div>
+          </template>
           <div v-if="historyOffset || historyHasMore" class="toolbar pagination">
             <UButton
               :disabled="historyOffset === 0"
@@ -1114,6 +1222,91 @@ onBeforeUnmount(() => {
         Документ пуст: загрузите первую редакцию кнопкой «Новая редакция» из проекта.
       </div>
     </main>
+
+    <UModal
+      v-model:open="importOpen"
+      title="Добавить документы"
+      description="Загрузка останется на текущей странице"
+      :ui="{ content: 'max-w-3xl' }"
+    >
+      <template #body>
+        <DocumentImport
+          v-if="document"
+          :project-id="projectId"
+          :department-id="document.department_id || undefined"
+          :project-name="projectName"
+          :documents="catalogDocuments"
+          @changed="refreshCatalog"
+          @saved="afterDocumentsSaved"
+        />
+
+        <section class="managed-documents" aria-labelledby="managed-documents-title">
+          <div class="managed-documents-heading">
+            <div>
+              <h3 id="managed-documents-title">Документы отдела</h3>
+              <p class="muted">Можно удалить ошибочно добавленный PDF или XLSX.</p>
+            </div>
+            <span class="muted">{{ manageableDocuments.length }}</span>
+          </div>
+          <ul v-if="manageableDocuments.length" class="managed-document-list">
+            <li v-for="item in manageableDocuments" :key="item.id" class="managed-document-row">
+              <div class="managed-document-icon" aria-hidden="true">
+                <UIcon
+                  :name="item.kind === 'pdf' ? 'i-lucide-file-text' : 'i-lucide-file-spreadsheet'"
+                />
+              </div>
+              <div class="managed-document-copy">
+                <strong :title="item.title">{{ item.title }}</strong>
+                <span class="muted">
+                  {{ item.kind === 'pdf' ? 'ПД' : 'ВОР' }} · редакций {{ item.versions.length }}
+                </span>
+              </div>
+              <UButton
+                color="error"
+                variant="ghost"
+                icon="i-lucide-trash-2"
+                :disabled="!!locksMutations"
+                :aria-label="`Удалить документ ${item.title}`"
+                @click="pendingDocumentDelete = item"
+              />
+            </li>
+          </ul>
+          <p v-else class="empty">Других документов в отделе пока нет.</p>
+        </section>
+      </template>
+    </UModal>
+
+    <UModal
+      :open="pendingDocumentDelete !== null"
+      title="Удалить документ?"
+      description="Документ и все его редакции будут удалены без восстановления"
+      @update:open="(open: boolean) => !open && (pendingDocumentDelete = null)"
+    >
+      <template #body>
+        <p v-if="pendingDocumentDelete" class="delete-name">
+          {{ pendingDocumentDelete.title }}
+        </p>
+      </template>
+      <template #footer>
+        <div class="toolbar">
+          <UButton
+            color="error"
+            :loading="documentDeleteBusy"
+            :disabled="documentDeleteBusy"
+            @click="confirmDocumentDelete"
+          >
+            Удалить документ
+          </UButton>
+          <UButton
+            variant="ghost"
+            :disabled="documentDeleteBusy"
+            @click="pendingDocumentDelete = null"
+          >
+            Отмена
+          </UButton>
+        </div>
+      </template>
+    </UModal>
 
     <UModal
       v-model:open="deleteOpen"
@@ -1183,39 +1376,36 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.binding-select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid var(--ui-border);
-  border-radius: 6px;
-  background: var(--ui-bg);
-  color: var(--ui-text);
-}
-
 .document-detail {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding-bottom: 48px;
+  gap: 20px;
+  padding-top: 28px;
+  padding-bottom: 64px;
 }
 .document-detail > .panel {
-  padding: 24px;
-  font-size: 14px;
+  padding: 28px;
 }
 .document-detail h2 {
-  font-size: 16px;
-  font-weight: 600;
+  margin: 2px 0 6px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
-.title-block {
+.title-block,
+.revision-identity,
+.revision-controls {
   min-width: 0;
 }
-.title-text {
+.title-text,
+.title-meta,
+.source-name,
+.revision-name,
+.delete-name {
   overflow-wrap: anywhere;
 }
-.title-meta {
-  overflow-wrap: anywhere;
-}
-.heading-actions {
+.heading-actions,
+.revision-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -1223,24 +1413,49 @@ onBeforeUnmount(() => {
 .document-alert {
   margin: 0;
 }
-.title-editor,
-.revision-panel {
+.title-editor {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
-.title-input {
+.title-input,
+.binding-select {
   width: 100%;
 }
-.revision-bar {
-  align-items: end;
+.revision-panel {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(360px, 1.2fr) auto;
+  align-items: center;
+  gap: 24px;
+}
+.revision-overview {
+  border-color: var(--ui-border-muted);
+  background: var(--ui-bg-elevated);
+}
+.revision-copy,
+.revision-identity,
+.revision-controls {
+  display: flex;
+}
+.revision-copy {
+  align-items: center;
+  gap: 16px;
+}
+.revision-identity,
+.revision-controls {
+  flex-direction: column;
+  gap: 4px;
 }
 .revision-select {
   display: flex;
+  flex: 1;
+  min-width: 0;
   flex-direction: column;
   gap: 4px;
-  min-width: 0;
-  flex: 1;
+}
+.revision-current {
+  display: flex;
+  justify-content: flex-end;
 }
 .revision-file {
   position: absolute;
@@ -1249,81 +1464,287 @@ onBeforeUnmount(() => {
   overflow: hidden;
   clip: rect(0 0 0 0);
 }
-.source-name {
-  overflow-wrap: anywhere;
-}
-.metadata-read {
-  margin: 12px 0 0;
-  padding: 0;
+.file-mark {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #b9d8c4;
+  border-radius: 9px;
+  background: #eef8f1;
+  color: #287a49;
 }
-.metadata-line {
-  display: grid;
-  grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr) minmax(160px, 1fr);
-  align-items: baseline;
-  gap: 4px 12px;
-  padding-block: 8px;
-  border-top: 1px solid var(--ui-border);
+.file-mark span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
 }
-.metadata-line dt {
+.file-mark-pdf {
+  border-color: #efc4c0;
+  background: #fff1f0;
+  color: #b7352d;
+}
+.section-kicker,
+.binding-label {
+  color: var(--ui-text-muted);
+  font-size: 13px;
   font-weight: 600;
 }
-.metadata-line dd {
-  margin: 0;
-}
-.metadata-value {
-  overflow-wrap: anywhere;
-}
-.metadata-row {
+.binding-heading,
+.runs-heading {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-block: 10px;
-  border-top: 1px solid var(--ui-border);
-}
-.metadata-head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 24px;
 }
-.metadata-source,
-.metadata-raw {
-  overflow-wrap: anywhere;
+.binding-heading-side {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 20px;
 }
-.metadata-input {
-  width: 100%;
-}
-.revision-list {
-  list-style: none;
-  margin: 12px 0;
-  padding: 0;
+.binding-canvas {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  margin-top: 22px;
 }
-.revision-row {
-  border: 1px solid var(--ui-border);
-  border-radius: 8px;
-  padding: 8px 12px;
-}
-.revision-row-current {
-  border-color: var(--ui-primary);
-}
-.revision-name,
-.delete-name {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.revision-main {
+.binding-auto-summary {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  overflow: hidden;
+  flex-direction: column;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: var(--ui-bg);
+}
+.binding-summary-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--ui-bg-muted);
+}
+.binding-auto-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--ui-primary) 10%, var(--ui-bg));
+  color: var(--ui-primary);
+}
+.binding-auto-icon svg {
+  width: 21px;
+  height: 21px;
+}
+.binding-auto-copy,
+.binding-manual,
+.binding-manual-note {
+  display: flex;
+  flex-direction: column;
+}
+.binding-auto-copy {
   min-width: 0;
+  gap: 3px;
+}
+.binding-map-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--ui-border);
+  list-style: none;
+}
+.binding-map-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--ui-bg);
+}
+.binding-map-row + .binding-map-row {
+  border-top: 1px solid var(--ui-border-muted);
+}
+.binding-map-file {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+.binding-map-file > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.binding-map-file strong,
+.binding-map-file .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.binding-map-file .muted {
+  font-size: 12px;
+}
+.binding-file-tile {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #efc4c0;
+  border-radius: 8px;
+  background: #fff1f0;
+  color: #b7352d;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+.binding-map-xlsx .binding-file-tile {
+  border-color: #b9d8c4;
+  background: #eef8f1;
+  color: #287a49;
+}
+.binding-map-unresolved .binding-file-tile {
+  border-color: var(--ui-border);
+  background: var(--ui-bg);
+  color: var(--ui-text-muted);
+}
+.binding-map-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--ui-primary);
+}
+.binding-map-link span {
+  font-size: 11px;
+  font-weight: 650;
+}
+.binding-map-link svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2.5;
+}
+.binding-manual {
+  gap: 12px;
+  padding-top: 4px;
+}
+.binding-manual-note {
+  gap: 2px;
+  padding: 2px 2px 4px;
+}
+.binding-manual-note .muted {
+  font-size: 13px;
+}
+.binding-row {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.8fr) 64px minmax(320px, 1.5fr);
+  align-items: stretch;
+}
+.binding-source,
+.binding-target {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: var(--ui-bg);
+}
+.binding-source {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.binding-source > div,
+.binding-target {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.binding-source strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.binding-index {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ui-bg-accented);
+  font-size: 13px;
+  font-weight: 700;
+}
+.binding-target {
+  transition: border-color 160ms var(--app-ease);
+}
+.binding-target-linked {
+  border-color: color-mix(in srgb, var(--ui-success) 55%, var(--ui-border));
+}
+.binding-target-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.binding-select {
+  min-height: 44px;
+  padding: 10px 36px 10px 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+  background: var(--ui-bg);
+  color: var(--ui-text);
+}
+.binding-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ui-text-muted);
+}
+.binding-arrow svg {
+  width: 20px;
+  height: 20px;
+}
+.binding-empty,
+.runs-empty {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  border: 1px dashed var(--ui-border-accented);
+  border-radius: 10px;
+  background: var(--ui-bg);
+}
+.binding-empty > svg,
+.runs-empty > svg {
+  width: 28px;
+  height: 28px;
+  color: var(--ui-primary);
+}
+.binding-empty p,
+.runs-empty p {
+  margin: 2px 0 0;
+}
+.launch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--ui-border-muted);
+}
+.launch-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .preflight-block {
   margin-top: 16px;
@@ -1336,27 +1757,343 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 12px;
 }
+.revision-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+.revision-row {
+  padding: 12px 16px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+}
+.revision-row-current {
+  border-color: var(--ui-primary);
+}
+.revision-main {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.disclosure-panel {
+  padding: 0 !important;
+  overflow: hidden;
+}
+.disclosure-trigger,
+.runs-trigger {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ui-text);
+  text-align: left;
+}
+.disclosure-trigger {
+  display: flex;
+  min-height: 82px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+}
+.disclosure-trigger:hover,
+.runs-trigger:hover {
+  background: var(--ui-bg-muted);
+}
+.disclosure-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.disclosure-title > svg {
+  width: 22px;
+  height: 22px;
+  color: var(--ui-primary);
+}
+.disclosure-title span {
+  display: flex;
+  flex-direction: column;
+}
+.disclosure-title small {
+  color: var(--ui-text-muted);
+  font-size: 13px;
+}
+.disclosure-content {
+  margin: 0;
+  padding: 16px 24px 24px;
+  border-top: 1px solid var(--ui-border-muted);
+}
+.disclosure-content .revision-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-color: var(--ui-border-muted);
+  background: var(--ui-bg);
+}
+.disclosure-content .revision-row-current {
+  border-color: color-mix(in srgb, var(--ui-primary) 48%, var(--ui-border));
+  background: color-mix(in srgb, var(--app-selected-bg) 55%, var(--ui-bg));
+}
+.revision-number {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--ui-bg-muted);
+  color: var(--ui-text-muted);
+  line-height: 1;
+}
+.revision-number span {
+  font-size: 10px;
+  font-weight: 600;
+}
+.revision-number strong {
+  margin-top: 3px;
+  color: var(--ui-text-highlighted);
+  font-size: 17px;
+}
+.revision-history-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+.revision-history-copy .revision-name {
+  overflow: hidden;
+  color: var(--ui-text-highlighted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.revision-state,
+.revision-history-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.revision-history-actions {
+  justify-content: flex-end;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.runs-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.latest-run {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    transform 160ms var(--app-ease),
+    border-color 160ms var(--app-ease);
+}
+.latest-run:hover {
+  transform: translateY(-2px);
+  border-color: var(--ui-border-accented);
+}
+.latest-run-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--app-selected-bg);
+  color: var(--app-selected-text);
+}
+.latest-run-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.latest-run-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.latest-run-copy .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.latest-run-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.latest-run-arrow {
+  color: var(--ui-text-muted);
+}
+.runs-trigger {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.runs-table {
+  padding-top: 8px;
+  border-top: 1px solid var(--ui-border-muted);
+}
 .table-wrap {
   overflow-x: auto;
 }
 .cell-wrap {
-  overflow-wrap: anywhere;
   min-width: 140px;
+  overflow-wrap: anywhere;
 }
 .ack-row {
   display: flex;
-  gap: 8px;
   align-items: center;
+  gap: 8px;
 }
 .pagination {
   margin-top: 12px;
+}
+.managed-documents {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--ui-border-muted);
+}
+.managed-documents-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.managed-documents-heading h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.managed-documents-heading p {
+  margin: 3px 0 0;
+  font-size: 13px;
+}
+.managed-document-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.managed-document-row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 9px;
+}
+.managed-document-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--ui-bg-muted);
+  color: var(--ui-primary);
+}
+.managed-document-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.managed-document-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.managed-document-copy span {
+  font-size: 13px;
 }
 @media (max-width: 640px) {
   .document-detail > .panel {
     padding: 16px;
   }
-  .metadata-line {
+  .revision-panel,
+  .binding-row,
+  .latest-run {
     grid-template-columns: 1fr;
+  }
+  .revision-current {
+    justify-content: flex-start;
+  }
+  .binding-arrow {
+    min-height: 28px;
+    transform: rotate(90deg);
+  }
+  .binding-heading,
+  .launch-bar,
+  .binding-heading-side {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .binding-summary-head {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .binding-summary-head > :last-child {
+    grid-column: 1 / -1;
+  }
+  .binding-map-row {
+    grid-template-columns: 1fr;
+  }
+  .binding-map-link {
+    min-height: 42px;
+  }
+  .launch-actions > * {
+    flex: 1 1 100%;
+  }
+  .latest-run > :not(.latest-run-copy, .latest-run-icon) {
+    justify-self: start;
+  }
+  .disclosure-content {
+    padding-inline: 12px;
+  }
+  .disclosure-content .revision-row {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .revision-state,
+  .revision-history-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+@media (min-width: 641px) and (max-width: 960px) {
+  .revision-panel {
+    grid-template-columns: 1fr 1fr;
+  }
+  .revision-current {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  .binding-row {
+    grid-template-columns: minmax(160px, 0.8fr) 44px minmax(260px, 1.2fr);
   }
 }
 </style>
