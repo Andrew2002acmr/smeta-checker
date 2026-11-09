@@ -854,6 +854,9 @@ onBeforeUnmount(() => {
                       :label="bindingDraft[reference] ? 'Выбрано вручную' : 'Автоподбор'"
                     />
                   </div>
+                  <label :for="`binding-${reference}`" class="visually-hidden">
+                    ПД для ссылки {{ reference }}
+                  </label>
                   <select
                     :id="`binding-${reference}`"
                     v-model="bindingDraft[reference]"
@@ -910,7 +913,7 @@ onBeforeUnmount(() => {
                 :disabled="!bindingsDirty || !!locksMutations"
                 @click="saveBindings"
               >
-                Сохранить связи
+                Сохранить привязки ПД
               </UButton>
               <UButton
                 data-testid="start-audit"
@@ -983,13 +986,14 @@ onBeforeUnmount(() => {
           <button
             type="button"
             class="disclosure-trigger"
+            :aria-label="isVor ? 'История редакций ВОР' : 'История редакций ПД'"
             :aria-expanded="revisionsOpen"
             @click="revisionsOpen = !revisionsOpen"
           >
             <span class="disclosure-title">
               <UIcon name="i-lucide-layers-3" />
               <span>
-                <strong>{{ isVor ? 'История редакций' : 'История редакций ПД' }}</strong>
+                <strong>{{ isVor ? 'История редакций ВОР' : 'История редакций ПД' }}</strong>
                 <small
                   >{{ sortedVersions.length }} редакций · текущая №
                   {{ selectedVersion.number }}</small
@@ -1015,7 +1019,7 @@ onBeforeUnmount(() => {
               </div>
               <div class="revision-history-copy">
                 <strong class="revision-name" :title="version.filename">
-                  {{ version.filename }}
+                  {{ version.filename }}, редакция {{ version.number }}
                 </strong>
                 <span class="muted">
                   {{ formatDate(version.created_at) }} · {{ formatBytes(version.size) }}
