@@ -63,7 +63,7 @@ const historyRuns = ref<RunDto[]>([])
 const historyBusy = ref(false)
 const historyError = ref('')
 const historyHasMore = ref(false)
-const revisionsOpen = ref(false)
+const revisionsOpen = ref(true)
 const runsOpen = ref(false)
 const preflightColumns: TableColumn<PreflightRow>[] = [
   { accessorKey: 'vor', header: 'ВОР' },
@@ -108,7 +108,7 @@ const savedBindings = ref('{}')
 const bindingOptions = ref<BindingOption[]>([])
 const bindingsBusy = ref(false)
 const bindingsError = ref('')
-const bindingsManualOpen = ref(false)
+const bindingsManualOpen = ref(true)
 let bindingEpoch = 0
 const bindingsDirty = computed(() => JSON.stringify(bindingDraft.value) !== savedBindings.value)
 const fileTypeLabel = computed(() => {
