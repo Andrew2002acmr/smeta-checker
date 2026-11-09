@@ -296,7 +296,7 @@ services:
       - -Q
       - llm
       - -c
-      - ${AUDIT_LLM_CONCURRENCY:-2}
+      - ${AUDIT_LLM_CONCURRENCY:-8}
       - --max-tasks-per-child
       - ${AUDIT_MAX_TASKS_PER_CHILD:-50}
       - -n
