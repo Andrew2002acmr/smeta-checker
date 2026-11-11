@@ -38,8 +38,8 @@ def main():
     result.update(snapshot=state['snapshot'], source_sha256=version.sha256)
     args.out.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(dict(total=result['total'], passed=result['passed'], failed=result['failed']), ensure_ascii=False))
-    if result['failed']:
-        raise SystemExit('OCR acceptance samples failed')
+    if result['failed'] or any(not check['passed'] for check in result.get('structure_checks', ())):
+        raise SystemExit('OCR acceptance failed')
 
 
 if __name__ == '__main__':

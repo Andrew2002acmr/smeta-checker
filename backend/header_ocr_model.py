@@ -13,7 +13,7 @@ DEFAULT_PATH='/opt/smeta/header-tessdata'
 @lru_cache(maxsize=4)
 def _verified(directory):
     path=Path(directory)/'rus.traineddata'
-    if not path.exists():
+    if directory in {None, ''} or not path.exists():
         return None
     if hashlib.sha256(path.read_bytes()).hexdigest()!=SHA256:
         raise ValueError('Header OCR model hash mismatch')

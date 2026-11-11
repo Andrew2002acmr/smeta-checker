@@ -17,7 +17,7 @@ from pdf_geometry_contract import usable_box
 
 VERSION = 'cell-ocr-v1'
 NUMERIC_RECOVERY_VERSION = 'numeric-crop-recovery-v1'
-BODY_PREPARATION_VERSION = 'physical-body-numbers-v5'
+BODY_PREPARATION_VERSION = 'physical-body-numbers-v6'
 STRONG_CONSENSUS = 'cross-engine-strong-numeric-v1'
 
 
@@ -53,7 +53,7 @@ def column_unit(table, cell):
     return next(iter(units)) if len(units) == 1 else ''
 
 
-def clean_glyphs(image, *, preserve_gray=False):
+def clean_glyphs(image, *, preserve_gray=False, return_bbox=False):
     """Remove only components connected to the crop edge (typically grid lines)."""
     import cv2
     import numpy as np
@@ -61,7 +61,11 @@ def clean_glyphs(image, *, preserve_gray=False):
     gray = np.array(image.convert('L'))
     if gray.size > 4_000_000 or min(gray.shape) < 8:
         return None
-    ink = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)[1]
+    if preserve_gray:
+        # Preserve faint punctuation before cropping, not just its grayscale.
+        ink = cv2.threshold(gray, 249, 255, cv2.THRESH_BINARY_INV)[1]
+    else:
+        ink = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)[1]
     count, labels, stats, _ = cv2.connectedComponentsWithStats(ink)
     cleaned = np.zeros_like(ink)
     for i in range(1, count):
@@ -76,8 +80,10 @@ def clean_glyphs(image, *, preserve_gray=False):
         # Keep the original antialiasing of interior glyphs. The same mask
         # removes border rules; no character or expected value is supplied.
         keep=cv2.dilate(cleaned,np.ones((3,3),dtype=np.uint8))>0
-        return Image.fromarray(np.where(keep,gray,255).astype(np.uint8)[y:y+h,x:x+w])
-    return Image.fromarray(255-cleaned[y:y+h,x:x+w])
+        result = Image.fromarray(np.where(keep,gray,255).astype(np.uint8)[y:y+h,x:x+w])
+    else:
+        result = Image.fromarray(255-cleaned[y:y+h,x:x+w])
+    return (result, [x, y, x+w, y+h]) if return_bbox else result
 
 
 def literal_unit(words):
@@ -152,6 +158,8 @@ def _read_variants(image, *, numeric, read, deadline):
 
 def numeric_agreement(value, variants):
     from normative_parameters import number
+    if number(value) is None:
+        return False
     votes = []
     for variant in variants:
         words = variant['words']
@@ -207,9 +215,10 @@ def recovered_numeric_value(cell, proof):
     if any(w.get('confidence', 0) >= .9 and number(w['text']) not in {None, value}
             for attempt in proof.get('rapid_attempts', []) for w in attempt.get('words', [])):
         return None
-    original=number(cell.get('text',''))
-    if original is not None and original!=value:
-        return None  # A new OCR vote cannot silently rewrite an existing number.
+    original_text = cell.get('text', '').strip()
+    original=number(original_text)
+    if original_text and (original is None or original!=value):
+        return None  # Re-observation never silently rewrites or verifies a different literal.
     if any(w.get('confidence',0)>=.9 and number(w['text']) not in {None,value}
             for w in cell.get('words',[])):
         return None
@@ -242,10 +251,12 @@ def _recover_numeric(image, cell, proof, read, deadline):
     from copy import deepcopy
     from PIL import Image, ImageOps
     from ocr_engine import _to_png
+    cell['numeric_verified'] = False
     recovery: dict[str, Any] = dict(version=NUMERIC_RECOVERY_VERSION,bbox=list(cell['bbox']),
         image_sha256=proof['image_sha256'],dpi=proof['dpi'],rotation=proof['rotation'],
         prior_text=cell['text'],prior_words=deepcopy(cell.get('words',[])),
-        prior_variants=deepcopy((cell.get('raw_numeric_refinement') or {}).get('variants',[])),
+        prior_variants=deepcopy([*(cell.get('raw_numeric_refinement') or {}).get('variants', []),
+            *proof.get('prior_variants', [])]),
         rapid_engine='RapidOCR PP-OCRv5 Cyrillic mobile recognition',rapid_words=[],variants=deepcopy(proof['variants']))
     if proof.get('image_key'):
         recovery['image_key']=proof['image_key']
@@ -286,13 +297,19 @@ def _recover_numeric(image, cell, proof, read, deadline):
         cell['quality']='usable'
 
 
+def _measurement_column(table, cell):
+    headers = ' '.join(h.get('text', '') for h in table['cells']
+        if h.get('role') == 'header' and h.get('cell_id') in cell.get('header_ids', []))
+    if re.search(r'пикет|наименован|обозначен|позиц|номер|шифр|марка|(?:^|\s)№', headers, re.I):
+        return False
+    return bool(column_unit(table, cell) or re.search(
+        r'количеств|объ[её]м|площад|расстояни|длин|ширин|высот|толщин|масс', headers, re.I))
+
+
 def has_measurement_context(table):
     # Drawing title blocks are physical grids too. A grid alone must not
     # trigger attempts to turn all its blank boxes into quantities.
-    headers = ' '.join(c.get('text', '') for c in table['cells'] if c.get('role') == 'header')
-    if re.search(r'количеств|объ[её]м|площад|расстояни|ведомост|спецификаци', headers, re.I):
-        return True
-    return any(column_unit(table, c) for c in table['cells'] if c.get('role') == 'cell')
+    return any(_measurement_column(table, c) for c in table['cells'] if c.get('role') == 'cell')
 
 
 def numeric_candidates(table, *, include_body=False, resume_only=False):
@@ -301,22 +318,47 @@ def numeric_candidates(table, *, include_body=False, resume_only=False):
     body = include_body and has_measurement_context(table)
     output = []
     for cell in table['cells']:
+        origin = cell.get('origin', table.get('origin'))
+        if origin == 'native' or (not table.get('recovery') and origin != 'ocr'):
+            continue  # Native literals stay authoritative; only explicit raster cells are reobserved.
         if (cell.get('role') != 'cell' or not cell.get('header_ids') or cell.get('colspan', 1) != 1
                 or cell.get('rowspan', 1) != 1 or cell.get('numeric_verified')
                 or 'unrecovered_source_region' in cell.get('reasons', [])):
             continue
         if (cell.get('geometry_validation') or {}).get('requires_source_review'):
             continue
-        if not (number(cell['text']) is not None or (table.get('recovery') and not cell['text'].strip())):
+        if not usable_box(cell):
+            continue  # A crop cannot be rendered without locatable geometry.
+        measurement = body and _measurement_column(table, cell)
+        text = cell['text'].strip()
+        # This alphabet selects crops only; it does not substitute glyphs,
+        # insert decimal separators, or concatenate observations into a value.
+        suspect = measurement and bool(re.fullmatch(r'[+\-−]?[0-9оОoO]+(?:[.,\s][0-9оОoO]+)*', text))
+        if not (number(text) is not None or suspect or
+                (not text and table.get('recovery') and (measurement or cell['row'] in totals))):
             continue
-        if cell['row'] not in totals and not body:
+        if cell['row'] not in totals and not measurement:
             continue
-        if not (cell.get('quality') == 'usable' or table.get('recovery')):
+        if not (cell.get('quality') == 'usable' or table.get('recovery') or measurement):
             continue
         if resume_only and (cell.get('numeric_preparation') or {}).get('version') == BODY_PREPARATION_VERSION:
             continue
         output.append(cell)
-    return sorted(output, key=lambda c: (c['row'] not in totals, bool(c['text'].strip()), c['row'], c['column']))
+    def suspicious(cell):
+        # Actual source glyph, not inferred correction: single Cyrillic o glyph,
+        # potentially truncated hundred/thousand values or ambiguous zero.
+        source = cell.get('text', '').strip()
+        return bool(re.fullmatch(r'[оО]', source)) or bool(re.fullmatch(r'\d*(?:\d[оО]|[оО]\d)\d*', source))
+    return sorted(output, key=lambda item: (
+        item['row'] not in totals,
+        # Suspicious source glyphs and contradictory independent observations
+        # consume bounded OCR first; blanks remain last and never preempt them.
+        not (bool(item['text'].strip()) and (
+            suspicious(item)
+            or (item.get('numeric_preparation') or {}).get('state') == 'uncertain'
+            or item.get('numeric_verification_conflicts'))),
+        bool(item['text'].strip()),
+        item['row'], item['column']))
 
 
 def refine_tables(page, tables, *, rotation=0, cache_dir=None, store_image=None, seconds:float=25,
@@ -368,6 +410,7 @@ def refine_tables(page, tables, *, rotation=0, cache_dir=None, store_image=None,
                 numbers += 1
                 try:
                     from copy import deepcopy
+                    cell['numeric_verified'] = False
                     image, proof = render(cell['bbox'])
                     from pdf_empty_cells import printed_dash, empty_paper
                     blank = empty_paper(image) if not cell['text'].strip() else None
@@ -388,14 +431,21 @@ def refine_tables(page, tables, *, rotation=0, cache_dir=None, store_image=None,
                         cell['numeric_preparation'] = dict(version=BODY_PREPARATION_VERSION, state='literal_dash')
                         continue
                     proof['variants'] = _read_variants(image,numeric=True,read=read,deadline=deadline)
+                    proof['prior_text'] = cell['text']
+                    proof['prior_words'] = deepcopy(cell.get('words', []))
                     if cell.get('numeric_refinement'):
                         cell.setdefault('raw_numeric_refinement',deepcopy(cell['numeric_refinement']))
+                        previous = cell['numeric_refinement']
+                        proof['prior_variants'] = deepcopy([
+                            *previous.get('prior_variants', []), *previous.get('variants', [])])
                     cell['numeric_refinement'] = proof
                     existing=cell.get('words') or []
                     cell['numeric_verified'] = bool(existing) and all(w.get('confidence',0)>=.9 for w in existing) \
                         and numeric_agreement(cell['text'],proof['variants']) \
-                        and not _numeric_disagreement(cell['text'],(cell.get('raw_numeric_refinement') or {}).get('variants',[]))
-                    if table.get('recovery') and not cell['numeric_verified']:
+                        and not _numeric_disagreement(cell['text'], [
+                            *(cell.get('raw_numeric_refinement') or {}).get('variants', []),
+                            *proof.get('prior_variants', [])])
+                    if (table.get('recovery') or include_body) and not cell['numeric_verified']:
                         _recover_numeric(image,cell,proof,read,deadline)
                 except (RuntimeError, ValueError) as exc:
                     cell['refinement_error'] = type(exc).__name__

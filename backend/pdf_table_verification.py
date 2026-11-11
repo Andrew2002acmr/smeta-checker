@@ -586,7 +586,8 @@ def complete_recovered_headers(page, tables, *, rotation=0, cache_dir=None, stor
     cleaned = strip_legacy_unit_notes(tables)
     history = []
     for attempt in range(passes):
-        pending = [t for t in tables if t.get('recovery') and
+        from pdf_tables import is_primary_ruled_table
+        pending = [t for t in tables if not is_primary_ruled_table(t) and t.get('recovery') and
             (not t.get('header_verification') or
              (t.get('header_verification') or {}).get('deferred_header_ids') or needs_unit_component_pass(t))]
         if not pending:
@@ -602,8 +603,9 @@ def complete_recovered_headers(page, tables, *, rotation=0, cache_dir=None, stor
             checkpoint(tables, history[-1])
         if before == after:
             break  # A time/geometry limit must not spin forever.
+    from pdf_tables import is_primary_ruled_table
     remaining = {t['table_id']: list((t.get('header_verification') or {}).get('deferred_header_ids', []))
-        for t in tables if t.get('recovery') and
+        for t in tables if not is_primary_ruled_table(t) and t.get('recovery') and
         (not t.get('header_verification') or (t.get('header_verification') or {}).get('deferred_header_ids'))}
     return dict(state='header_observation_complete' if not remaining else 'incomplete_header_observation',
         remaining=remaining, passes=history, literal_headers_cleaned=cleaned,

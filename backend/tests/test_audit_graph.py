@@ -665,3 +665,31 @@ def test_publish_translates_terminal_pending_to_needs_facts():
     reason = out["project"]["obligations"][0]["reason"]
     assert "не проверялось моделью" in reason
     assert "за 0 обращений" not in reason
+
+
+def test_unverified_ocr_literal_cannot_become_a_verified_fact(monkeypatch):
+    from audit_graph import validate_evidence
+
+    def sources(numeric_verified):
+        return [{
+            "id": "table:1:cell:5", "kind": "project", "page": 88,
+            "text": "Толщина 10 м", "origin": "ocr",
+            "numeric_verified": numeric_verified,
+            "verified_parameters": [{"parameter": "thickness", "value": "10", "unit": "м"}],
+        }]
+
+    def literal_state(sources):
+        tools = SimpleNamespace(sources=list(sources), preferred=[], events=[])
+        monkeypatch.setattr("audit_graph._restore_tools", lambda context, state: tools)
+        monkeypatch.setattr("audit_graph.tool_bundle", lambda tools: {"version": 1})
+        out = validate_evidence({"proposals": [{
+                "parameter": "thickness", "operation": "direct", "value": "10",
+                "unit": "м", "source_id": tools.sources[0]["id"], "operand_source_ids": [],
+                "quote": "Толщина 10 м", "scope_state": "unresolved", "scope_quote": "",
+            }],
+            "items": [], "facts": [], "obligations": {"project": []}, "gap_ids": []},
+            SimpleNamespace(context=context(validation_only=False)))
+        return out["facts"][0]["literal_state"]
+
+    assert literal_state(sources(True)) == "verified"
+    assert literal_state(sources(False)) == "unresolved"

@@ -15,12 +15,21 @@ def empty_paper(image):
         cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(8, round(height * .85)))))
     horizontal = cv2.morphologyEx(ink, cv2.MORPH_OPEN,
         cv2.getStructuringElement(cv2.MORPH_RECT, (max(8, round(width * .85)), 1)))
-    edge_x = min(6, max(2, round(width * .01)))
-    edge_y = min(6, max(2, round(height * .01)))
-    vertical[:, edge_x:width-edge_x] = 0
-    horizontal[edge_y:height-edge_y, :] = 0
-    remaining = cv2.bitwise_and(ink, cv2.bitwise_not(cv2.bitwise_or(vertical, horizontal)))
-    if np.any(remaining):
+    # Geometry-derived cell bboxes can cut a border rule lengthwise. A column
+    # or row is still a rule when most of it is ink: remove it wherever it
+    # lies, and also remove short edge-attached stroke stubs so a split border
+    # does not become a text candidate. Nothing interior is removed by position.
+    tall = np.where(vertical.sum(axis=0) >= height * 200)[0]
+    wide = np.where(horizontal.sum(axis=1) >= width * 200)[0]
+    rules = np.zeros_like(ink)
+    rules[:, tall] = 255
+    rules[wide, :] = 255
+    edge = np.zeros_like(ink)
+    edge[0, :] = edge[-1, :] = edge[:, 0] = edge[:, -1] = 255
+    stubs = cv2.bitwise_and(ink, cv2.dilate(cv2.bitwise_and(ink, edge), np.ones((3, 3), np.uint8)))
+    remaining = cv2.bitwise_and(ink, cv2.bitwise_not(cv2.bitwise_or(rules, stubs)))
+    count, _, stats, _ = cv2.connectedComponentsWithStats(remaining)
+    if count > 1 and any(area >= 3 for area in stats[1:, cv2.CC_STAT_AREA]):
         return None
     return dict(version='physical-empty-paper-v1', image_size=[width, height],
         threshold=250, removed_only_long_grid_lines=True, meaning='empty_paper_not_numeric_zero')

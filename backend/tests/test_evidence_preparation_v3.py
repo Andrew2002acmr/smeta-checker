@@ -109,10 +109,12 @@ def test_ocr_number_requires_independent_agreement_in_the_same_physical_cell():
 
 def test_docker_warmup_materializes_lazy_cyrillic_recognition_weights():
     from pdf_tables import warm_raster_engine
-    ocr = SimpleNamespace(_load_rec_model=Mock())
-    with patch('pdf_tables.raster_engine',return_value=(ocr,object())):
+    ocr = SimpleNamespace(_load_rec_model=Mock(), _load_det_model=Mock(), _load_cls_model=Mock())
+    with patch('pdf_tables.raster_engine',return_value=ocr):
         warm_raster_engine()
     ocr._load_rec_model.assert_called_once_with()
+    ocr._load_det_model.assert_called_once_with()
+    ocr._load_cls_model.assert_called_once_with()
 
 
 def test_physical_grid_is_found_inside_the_enclosing_drawing_frame():

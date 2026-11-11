@@ -1466,6 +1466,17 @@ def _evaluate_unit(proposal_evidence, expected_unit):
         return ClaimCheck(claim_id="unit", kind=ClaimKind.UNIT,
                           state=ClaimState.NOT_FOUND, reasons=["no_proposal"],
                           required=True), []
+    try:
+        from pdf_tables import RULED_OCR_VERSION as ruled_version
+    except ImportError:
+        ruled_version = None
+    if ruled_version is not None and any(isinstance(item.get("locator"), dict)
+            and (item["locator"].get("recognition") or {}).get("version") == ruled_version
+            and not item["locator"].get("unit_verified")
+            for item in proposal_evidence):
+        return ClaimCheck(claim_id="unit", kind=ClaimKind.UNIT,
+            state=ClaimState.REVIEW_REQUIRED, reasons=["unverified_ocr_literal"],
+            facts=_facts_for("unit", proposal_evidence), required=True), proposal_evidence
     evidenced_units = set()
     for item in proposal_evidence:
         quote = item["quote"]

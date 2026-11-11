@@ -36,6 +36,10 @@ def render_table(table, start=None, end=None):
         raise ValueError("Invalid table body range")
     cells = table["cells"]
     sources = []
+    conflicts = [check for check in table.get("consistency", {}).get("checks", [])
+                 if check.get("state") == "conflict"]
+    conflicted_ids = {item["cell_id"] for check in conflicts
+                      for item in check.get("source_cells", [])}
 
     def rows(left, right, header):
         rendered = []
@@ -54,6 +58,8 @@ def render_table(table, start=None, end=None):
                 tag = "th" if header else "td"
                 attrs = f' rowspan="{rowspan}"' if rowspan > 1 else ""
                 attrs += f' colspan="{colspan}"' if colspan > 1 else ""
+                if cell.get("cell_id") in conflicted_ids:
+                    attrs += ' data-review="arithmetic-conflict"'
                 # HTML whitespace wraps prose naturally; source line breaks stay in JSON.
                 value = escape(" ".join(cell.get("text", "").split()))
                 elements.append((column, f"<{tag}{attrs}>{value}</{tag}>"))
@@ -88,6 +94,9 @@ def render_table(table, start=None, end=None):
         else ""
     )
     sources.extend(cell for cell in groups if cell not in sources)
+    selected_ids = {cell["cell_id"] for cell in sources}
+    selected_conflicts = [check for check in conflicts if any(
+        item.get("cell_id") in selected_ids for item in check.get("source_cells", []))]
     text = (
         f'<table border="1" cellpadding="5" cellspacing="0" data-table="{escape(str(table["table_id"]), quote=True)}" data-start="{start}" data-end="{end}">'
         + captions
@@ -116,6 +125,7 @@ def render_table(table, start=None, end=None):
         "quality": "usable"
         if table.get("quality") == "usable"
         and all(cell["quality"] == "usable" for cell in locators)
+        and not selected_conflicts
         else "uncertain",
         "members": locators,
         "header_ids": list(
@@ -123,6 +133,8 @@ def render_table(table, start=None, end=None):
         ),
         "bbox": table.get("bbox", []),
     }
+    if selected_conflicts:
+        locator["arithmetic_checks"] = selected_conflicts
     return text, locator
 
 

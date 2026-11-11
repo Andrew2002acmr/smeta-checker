@@ -109,6 +109,24 @@ def test_border_cleanup_preserves_interior_glyphs_and_decimal_point():
     assert count==5
 
 
+def test_gray_glyph_crop_reports_original_offsets_and_keeps_faint_punctuation():
+    import numpy as np
+    from PIL import Image, ImageDraw
+    image = Image.new('L', (120, 80), 255)
+    drawing = ImageDraw.Draw(image)
+    drawing.rectangle((0, 0, 119, 79), outline=0, width=2)
+    drawing.rectangle((19, 17, 24, 36), fill=128)
+    drawing.rectangle((29, 27, 34, 36), fill=96)
+    drawing.rectangle((35, 17, 38, 21), fill=180)
+    drawing.rectangle((40, 34, 41, 35), fill=200)
+    clean, bounds = clean_glyphs(image, preserve_gray=True, return_bbox=True)
+    assert bounds == [19, 17, 42, 37]
+    pixels = np.asarray(clean)
+    assert pixels[0, 0] == 128
+    assert pixels[0, 16] == 180
+    assert pixels[17, 21] == 200
+
+
 def test_refinement_budget_restores_page_rotation_without_running_ocr():
     with pymupdf.open() as pdf:
         page=pdf.new_page(width=100,height=200)

@@ -87,3 +87,74 @@ def test_scan_cache_preflight_reopens_all_views_without_mutating_saved_proofs(tm
         assert table_path.read_bytes() == table_bytes
     finally:
         fourth.close()
+
+
+def test_primary_ruled_cache_reopens_tables_without_rerun_or_partial_success(tmp_path, monkeypatch):
+    from copy import deepcopy
+    from pdf_tables import RULED_OCR_VERSION
+    monkeypatch.setattr('pdf_text.pymupdf.open', _fake_open_pdf)
+    monkeypatch.setattr('pdf_text.pymupdf4llm.to_markdown', _fake_to_markdown)
+    monkeypatch.setattr('pdf_text._ocr_engine.recognize_page', fake_recognize_page)
+    ready = dict(text='Work 45 m\nvalue-0-0 | value-0-1 | value-0-2\nvalue-1-0 | value-1-1 | value-1-2\nvalue-2-0 | value-2-1 | value-2-2', words=[], tables=[dict(
+        table_id='ruled-primary', page=1, bbox=[0, 0, 300, 90], origin='ocr',
+        row_count=3, col_count=3, header_rows=1, reasons=[],
+        quality='usable', recovery=dict(version='embedded-ruled-recovery-v2'),
+        recognition=dict(version=RULED_OCR_VERSION, engine='rapidocr',
+            rec_model='PP-OCRv5/cyrillic/mobile', state='complete', physical_cells=9),
+        cells=[dict(cell_id=f'c{number}', row=row, column=column, rowspan=1, colspan=1,
+            bbox=[column * 100.0, row * 30.0, (column + 1) * 100.0, (row + 1) * 30.0],
+            text=f'value-{row}-{column}', words=[], numeric_verified=False, origin='ocr',
+            role='header' if row == 0 else 'cell', quality='usable',
+            header_ids=[] if row == 0 else [f'c{column}'],
+            recognition=dict(version=RULED_OCR_VERSION, state='recognized', confidence=.99,
+                readings=[dict(method='batch_line', text=f'value-{row}-{column}', confidence=.99,
+                    crop_bbox=[column * 100.0, row * 30.0, (column + 1) * 100.0, (row + 1) * 30.0])]))
+            for row in range(3) for column in range(3) for number in [row * 3 + column]])],
+        quality=dict(state='uncertain', origin='ocr', engine='rapidocr', algo=RULED_OCR_VERSION,
+            recognition_state='complete', layout=dict(resolved=False, reason='word_level_outside_tables')),
+        errors=[])
+    calls = []
+    def producer(*args, **kwargs):
+        calls.append('recognize')
+        return deepcopy(ready)
+    monkeypatch.setattr('pdf_tables.prepare_ruled_page', producer)
+    monkeypatch.setattr('pdf_tables.verify_numeric_cells', lambda *args, **kwargs: None)
+    monkeypatch.setattr('pdf_cell_ocr.refine_tables', lambda *args, **kwargs: None)
+    monkeypatch.setattr('pdf_table_verification.verify_recovered_tables', lambda *args, **kwargs: None)
+    doc = FakeDoc([FakePage('', ocr_text='Copper cable 45 m.')])
+    first = PDFTextSource(doc, cache_dir=tmp_path)
+    try:
+        initial = first.for_position([0], 'Copper cable', '45').to_snapshot()
+        ruled_path = first._ruled_tables_path(0)
+        table_path = first._table_path(0)
+        ruled_bytes, table_bytes = ruled_path.read_bytes(), table_path.read_bytes()
+        assert calls == ['recognize']
+        assert 'value-2-2' in initial['texts'][0]
+        assert initial['texts'][0].count('value-2-2') == 1
+    finally:
+        first.close()
+    second = PDFTextSource(doc, cache_dir=tmp_path)
+    try:
+        current = second.for_position([0], 'Copper cable', '45', max_ocr_pages=0).to_snapshot()
+        assert current == initial
+        assert calls == ['recognize']
+        assert second.ocr_count == 0 and second.cache_hits == 1
+        assert ruled_path.read_bytes() == ruled_bytes
+        assert table_path.read_bytes() == table_bytes
+    finally:
+        second.close()
+    partial = deepcopy(ready)
+    partial['tables'][0]['cells'][4]['recognition'].update(state='not_attempted', confidence=None, readings=[])
+    partial['tables'][0]['cells'][4].update(text='', words=[])
+    partial['tables'][0]['recognition']['state'] = 'incomplete'
+    partial = dict(partial, errors=['incomplete_cell_observation'])
+    broken = PDFTextSource(doc, cache_dir=tmp_path / 'partial')
+    try:
+        broken._write_ruled_page(0, partial)
+    finally:
+        broken.close()
+    resumed = PDFTextSource(doc, cache_dir=tmp_path / 'partial')
+    try:
+        assert resumed._read_ruled_page(0) is None
+    finally:
+        resumed.close()

@@ -357,6 +357,25 @@ services:
       retries: 3
       start_period: 30s
 
+  table-extraction:
+    profiles: ["table-extraction"]
+    build:
+      context: ./backend
+      target: table-extraction
+    restart: unless-stopped
+    environment:
+      AUDIT_API_TOKEN: ${AUDIT_API_TOKEN:?Set AUDIT_API_TOKEN in .env}
+      TABLE_EXTRACTION_CACHE: /prepared-cache/kdfp-extraction
+      OMP_NUM_THREADS: "4"
+      MKL_NUM_THREADS: "4"
+    volumes:
+      - pdfcache:/prepared-cache
+    ports:
+      - "127.0.0.1:5002:5002"
+    cpus: 4
+    mem_limit: 6g
+    command: ["uvicorn", "table_extraction_api:get_app", "--factory", "--host", "0.0.0.0", "--port", "5002", "--workers", "1"]
+
 volumes:
   pgdata:
   redisdata:

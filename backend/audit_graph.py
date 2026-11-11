@@ -510,6 +510,10 @@ def validate_evidence(state: GraphState, runtime: Any) -> dict[str, Any]:
                 ),
                 source,
             )
+        if isinstance(source, dict):
+            origin = str(source.get('origin', ''))
+            if (origin.startswith('ocr') and not source.get('numeric_verified')) or origin == 'uncertain_table':
+                return True
         try:
             own = _literal_issues(typed, source)
         except Exception:

@@ -139,7 +139,54 @@ def closed_geometry(grid):
     geometries = closed_geometries(grid)
     return geometries[0] if geometries else None
 
+def _orphan_rows(words, *, tolerance=4.0):
+    """Group confident unassigned words into row bands; never merge across gaps."""
+    bands = []
+    for word in sorted(words, key=lambda w: (w['bbox'][1], w['bbox'][0])):
+        y0, y1 = word['bbox'][1], word['bbox'][3]
+        placed = False
+        for band in bands:
+            top = min(w['bbox'][1] for w in band)
+            bottom = max(w['bbox'][3] for w in band)
+            if y0 <= bottom + tolerance and y1 >= top - tolerance:
+                band.append(word)
+                placed = True
+                break
+        if not placed:
+            bands.append([word])
+    return [sorted(band, key=lambda w: w['bbox'][0]) for band in bands]
 
+
+def orphan_table(words, *, page, source_table_ids=()):
+    """Fallback rows for confident words outside every recovered grid.
+
+    Used only when geometry recovery left high-confidence OCR homeless.
+    Single-column rows with explicit reason; no invented columns or headers.
+    """
+    rows = _orphan_rows(words)
+    if not rows:
+        return None
+    from pdf_tables import finish_table
+    cells = []
+    for number, band in enumerate(rows):
+        x0 = min(w['bbox'][0] for w in band)
+        y0 = min(w['bbox'][1] for w in band)
+        x1 = max(w['bbox'][2] for w in band)
+        y1 = max(w['bbox'][3] for w in band)
+        cells.append(dict(row=number, column=0, rowspan=1, colspan=1,
+            bbox=[x0, y0, x1, y1], text=' '.join(w['text'] for w in band),
+            words=list(band), quality='uncertain'))
+    table = finish_table(cells, table_id='orphan-'+_digest(
+        [w['text'] for band in rows for w in band])[:12],
+        page=page, bbox=[min(c['bbox'][0] for c in cells),
+            min(c['bbox'][1] for c in cells), max(c['bbox'][2] for c in cells),
+            max(c['bbox'][3] for c in cells)],
+        origin='ocr', header_rows=0, reasons=['orphan_words_no_grid'])
+    table['unassigned_words'] = []
+    table['orphan'] = True
+    table['recovery'] = dict(version=VERSION, source_table_ids=list(source_table_ids),
+        coordinate_system='original PDF points', independent_numeric_verification=False)
+    return table
 def rebuild(boxes, logical, words, *, page, source_table_ids=()):
     """Full word containment prevents assigning crossing text by its value."""
     from pdf_tables import finish_table, physical_header_rows
@@ -276,6 +323,15 @@ def recover_page(page, frozen_tables, *, rotation=0, seconds=20, max_images=8, m
                     unassigned_words=len(table['unassigned_words'])))
             observation['recovered'] = any('table_id' in grid for grid in observation['grids'])
         if recovered:
+            orphans = [w for t in recovered for w in t.get('unassigned_words', [])
+                       if w.get('confidence', 0) >= .9 and w['text'].strip()]
+            if orphans:
+                fallback = orphan_table(orphans, page=page.number+1,
+                    source_table_ids=sorted({t['table_id'] for t in recovered}))
+                if fallback is not None:
+                    recovered.append(fallback)
+                    result['diagnostics'].append(dict(reason='orphan_words_table_built',
+                        cells=len(fallback['cells'])))
             result['tables'], retained = merge_recovered(frozen_tables, recovered, regions)
             result['changed'] = True
             if retained:

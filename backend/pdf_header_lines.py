@@ -23,6 +23,9 @@ def restore_conflicting_read(header):
 
 
 def candidates(table):
+    from pdf_tables import is_primary_ruled_table
+    if is_primary_ruled_table(table):
+        return []
     from pdf_table_verification import verified_header_text
     from header_ocr_model import configured
     model=configured()
@@ -40,14 +43,14 @@ def pending_pages(index):
     return [p for p,tables in enumerate(prepared or []) if any(candidates(t) for t in tables)]
 
 
-def line_boxes(image):
+def line_boxes(image, *, gap=6, threshold=160):
     """Projection bands retain superscripts that overlap their base text line."""
     import numpy as np
-    ink=np.asarray(image.convert('L'))<160
+    ink=np.asarray(image.convert('L'))<threshold
     ys=np.where(ink.sum(axis=1)>0)[0]
     bands=[]
     for y in ys:
-        if not bands or y-bands[-1][-1]>6:
+        if not bands or y-bands[-1][-1]>gap:
             bands.append([int(y)])
         else:
             bands[-1].append(int(y))

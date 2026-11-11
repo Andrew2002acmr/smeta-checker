@@ -8,7 +8,7 @@ from audit_core import PageTextIndex
 from audit_snapshot import load_json, load_snapshot, store_json, store_snapshot
 from audit_tracing import span
 
-VERSION = 3
+VERSION = 4
 
 
 def _resume_contract_issues(blobs,state,expected):
@@ -55,6 +55,7 @@ def _yield_unfinished_cells(index):
 
 
 def assemble_document(native, packed):
+    from pdf_tables import is_primary_ruled_table, primary_observation_complete
     from pdf_text import _repeated_lines
 
     if [p["page"] for p in packed] != list(range(1, len(native["texts"]) + 1)):
@@ -62,11 +63,14 @@ def assemble_document(native, packed):
     errors = {i: "; ".join(p["errors"]) for i, p in enumerate(packed) if p["errors"]}
     incomplete_headers = {}
     for i, page in enumerate(packed):
-        pending = {t['table_id']: list((t.get('header_verification') or {}).get('deferred_header_ids', []))
-            for t in page['tables'] if t.get('recovery') and
+        if any(is_primary_ruled_table(table) and not primary_observation_complete(table)
+                for table in page['tables']):
+            errors[i] = '; '.join(filter(None, [errors.get(i), 'incomplete_cell_observation']))
+        legacy = {t['table_id']: list((t.get('header_verification') or {}).get('deferred_header_ids', []))
+            for t in page['tables'] if t.get('recovery') and not is_primary_ruled_table(t) and
             (not t.get('header_verification') or (t.get('header_verification') or {}).get('deferred_header_ids'))}
-        if pending:
-            incomplete_headers[str(i + 1)] = pending
+        if legacy:
+            incomplete_headers[str(i + 1)] = legacy
             errors[i] = '; '.join(filter(None, [errors.get(i), 'incomplete_header_observation']))
     texts = tuple(p["text"] for p in packed)
     return PageTextIndex(
