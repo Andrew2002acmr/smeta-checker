@@ -63,6 +63,11 @@ class FakePage:
     def get_images(self):
         return [("scan-image",)] if self._images else []
 
+    def get_image_info(self, *args, **kwargs):
+        if not self._images:
+            return []
+        return [dict(bbox=[0, 0, self.rect.width, self.rect.height])]
+
     def get_drawings(self):
         return [{}] * self._drawings
 

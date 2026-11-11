@@ -953,6 +953,35 @@ class PDFTextSource:
             # an absent ruled grid and let the legacy OCR path continue.
             self._ruled_probe_failed.add(idx)
             return None, False
+        page_rect = candidate.rect
+        get_images = getattr(candidate, "get_image_info", None)
+        if not callable(get_images):
+            self._ruled_probe_failed.add(idx)
+            return None, False
+        try:
+            infos = list(get_images())
+        except (AttributeError, TypeError, ValueError):
+            self._ruled_probe_failed.add(idx)
+            return None, False
+        page_area = max(0.0, (page_rect.x1 - page_rect.x0)) * max(0.0, (page_rect.y1 - page_rect.y0))
+        raster_area = 0.0
+        for info in infos:
+            box = (info.get('bbox') or []) if isinstance(info, dict) else []
+            if len(box) != 4:
+                continue
+            try:
+                values = [float(value) for value in box]
+            except (TypeError, ValueError):
+                continue
+            width = max(0.0, min(values[2], page_rect.x1) - max(values[0], page_rect.x0))
+            height = max(0.0, min(values[3], page_rect.y1) - max(values[1], page_rect.y0))
+            raster_area += width * height
+        if not page_area or raster_area < .05 * page_area:
+            # Text-only pages (even when pending as scans) have no embedded
+            # raster grid to recover; probing OpenCV on rendered glyphs risks
+            # false table regions. Legacy page OCR owns these pages.
+            self._ruled_probe_failed.add(idx)
+            return None, False
         rotation = (self._ocr_pages.get(idx, {}).get("quality") or {}).get("rotation", 0)
         try:
             fresh = prepare_ruled_page(candidate, rotation=int(rotation),
