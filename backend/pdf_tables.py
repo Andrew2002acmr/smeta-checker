@@ -506,16 +506,18 @@ def physical_data_value(text):
 
 def physical_header_rows(cells):
     """Conservative first numeric data row; h=0.12/unit headers are not data."""
-    width = max((c["column"] + c.get("colspan", 1) for c in cells), default=0)
+    width = max((c.get("column", 0) + c.get("colspan", 1) for c in cells), default=0)
     candidates=[]
     skipped = 0
     for row in sorted({c['row'] for c in cells}):
         row_cells = [c for c in cells if c['row']==row]
-        # Full-width text separators ('Правая ось') are group labels, not
-        # header rows: they carry no column structure. Skip them entirely so
-        # the returned data boundary counts only real header rows; finish_table
-        # marks the separator itself as group (row >= boundary, full width).
-        if (len(row_cells) == 1 and row_cells[0].get('colspan', 1) == width
+        # Full-width text separators below the first row ('Правая ось') are
+        # group labels, not header rows: they carry no column structure. Skip
+        # them entirely so the returned data boundary counts only real header
+        # rows; finish_table marks the separator itself as group (row >=
+        # boundary, full width). Row 0 spans are top-level headers, not
+        # separators, and must keep participating in the boundary.
+        if (row > 0 and width > 1 and len(row_cells) == 1 and row_cells[0].get('colspan', 1) == width
                 and row_cells[0]['text'].strip()
                 and not re.fullmatch(r'[+-]?\d+(?:[.,]\d+)?', row_cells[0]['text'].strip())):
             skipped += 1

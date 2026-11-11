@@ -41,14 +41,14 @@ def test_faint_text_and_non_white_background_are_not_proven_empty():
 
 
 def test_split_border_rules_do_not_become_text_while_digits_still_block_blank():
-    from pathlib import Path
-    missing = 'p88 unreadable crops are review-only fixtures, not committed gold'
-    crops = sorted(Path(__file__).resolve().parent.parent.joinpath(
-        '.audit_cache/table-analysis/unreadable-cells').glob('r*.png'))
-    assert crops, missing
-    for path in crops:
-        crop = Image.open(path)
-        assert empty_paper(crop)['meaning'] == 'empty_paper_not_numeric_zero'
-        digit = crop.copy()
-        ImageDraw.Draw(digit).ellipse((20, 20, 45, 60), outline=0, width=3)
-        assert empty_paper(digit) is None
+    # A geometry-derived bbox can cut a border rule lengthwise, leaving a
+    # full-height ink column in the middle of the crop. That is still a rule,
+    # not text; a real digit must keep blocking the blank proof.
+    image = Image.new('L', (120, 80), 255)
+    drawing = ImageDraw.Draw(image)
+    drawing.rectangle((0, 0, 119, 79), outline=0, width=2)
+    drawing.line((60, 0, 60, 79), fill=0, width=2)
+    assert empty_paper(image)['meaning'] == 'empty_paper_not_numeric_zero'
+    digit = image.copy()
+    ImageDraw.Draw(digit).ellipse((20, 20, 45, 60), outline=0, width=3)
+    assert empty_paper(digit) is None

@@ -172,7 +172,7 @@ def test_full_pass_recognizes_unrelated_late_scans_and_preserves_failed_pages(bu
     p = build(page_count=7)
     recognized = []
 
-    def native(source):
+    def native(source, selected=None):
         return (("Copper cable 45 m",) + ("",) * 6, {}, list(range(1, 7)), set())
 
     def ocr(source, page):

@@ -25,7 +25,7 @@ def pdf(label='original'):
 
 @pytest.fixture
 def native_only(monkeypatch):
-    def native(source):
+    def native(source, selected=None):
         return tuple(p.get_text()for p in source._doc),{},[],set()
     monkeypatch.setattr(PDFTextSource,'_read_native',native)
 
