@@ -53,7 +53,7 @@ def structured_sample():
     index = PageTextIndex([''], tables=[[table]])
     cases = []
     for case_id, cell, header_cases in zip(('top', 'unit', 'value'), cells,
-        ([], ['top'], ['top', 'unit'])):
+        ([], ['top'], ['top', 'unit']), strict=True):
         cases.append(dict(id=case_id, page=1, bbox=list(cell['bbox']), check='literal',
             expected=cell['text'], normalization='exact', role=cell['role'],
             row=cell['row'], column=cell['column'], rowspan=cell['rowspan'], colspan=cell['colspan'],

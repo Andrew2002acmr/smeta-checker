@@ -446,7 +446,6 @@ class PDFTextSource:
         texts, errors, scans = [], {}, []
         doc = self._doc
         wanted = range(len(doc)) if selected is None else selected
-        skipped = [idx for idx in range(len(doc)) if selected is not None and idx not in selected]
         # PyMuPDF4LLM removes page rotation in-place. Keep the source used by
         # the inspector, OCR and document hash unchanged.
         if doc.name and not doc.is_dirty:

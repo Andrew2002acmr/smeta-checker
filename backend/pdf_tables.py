@@ -1203,7 +1203,7 @@ def prepare_ruled_page(page, *, rotation=0, timeout=40.0, cache_dir=None, store_
             min(image_width, candidate[2]), min(image_height, candidate[3])]
         if candidate[0] >= candidate[2] or candidate[1] >= candidate[3]:
             continue
-        if all(sum(abs(a - b) for a, b in zip(candidate, old)) >= scale for old in candidates):
+        if all(sum(abs(a - b) for a, b in zip(candidate, old, strict=True)) >= scale for old in candidates):
             candidates.append(candidate)
     if len(candidates) > 8:
         return _ruled_record([], errors=['geometry_region_budget:count=%d,limit=8' % len(candidates)])

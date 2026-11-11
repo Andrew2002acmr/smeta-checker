@@ -54,6 +54,7 @@ def _complete_saved_tables(blobs, data, state, index, pending, processor, stage,
     if not pending:
         return state, index
     import pymupdf
+    from pdf_tables import is_primary_ruled_table
     from pdf_text import PDFTextSource
     native = load_json(blobs, state['native'])
     texts, rows = list(index.texts), list(index.table_rows)

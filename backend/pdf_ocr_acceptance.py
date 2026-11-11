@@ -81,7 +81,7 @@ def _check_structure(index, annotations, matches):
                 all(cell_ids) and len(set(cell_ids)) == len(cell_ids), 'physical_cell_id_missing_or_duplicate',
                 page=page)
     cases_by_id = {}
-    for case, candidates in zip(annotations['cases'], matches):
+    for case, candidates in zip(annotations['cases'], matches, strict=True):
         cases_by_id.setdefault(case['id'], []).append((case, candidates))
     if expected_table is not None or any(
         field in case for case in annotations['cases']
@@ -90,7 +90,7 @@ def _check_structure(index, annotations, matches):
         _structure_check(checks, 'annotation_case_ids',
             all(case_id and len(entries) == 1 for case_id, entries in cases_by_id.items()),
             'annotation_case_id_missing_or_duplicate')
-    for case, candidates in zip(annotations['cases'], matches):
+    for case, candidates in zip(annotations['cases'], matches, strict=True):
         fields = [field for field in ('row', 'column', 'rowspan', 'colspan') if field in case]
         if not fields and 'header_case_ids' not in case:
             continue
