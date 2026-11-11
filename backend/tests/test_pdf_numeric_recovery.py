@@ -145,7 +145,8 @@ def test_total_crop_can_fill_blank_preserving_raw_words_and_pdf(monkeypatch,cont
             words=[],header_ids=['h'],quality='usable',numeric_verified=False)
         if contradiction:
             cell.update(text='17',words=[dict(text='17',confidence=.99)],
-                numeric_refinement=dict(variants=[variant('71',95)]))
+                numeric_refinement=dict(variants=[variant('71',95)]),
+                raw_numeric_refinement=dict(variants=[variant('17',95)]))
         verified={**deepcopy(cell),'cell_id':'old','column':2,'bbox':[100,20,150,40],
             'text':'19','numeric_verified':True}
         old=deepcopy(verified)
@@ -158,3 +159,120 @@ def test_total_crop_can_fill_blank_preserving_raw_words_and_pdf(monkeypatch,cont
         assert cell['words']==cell['numeric_recovery']['prior_words']
         assert cell['numeric_recovery']['bbox']==cell['bbox']
         assert verified==old and doc.tobytes(no_new_id=True)==before
+
+
+def scalar_table(text='о', header='Количество'):
+    return dict(table_id='physical', origin='ocr', col_count=1, cells=[
+        dict(cell_id='h', role='header', row=0, column=0, text=header,
+            bbox=[10, 0, 60, 20]),
+        dict(cell_id='n', role='cell', row=1, column=0, text=text,
+            bbox=[10, 20, 60, 40], header_ids=['h'], quality='uncertain',
+            words=[dict(text=text, confidence=.5)], numeric_verified=False)])
+
+
+@pytest.mark.parametrize('text', ['о', '0,о', '7486', '112', '12 34'])
+def test_uncertain_scalar_measurement_cells_are_selected_without_recovery_flag(text):
+    from pdf_cell_ocr import numeric_candidates, BODY_PREPARATION_VERSION
+    from pdf_numeric_preparation import pending_numeric_tables
+    table = scalar_table(text)
+    cell = table['cells'][1]
+    assert numeric_candidates(table, include_body=True) == [cell]
+    assert pending_numeric_tables([table]) == [table]
+    cell['numeric_preparation'] = dict(version=BODY_PREPARATION_VERSION, state='uncertain')
+    assert pending_numeric_tables([table]) == []
+
+
+@pytest.mark.parametrize('header,text', [
+    ('Пикет', '112'), ('Позиция', '12'), ('Наименование', '17'),
+    ('Ведомость', '17'), ('006/26-ТКР1-5', '17'), ('Количество', 'ПК12+34'),
+    ('Количество', 'марка 17')])
+def test_body_labels_pikets_and_nonmeasurement_grids_are_not_scalar_candidates(header, text):
+    from pdf_cell_ocr import numeric_candidates
+    assert numeric_candidates(scalar_table(text, header), include_body=True) == []
+
+
+def test_suspect_scalar_geometry_rejection_is_preserved():
+    from pdf_cell_ocr import numeric_candidates
+    table = scalar_table()
+    table['cells'][1]['geometry_validation'] = dict(requires_source_review=True)
+    assert numeric_candidates(table, include_body=True) == []
+
+
+@pytest.mark.parametrize('original', ['о', '7486', '112', '12 34'])
+def test_body_reobservation_keeps_conflicting_literal_and_completes_once(monkeypatch, original):
+    import ocr_engine
+    import pdf_cell_ocr
+    from pdf_numeric_preparation import complete_recovered_numbers
+    from PIL import Image
+    monkeypatch.setattr(ocr_engine, 'tesseract_version', lambda: 'synthetic')
+    monkeypatch.setattr(ocr_engine, 'run_tsv', lambda *a, **k: '')
+    monkeypatch.setattr(ocr_engine, 'parse_tsv', lambda *a: [])
+    monkeypatch.setattr(pdf_cell_ocr, 'clean_glyphs', lambda image: Image.new('L', (100, 40), 255))
+    monkeypatch.setattr(pdf_cell_ocr, '_rapid_numeric', lambda image: [dict(text='17', confidence=.99)])
+    monkeypatch.setattr(pdf_cell_ocr, '_read_variants',
+        lambda *a, **k: [variant(), {**variant(), 'height': 64}])
+    with pymupdf.open() as doc:
+        page = doc.new_page(width=150, height=100)
+        table = scalar_table(original)
+        cell = table['cells'][1]
+        words = deepcopy(cell['words'])
+        result = complete_recovered_numbers(page, [table], passes=3, seconds=10)
+        assert cell['text'] == original and cell['words'] == words
+        assert cell['numeric_verified'] is False
+        assert cell['numeric_recovery']['prior_text'] == original
+        assert cell['numeric_refinement']['prior_words'] == words
+        assert len(result['passes']) == 1 and result['remaining'] == {}
+        assert result['uncertain_cells'] == {'physical': ['n']}
+        assert complete_recovered_numbers(page, [table])['passes'] == []
+
+
+def test_unparseable_literal_cannot_agree_with_unparseable_reads():
+    from pdf_cell_ocr import numeric_agreement
+    assert not numeric_agreement('о', [variant('о'), {**variant('о'), 'height': 64}])
+
+
+def test_recovery_clears_stale_verified_flag_before_contradictory_read(monkeypatch):
+    import time
+    import pdf_cell_ocr
+    from PIL import Image
+    cell, _ = evidence()
+    cell.update(text='71', numeric_verified=True)
+    monkeypatch.setattr(pdf_cell_ocr, 'clean_glyphs', lambda image: None)
+    pdf_cell_ocr._recover_numeric(Image.new('L', (20, 20)), cell,
+        dict(image_sha256='proof', dpi=600, rotation=0, variants=[variant()]),
+        lambda *a, **k: [], time.monotonic() + 5)
+    assert cell['text'] == '71' and cell['numeric_verified'] is False
+
+
+def test_unparseable_original_is_not_verified_as_a_different_literal():
+    cell, proof = evidence()
+    cell['text'] = 'о'
+    proof['rapid_words'][0]['text'] = '0'
+    proof['variants'] = [variant('0'), {**variant('0'), 'height': 64}]
+    assert recovered_numeric_value(cell, proof) is None
+
+
+@pytest.mark.parametrize('table_origin,cell_origin,recovery,expected', [
+    ('native', None, False, False),
+    ('native', 'native', True, False),
+    ('ocr', 'native', False, False),
+    (None, None, False, False),
+    ('ocr', None, False, True),
+    (None, 'ocr', False, True),
+    (None, None, True, True),
+])
+def test_numeric_preparation_only_reobserves_raster_cells(
+        table_origin, cell_origin, recovery, expected):
+    from pdf_cell_ocr import numeric_candidates
+    from pdf_numeric_preparation import pending_numeric_tables
+    table = scalar_table('112')
+    if table_origin is None:
+        table.pop('origin')
+    else:
+        table['origin'] = table_origin
+    if cell_origin is not None:
+        table['cells'][1]['origin'] = cell_origin
+    if recovery:
+        table['recovery'] = dict(version='physical-grid')
+    assert bool(numeric_candidates(table, include_body=True)) is expected
+    assert bool(pending_numeric_tables([table])) is expected

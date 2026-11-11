@@ -26,6 +26,8 @@ def italic_reads(clean, read, deadline):
     from PIL import Image, ImageOps
     from ocr_engine import _to_png
     for shear in (.15, .25):
+        if time.monotonic() >= deadline:
+            return
         array = cv2.warpAffine(np.array(clean), np.array([[1, shear, 0], [0, 1, 0]], dtype=np.float32),
             (clean.width + round(clean.height * shear), clean.height), borderValue=(255,))
         corrected = Image.fromarray(array)

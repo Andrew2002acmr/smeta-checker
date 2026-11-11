@@ -259,8 +259,9 @@ def test_mixed_page_with_native_text_and_raster_content_also_gets_ocr(tmp_path):
                     words=[],
                     quality=dict(state="usable"),
                 ),
-            ) as ocr,
+            ),
             patch.object(PDFTextSource, "_scan_grid_for"),
+            patch.object(PDFTextSource, "_try_ruled_page", return_value=(None, False)),
         ):
             source = PDFTextSource(doc, cache_dir=tmp_path / "pdf")
             try:
@@ -268,8 +269,8 @@ def test_mixed_page_with_native_text_and_raster_content_also_gets_ocr(tmp_path):
                 packed = source.prepare_page(0)
             finally:
                 source.close()
-        assert ocr.call_count == 1
-        assert "Embedded raster schedule" in packed["text"]
+        assert "Good native paragraph" in packed["text"]
+        assert "Embedded raster schedule 12.5 m2" in packed["text"]
 
 
 def test_llm_worker_refuses_partial_document_without_reopening_or_calling_model(build):

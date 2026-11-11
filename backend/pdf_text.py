@@ -18,6 +18,7 @@ from typing import Any
 
 from audit_core import PageTextIndex
 from audit_tracing import span
+from pdf_tables import RULED_OCR_VERSION
 import ocr_engine as _ocr_engine
 
 # Layout's native GNN analysis can stall on engineering drawings. Use the
@@ -267,6 +268,7 @@ class PDFTextSource:
         full_document=False,
         store_image=None,
         source_bytes=None,
+        selected_pages=None,
     ):
         self._progress = progress
         self._checkpoint = checkpoint
@@ -350,7 +352,8 @@ class PDFTextSource:
         self._cached_native_errors = {}
         try:
             if native_state is None:
-                (self._native_texts, self._native_errors, pending, self._repeated_lines) = self._read_native()
+                selected = None if selected_pages is None else tuple(sorted(set(selected_pages)))
+                (self._native_texts, self._native_errors, pending, self._repeated_lines) = self._read_native(selected)
             else:
                 expected = (self._pdf_hash, self._extraction_key, self._settings_key, self._table_key)
                 actual = tuple(native_state.get(k) for k in ('pdf_sha256', 'extraction_key', 'ocr_settings_key', 'table_key'))
@@ -436,9 +439,14 @@ class PDFTextSource:
         drawings = getattr(page, "get_cdrawings", None)
         return callable(drawings) and len(drawings()) > MAX_VECTOR_PATHS
 
-    def _read_native(self):
+    def _read_native(self, selected=None):
+        selected = None if selected is None else tuple(sorted(set(selected)))
+        if selected is not None and (not selected or min(selected) < 0):
+            raise ValueError("Selected pages must be non-empty zero-based indices")
         texts, errors, scans = [], {}, []
         doc = self._doc
+        wanted = range(len(doc)) if selected is None else selected
+        skipped = [idx for idx in range(len(doc)) if selected is not None and idx not in selected]
         # PyMuPDF4LLM removes page rotation in-place. Keep the source used by
         # the inspector, OCR and document hash unchanged.
         if doc.name and not doc.is_dirty:
@@ -454,20 +462,22 @@ class PDFTextSource:
             # Running headers are detected after pass 1 collects natives;
             # scan eligibility is decided on content without them.
             deferred: list[int] = []
-            for idx in range(len(doc)):
+            texts = [""] * len(doc)
+            for idx in wanted:
+                if idx >= len(doc):
+                    raise ValueError("Selected pages must be original PDF page indices")
                 cached = self._read_cached_extraction(idx)
                 if cached is not None:
                     text, is_scan = cached
                     if idx in self._cached_native_errors:
                         errors[idx] = self._cached_native_errors[idx]
-                    texts.append(text)
+                    texts[idx] = text
                     if is_scan:
                         scans.append(idx)
                     self.extraction_hits += 1
                     if self._progress:
                         self._progress(idx + 1, len(doc))
                     continue
-                texts.append("")  # placeholder, filled in pass 2
                 try:
                     page = markdown_doc[idx]
                     raw = page.get_text(sort=True)
@@ -485,7 +495,7 @@ class PDFTextSource:
                         self._progress(idx + 1, len(doc))
             repeated = _repeated_lines(
                 [natives[idx] for idx in deferred]
-                + [texts[idx] for idx in range(len(doc)) if texts[idx]]
+                + [texts[idx] for idx in wanted if texts[idx]]
             )
             for idx in deferred:
                 try:
@@ -589,7 +599,7 @@ class PDFTextSource:
                     self._write_cached_extraction(idx, text, idx in scans)
                     if self._progress:
                         self._progress(idx + 1, len(doc))
-        repeated_native = _repeated_lines(list(texts))
+        repeated_native = _repeated_lines([texts[idx] for idx in wanted])
         return tuple(texts), errors, scans, repeated_native
 
     @staticmethod
@@ -653,12 +663,13 @@ class PDFTextSource:
     @staticmethod
     def _table_key_for(max_cell_chars):
         engine = pymupdf.VersionBind
-        from pdf_tables import VERSION
+        from pdf_tables import VERSION, RULED_OCR_VERSION
         from pdf_table_verification import VERSION as HEADER_VERSION
         from pdf_table_verification import SEMANTIC_VERSION
         from pdf_header_geometry import VERSION as GEOMETRY_VERSION
         from pdf_row_sections import VERSION as ROW_SECTION_VERSION
-        from pdf_cell_ocr import VERSION as CELL_VERSION, NUMERIC_RECOVERY_VERSION
+        from pdf_cell_ocr import VERSION as CELL_VERSION, NUMERIC_RECOVERY_VERSION, BODY_PREPARATION_VERSION
+        from pdf_table_checks import VERSION as CONSISTENCY_VERSION
         from pdf_ruled_recovery import VERSION as RULED_VERSION
 
         raw = _cache_payload(
@@ -668,12 +679,22 @@ class PDFTextSource:
                 "max_cell_chars": max_cell_chars,
                 "physical_cells": VERSION,
                 "ruled_recovery": RULED_VERSION,
+                "ruled_primary_ocr": dict(
+                    version=RULED_OCR_VERSION, recognition="PP-OCRv5/cyrillic/mobile",
+                    rec_batch_num=16, intra_op_num_threads=2, inter_op_num_threads=1,
+                    det_limit_side_len=960, det_limit_type="min",
+                    renderer=dict(dpi=300, max_pixels=24_000_000, max_side=4960),
+                    line_segmentation=dict(gap="round(dpi/100)", threshold=250, padding=4, max_lines=12),
+                    reread_policy="one_targeted_original_crop_only_when_first_text_empty",
+                    blank_proof=dict(empty="physical-empty-paper-v1", dash="physical-printed-dash-v1")),
                 "header_verification": HEADER_VERSION,
                 "semantic_header_verification": SEMANTIC_VERSION,
                 "header_geometry_verification": GEOMETRY_VERSION,
                 "row_section_classification": ROW_SECTION_VERSION,
                 "cell_verification": CELL_VERSION,
                 "numeric_recovery": NUMERIC_RECOVERY_VERSION,
+                "body_numeric_preparation": BODY_PREPARATION_VERSION,
+                "table_consistency": CONSISTENCY_VERSION,
                 "rapidocr": _pkg_version("rapidocr"),
                 "rapid_table": _pkg_version("rapid-table"),
                 "opencv": _pkg_version("opencv-python"),
@@ -862,6 +883,106 @@ class PDFTextSource:
             "quality": quality,
         }
 
+    def _ruled_tables_path(self, idx):
+        return (
+            self._cache_dir
+            / self._pdf_hash
+            / ("tables-%s" % self._table_key)
+            / ("ruled-%05d.json" % idx)
+        )
+
+    def _read_ruled_page(self, idx):
+        from pdf_tables import is_primary_ruled_table, primary_observation_complete
+        try:
+            envelope = json.loads(self._ruled_tables_path(idx).read_bytes().decode("utf-8"))
+        except OSError:
+            return None
+        except UnicodeDecodeError, ValueError:
+            return None
+        if (not isinstance(envelope, dict) or envelope.get("schema") != CACHE_SCHEMA_VERSION
+                or envelope.get("page") != idx or envelope.get("pdf_sha256") != self._pdf_hash
+                or envelope.get("table_key") != self._table_key):
+            return None
+        record = envelope.get("ruled_ocr_record")
+        if not isinstance(record, dict) or not isinstance(record.get("tables"), list):
+            return None
+        # Partial producer output may persist for debugging, but it is never a
+        # successful recognition cache: don't resolve the table views from it.
+        if not record["tables"] or any((not is_primary_ruled_table(table)
+                or not primary_observation_complete(table)) for table in record["tables"]):
+            return None
+        if not isinstance(record.get("text"), str) or not isinstance(record.get("words"), list):
+            return None
+        if not isinstance(record.get("quality"), dict):
+            return None
+        return record
+
+    def _write_ruled_page(self, idx, record):
+        envelope = {
+            "schema": CACHE_SCHEMA_VERSION,
+            "page": idx,
+            "pdf_sha256": self._pdf_hash,
+            "table_key": self._table_key,
+            "ruled_ocr_record": record,
+        }
+        self._write_cache_bytes(self._ruled_tables_path(idx), _cache_payload(envelope))
+
+    def _install_ruled_page(self, idx, record):
+        from copy import deepcopy
+        record = deepcopy(record)
+        self._ocr_pages[idx] = dict(text=record["text"], words=record["words"],
+            quality=record["quality"])
+        self._ocr_texts[idx] = record["text"]
+        self._store_tables(idx, record["tables"], origin="ocr")
+        return self._ocr_pages[idx]
+
+    def _try_ruled_page(self, idx, *, allow_ocr=True):
+        from copy import deepcopy
+        from pdf_tables import is_primary_ruled_table, primary_observation_complete
+        if getattr(self, "_ruled_probe_failed", None) is None:
+            self._ruled_probe_failed = set()
+        record = self._read_ruled_page(idx)
+        if record is not None:
+            return self._install_ruled_page(idx, record), True
+        if not allow_ocr or idx in self._ruled_probe_failed or self._table_origins.get(idx) == "ocr":
+            return None, False
+        candidate = self._doc[idx]
+        from pdf_tables import prepare_ruled_page
+        if type(candidate).__module__ != "pymupdf" and getattr(
+                prepare_ruled_page, "__module__", "pdf_tables").startswith("pdf_tables"):
+            # Synthetic unit-test pages expose no PyMuPDF raster API. Treat as
+            # an absent ruled grid and let the legacy OCR path continue.
+            self._ruled_probe_failed.add(idx)
+            return None, False
+        rotation = (self._ocr_pages.get(idx, {}).get("quality") or {}).get("rotation", 0)
+        try:
+            fresh = prepare_ruled_page(candidate, rotation=int(rotation),
+                timeout=40.0, cache_dir=self._cache_dir, store_image=self._store_image)
+        except SoftTimeLimitExceeded:
+            raise
+        except Exception as exc:
+            self._table_errors[idx] = "ruled_ocr_failed:%s" % type(exc).__name__
+            self._ocr_errors[idx] = self._table_errors[idx]
+            return None, False
+        if fresh is None:
+            self._ruled_probe_failed.add(idx)
+            return None, False
+        self._ocr_errors.pop(idx, None)
+        self.ocr_count += 1
+        for table in fresh["tables"]:
+            if is_primary_ruled_table(table) and not primary_observation_complete(table):
+                errors = [*(fresh.get("errors") or [])]
+                if "incomplete_cell_observation" not in errors:
+                    errors.append("incomplete_cell_observation")
+                fresh = dict(fresh, errors=errors)
+                self._table_errors[idx] = "; ".join(errors)
+                self._ocr_errors[idx] = self._table_errors[idx]
+                break
+        else:
+            self._table_errors.pop(idx, None)
+        self._write_ruled_page(idx, fresh)
+        return self._install_ruled_page(idx, deepcopy(fresh)), False
+
     def _peek_cached_ocr(self, idx):
         """Populate memory from reusable cache without new OCR or hit accounting.
 
@@ -872,6 +993,10 @@ class PDFTextSource:
         record = self._ocr_pages.get(idx)
         if record is not None:
             return record["text"]
+        ruled = self._read_ruled_page(idx)
+        if ruled is not None:
+            self._install_ruled_page(idx, ruled)
+            return ruled["text"]
         record = self._read_cached_ocr(idx)
         if record is not None:
             self._ocr_pages[idx] = record
@@ -880,11 +1005,16 @@ class PDFTextSource:
         return ""
 
     def _get_ocr_record(self, idx, allow_ocr=True):
-        """Return the OCR evidence record, using memory/disk cache or real TSV OCR."""
+        """Return the OCR evidence record, using memory/disk cache or real OCR."""
         record = self._ocr_pages.get(idx)
         if record is not None:
             self.cache_hits += 1
             return record
+        ruled, cache_hit = self._try_ruled_page(idx, allow_ocr=allow_ocr)
+        if ruled is not None:
+            if cache_hit:
+                self.cache_hits += 1
+            return ruled
         record = self._read_cached_ocr(idx)
         if record is not None:
             self._ocr_pages[idx] = record
@@ -1023,6 +1153,13 @@ class PDFTextSource:
                     "rotation": 0,
                 }
                 locator["source_id"] = self._locator_id(locator)
+                if (isinstance(table, dict) and table.get("origin") == "ocr"
+                        and (table.get("recognition") or {}).get("version") == RULED_OCR_VERSION
+                        and not cell.get("numeric_verified")):
+                    from pdf_cell_ocr import column_unit
+                    locator["quality"] = "uncertain"
+                    locator["numeric_verified"] = False
+                    locator["unit_verified"] = bool(column_unit(table, cell))
                 locators.append(locator)
         result = tuple(rows), tuple(locators)
         self._structured_tables[idx] = tables
@@ -1402,6 +1539,11 @@ class PDFTextSource:
             checkpoint=lambda current, _: self._store_tables(idx, current, origin='ocr'))
         if numeric_preparation['passes']:
             self._store_tables(idx, tables, origin='ocr')
+        from pdf_table_checks import check_table
+        for table in tables:
+            table["consistency"] = check_table(table)
+        if tables:
+            self._store_tables(idx, tables, origin=self._table_origins.get(idx, "ocr"))
         incomplete = [message for message, result in (
             ('incomplete_header_observation', header_preparation),
             ('incomplete_numeric_observation', numeric_preparation)) if result['remaining']]
@@ -1446,7 +1588,9 @@ class PDFTextSource:
                 text=text[:MAX_TABLE_CELL_CHARS], bbox=[], origin=origin,
                 table_id='', row_id='', column_id='', header_ids=[], group_id='',
                 scope_key='', role='block', quality=quality.get('state', 'uncertain'), rotation=0))
-        if rows:
+        from pdf_tables import is_primary_ruled_table
+        if rows and not any(is_primary_ruled_table(table)
+                for table in self._structured_tables.get(idx, [])):
             text += '\n' + '\n'.join(rows)
         page = self._doc[idx]
         return dict(page=idx+1, text=text, table_rows=list(rows), locators=locators,
@@ -1580,7 +1724,9 @@ class PDFTextSource:
                     rows, locators = self._table_rows[idx]
                     flattened[idx] = rows
                     page_locators[idx] = list(locators) + page_locators[idx]
-                    if rows:
+                    from pdf_tables import is_primary_ruled_table
+                    if rows and not any(is_primary_ruled_table(table)
+                            for table in self._structured_tables.get(idx, [])):
                         texts[idx] += "\n" + "\n".join(rows)
         for idx, text in enumerate(texts):
             native = self._native_texts[idx]

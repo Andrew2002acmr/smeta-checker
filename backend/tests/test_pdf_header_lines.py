@@ -47,14 +47,17 @@ def test_accurate_model_upgrade_keeps_previous_reads_and_is_resumable():
     assert resumed==result
 
 
-def test_unit_readiness_does_not_suppress_semantic_header_reading():
+def test_unit_readiness_does_not_suppress_semantic_header_reading(monkeypatch):
+    from header_ocr_model import SHA256
+    monkeypatch.setattr('header_ocr_model.configured', lambda: {'sha256': SHA256})
     header=dict(role='header',cell_id='h',bbox=[0,0,20,20],row=0,column=0,text='(5см)',header_ids=[])
     table=dict(recovery={'version':'grid'},cells=[header],column_units={'0':dict(unit='м2')})
     original=deepcopy(table)
     assert candidates(table)==[header]
     assert pending_pages(SimpleNamespace(tables=([table],)))==[0]
     assert table==original
-    header['header_line_observation']=dict(version=VERSION,state='observed',lines=[])
+    header['header_line_observation']=dict(version=VERSION,state='observed',lines=[],
+        header_best_model_sha256=SHA256)
     assert not candidates(table)
 
 
@@ -74,3 +77,15 @@ def test_generic_conflict_recovery_preserves_rejected_read_and_uses_only_existin
     assert header['text']=='Основание ЩПС' and header['rejected_header_consensus_text']=='Основание ЩПЕ'
     assert header['quality']=='uncertain'
     assert not restore_conflicting_read(header)
+
+
+def test_scaled_projection_retains_faint_lines_and_overlapping_superscript():
+    from pdf_header_lines import line_boxes
+    page = Image.new('L', (80, 50), 255)
+    drawing = ImageDraw.Draw(page)
+    drawing.rectangle((10, 12, 35, 18), fill=220)
+    drawing.rectangle((36, 8, 40, 12), fill=220)
+    drawing.rectangle((10, 23, 35, 29), fill=220)
+    assert line_boxes(page, gap=3, threshold=250) == [
+        [0, 5, 80, 22], [0, 20, 80, 33],
+    ]

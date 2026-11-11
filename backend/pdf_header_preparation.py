@@ -9,13 +9,14 @@ from audit_snapshot import load_json, store_json, store_snapshot
 
 def pending_header_pages(index):
     from pdf_table_verification import needs_unit_component_pass
+    from pdf_tables import is_primary_ruled_table
     pages: Any = index.tables or ()
     return [p for p, tables in enumerate(pages) if any(
         any(c.get('role') == 'header' and '\nЕдиница по Tesseract:' in c.get('text', '')
             for c in t['cells']) or
-        t.get('recovery') and (not t.get('header_verification') or
+        (not is_primary_ruled_table(t) and t.get('recovery') and (not t.get('header_verification') or
         (t.get('header_verification') or {}).get('deferred_header_ids') or
-        needs_unit_component_pass(t)) for t in tables)]
+        needs_unit_component_pass(t))) for t in tables)]
 
 
 def complete_saved_headers(blobs, data, state, index, *, checkpoint=lambda: None,
@@ -100,9 +101,11 @@ def _complete_saved_tables(blobs, data, state, index, pending, processor, stage,
             metadata[f'{stage}_completed_pages'] = sorted(completed)
             metadata['incomplete_table_headers'] = {
                 str(n + 1): {t['table_id']: (t.get('header_verification') or {}).get('deferred_header_ids', [])
-                    for t in ts if t.get('recovery') and (not t.get('header_verification') or
+                    for t in ts if t.get('recovery') and not is_primary_ruled_table(t)
+                    and (not t.get('header_verification') or
                     (t.get('header_verification') or {}).get('deferred_header_ids'))}
-                for n, ts in enumerate(tables) if any(t.get('recovery') and (
+                for n, ts in enumerate(tables) if any(t.get('recovery')
+                    and not is_primary_ruled_table(t) and (
                     not t.get('header_verification') or
                     (t.get('header_verification') or {}).get('deferred_header_ids')) for t in ts)}
             index = PageTextIndex(texts, errors, index.pending_ocr, rows, locators,

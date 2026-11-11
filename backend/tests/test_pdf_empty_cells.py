@@ -38,3 +38,17 @@ def test_faint_text_and_non_white_background_are_not_proven_empty():
     ImageDraw.Draw(image).text((90, 25), '123', fill=235)
     assert empty_paper(image) is None
     assert empty_paper(Image.new('L', (100, 40), 245)) is None
+
+
+def test_split_border_rules_do_not_become_text_while_digits_still_block_blank():
+    from pathlib import Path
+    missing = 'p88 unreadable crops are review-only fixtures, not committed gold'
+    crops = sorted(Path(__file__).resolve().parent.parent.joinpath(
+        '.audit_cache/table-analysis/unreadable-cells').glob('r*.png'))
+    assert crops, missing
+    for path in crops:
+        crop = Image.open(path)
+        assert empty_paper(crop)['meaning'] == 'empty_paper_not_numeric_zero'
+        digit = crop.copy()
+        ImageDraw.Draw(digit).ellipse((20, 20, 45, 60), outline=0, width=3)
+        assert empty_paper(digit) is None

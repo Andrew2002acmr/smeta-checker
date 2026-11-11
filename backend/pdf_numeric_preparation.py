@@ -4,13 +4,17 @@ from pdf_paired_ocr import pending_cells as pending_paired_cells,verified_readin
 
 
 def pending_ids(table):
+    from pdf_tables import is_primary_ruled_table
+    if is_primary_ruled_table(table):
+        return []
     return [c['cell_id']for c in numeric_candidates(table,include_body=True,resume_only=True)]+[
         c['cell_id']for c,_ in pending_paired_cells(table)]
 
 
 def pending_numeric_tables(tables):
-    return [table for table in tables if (table.get('recovery')and
-        numeric_candidates(table, include_body=True, resume_only=True))or pending_paired_cells(table)]
+    from pdf_tables import is_primary_ruled_table
+    return [table for table in tables if not is_primary_ruled_table(table) and
+        (numeric_candidates(table, include_body=True, resume_only=True) or pending_paired_cells(table))]
 
 
 def pending_numeric_pages(index):
@@ -41,7 +45,7 @@ def complete_recovered_numbers(page, tables, *, rotation=0, cache_dir=None, stor
     remaining = {table['table_id']:pending_ids(table)for table in pending_numeric_tables(tables)}
     uncertain = {table['table_id']: [cell['cell_id'] for cell in table['cells'] if
         (cell.get('numeric_preparation') or {}).get('version') == BODY_PREPARATION_VERSION and
-        not cell.get('numeric_verified')] for table in tables if table.get('recovery')}
+        not cell.get('numeric_verified')] for table in tables if has_measurement_context(table)}
     return dict(state='numeric_observation_complete' if not remaining else 'incomplete_numeric_observation',
         remaining=remaining, uncertain_cells=uncertain, passes=history,
         uncertain_paired_cells={table['table_id']:[c['cell_id']for c in table['cells']

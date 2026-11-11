@@ -28,7 +28,7 @@ USER app
 CMD ["celery", "-A", "audit_tasks:worker", "worker", "-Q", "llm"]
 
 # API + PDF worker + migrate: everything incl. PDF/VOR/Word/OCR.
-FROM base AS full
+FROM base AS full-runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-rus \
@@ -47,3 +47,18 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD curl -fsS http://127.0.0.1:8000/healthz || exit 1
 CMD ["uvicorn", "api:get_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+
+# Optional Docling/Open WebUI extractor. No CUDA wheels or separate KDFP copy.
+FROM full-runtime AS table-extraction
+USER root
+COPY docling_plugin ./docling_plugin
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --torch-backend cpu --python .venv/bin/python ./docling_plugin
+USER app
+EXPOSE 5002
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:5002/healthz || exit 1
+CMD ["uvicorn", "table_extraction_api:get_app", "--factory", "--host", "0.0.0.0", "--port", "5002"]
+
+# Keep the ordinary API/PDF image as the default build target.
+FROM full-runtime AS full
