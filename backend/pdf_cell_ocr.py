@@ -327,6 +327,8 @@ def numeric_candidates(table, *, include_body=False, resume_only=False):
             continue
         if (cell.get('geometry_validation') or {}).get('requires_source_review'):
             continue
+        if not usable_box(cell):
+            continue  # A crop cannot be rendered without locatable geometry.
         measurement = body and _measurement_column(table, cell)
         text = cell['text'].strip()
         # This alphabet selects crops only; it does not substitute glyphs,
