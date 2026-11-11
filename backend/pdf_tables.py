@@ -506,16 +506,28 @@ def physical_data_value(text):
 
 def physical_header_rows(cells):
     """Conservative first numeric data row; h=0.12/unit headers are not data."""
+    width = max((c["column"] + c.get("colspan", 1) for c in cells), default=0)
     candidates=[]
+    skipped = 0
     for row in sorted({c['row'] for c in cells}):
-        values = [c['text'].strip() for c in cells if c['row']==row and c['text'].strip()]
+        row_cells = [c for c in cells if c['row']==row]
+        # Full-width text separators ('Правая ось') are group labels, not
+        # header rows: they carry no column structure. Skip them entirely so
+        # the returned data boundary counts only real header rows; finish_table
+        # marks the separator itself as group (row >= boundary, full width).
+        if (len(row_cells) == 1 and row_cells[0].get('colspan', 1) == width
+                and row_cells[0]['text'].strip()
+                and not re.fullmatch(r'[+-]?\d+(?:[.,]\d+)?', row_cells[0]['text'].strip())):
+            skipped += 1
+            continue
+        values = [c['text'].strip() for c in row_cells if c['text'].strip()]
         numeric = sum(bool(re.fullmatch(r'[+-]?\d+(?:[.,]\d+)?', value)) for value in values)
-        station=any(c['row']==row and c.get('column')==0 and c.get('colspan',1)==1
-            and station_value(c['text']) for c in cells)
+        station=any(c.get('column')==0 and c.get('colspan',1)==1
+            and station_value(c['text']) for c in row_cells)
         if 0 < row <= 12 and station and numeric>=1:
-            return row
+            return row - skipped
         if 0 < row <= 12 and numeric >= 2 and numeric >= len(values)*.5:
-            candidates.append(row)
+            candidates.append(row - skipped)
     return candidates[0] if candidates else None
 
 
