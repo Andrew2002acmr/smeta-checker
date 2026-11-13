@@ -1,0 +1,24 @@
+groups:
+  - name: smeta
+    rules:
+      - alert: ApiDown
+        expr: probe_success{job="blackbox",instance="http://api:8000/healthz"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "smeta API недоступен"
+      - alert: WorkerDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Экспортер/нода недоступна"
+      - alert: HighErrorRate
+        expr: rate(smeta_http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Высокая доля 5xx в API"

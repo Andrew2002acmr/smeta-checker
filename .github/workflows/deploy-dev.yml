@@ -1,0 +1,19 @@
+name: deploy-dev
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+concurrency:
+  group: smeta-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, smeta-dev]
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: deploy
+        run: |
+          sudo -n /usr/local/bin/smeta-deploy.sh

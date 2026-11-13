@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "vor_sha256": "4b5d03827ea0ce64892576eac956ba3c2f3c3e794d62be431e0255c61926c7aa",
+  "pdf_sha256": "e48108c661864b6e086f4c8c265a7ac0edd398cfc22cf0f6155c986751154c9f",
+  "input_position_count": 103,
+  "selected_indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 18, 28, 32],
+  "positions": [
+    {
+      "index": 0,
+      "row": 18,
+      "work_name": "Устройство нижнего слоя основания из ЩПС",
+      "role": "work",
+      "dimension": "area",
+      "expected": {"project": "confirmed", "own_quantity": "confirmed"}
+    },
+    {
+      "index": 1,
+      "row": 19,
+      "work_name": "Щебеночно-песчаная смесь для нижнего слоя",
+      "role": "material",
+      "dimension": "volume",
+      "expected": {"project": "confirmed", "own_quantity": "conditional"}
+    },
+    {
+      "index": 2,
+      "row": 20,
+      "work_name": "Устройство нижнего слоя основания из ЩПС",
+      "role": "work",
+      "dimension": "area",
+      "expected": {"project": "confirmed", "own_quantity": "confirmed"}
+    },
+    {
+      "index": 8,
+      "row": 26,
+      "work_name": "Подгрунтовка битумной эмульсией",
+      "role": "derived_work",
+      "dimension": "mass",
+      "expected": {"project": "confirmed", "own_quantity": "unresolved"}
+    },
+    {
+      "index": 9,
+      "row": 27,
+      "work_name": "Битумная эмульсия",
+      "role": "derived_material",
+      "dimension": "mass",
+      "expected": {"project": "confirmed", "own_quantity": "unresolved"}
+    },
+    {
+      "index": 18,
+      "row": 36,
+      "work_name": "Розлив битумной эмульсии",
+      "role": "workbook_control",
+      "dimension": "mass",
+      "actual_cell": "D36",
+      "display_cell": "E36",
+      "expected": {"relationships": "possible_mismatch"}
+    },
+    {
+      "index": 28,
+      "row": 46,
+      "work_name": "Установка бортового камня",
+      "role": "curb_control",
+      "dimension": "length",
+      "expected": {"project": "possible_mismatch"}
+    },
+    {
+      "index": 32,
+      "row": 50,
+      "work_name": "Контрольная арифметическая строка",
+      "role": "workbook_control",
+      "dimension": "mass",
+      "actual_cell": "D50",
+      "display_cell": "E50",
+      "expected": {"relationships": "possible_mismatch"}
+    }
+  ],
+  "sources": [
+    {
+      "id": "project:p50:construction",
+      "kind": "project",
+      "page": 50,
+      "label": "Тип IV, нижнее и среднее основания",
+      "quote": "Тип IV: нижнее основание ЩПС 0/31,5 h=24 см; среднее основание ЩПС 0/63 h=20 см."
+    },
+    {
+      "id": "project:p89:lower-area",
+      "kind": "project",
+      "page": 89,
+      "label": "Физический столбец нижнего основания",
+      "quote": "Нижнее основание: 345,77 + 85,841 = 431,611 м2."
+    },
+    {
+      "id": "project:p89:middle-area",
+      "kind": "project",
+      "page": 89,
+      "label": "Физический столбец среднего основания",
+      "quote": "Среднее основание: 345,77 + 85,841 = 431,611 м2."
+    },
+    {
+      "id": "project:p92:curb-quantity",
+      "kind": "project",
+      "page": 92,
+      "label": "Собственный столбец бортового камня",
+      "quote": "Бортовой камень: всего 1574,00 м."
+    }
+  ]
+}

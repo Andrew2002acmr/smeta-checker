@@ -1,0 +1,133 @@
+.shell {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding: 24px 32px 64px;
+}
+.shell-wide {
+  max-width: none;
+}
+.skip-link {
+  position: fixed;
+  inset: 12px auto auto 12px;
+  z-index: 100;
+  padding: 12px 20px;
+  background: var(--ui-bg-inverted);
+  color: var(--ui-text-inverted);
+  border-radius: 8px;
+  transform: translateY(-200%);
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+.page-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+.page-heading h1,
+.page-title {
+  margin: 0 0 10px;
+  font-size: clamp(28px, 2.5vw, 36px);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.page-heading p {
+  max-width: 68ch;
+}
+.muted {
+  color: var(--ui-text-muted);
+  font-size: 14px;
+}
+.panel {
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: 12px;
+  min-width: 0;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.spread {
+  justify-content: space-between;
+}
+.results {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.results th {
+  text-align: start;
+  font-weight: 600;
+  color: var(--ui-text-muted);
+  background: var(--ui-bg-muted);
+  font-size: 14px;
+}
+.results th,
+.results td {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--ui-border-muted);
+  vertical-align: top;
+}
+.results tbody tr:last-child td {
+  border-bottom: 0;
+}
+.results tbody tr:hover {
+  background: var(--ui-bg-muted);
+}
+.results .numbers {
+  font-variant-numeric: tabular-nums;
+}
+.error-box {
+  background: var(--app-error-bg);
+  color: var(--app-error-text);
+  padding: 16px 20px;
+  border: 1px solid currentColor;
+  border-radius: 12px;
+  margin-block: 16px;
+}
+.empty {
+  padding: 40px 24px;
+  color: var(--ui-text-muted);
+  text-align: center;
+}
+.details {
+  margin-block: 20px;
+  font-size: 14px;
+  color: var(--ui-text-muted);
+}
+.details summary {
+  font-weight: 600;
+  padding-block: 12px;
+  min-height: 44px;
+  color: var(--ui-text);
+}
+.details p {
+  padding-top: 8px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  .shell {
+    padding: 16px 16px 40px;
+  }
+  .page-heading {
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .results th,
+  .results td {
+    padding: 14px 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

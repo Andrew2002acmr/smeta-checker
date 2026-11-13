@@ -1,0 +1,7 @@
+node_modules
+.nuxt
+.output
+.env*
+test-results
+playwright-report
+.api-check

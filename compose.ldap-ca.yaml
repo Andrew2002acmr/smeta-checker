@@ -1,0 +1,12 @@
+# Optional internal AD CA; use with: docker compose -f compose.yaml -f compose.ldap-ca.yaml ...
+services:
+  workspace:
+    environment:
+      LDAP_CA_FILE: /run/certs/ad-ca.pem
+    volumes:
+      - type: bind
+        source: ${LDAP_CA_HOST_FILE:?Set LDAP_CA_HOST_FILE to the trusted AD CA PEM file}
+        target: /run/certs/ad-ca.pem
+        read_only: true
+        bind:
+          create_host_path: false

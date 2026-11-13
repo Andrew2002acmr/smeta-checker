@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools==84.2.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "docling-kdfp"
+version = "0.1.0"
+description = "Docling table adapter for the smeta-checker physical PDF extraction runtime"
+requires-python = "==3.14.*"
+dependencies = ["docling==2.149.0", "docling-core==2.106.0"]
+
+[project.entry-points.docling]
+kdfp = "docling_kdfp"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["docling_kdfp*"]

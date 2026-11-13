@@ -1,0 +1,48 @@
+# Optional self-hosted GlitchTip (Sentry-compatible error tracking).
+# Run together with the main stack:
+#   docker compose -f compose.yaml -f compose.glitchtip.yaml up -d
+# After first start, open http://127.0.0.1:8001, create an organization and
+# project, then copy its DSN into GLITCHTIP_DSN in .env and restart api/workspace.
+name: smeta-checker
+
+services:
+  glitchtip-db-init:
+    image: postgres:16-alpine
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        until pg_isready -h db -U "${POSTGRES_USER:-smeta}" >/dev/null 2>&1; do sleep 2; done
+        psql -h db -U "${POSTGRES_USER:-smeta}" -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'glitchtip'" | grep -q 1 || \
+          psql -h db -U "${POSTGRES_USER:-smeta}" -d postgres -c "CREATE DATABASE glitchtip"
+
+  glitchtip:
+    image: glitchtip/glitchtip:6.2.6
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      glitchtip-db-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-smeta}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/glitchtip
+      VALKEY_URL: redis://redis:6379/2
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?Set GLITCHTIP_SECRET_KEY in .env (any long random string)}
+      EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
+      DEFAULT_FROM_EMAIL: ${GLITCHTIP_DEFAULT_FROM_EMAIL:-glitchtip@localhost}
+      GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://localhost:8001}
+      ENABLE_USER_REGISTRATION: ${GLITCHTIP_ENABLE_USER_REGISTRATION:-true}
+      GLITCHTIP_ENABLE_MCP: ${GLITCHTIP_ENABLE_MCP:-true}
+      GLITCHTIP_EMBED_WORKER: "true"
+      ALLOWED_HOSTS: ${GLITCHTIP_ALLOWED_HOSTS:-*}
+    ports:
+      - "${GLITCHTIP_BIND:-127.0.0.1}:${GLITCHTIP_PORT:-8001}:8000"

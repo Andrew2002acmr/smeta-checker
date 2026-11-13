@@ -1,0 +1,928 @@
+{
+  "scope": "Static source analysis; local API routes come from a saved snapshot.",
+  "upstream_commit": "7d60864b45e45f942f47a30d859bc688d4fef951",
+  "upstream_python_files_parsed": 43,
+  "upstream_routes": [
+    {
+      "method": "POST",
+      "path": "/api/v1/audits",
+      "handler": "create_audit",
+      "line": 676,
+      "response_model": "AuditCreateResponse"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/audits/{run_id}",
+      "handler": "get_audit",
+      "line": 787,
+      "response_model": "AuditStatusResponse"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/audits/{run_id}/reports/{kind}",
+      "handler": "download_audit_report",
+      "line": 812,
+      "response_model": null
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/audits/{run_id}/results",
+      "handler": "get_audit_results",
+      "line": 796,
+      "response_model": "AuditResultsResponse"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/documents",
+      "handler": "upload_document",
+      "line": 639,
+      "response_model": "DocumentUploadResponse"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/documents/preflight",
+      "handler": "preflight_documents",
+      "line": 661,
+      "response_model": "PreflightResponse"
+    }
+  ],
+  "local_project_routes_from_snapshot": [
+    "GET /api/projects",
+    "GET /api/projects/{project_id}/benchmarks",
+    "GET /api/projects/{project_id}/benchmarks/{run_id}/export",
+    "GET /api/projects/{project_id}/cache",
+    "GET /api/projects/{project_id}/demo",
+    "GET /api/projects/{project_id}/demo/documents/{sha256}/structure",
+    "GET /api/projects/{project_id}/demo/editor/files/{sha}/download",
+    "GET /api/projects/{project_id}/demo/editor/files/{sha}/history",
+    "GET /api/projects/{project_id}/demo/editor/pdf/{sha}/download",
+    "GET /api/projects/{project_id}/demo/editor/pdf/{sha}/notes",
+    "GET /api/projects/{project_id}/demo/editor/status",
+    "GET /api/projects/{project_id}/demo/files/{sha256}",
+    "GET /api/projects/{project_id}/demo/positions/{position_id}",
+    "GET /api/projects/{project_id}/demo/positions/{position_id}/annotated-pdf",
+    "GET /api/projects/{project_id}/demo/positions/{position_id}/annotated-xlsx",
+    "GET /api/projects/{project_id}/demo/positions/{position_id}/workspace",
+    "GET /api/projects/{project_id}/demo/results",
+    "GET /api/projects/{project_id}/documents",
+    "GET /api/projects/{project_id}/matching",
+    "GET /api/projects/{project_id}/pages/{page_id}/content",
+    "GET /api/projects/{project_id}/quantity-verification/{check_id}",
+    "GET /api/projects/{project_id}/runs",
+    "GET /api/projects/{project_id}/runs/{run_id}",
+    "GET /api/projects/{project_id}/versions/{version_id}",
+    "GET /api/projects/{project_id}/versions/{version_id}/file",
+    "GET /api/projects/{project_id}/versions/{version_id}/pages/{number}/image",
+    "GET /api/projects/{project_id}/vor-calculation",
+    "GET /api/projects/{project_id}/vor-calculation/files/{sha256}",
+    "GET /api/projects/{project_id}/vor-calculation/files/{sha256}/pages/{page}/image",
+    "GET /api/projects/{project_id}/vor-calculation/{check_id}/positions/{position_id}",
+    "PATCH /api/projects/{project_id}/demo/editor/pdf/{sha}/notes/{note_id}",
+    "PATCH /api/projects/{project_id}/sections/{section_id}",
+    "POST /api/projects",
+    "POST /api/projects/{project_id}/benchmarks",
+    "POST /api/projects/{project_id}/demo-intake",
+    "POST /api/projects/{project_id}/demo/editor/files/{sha}/restore",
+    "POST /api/projects/{project_id}/demo/editor/open",
+    "POST /api/projects/{project_id}/demo/editor/pdf/{sha}/notes",
+    "POST /api/projects/{project_id}/demo/editor/sessions/{sid}/refresh",
+    "POST /api/projects/{project_id}/demo/editor/sessions/{sid}/save",
+    "POST /api/projects/{project_id}/demo/recheck",
+    "POST /api/projects/{project_id}/documents",
+    "POST /api/projects/{project_id}/matching",
+    "POST /api/projects/{project_id}/quantity-verification",
+    "POST /api/projects/{project_id}/quantity-verification/{check_id}/reviews",
+    "POST /api/projects/{project_id}/runs/{run_id}/retry",
+    "POST /api/projects/{project_id}/versions/{version_id}/ocr",
+    "POST /api/projects/{project_id}/vor-calculation"
+  ],
+  "exact_route_overlap": [],
+  "upstream_api_models": {
+    "DocumentUploadResponse": {
+      "line": 62,
+      "fields": {
+        "version_id": "str",
+        "document_id": "str",
+        "version_no": "int",
+        "sha256": "str",
+        "size": "int"
+      },
+      "string_constants": {}
+    },
+    "PreflightRow": {
+      "line": 72,
+      "fields": {
+        "vor": "str",
+        "refs": "str",
+        "status": "str",
+        "pdf": "str"
+      },
+      "string_constants": {}
+    },
+    "PreflightResponse": {
+      "line": 81,
+      "fields": {
+        "rows": "list[PreflightRow]",
+        "has_critical_error": "bool"
+      },
+      "string_constants": {}
+    },
+    "AuditCreateRequest": {
+      "line": 88,
+      "fields": {
+        "project": "str",
+        "vor_version_id": "str",
+        "pdf_version_ids": "list[str]"
+      },
+      "string_constants": {}
+    },
+    "AuditCreateResponse": {
+      "line": 96,
+      "fields": {
+        "run_id": "str",
+        "status": "str"
+      },
+      "string_constants": {}
+    },
+    "AuditStatusResponse": {
+      "line": 103,
+      "fields": {
+        "run_id": "str",
+        "status": "str",
+        "vor_filename": "str",
+        "position_count": "int",
+        "config": "dict[str, Any]"
+      },
+      "string_constants": {}
+    },
+    "AuditResultsResponse": {
+      "line": 113,
+      "fields": {
+        "run_id": "str",
+        "status": "str",
+        "vor_filename": "str",
+        "results": "list[dict[str, Any]]"
+      },
+      "string_constants": {}
+    },
+    "ApiContext": {
+      "line": 130,
+      "fields": {
+        "settings": "AuditSettings",
+        "repository": "Repository",
+        "blob_store": "BlobStore",
+        "client_factory": "Callable[..., Any] | None",
+        "auditor": "Callable[..., Any]",
+        "dispatcher": "Callable[[str, dict[str, Any]], None] | None"
+      },
+      "string_constants": {}
+    },
+    "AuditJob": {
+      "line": 140,
+      "fields": {
+        "run_id": "UUID",
+        "thread": "threading.Thread | None",
+        "started": "threading.Event"
+      },
+      "string_constants": {}
+    }
+  },
+  "upstream_domain_models": {
+    "AuditStatus": {
+      "line": 17,
+      "fields": {},
+      "string_constants": {
+        "OK": "ОК",
+        "ERROR": "Ошибка",
+        "INCOMPLETE": "Неполная проверка",
+        "TECHNICAL_ERROR": "Технический сбой"
+      }
+    },
+    "ReportStatus": {
+      "line": 26,
+      "fields": {},
+      "string_constants": {
+        "DISCREPANCY": "Обнаружено расхождение",
+        "MANUAL": "Требуется ручная проверка",
+        "NOT_CHECKED": "Проверка не выполнена",
+        "OK": "ОК"
+      }
+    },
+    "EvidenceKind": {
+      "line": 35,
+      "fields": {},
+      "string_constants": {
+        "WORK": "work",
+        "VOLUME": "volume",
+        "UNIT": "unit",
+        "COMMENT": "comment"
+      }
+    },
+    "ErrorKind": {
+      "line": 44,
+      "fields": {},
+      "string_constants": {
+        "BIND": "bind",
+        "PREP": "prep",
+        "VALIDATION": "validation",
+        "PROVIDER": "provider",
+        "BUDGET": "budget",
+        "INTERNAL": "internal"
+      }
+    },
+    "AuditError": {
+      "line": 55,
+      "fields": {
+        "kind": "ErrorKind",
+        "message": "str",
+        "recoverable": "bool"
+      },
+      "string_constants": {}
+    },
+    "Document": {
+      "line": 70,
+      "fields": {
+        "id": "str",
+        "name": "str",
+        "page_count": "int | None"
+      },
+      "string_constants": {}
+    },
+    "VorMeta": {
+      "line": 85,
+      "fields": {
+        "object_name": "str",
+        "doc_number": "str",
+        "basis_code": "str"
+      },
+      "string_constants": {}
+    },
+    "VorPosition": {
+      "line": 101,
+      "fields": {
+        "index": "int",
+        "number": "str",
+        "work_name": "str",
+        "volume": "str",
+        "unit": "str",
+        "reference": "str",
+        "page_ref": "str",
+        "file_ref": "str",
+        "explicit_refs": "list[str]",
+        "comment": "str",
+        "formula": "str",
+        "document_id": "str",
+        "bind_error": "str | None",
+        "prep_error": "str | None",
+        "bind_error_kind": "ErrorKind | None",
+        "prep_error_kind": "ErrorKind | None",
+        "target_indices": "list[int]",
+        "location_description": "str",
+        "primary_pages": "list[int]"
+      },
+      "string_constants": {}
+    },
+    "Evidence": {
+      "line": 201,
+      "fields": {
+        "document_id": "str",
+        "page": "int",
+        "quote": "str",
+        "kind": "EvidenceKind"
+      },
+      "string_constants": {}
+    },
+    "VolumeOperand": {
+      "line": 243,
+      "fields": {
+        "value": "str",
+        "unit": "str",
+        "page": "int | None",
+        "quote": "str | None",
+        "source_id": "str | None",
+        "document_id": "str"
+      },
+      "string_constants": {}
+    },
+    "VolumeCalculation": {
+      "line": 280,
+      "fields": {
+        "area": "VolumeOperand",
+        "thickness": "VolumeOperand"
+      },
+      "string_constants": {}
+    },
+    "AuditResult": {
+      "line": 289,
+      "fields": {
+        "status": "AuditStatus",
+        "work_found": "StrictBool",
+        "volume_confirmed": "StrictBool",
+        "unit_confirmed": "StrictBool",
+        "comment_confirmed": "StrictBool",
+        "found_volume": "str",
+        "found_unit": "str",
+        "found_page": "str",
+        "found_pages": "list[int]",
+        "evidence": "list[Evidence]",
+        "discrepancy_details": "str",
+        "search_complete": "StrictBool",
+        "requests": "int",
+        "contexts": "int",
+        "budget_tokens": "int | None",
+        "usage": "dict[str, int]",
+        "volume_calculation": "VolumeCalculation | None",
+        "recoverable": "bool | None",
+        "error": "AuditError | None"
+      },
+      "string_constants": {}
+    },
+    "LlmEvidenceRef": {
+      "line": 421,
+      "fields": {
+        "source_id": "str",
+        "kind": "EvidenceKind"
+      },
+      "string_constants": {}
+    },
+    "LlmVolumeOperandRef": {
+      "line": 430,
+      "fields": {
+        "value": "str | int | float",
+        "unit": "str",
+        "source_id": "str"
+      },
+      "string_constants": {}
+    },
+    "LlmVolumeCalculationRef": {
+      "line": 447,
+      "fields": {
+        "area": "LlmVolumeOperandRef",
+        "thickness": "LlmVolumeOperandRef"
+      },
+      "string_constants": {}
+    },
+    "LlmAuditResponse": {
+      "line": 456,
+      "fields": {
+        "work_found": "StrictBool",
+        "volume_confirmed": "StrictBool",
+        "unit_confirmed": "StrictBool",
+        "comment_confirmed": "StrictBool",
+        "found_volume": "str | int | float | None",
+        "found_unit": "str | int | float | None",
+        "found_page": "str | int | None",
+        "evidence": "list[dict[str, Any]]",
+        "discrepancy_details": "str | int | float | None",
+        "volume_calculation": "dict[str, Any] | None"
+      },
+      "string_constants": {}
+    },
+    "AuditSettings": {
+      "line": 505,
+      "fields": {
+        "yandex_cloud_folder": "str",
+        "yandex_cloud_api_key": "str",
+        "yandex_cloud_model": "str",
+        "langfuse_public_key": "str",
+        "langfuse_secret_key": "str",
+        "langfuse_base_url": "str",
+        "langfuse_environment": "str",
+        "telemetry_redact_pdf": "bool",
+        "telemetry_mask_prompts": "bool",
+        "database_url": "str",
+        "blob_store_url": "str",
+        "broker_url": "str",
+        "pdf_queue_size": "int",
+        "llm_queue_size": "int",
+        "task_time_limit": "int",
+        "task_soft_time_limit": "int",
+        "max_upload_bytes": "int",
+        "max_uploads_per_request": "int",
+        "api_token": "str",
+        "allowed_llm_hosts": "tuple[str, ...]",
+        "llm_input_cost_per_1k": "float",
+        "llm_output_cost_per_1k": "float"
+      },
+      "string_constants": {}
+    }
+  },
+  "local_frontend_models": {
+    "ProjectDTO": {
+      "line": 16,
+      "fields": {
+        "id": "str",
+        "name": "str"
+      },
+      "string_constants": {}
+    },
+    "CellsDTO": {
+      "line": 21,
+      "fields": {
+        "quantity": "str",
+        "calculation": "str",
+        "references": "str | None",
+        "referenced_file": "str | None",
+        "pages": "str | int | None"
+      },
+      "string_constants": {}
+    },
+    "ResultDTO": {
+      "line": 29,
+      "fields": {
+        "id": "str",
+        "number": "str",
+        "name": "str",
+        "unit": "str",
+        "file": "str",
+        "sheet": "str",
+        "cells": "CellsDTO",
+        "D": "str | None",
+        "E": "str | None",
+        "PDF": "str | None",
+        "status": "Status",
+        "status_label": "str",
+        "formula": "str | None",
+        "queue_group": "Queue",
+        "action": "str"
+      },
+      "string_constants": {}
+    },
+    "DocumentDTO": {
+      "line": 47,
+      "fields": {
+        "file": "str",
+        "sha256": "str",
+        "type": "str",
+        "available": "bool"
+      },
+      "string_constants": {}
+    },
+    "RegistryDTO": {
+      "line": 54,
+      "fields": {
+        "file": "str",
+        "label": "str",
+        "positions": "int",
+        "sheets": "list[str]"
+      },
+      "string_constants": {}
+    },
+    "SummaryDTO": {
+      "line": 61,
+      "fields": {
+        "audit_id": "str",
+        "cache_hit": "bool",
+        "metrics": "dict[str, int]",
+        "queues": "dict[str, int]",
+        "status_labels": "dict[str, str]",
+        "registry": "list[RegistryDTO]",
+        "documents": "list[DocumentDTO]"
+      },
+      "string_constants": {}
+    },
+    "ResultPageDTO": {
+      "line": 71,
+      "fields": {
+        "audit_id": "str",
+        "total": "int",
+        "offset": "int",
+        "limit": "int",
+        "rows": "list[ResultDTO]"
+      },
+      "string_constants": {}
+    },
+    "PositionDTO": {
+      "line": 79,
+      "fields": {
+        "id": "str",
+        "name": "str",
+        "file": "str",
+        "sheet": "str",
+        "row": "int",
+        "unit": "str",
+        "source_sha256": "str",
+        "source_cells": "CellsDTO",
+        "calculation_text": "str | None",
+        "references": "str | None",
+        "referenced_file": "str | None",
+        "pages": "str | int | None"
+      },
+      "string_constants": {}
+    },
+    "SourceDTO": {
+      "line": 94,
+      "fields": {
+        "sha256": "str",
+        "physical_page": "int",
+        "file": "str",
+        "section": "str | None",
+        "fragment": "str | None",
+        "printed_page": "str | int | None"
+      },
+      "string_constants": {}
+    },
+    "HighlightDTO": {
+      "line": 103,
+      "fields": {
+        "bbox": "list[float]",
+        "kind": "str",
+        "text": "str"
+      },
+      "string_constants": {}
+    },
+    "PdfRegionDTO": {
+      "line": 109,
+      "fields": {
+        "width": "float",
+        "height": "float",
+        "highlights": "list[HighlightDTO]",
+        "reason": "str"
+      },
+      "string_constants": {}
+    },
+    "ExcelCellDTO": {
+      "line": 116,
+      "fields": {
+        "coordinate": "str",
+        "value": "str",
+        "column_span": "int",
+        "row_span": "int",
+        "highlight": "bool"
+      },
+      "string_constants": {}
+    },
+    "ExcelRowDTO": {
+      "line": 124,
+      "fields": {
+        "number": "int",
+        "selected": "bool",
+        "cells": "list[ExcelCellDTO]"
+      },
+      "string_constants": {}
+    },
+    "ExcelDTO": {
+      "line": 130,
+      "fields": {
+        "sheet": "str",
+        "columns": "list[str]",
+        "rows": "list[ExcelRowDTO]"
+      },
+      "string_constants": {}
+    },
+    "ReferenceDTO": {
+      "line": 136,
+      "fields": {
+        "text": "str",
+        "file_name": "str",
+        "file_hint": "str",
+        "sections": "list[str]",
+        "tables": "list[str]",
+        "appendices": "list[str]",
+        "page_hints": "list[int]",
+        "raw_pages": "str"
+      },
+      "string_constants": {}
+    },
+    "EvidenceDTO": {
+      "line": 147,
+      "fields": {
+        "sha256": "str",
+        "physical_page": "int",
+        "work_name": "str",
+        "unit": "str",
+        "eligible": "bool",
+        "planned": "str | float | int | None",
+        "actual": "str | float | int | None",
+        "calculated": "str | float | int | None"
+      },
+      "string_constants": {}
+    },
+    "SearchDTO": {
+      "line": 158,
+      "fields": {
+        "evidence": "list[EvidenceDTO]",
+        "condition_evidence": "list[dict[str, JsonValue]]"
+      },
+      "string_constants": {}
+    },
+    "ProjectSearchDTO": {
+      "line": 163,
+      "fields": {
+        "reference": "ReferenceDTO",
+        "searches": "list[SearchDTO]",
+        "search_status": "str"
+      },
+      "string_constants": {}
+    },
+    "ComparisonDTO": {
+      "line": 169,
+      "fields": {
+        "project_quantity": "str | float | int",
+        "difference": "str | float | int",
+        "reason": "str | None"
+      },
+      "string_constants": {}
+    },
+    "CalculationStepDTO": {
+      "line": 175,
+      "fields": {
+        "left": "str",
+        "right": "str",
+        "operation": "str",
+        "result": "str"
+      },
+      "string_constants": {}
+    },
+    "CalculationDTO": {
+      "line": 182,
+      "fields": {
+        "steps": "list[CalculationStepDTO]"
+      },
+      "string_constants": {}
+    },
+    "NumberComparisonDTO": {
+      "line": 186,
+      "fields": {
+        "status": "Literal['equal', 'within_display_rounding', 'mismatch', 'not_comparable']",
+        "difference": "str | None"
+      },
+      "string_constants": {}
+    },
+    "DetailDTO": {
+      "line": 191,
+      "fields": {
+        "position": "PositionDTO",
+        "comparisons": "dict[str, NumberComparisonDTO]",
+        "presentation": "ResultDTO",
+        "source": "SourceDTO | None",
+        "calculation": "CalculationDTO",
+        "notice": "str"
+      },
+      "string_constants": {}
+    },
+    "WorkspaceDTO": {
+      "line": 200,
+      "fields": {
+        "excel": "ExcelDTO",
+        "pdf": "PdfRegionDTO | None",
+        "action": "str",
+        "project_search": "ProjectSearchDTO",
+        "display_source": "SourceDTO | None",
+        "project_comparison": "ComparisonDTO | None",
+        "detail": "DetailDTO"
+      },
+      "string_constants": {}
+    },
+    "StructureNodeDTO": {
+      "line": 210,
+      "fields": {
+        "id": "str",
+        "parent_id": "str",
+        "title": "str",
+        "kind": "Literal['section', 'appendix', 'table']",
+        "number": "str | None",
+        "level": "int",
+        "physical_start": "int",
+        "physical_end": "int",
+        "start_bbox": "list[float]",
+        "children": "list[str]",
+        "confidence": "Literal['high', 'medium']",
+        "sources": "list[str]"
+      },
+      "string_constants": {}
+    },
+    "StructurePageDTO": {
+      "line": 225,
+      "fields": {
+        "physical_page": "int",
+        "printed_page": "str | None",
+        "width": "float",
+        "height": "float",
+        "node_ids": "list[str]"
+      },
+      "string_constants": {}
+    },
+    "ReferenceNodeDTO": {
+      "line": 233,
+      "fields": {
+        "node_id": "str",
+        "physical_start": "int",
+        "physical_end": "int",
+        "title": "str",
+        "kind": "Literal['section', 'appendix', 'table']"
+      },
+      "string_constants": {}
+    },
+    "PageHintDTO": {
+      "line": 241,
+      "fields": {
+        "hint": "int",
+        "physical_candidates": "list[int]",
+        "ambiguous": "bool"
+      },
+      "string_constants": {}
+    },
+    "ResolvedReferenceDTO": {
+      "line": 247,
+      "fields": {
+        "nodes": "list[ReferenceNodeDTO]",
+        "page_hints": "list[PageHintDTO]",
+        "ambiguous": "bool",
+        "navigation_only": "Literal[True]"
+      },
+      "string_constants": {}
+    },
+    "PositionLinkDTO": {
+      "line": 254,
+      "fields": {
+        "position_id": "str",
+        "sheet": "str",
+        "cell": "str",
+        "name": "str",
+        "queue_group": "Queue",
+        "reference": "ReferenceDTO",
+        "resolved": "ResolvedReferenceDTO",
+        "accepted_page": "int | None"
+      },
+      "string_constants": {}
+    },
+    "StructureDTO": {
+      "line": 265,
+      "fields": {
+        "sha256": "str",
+        "page_count": "int",
+        "roots": "list[str]",
+        "nodes": "list[StructureNodeDTO]",
+        "pages": "list[StructurePageDTO]",
+        "warnings": "list[dict[str, JsonValue]]",
+        "linked_positions": "list[PositionLinkDTO]",
+        "quantity_confirmation": "Literal[False]",
+        "ocr_dispatched": "Literal[False]"
+      },
+      "string_constants": {}
+    },
+    "RevisionDTO": {
+      "line": 277,
+      "fields": {
+        "number": "int",
+        "reason": "str",
+        "created": "str"
+      },
+      "string_constants": {}
+    },
+    "HistoryDTO": {
+      "line": 283,
+      "fields": {
+        "revision": "int",
+        "revisions": "list[RevisionDTO]",
+        "saved_requests": "list[str]"
+      },
+      "string_constants": {}
+    },
+    "EditorOpenDTO": {
+      "line": 289,
+      "fields": {
+        "session_id": "str",
+        "api_script": "str",
+        "sheet": "str",
+        "cell": "str",
+        "config": "dict[str, JsonValue]"
+      },
+      "string_constants": {}
+    },
+    "SaveDTO": {
+      "line": 297,
+      "fields": {
+        "pending": "bool",
+        "request_id": "str"
+      },
+      "string_constants": {}
+    },
+    "NoteDTO": {
+      "line": 302,
+      "fields": {
+        "id": "str",
+        "page": "int",
+        "rect": "list[float]",
+        "text": "str",
+        "deleted": "bool",
+        "position_id": "str"
+      },
+      "string_constants": {}
+    },
+    "NotesDTO": {
+      "line": 311,
+      "fields": {
+        "notes": "list[NoteDTO]"
+      },
+      "string_constants": {}
+    },
+    "VersionDTO": {
+      "line": 315,
+      "fields": {
+        "id": "str",
+        "sha256": "str",
+        "number": "int",
+        "status": "Literal['queued', 'running', 'completed', 'failed']",
+        "page_count": "int",
+        "error": "str | None"
+      },
+      "string_constants": {}
+    },
+    "SimpleDocumentDTO": {
+      "line": 324,
+      "fields": {
+        "id": "str",
+        "name": "str",
+        "kind": "str"
+      },
+      "string_constants": {}
+    },
+    "UploadDTO": {
+      "line": 330,
+      "fields": {
+        "document": "SimpleDocumentDTO",
+        "version": "VersionDTO",
+        "cache_hit": "bool"
+      },
+      "string_constants": {}
+    },
+    "DocumentListDTO": {
+      "line": 336,
+      "fields": {
+        "versions": "list[VersionDTO]"
+      },
+      "string_constants": {}
+    },
+    "RunDTO": {
+      "line": 340,
+      "fields": {
+        "id": "str",
+        "status": "str",
+        "kind": "str",
+        "created_at": "str",
+        "error": "str | None"
+      },
+      "string_constants": {}
+    },
+    "IntakeResponseDTO": {
+      "line": 354,
+      "fields": {
+        "audit_id": "str",
+        "positions": "int",
+        "notice": "str",
+        "ocr_calls": "int"
+      },
+      "string_constants": {}
+    }
+  },
+  "frontend_dependencies": {
+    "@fontsource/manrope": "5.2.8",
+    "@nuxt/ui": "4.12.0",
+    "nuxt": "4.6.2",
+    "pdfjs-dist": "6.4.299",
+    "vue": "3.5.44",
+    "zod": "4.3.6"
+  },
+  "source_sha256": {
+    "upstream": {
+      "api.py": "cc72fcd0f5c7f785925de47c94683100b25d0284cbc028e23dfb670bf8f1a26e",
+      "audit_models.py": "722aae4fc29164305128a3ba2c6171f71bf024118ec3dc69b2b039c67d8de447",
+      "audit_tasks.py": "813c16062c76dc5d684adeb79a9452f232ac75a4a2f7bd647d9cba7f280b2c48",
+      "audit_service.py": "9ac9256313fafbee8ee6a0661736aefb31a8219de42bdf0e5ed401f00023448b",
+      "audit_reports.py": "49654b7c96e3e9220bdb95e9e9ce62b7a53abb49dcb71b1f19bef9a8eaede2ca",
+      "vor_parse.py": "fce8869e57255fa0afb2a95ec278292c26bca4d11d73126567c60a7b8e9e7e8e",
+      "vor_rules.py": "3711146fc4eb3081622ae62c77f422df0699a3b42bfcd8d95f13ba40b67fbe1f",
+      "pdf_text.py": "51386a840f53283150856901059cde098badb29bbebc4abe9488f83c598f8f39",
+      "pdf_binding.py": "9539881acf1ec6bb7e1ce92a657cfdd76154a70752cfda987a4840acd3b6934a",
+      "storage_db.py": "ae48a14a245021753de306e41aebc5eee35f7be739d8c708e1c9155238d23e0c",
+      "storage_models.py": "7318a8a5ce1b8eb29e652b3cfce8d347601987b9aa3ec55d58ac91139d43b0ed",
+      "compose.yaml": "e3456ecdc7027ecd04737c331b306d5ef0a004a7877aada4921845c558faed80",
+      "pyproject.toml": "afc207b84bbf50ed6f9ad7514e55a9f24bda0a4a1c8dcb6a4eef427d3b09a511",
+      "uv.lock": "6375e971d501bdb6a84d2e40bf887c17f42e083a96344634111b9b369c7d5b63"
+    },
+    "local": {
+      "frontend/package.json": "cb2d5f29df8422555f63b4d4def85755e26f1d427a7b999a713d1f5782fd9575",
+      "frontend/nuxt.config.ts": "00dc4c3a5cb3205fe8497f9cb0651a6b012679ddee9796379f4c372b1c768290",
+      "frontend/openapi.json": "c2cbd9ad7933bec9a18e4e820c8ec8de735db8e5b6836e816c1b2bfba3b4d318",
+      "frontend/app/composables/useBackend.ts": "a76244d2b6b19ec25cb72ac85a7e92afb9b8b70eebf9f41a22883debfec4c596",
+      "frontend/app/pages/upload.vue": "8f284793778079e048261b6aad91ad6c89babe71b621cc1f45c3ecbe0fcedc24",
+      "frontend/app/pages/history.vue": "f7b354e5b77fbc8007fbc391453b561dcf9095a50fde4ed6e8164f2e67171380",
+      "frontend/app/pages/projects/[projectId]/index.vue": "ad6781e8d6207a3938c28eeaf58c2561c1c797041d1774598a85045752596b05",
+      "frontend/app/pages/projects/[projectId]/runs/[runId].vue": "a4306ef3fb2c21a97565fd34345bfc8c86d0e60808625f9594d63d197d9238a7",
+      "frontend/app/components/AuditWorkspace.vue": "51bd56e998e93b141fe80c132ff0f0ec95a27ef3106eb373c8d191b27bd19a25",
+      "frontend/app/components/PdfPanel.vue": "3f45c3774012f4428be1ea5d2d21909e1fc5dc1dcba292d2508442d2d33bdb24",
+      "frontend/app/components/OfficeEditor.vue": "c7eaed1de85ca8d74623361779e2c2211c0ee9d22fe71821d9d34506319a2d6d",
+      "frontend/server/api/[...path].ts": "2c70a5104a566be72c2992c0693fe76bff82df93d621c14b3c695f4233ece135",
+      "frontend/server/utils/access.ts": "359b69da54daf62bf861fcda02622f5fe85195dd53e00e0e023c5039180df124",
+      "app/frontend_contracts.py": "414ef99ce30e998cadade13060ac8d17c48b9ca5b43c077ee1b622c6f2d21b8d",
+      "app/demo_api.py": "aae1d72f9064ae763db0a3959d25c86a99d09e7cdbdef02d0263f4705b15ea3c",
+      "app/demo_workspace.py": "0c33cdbe925e48a2ca2f7e52281b55a50c726980a9c18fb4a0e1fd5a983f5681",
+      "app/document_structure.py": "43cb274d3b03a1211b9592e7a411c1e8cb40d878f75e68f2d969043f2e42d0f1",
+      "app/demo_intake.py": "da39c6568825dc14a27c5867d1efbf191a93d59eb6d06ce96f6de0b0076389e7",
+      "app/editor_store.py": "0a67616542151013d734cdfa9d211889a2b5045f14653e05c7629cba922dcb23",
+      "app/web_editor.py": "65c4edcecd84671087838a5880ba48be2a01324307a54cedcae71e29ba6897be"
+    }
+  }
+}

@@ -1,0 +1,195 @@
+/* KDFP workspace: one Nuxt UI semantic system, shared by both color modes. */
+@import '@fontsource/manrope/400.css';
+@import '@fontsource/manrope/500.css';
+@import '@fontsource/manrope/600.css';
+@import '@fontsource/manrope/700.css';
+@import '@fontsource/manrope/800.css';
+@import 'tailwindcss';
+@import '@nuxt/ui';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme static {
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --color-orange-50: #fff4eb;
+  --color-orange-100: #ffe7d6;
+  --color-orange-200: #ffd0ad;
+  --color-orange-300: #ffad78;
+  --color-orange-400: #ed730f;
+  --color-orange-500: #c44d00;
+  --color-orange-600: #a63f00;
+  --color-orange-700: #873300;
+  --color-orange-800: #67290a;
+  --color-orange-900: #49200e;
+  --color-orange-950: #2c1309;
+  --color-zinc-50: #fcfcfb;
+  --color-zinc-100: #f4f5f4;
+  --color-zinc-200: #e8eae8;
+  --color-zinc-300: #d3d6d5;
+  --color-zinc-400: #adb3b3;
+  --color-zinc-500: #81898a;
+  --color-zinc-600: #626a6d;
+  --color-zinc-700: #454c50;
+  --color-zinc-800: #2c3135;
+  --color-zinc-900: #191d20;
+  --color-zinc-950: #101315;
+}
+
+:root {
+  --ui-primary: var(--color-orange-600);
+  --ui-success: var(--color-green-700);
+  --ui-warning: var(--color-amber-800);
+  --ui-error: var(--color-red-700);
+  --ui-info: var(--color-blue-700);
+  --ui-text: #343b3f;
+  --ui-text-muted: #626a6d;
+  --ui-text-dimmed: #626a6d;
+  --ui-text-toned: #454c50;
+  --ui-text-highlighted: #171a1d;
+  --ui-text-inverted: #ffffff;
+  --ui-bg: #ffffff;
+  --ui-bg-muted: #f4f5f4;
+  --ui-bg-elevated: #ffffff;
+  --ui-bg-accented: #e8eae8;
+  --ui-bg-inverted: #171a1d;
+  --ui-border: #d3d6d5;
+  --ui-border-muted: #e8eae8;
+  --ui-border-accented: #81898a;
+  --ui-radius: 0.375rem;
+  --app-selected-bg: #fff4eb;
+  --app-selected-text: #873300;
+  --app-success-bg: #effaf3;
+  --app-success-text: #105c3b;
+  --app-warning-bg: #fffaea;
+  --app-warning-text: #683c13;
+  --app-error-bg: #fff3f1;
+  --app-error-text: #832b24;
+  --app-shadow-overlay: 0 20px 70px -20px rgb(16 19 21 / 30%);
+  --app-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  color-scheme: light;
+}
+
+.dark {
+  --ui-primary: var(--color-orange-300);
+  --ui-success: var(--color-green-300);
+  --ui-warning: var(--color-amber-300);
+  --ui-error: var(--color-red-300);
+  --ui-info: var(--color-blue-300);
+  --ui-text: #dce3e4;
+  --ui-text-muted: #a3adb0;
+  --ui-text-dimmed: #a3adb0;
+  --ui-text-toned: #c1cacc;
+  --ui-text-highlighted: #ffffff;
+  --ui-text-inverted: #171a1d;
+  --ui-bg: #141719;
+  --ui-bg-muted: #1c2023;
+  --ui-bg-elevated: #252a2e;
+  --ui-bg-accented: #30373b;
+  --ui-bg-inverted: #ffffff;
+  --ui-border: #434c50;
+  --ui-border-muted: #30373b;
+  --ui-border-accented: #889296;
+  --app-selected-bg: #39271e;
+  --app-selected-text: #ffd0ad;
+  --app-success-bg: #142f23;
+  --app-success-text: #a2e8bf;
+  --app-warning-bg: #352c19;
+  --app-warning-text: #f6d695;
+  --app-error-bg: #392322;
+  --app-error-text: #ffc6bd;
+  --app-shadow-overlay: 0 20px 70px -20px rgb(0 0 0 / 65%);
+  color-scheme: dark;
+}
+
+@layer base {
+  body {
+    margin: 0;
+    background: var(--ui-bg-muted);
+    color: var(--ui-text);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    color: var(--ui-text-highlighted);
+    text-wrap: balance;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+  button:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+  a {
+    text-underline-offset: 0.2em;
+  }
+  input,
+  textarea {
+    caret-color: var(--ui-primary);
+  }
+  ::selection {
+    background: var(--ui-primary);
+    color: var(--ui-text-inverted);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ui-primary);
+    outline-offset: 3px;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-border-accented) transparent;
+  }
+}
+
+/* Nuxt UI focus treatment: a soft brand-colored halo instead of a hard outline. */
+:where(input, textarea, select, [role='combobox'], [role='searchbox']):focus-visible {
+  outline: none !important;
+  border-color: var(--ui-border-accented) !important;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--ui-primary) 38%, transparent),
+    0 0 0 5px color-mix(in srgb, var(--ui-primary) 16%, transparent),
+    0 0 12px 2px color-mix(in srgb, var(--ui-primary) 18%, transparent) !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .page-enter-active {
+    transition:
+      opacity 180ms ease-out,
+      transform 180ms ease-out;
+  }
+  .page-leave-active {
+    transition: opacity 80ms ease-in;
+  }
+  .page-enter-from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  .page-leave-to {
+    opacity: 0;
+  }
+}
+/* Review tables fit their pane; long names, formulas and notes wrap. */
+.table-wrap table,
+.project-table table {
+  table-layout: fixed;
+  width: 100%;
+}
+.table-wrap th,
+.table-wrap td,
+.project-table th,
+.project-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.table-wrap button,
+.project-table button {
+  white-space: normal;
+  max-width: 100%;
+}

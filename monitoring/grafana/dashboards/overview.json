@@ -1,0 +1,45 @@
+{
+  "uid": "smeta-overview",
+  "title": "smeta-checker overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "API health",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "probe_success{job=\"blackbox\",instance=\"http://api:8000/healthz\"}", "legendFormat": "api" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Workspace health",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        { "expr": "probe_success{job=\"blackbox\",instance=\"http://workspace:3000/\"}", "legendFormat": "workspace" }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "graph",
+      "title": "CPU usage",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        { "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "cpu" }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "graph",
+      "title": "Memory usage",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        { "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100", "legendFormat": "mem" }
+      ]
+    }
+  ]
+}

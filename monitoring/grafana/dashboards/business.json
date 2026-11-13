@@ -1,0 +1,37 @@
+{
+  "uid": "smeta-business",
+  "title": "smeta-checker business",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "panels": [
+    {
+      "id": 1,
+      "type": "piechart",
+      "title": "Runs by status",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "rawSql": "SELECT status AS metric, count(*)::float AS value FROM runs GROUP BY status;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Recent runs",
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "rawSql": "SELECT id, status, created_at FROM runs ORDER BY created_at DESC LIMIT 20;",
+          "format": "table"
+        }
+      ]
+    }
+  ]
+}

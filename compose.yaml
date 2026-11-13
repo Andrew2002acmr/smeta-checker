@@ -1,7 +1,8 @@
 # issue 22: minimal production system on a CPU-only server.
-# One file starts api + ui + postgres + redis + pdf/llm workers.
+# One file starts api + workspace (Nuxt) + postgres + redis + pdf/llm workers.
 # Secrets: copy .env.example to .env and fill POSTGRES_PASSWORD, AUDIT_API_TOKEN,
-# YANDEX_CLOUD_API_KEY, YANDEX_CLOUD_FOLDER. Compose reads .env automatically.
+# WORKSPACE_LOGIN + WORKSPACE_PASSWORD (local mode) or LDAP settings (ldap mode),
+# LLM keys (ROUTERAI_*, ANYMODEL_* or YANDEX_*). Compose reads .env automatically.
 name: smeta-checker
 
 services:
@@ -40,7 +41,9 @@ services:
       retries: 5
 
   migrate:
-    build: .
+    build:
+      context: ./backend
+      target: full
     restart: "no"
     depends_on:
       db:
@@ -50,7 +53,9 @@ services:
     command: ["alembic", "upgrade", "head"]
 
   api:
-    build: .
+    build:
+      context: ./backend
+      target: full
     restart: unless-stopped
     depends_on:
       migrate:
@@ -60,21 +65,62 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smeta}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-smeta}
       BLOB_STORE_URL: file:///srv/smeta/.audit_blobs
+      NORMATIVE_PREPARED_CACHE_ROOT: /prepared-cache/pdf
+      NORMATIVE_KB_ROOT: /knowledge/electrical-norms
+      NORMATIVE_ROAD_KB_ROOT: /knowledge/road-norms
+      NORMATIVE_SQLITE_CACHE_DIR: /srv/smeta/.normative-sqlite-cache
+      NORMATIVE_CATALOG_ROOT: /normative-base
+      CODEX_AUDIT_ENABLED: ${CODEX_AUDIT_ENABLED:-0}
+      CODEX_AUDIT_NORMATIVE_DIR: ${CODEX_AUDIT_NORMATIVE_DIR:-/knowledge/road-norms}
+      CODEX_AUDIT_NORMATIVE_MANIFEST: ${CODEX_AUDIT_NORMATIVE_MANIFEST:-}
+      CODEX_AUDIT_ELECTRICAL_NORMATIVE_DIR: ${CODEX_AUDIT_ELECTRICAL_NORMATIVE_DIR:-/knowledge/electrical-norms}
+      CODEX_AUDIT_ELECTRICAL_NORMATIVE_MANIFEST: ${CODEX_AUDIT_ELECTRICAL_NORMATIVE_MANIFEST:-}
       CELERY_BROKER_URL: redis://redis:6379/0
       AUDIT_API_TOKEN: ${AUDIT_API_TOKEN:?Set AUDIT_API_TOKEN in .env}
       YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
       YANDEX_CLOUD_FOLDER: ${YANDEX_CLOUD_FOLDER:-}
       YANDEX_CLOUD_MODEL: ${YANDEX_CLOUD_MODEL:-qwen3.6-35b-a3b/latest}
+      ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
+      ROUTERAI_BASE_URL: ${ROUTERAI_BASE_URL:-https://routerai.ru/api/v1}
+      ROUTERAI_MODEL: ${ROUTERAI_MODEL:-}
+      ANYMODEL_API_KEY: ${ANYMODEL_API_KEY:-}
+      ANYMODEL_BASE_URL: ${ANYMODEL_BASE_URL:-https://anymodel.org/v1}
+      ANYMODEL_MODEL: ${ANYMODEL_MODEL:-}
+      AUDIT_ALLOWED_LLM_HOSTS: ${AUDIT_ALLOWED_LLM_HOSTS:-ai.api.cloud.yandex.net}
       AUDIT_PDF_CONCURRENCY: ${AUDIT_PDF_CONCURRENCY:-2}
       AUDIT_LLM_CONCURRENCY: ${AUDIT_LLM_CONCURRENCY:-8}
       AUDIT_TASK_TIME_LIMIT: ${AUDIT_TASK_TIME_LIMIT:-600}
       AUDIT_TASK_SOFT_TIME_LIMIT: ${AUDIT_TASK_SOFT_TIME_LIMIT:-540}
-      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
-      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
-      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
-      LANGFUSE_ENVIRONMENT: ${LANGFUSE_ENVIRONMENT:-production}
+      PHOENIX_COLLECTOR_ENDPOINT: ${PHOENIX_COLLECTOR_ENDPOINT:-http://phoenix:6006}
+      PHOENIX_PROJECT_NAME: ${PHOENIX_PROJECT_NAME:-smeta-checker}
+      PHOENIX_PUBLIC_URL: ${PHOENIX_PUBLIC_URL:-http://localhost:6006}
+      PHOENIX_ENVIRONMENT: ${PHOENIX_ENVIRONMENT:-production}
+      GLITCHTIP_DSN: ${GLITCHTIP_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.05}
     volumes:
       - blobs:/srv/smeta/.audit_blobs
+      - pdfcache:/prepared-cache:ro
+      - normcache:/srv/smeta/.normative-sqlite-cache
+      - type: bind
+        source: ${NORMATIVE_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/electrical-norms}
+        target: /knowledge/electrical-norms
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${NORMATIVE_ROAD_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/road-norms}
+        target: /knowledge/road-norms
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./base
+        target: /normative-base
+        read_only: true
+        bind:
+          create_host_path: false
     ports:
       - "${API_PORT:-8000}:8000"
     healthcheck:
@@ -84,45 +130,57 @@ services:
       retries: 3
       start_period: 40s
 
-  ui:
-    build: .
+  workspace:
+    build: ./frontend
     restart: unless-stopped
     depends_on:
-      migrate:
-        condition: service_completed_successfully
-      db:
+      api:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smeta}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-smeta}
-      BLOB_STORE_URL: file:///srv/smeta/.audit_blobs
-      YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
-      YANDEX_CLOUD_FOLDER: ${YANDEX_CLOUD_FOLDER:-}
-      YANDEX_CLOUD_MODEL: ${YANDEX_CLOUD_MODEL:-qwen3.6-35b-a3b/latest}
-      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
-      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
-      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
-      LANGFUSE_ENVIRONMENT: ${LANGFUSE_ENVIRONMENT:-production}
-    volumes:
-      - blobs:/srv/smeta/.audit_blobs
-      - pdfcache:/srv/smeta/.audit_cache
+      HOST: 0.0.0.0
+      PORT: 3000
+      NUXT_BACKEND_URL: http://api:8000
+      NUXT_BACKEND_TOKEN: ${AUDIT_API_TOKEN:?Set AUDIT_API_TOKEN in .env}
+      # Port is published on host loopback only (see ports below); inside the
+      # container the peer is the Docker gateway, so the BFF trusts the proxy
+      # but keeps Host allowlist, same-origin and session checks.
+      NUXT_TRUST_PROXY: "1"
+      # Empty = localhost only. LAN IP/hostname = intranet (plain HTTP).
+      # Domain = world-facing, requires TLS proxy.
+      # Workspace login is always required: local login+password or LDAP.
+      NUXT_PUBLIC_HOST: ${NUXT_PUBLIC_HOST:-}
+      WORKSPACE_LOGIN: ${WORKSPACE_LOGIN:-}
+      WORKSPACE_PASSWORD: ${WORKSPACE_PASSWORD:-}
+      WORKSPACE_AUTH_MODE: ${WORKSPACE_AUTH_MODE:-local}
+      WORKSPACE_ORIGIN: ${WORKSPACE_ORIGIN:-}
+      WORKSPACE_REDIS_URL: redis://redis:6379/1
+      NUXT_PUBLIC_SENTRY_DSN: ${NUXT_PUBLIC_SENTRY_DSN:-${GLITCHTIP_DSN:-}}
+      NUXT_PUBLIC_SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      LDAP_URL: ${LDAP_URL:-}
+      LDAP_BASE_DN: ${LDAP_BASE_DN:-}
+      LDAP_DOMAIN: ${LDAP_DOMAIN:-}
+      LDAP_BIND_DN: ${LDAP_BIND_DN:-}
+      LDAP_BIND_PASSWORD: ${LDAP_BIND_PASSWORD:-}
+      LDAP_GROUP_DN: ${LDAP_GROUP_DN:-}
+      LDAP_ACCESS_MODE: ${LDAP_ACCESS_MODE:-}
+      LDAP_CA_FILE: ${LDAP_CA_FILE:-}
+      LDAP_TLS_MODE: ${LDAP_TLS_MODE:-}
     ports:
-      - "${UI_PORT:-8501}:8501"
-    command:
-      - streamlit
-      - run
-      - app.py
-      - --server.port=8501
-      - --server.address=0.0.0.0
-      - --server.headless=true
+      - "${WORKSPACE_BIND:-127.0.0.1}:${WORKSPACE_PORT:-3000}:3000"
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8501/_stcore/health"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>{if(!r.ok)process.exit(1)})"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 60s
+      start_period: 30s
+    security_opt: [no-new-privileges:true]
 
   worker-pdf:
-    build: .
+    build:
+      context: ./backend
+      target: full
     restart: unless-stopped
     depends_on:
       migrate:
@@ -136,12 +194,23 @@ services:
       YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
       YANDEX_CLOUD_FOLDER: ${YANDEX_CLOUD_FOLDER:-}
       YANDEX_CLOUD_MODEL: ${YANDEX_CLOUD_MODEL:-qwen3.6-35b-a3b/latest}
+      ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
+      ROUTERAI_BASE_URL: ${ROUTERAI_BASE_URL:-https://routerai.ru/api/v1}
+      ROUTERAI_MODEL: ${ROUTERAI_MODEL:-}
+      ANYMODEL_API_KEY: ${ANYMODEL_API_KEY:-}
+      ANYMODEL_BASE_URL: ${ANYMODEL_BASE_URL:-https://anymodel.org/v1}
+      ANYMODEL_MODEL: ${ANYMODEL_MODEL:-}
+      AUDIT_ALLOWED_LLM_HOSTS: ${AUDIT_ALLOWED_LLM_HOSTS:-ai.api.cloud.yandex.net}
       AUDIT_TASK_TIME_LIMIT: ${AUDIT_TASK_TIME_LIMIT:-600}
       AUDIT_TASK_SOFT_TIME_LIMIT: ${AUDIT_TASK_SOFT_TIME_LIMIT:-540}
-      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
-      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
-      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
-      LANGFUSE_ENVIRONMENT: ${LANGFUSE_ENVIRONMENT:-production}
+      PHOENIX_COLLECTOR_ENDPOINT: ${PHOENIX_COLLECTOR_ENDPOINT:-http://phoenix:6006}
+      PHOENIX_PROJECT_NAME: ${PHOENIX_PROJECT_NAME:-smeta-checker}
+      PHOENIX_PUBLIC_URL: ${PHOENIX_PUBLIC_URL:-http://localhost:6006}
+      PHOENIX_ENVIRONMENT: ${PHOENIX_ENVIRONMENT:-production}
+      GLITCHTIP_DSN: ${GLITCHTIP_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.05}
     volumes:
       - blobs:/srv/smeta/.audit_blobs
       - pdfcache:/srv/smeta/.audit_cache
@@ -156,18 +225,51 @@ services:
       - ${AUDIT_PDF_CONCURRENCY:-2}
       - --max-memory-per-child
       - "1000000"
+      - --max-tasks-per-child
+      - ${AUDIT_MAX_TASKS_PER_CHILD:-50}
       - -n
       - pdf-worker@%h
+      - --pidfile
+      - /tmp/celery-pdf.pid
     healthcheck:
-      # No celery http endpoint: liveness = process answers inspect ping.
-      test: ["CMD-SHELL", "celery -A audit_tasks:worker inspect ping -d pdf-worker@$$(hostname) | grep -q pong"]
+      # Cheap liveness: pidfile exists and the process is alive.
+      # celery inspect ping costs a full interpreter boot every 60s.
+      test: ["CMD-SHELL", "kill -0 $(cat /tmp/celery-pdf.pid)"]
       interval: 60s
-      timeout: 15s
+      timeout: 5s
       retries: 3
       start_period: 60s
 
+  worker-normative:
+    extends:
+      service: worker-pdf
+    environment:
+      AUDIT_TASK_TIME_LIMIT: "240"
+      AUDIT_TASK_SOFT_TIME_LIMIT: "210"
+      NORMATIVE_KB_ROOT: /knowledge/electrical-norms
+      NORMATIVE_ROAD_KB_ROOT: /knowledge/road-norms
+      NORMATIVE_SQLITE_CACHE_DIR: /srv/smeta/.normative-sqlite-cache
+    volumes:
+      - normcache:/srv/smeta/.normative-sqlite-cache
+      - type: bind
+        source: ${NORMATIVE_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/electrical-norms}
+        target: /knowledge/electrical-norms
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${NORMATIVE_ROAD_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/road-norms}
+        target: /knowledge/road-norms
+        read_only: true
+        bind:
+          create_host_path: false
+    command: ["celery", "-A", "audit_tasks:worker", "worker", "-Q", "normative", "-c", "${AUDIT_NORMATIVE_CONCURRENCY:-2}", "--loglevel=INFO", "--max-memory-per-child", "750000", "--max-tasks-per-child", "25", "-n", "normative-worker@%h", "--pidfile", "/tmp/celery-normative.pid"]
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 $(cat /tmp/celery-normative.pid)"]
   worker-llm:
-    build: .
+    build:
+      context: ./backend
+      target: llm-slim
     restart: unless-stopped
     depends_on:
       migrate:
@@ -181,15 +283,39 @@ services:
       YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
       YANDEX_CLOUD_FOLDER: ${YANDEX_CLOUD_FOLDER:-}
       YANDEX_CLOUD_MODEL: ${YANDEX_CLOUD_MODEL:-qwen3.6-35b-a3b/latest}
+      ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
+      ROUTERAI_BASE_URL: ${ROUTERAI_BASE_URL:-https://routerai.ru/api/v1}
+      ROUTERAI_MODEL: ${ROUTERAI_MODEL:-}
+      ANYMODEL_API_KEY: ${ANYMODEL_API_KEY:-}
+      ANYMODEL_BASE_URL: ${ANYMODEL_BASE_URL:-https://anymodel.org/v1}
+      ANYMODEL_MODEL: ${ANYMODEL_MODEL:-}
+      AUDIT_ALLOWED_LLM_HOSTS: ${AUDIT_ALLOWED_LLM_HOSTS:-ai.api.cloud.yandex.net}
       AUDIT_TASK_TIME_LIMIT: ${AUDIT_TASK_TIME_LIMIT:-600}
       AUDIT_TASK_SOFT_TIME_LIMIT: ${AUDIT_TASK_SOFT_TIME_LIMIT:-540}
-      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
-      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
-      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
-      LANGFUSE_ENVIRONMENT: ${LANGFUSE_ENVIRONMENT:-production}
+      PHOENIX_COLLECTOR_ENDPOINT: ${PHOENIX_COLLECTOR_ENDPOINT:-http://phoenix:6006}
+      PHOENIX_PROJECT_NAME: ${PHOENIX_PROJECT_NAME:-smeta-checker}
+      PHOENIX_PUBLIC_URL: ${PHOENIX_PUBLIC_URL:-http://localhost:6006}
+      PHOENIX_ENVIRONMENT: ${PHOENIX_ENVIRONMENT:-production}
+      GLITCHTIP_DSN: ${GLITCHTIP_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.05}
     volumes:
       - blobs:/srv/smeta/.audit_blobs
       - pdfcache:/srv/smeta/.audit_cache
+      - normcache:/srv/smeta/.normative-sqlite-cache
+      - type: bind
+        source: ${NORMATIVE_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/electrical-norms}
+        target: /knowledge/electrical-norms
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${NORMATIVE_ROAD_KB_HOST_ROOT:-./normative-handoff-20261030-092929/knowledge-base/road-norms}
+        target: /knowledge/road-norms
+        read_only: true
+        bind:
+          create_host_path: false
     command:
       - celery
       - -A
@@ -199,17 +325,65 @@ services:
       - llm
       - -c
       - ${AUDIT_LLM_CONCURRENCY:-8}
+      - --max-tasks-per-child
+      - ${AUDIT_MAX_TASKS_PER_CHILD:-50}
       - -n
       - llm-worker@%h
+      - --pidfile
+      - /tmp/celery-llm.pid
     healthcheck:
-      test: ["CMD-SHELL", "celery -A audit_tasks:worker inspect ping -d llm-worker@$$(hostname) | grep -q pong"]
+      test: ["CMD-SHELL", "kill -0 $(cat /tmp/celery-llm.pid)"]
       interval: 60s
-      timeout: 15s
+      timeout: 5s
       retries: 3
       start_period: 60s
+
+  task-relay:
+    build:
+      context: ./backend
+      target: llm-slim
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smeta}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-smeta}
+      BLOB_STORE_URL: file:///srv/smeta/.audit_blobs
+      CELERY_BROKER_URL: redis://redis:6379/0
+    volumes:
+      - blobs:/srv/smeta/.audit_blobs
+    command: ["python", "-m", "scripts.dispatch_tasks"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import time,pathlib; assert time.time()-pathlib.Path('/tmp/smeta-relay-heartbeat').stat().st_mtime < 60"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  table-extraction:
+    profiles: ["table-extraction"]
+    build:
+      context: ./backend
+      target: table-extraction
+    restart: unless-stopped
+    environment:
+      AUDIT_API_TOKEN: ${AUDIT_API_TOKEN:?Set AUDIT_API_TOKEN in .env}
+      TABLE_EXTRACTION_CACHE: /prepared-cache/kdfp-extraction
+      OMP_NUM_THREADS: "4"
+      MKL_NUM_THREADS: "4"
+    volumes:
+      - pdfcache:/prepared-cache
+    ports:
+      - "127.0.0.1:5002:5002"
+    cpus: 4
+    mem_limit: 6g
+    command: ["uvicorn", "table_extraction_api:get_app", "--factory", "--host", "0.0.0.0", "--port", "5002", "--workers", "1"]
 
 volumes:
   pgdata:
   redisdata:
   blobs:
   pdfcache:
+  normcache:

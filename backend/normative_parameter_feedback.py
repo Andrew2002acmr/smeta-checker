@@ -1,0 +1,98 @@
+"""Mechanical citation feedback, independent of engineering scope decisions."""
+from normative_parameters import clean, measure, quoted, unit_quoted
+
+
+def selected_measure_scope_feedback(finding, result):
+    """Name the unresolved selected measure without making a scope decision."""
+    sid = finding['base_source_id']
+    proposals = [p for p in result.get('parameter_proposals', [])
+        if p.get('parameter') == 'unit_scale' and p.get('source_id') == sid]
+    missing = []
+    if any(p.get('scope_state') != 'verified' for p in proposals) or not proposals:
+        missing.append('scope_state остаётся unresolved')
+    if any(not p.get('scope_quote') for p in proposals) or not proposals:
+        missing.append('scope_quote отсутствует')
+    choices = [e for e in result.get('evidence_trace', [])
+        if e.get('kind') == 'norm_thickness_adjustment_proposal_v1'
+        and e.get('base_source_id') == sid]
+    return ('Для выбранной нормы ' + finding['base_code'] + ', unit_scale.source_id=' + sid
+        + ': причина unverified_selected_measure — ' + '; '.join(missing) + '. '
+        'Одного числа недостаточно для однозначного выбора определения нормы. '
+        'Установи выбранный код и принадлежность строки «Измеритель» его определению. '
+        'Только если код и буквальная принадлежность измерителя установлены, передай для ЭТОГО unit_scale '
+        'scope_state="verified" и scope_quote — точный фрагмент ТОГО ЖЕ нормативного источника '
+        'с определением выбранной нормы и строкой «Измеритель». Это не подтверждает её техническую применимость. '
+        'Связь с материалом, конструкцией и операцией ПД проверяй отдельно в normative:applicability; '
+        'при недостаточном основании оставь именно этот аспект needs_facts. '
+        'Если сам выбранный код или принадлежность измерителя не установлены, сохрани unit_scale unresolved. '
+        + ('Исходные adjustments для этой базы уже переданы (' + str(len(choices)) + '): '
+            'перепроверь их буквальные ссылки, измеритель, шаг, направление и число шагов; '
+            'не повторяй их вслепую и исправляй только недоказанные или ошибочные поля. '
+            if choices else 'Явная поправка ещё не передана: после проверки заполни adjustments с буквальными ссылками, шагом и числом шагов. ')
+        + 'Это обратная связь, а не подтверждение области или поправки; независимые guards остаются обязательны.')
+
+
+def header_parameter_verified(proposal,source):
+    """A verified body-cell amount does not verify an OCR header's thickness."""
+    if (proposal.get('parameter')!='thickness' or ':cell:' not in source.get('id','')
+            or not source.get('origin','').startswith('ocr')):
+        return True
+    value=measure(proposal.get('value'),proposal.get('unit',''))
+    return bool(value and any(f.get('parameter')=='thickness'
+        and measure(f.get('value'),f.get('unit',''))==value for f in source.get('verified_parameters',[])))
+
+
+def literal_parameter_issues(proposal, source):
+    """Inspect the selected source only; never find a replacement or change scope.
+
+    An explicitly unresolved parameter without a source is an honest missing
+    fact. A supplied source/quote, however, must still be a literal extraction.
+    """
+    prefix = 'Параметр '+proposal.parameter+': '
+    hint = (' Исправь оформление извлечённого факта по literal parameter_candidates '
+        'или quantity_parameter_candidates; не подставляй количество ВОР. '
+        'Это не доказательство ошибки ВОР и не подтверждение области применения.')
+    if source is None:
+        if not proposal.source_id and proposal.scope_state != 'verified':
+            return []
+        return [prefix+'указанный источник отсутствует.'+hint]
+    wanted_kind = 'project' if proposal.parameter in {'quantity', 'thickness'} else 'normative'
+    if source.get('kind') != wanted_kind:
+        return [prefix+'тип выбранного источника не соответствует параметру.'+hint]
+    from normative_source_roles import unread_visual_source, UNREAD_VISUAL_MESSAGE
+    if unread_visual_source(source):
+        return [prefix + UNREAD_VISUAL_MESSAGE + hint]
+    from normative_source_identity import row_proposal_matches, row_source_protocol
+    if row_source_protocol(source) == 'scalar' and proposal.parameter != 'quantity':
+        return [prefix+'этот источник подтверждает количество строки, а не другой числовой параметр.'+hint]
+    if proposal.parameter=='quantity' and not row_proposal_matches(proposal.model_dump(), source):
+        message = ('число и единица не образуют одну пару в физической строке таблицы.'
+            if row_source_protocol(source) == 'paired' else
+            'число и единица не подтверждены физической строкой таблицы.')
+        return [prefix+message+hint]
+    if not header_parameter_verified(proposal.model_dump(),source):
+        return [prefix+'проверка числа физической ячейки не подтверждает толщину в её OCR-заголовке; '
+            'нужен независимо проверенный заголовок или нативное описание того же слоя.'+hint]
+    if not quoted(proposal.value, proposal.quote, source['text']):
+        return [prefix+'число/цитата не принадлежат указанному источнику.'+hint]
+    from normative_confirmed_units import unit_confirmed
+    contextual_unit = proposal.parameter == 'quantity' and unit_confirmed(source, proposal.unit)
+    if proposal.parameter in {'quantity', 'thickness'} and (not proposal.unit
+            or not measure(proposal.value, proposal.unit)
+            or not (unit_quoted(proposal.unit, proposal.quote) or contextual_unit)):
+        return [prefix+'единица отсутствует в буквальной цитате числа.'+hint]
+    if (proposal.parameter=='quantity' and source.get('unit_verified')
+            and (not measure('1',source.get('unit',''))
+                or measure('1',proposal.unit)!=measure('1',source['unit']))):
+        return [prefix+'единица не совпадает с независимо подтверждённой единицей физического столбца; '
+            'упоминание другой единицы в заголовке не меняет измеритель этой ячейки.'+hint]
+    from normative_source_roles import ocr_cell_quantity_unit_supported, OCR_CELL_UNIT_MESSAGE
+    if not ocr_cell_quantity_unit_supported(proposal.model_dump(), source):
+        return [prefix + OCR_CELL_UNIT_MESSAGE + hint]
+    scope = proposal.scope_quote
+    if (scope and (clean(scope) not in clean(source['text'])
+            or not quoted(proposal.value, proposal.quote, scope))):
+        return [prefix+'scope_quote должна быть буквальным фрагментом того же источника, содержащим quote и число.'+hint]
+    if proposal.scope_state == 'verified' and not scope:
+        return [prefix+'для заявленной проверенной области отсутствует буквальная scope_quote.'+hint]
+    return []

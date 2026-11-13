@@ -1,0 +1,14 @@
+{
+  "ignorePatterns": [
+    "app/generated/**",
+    "node_modules/**",
+    ".nuxt/**",
+    ".output/**",
+    "public/**",
+    "openapi.json",
+    "pnpm-lock.yaml",
+    ".api-check/**"
+  ],
+  "singleQuote": true,
+  "semi": false
+}

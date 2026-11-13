@@ -1,0 +1,309 @@
+"""Full, resumable document preparation barrier before any paid position task."""
+
+from contextlib import closing, nullcontext
+from copy import deepcopy
+from typing import Any
+
+from audit_core import PageTextIndex
+from audit_snapshot import load_json, load_snapshot, store_json, store_snapshot
+from audit_tracing import span
+
+VERSION = 4
+
+
+def _resume_contract_issues(blobs,state,expected):
+    """Decide whether saved CPU state can actually resume this byte contract.
+
+    Integrity failures still raise from blob loading. A well-formed legacy
+    state with obsolete settings is retained in history and prepared afresh.
+    """
+    if not state:
+        return []
+    issues=[]
+    if state.get('version')!=VERSION:
+        issues.append('preparation_version_changed')
+    if state.get('version_id')!=expected['version_id']:
+        issues.append('document_version_changed')
+    if issues:
+        return issues
+    native=load_json(blobs,state['native'])if state.get('native')else None
+    if native is not None:
+        for key in ('pdf_sha256','extraction_key','ocr_settings_key','table_key'):
+            if native.get(key)!=expected[key]:
+                issues.append('native_'+key+'_changed')
+    elif state.get('pages')or state.get('snapshot'):
+        issues.append('native_checkpoint_missing')
+    if state.get('snapshot'):
+        index=load_snapshot(blobs,state['snapshot'])
+        for key in ('pdf_sha256','extraction_key','ocr_settings_key','document_version_id','preparation_version'):
+            wanted=expected['version_id']if key=='document_version_id'else expected[key]
+            if index.metadata.get(key)!=wanted:
+                issues.append('snapshot_'+key+'_changed')
+        geometry=index.metadata.get('page_geometry')or{}
+        if any(not geometry.get(str(p))for p in range(len(index.texts))):
+            issues.append('snapshot_page_geometry_missing')
+    return issues
+
+
+def _yield_unfinished_cells(index):
+    from pdf_header_preparation import pending_header_pages
+    from pdf_numeric_preparation import pending_numeric_pages
+    from pdf_header_lines import pending_pages as pending_semantic_pages
+    if pending_header_pages(index) or pending_numeric_pages(index) or pending_semantic_pages(index):
+        from audit_tasks import PreparationYield
+        raise PreparationYield()
+
+
+def assemble_document(native, packed):
+    from pdf_tables import is_primary_ruled_table, primary_observation_complete
+    from pdf_text import _repeated_lines
+
+    if [p["page"] for p in packed] != list(range(1, len(native["texts"]) + 1)):
+        raise ValueError("Prepared document has missing or unordered pages")
+    errors = {i: "; ".join(p["errors"]) for i, p in enumerate(packed) if p["errors"]}
+    incomplete_headers = {}
+    for i, page in enumerate(packed):
+        if any(is_primary_ruled_table(table) and not primary_observation_complete(table)
+                for table in page['tables']):
+            errors[i] = '; '.join(filter(None, [errors.get(i), 'incomplete_cell_observation']))
+        legacy = {t['table_id']: list((t.get('header_verification') or {}).get('deferred_header_ids', []))
+            for t in page['tables'] if t.get('recovery') and not is_primary_ruled_table(t) and
+            (not t.get('header_verification') or (t.get('header_verification') or {}).get('deferred_header_ids'))}
+        if legacy:
+            incomplete_headers[str(i + 1)] = legacy
+            errors[i] = '; '.join(filter(None, [errors.get(i), 'incomplete_header_observation']))
+    texts = tuple(p["text"] for p in packed)
+    return PageTextIndex(
+        texts,
+        errors,
+        (),
+        tuple(tuple(p["table_rows"]) for p in packed),
+        locators=tuple(p["locators"] for p in packed),
+        tables=tuple(p["tables"] for p in packed),
+        quality={i: p["quality"] for i, p in enumerate(packed)},
+        metadata=dict(
+            pdf_sha256=native["pdf_sha256"],
+            extraction_key=native["extraction_key"],
+            ocr_settings_key=native["ocr_settings_key"],
+            preparation_version=VERSION,
+            ocr=native.get("ocr", {}),
+            document_version_id=native.get("document_version_id"),
+            preparation_complete=True,
+            preparation_state="complete_with_errors" if errors else "complete",
+            failed_pages=[i + 1 for i in errors],
+            incomplete_table_headers=incomplete_headers,
+            page_geometry={str(i): p["geometry"] for i, p in enumerate(packed)},
+            table_errors={
+                str(i + 1): p["table_error"]
+                for i, p in enumerate(packed)
+                if p["table_error"]
+            },
+        ),
+        repeated_lines=_repeated_lines(list(texts)),
+    )
+
+
+def prepare_documents(
+    context, run_id, pdf_files, pdf_versions, *, checkpoint, cancelled, tracing: Any = None
+):
+    import pymupdf
+    from pdf_text import PDFTextSource
+    from analysis_replay import enabled,replay_prepared,prepared_identity,prepared_inputs,store_prepared,digest
+
+    record = context.repository.load_run(run_id, include_results=False)
+    config = record.get("config") or {}
+    documents: dict[str, dict[str, Any]] = dict(config.get("prepared_documents") or {})
+    history=deepcopy(config.get('preparation_history')or[])
+
+    def restart(name,state,reasons,expected):
+        if state:
+            entry=dict(document_name=name,reason='saved_preparation_contract_changed',reasons=reasons,
+                previous_state=deepcopy(state),required_contract=deepcopy(expected),
+                previous_normative_corpus=deepcopy((config.get('normative_corpora')or{}).get(state.get('version_id'))))
+            entry['id']=digest(entry)
+            if not any(old.get('id')==entry['id']for old in history):
+                history.append(entry)
+        return dict(version=VERSION,version_id=expected['version_id'],pages=[])
+    snapshots = {}
+    reused_documents = []
+    total = 0
+    for name in pdf_files:
+        checkpoint()
+        if cancelled():
+            return None
+        state: dict[str, Any] = documents.get(name) or {}
+        expected=prepared_inputs(pdf_files[name],pdf_versions[name].id)
+        reasons=_resume_contract_issues(context.blob_store,state,expected)
+        if reasons:
+            state=restart(name,state,reasons,expected)
+        elif not state:
+            state=dict(version=VERSION,version_id=expected['version_id'],pages=[])
+        if enabled(context) and not state.get('snapshot'):
+            ident=prepared_identity(record,pdf_files[name],pdf_versions[name].id)
+            cached=replay_prepared(context,ident)
+            if cached:
+                candidate=dict(cached['state'],reused_artifact=digest(ident))
+                reasons=_resume_contract_issues(context.blob_store,candidate,expected)
+                if reasons:
+                    state=restart(name,candidate,['reusable_artifact_contract_changed',*reasons],expected)
+                else:
+                    state=candidate
+                    reused_documents.append(name)
+        if not state.get("page_count"):
+            with pymupdf.open(stream=bytes(pdf_files[name]), filetype="pdf") as doc:
+                state["page_count"] = len(doc)
+        documents[name] = state
+        total += int(state["page_count"])
+    context.repository.update_run_config(
+        run_id,
+        {
+            "prepared_documents": documents,
+            "preparation_history": history,
+            "document_preparation_version": VERSION,
+            "documents_prepared": False,
+            "pdf_preparation": dict(
+                done=sum(len(s.get("pages") or []) for s in documents.values()),
+                total=total,
+            ),
+        },
+    )
+    for name in pdf_files:
+        checkpoint()
+        if cancelled():
+            return None
+        version = str(pdf_versions[name].id)
+        state = dict(documents.get(name) or {})
+        if state.get("version_id") != version or state.get("version") != VERSION:
+            state = dict(version=VERSION, version_id=version, pages=[])
+        if state.get("snapshot"):
+            index = load_snapshot(context.blob_store, state["snapshot"])
+            from pdf_header_preparation import complete_saved_geometry, complete_saved_headers, complete_saved_numbers, complete_saved_semantics
+
+            def commit_headers(updated, name=name):
+                documents[name] = updated
+                context.repository.update_run_config(run_id, {'prepared_documents': documents})
+
+            state, index = complete_saved_geometry(context.blob_store, pdf_files[name], state, index,
+                checkpoint=checkpoint, commit=commit_headers)
+            state, index = complete_saved_headers(context.blob_store, pdf_files[name], state, index,
+                checkpoint=checkpoint, commit=commit_headers)
+            state, index = complete_saved_numbers(context.blob_store, pdf_files[name], state, index,
+                checkpoint=checkpoint, commit=commit_headers)
+            state, index = complete_saved_semantics(context.blob_store, pdf_files[name], state, index,
+                checkpoint=checkpoint, commit=commit_headers)
+            _yield_unfinished_cells(index)
+            if (
+                index.pending_ocr
+                or index.metadata.get("preparation_version") != VERSION
+                or not index.metadata.get("preparation_complete")
+                or index.metadata.get("document_version_id") != version
+            ):
+                raise ValueError("Document snapshot is not fully prepared")
+            if enabled(context):
+                state=store_prepared(context,prepared_identity(record,pdf_files[name],version),state)
+                documents[name]=state
+            snapshots[name] = state["snapshot"]
+            continue
+        native = (
+            load_json(context.blob_store, state["native"])
+            if state.get("native")
+            else None
+        )
+        with pymupdf.open(stream=bytes(pdf_files[name]), filetype="pdf") as doc:
+            # Native cache writes can yield safely. Once persisted, resume from
+            # native state without re-reading Markdown, including failed pages.
+            with closing(
+                PDFTextSource(
+                    doc,
+                    checkpoint=checkpoint if native is None else None,
+                    native_state=native,
+                    full_document=True,
+                    store_image=context.blob_store.put,
+                    source_bytes=pdf_files[name],
+                )
+            ) as source:
+                source._checkpoint = None
+                if native is None:
+                    native = source.native_state()
+                    native["document_version_id"] = version
+                    state["native"] = store_json(context.blob_store, native)
+                state["page_count"] = source.page_count
+                pages = list(state.get("pages") or [])
+
+                def commit(name=name, state=state, pages=pages):
+                    documents[name] = dict(state, pages=list(pages))
+                    done = sum(len(s.get("pages") or []) for s in documents.values())
+                    context.repository.update_run_config(
+                        run_id,
+                        {
+                            "prepared_documents": documents,
+                            "document_preparation_version": VERSION,
+                            "pdf_preparation": dict(done=done, total=total),
+                        },
+                    )
+
+                commit()
+                checkpoint()
+                for page in range(len(pages), source.page_count):
+                    if cancelled():
+                        return None
+                    checkpoint()
+                    attributes = nullcontext()
+                    client = tracing.client if tracing else None
+                    if client is not None:
+                        from langfuse import propagate_attributes
+
+                        attributes = propagate_attributes(
+                            session_id=tracing.session_id,
+                            trace_name="prepare-pdf-page",
+                            tags=["document-preparation"],
+                        )
+                    with (
+                        attributes,
+                        span(
+                            "prepare-pdf-page",
+                            client=client,
+                            input=dict(
+                                pdf_name=name, version_id=version, page=page + 1
+                            ),
+                        ) as observation,
+                    ):
+                        prepared = source.prepare_page(page)
+                        observation.update(
+                            output=dict(
+                                text_chars=len(prepared["text"]),
+                                tables=len(prepared["tables"]),
+                                quality=prepared["quality"],
+                                errors=prepared["errors"],
+                            ),
+                            level="WARNING" if prepared["errors"] else "DEFAULT",
+                        )
+                    pages.append(store_json(context.blob_store, prepared))
+                    commit()
+                    checkpoint()
+                packed = [load_json(context.blob_store, ref) for ref in pages]
+                index = assemble_document(native, packed)
+                state["snapshot"] = store_snapshot(context.blob_store, index)
+                state["failed_pages"] = list(index.metadata["failed_pages"])
+                # Persist the partial observation before yielding; never turn a
+                # bounded cell pass into a failed run or dispatch agent work.
+                commit()
+                _yield_unfinished_cells(index)
+                if enabled(context):
+                    state=store_prepared(context,prepared_identity(record,pdf_files[name],version),dict(state,pages=list(pages)))
+                    pages=list(state['pages'])
+                commit()
+                snapshots[name] = state["snapshot"]
+    # Every selected PDF has completed before the caller can dispatch positions.
+    context.repository.update_run_config(
+        run_id,
+        {
+            "documents_prepared": True,
+            "prepared_documents":documents,
+            "preparation_reused_documents":reused_documents,
+            "normative_corpora": {
+                str(pdf_versions[name].id): ref for name, ref in snapshots.items()
+            },
+        },
+    )
+    return snapshots

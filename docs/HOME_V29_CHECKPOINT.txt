@@ -1,0 +1,11 @@
+Home checkpoint v29, captured 2026-11-01 and restored on 2026-11-02.
+
+This commit imports the exact uncommitted backend sources/tests from the supplied working-tree.zip, on top of ca801ae. It includes PDF ruled-table/header recovery, preserved OCR evidence, scoped normative retrieval, pinned corpus/cache identities, parent geometry and resource consumption checks, named coefficient assumptions, and construction/schedule quantity recovery.
+
+Source snapshot: 758 verified files. Deployed v29 backend: 113 verified Python files.
+Observed saved audit: 103 positions, 6 fully confirmed, 94 requiring review, 3 requiring correction. 28 confirmed quantity cards do not mean 28 fully confirmed positions.
+Named coefficients accepted by the v27 policy remain assumptions, not evidence of normative applicability. Material identity, dimensional rates and engineering scope still require their own evidence.
+
+No database dumps, document archives, API keys, .env.local, Docker volumes, or complete normative corpora are included. Frozen regression fixtures retain excerpts/coordinates necessary for deterministic tests. Deployment uses the repository's compose files and separately restored data.
+
+Known validation issue discovered during import: two assertions in test_normative_geometry_checkpoint.py still expect thickness to remain needs_facts for mixed child-rate claims. The v28 parameter recovery currently returns confirmed for those literal scoped thickness parameters. The tests have not been weakened or removed to hide the disagreement; follow-up must reconcile that contract. Broad validation details are recorded in the subsequent handoff commit.

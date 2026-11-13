@@ -1,0 +1,10 @@
+node_modules
+.nuxt
+.output
+.env
+coverage
+playwright-report
+test-results
+.api-check
+
+.nuxtrc

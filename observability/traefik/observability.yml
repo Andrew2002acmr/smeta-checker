@@ -1,0 +1,92 @@
+# Traefik file-provider routes for the standalone observability stack.
+# Install: copy to /etc/dokploy/traefik/dynamic/observability.yml on the VPS,
+# fill the basic-auth hash, then `docker kill -s HUP dokploy-traefik`
+# (file provider has watch:true, but HUP forces an immediate reload).
+#
+# Public surface:
+#   grafana.nikgretenok.online    -> Grafana UI (login form)
+#   glitchtip.nikgretenok.online  -> GlitchTip UI + Sentry envelope ingest
+#   phoenix.nikgretenok.online    -> Phoenix UI (basic-auth) + OTLP /v1/* (open)
+#
+# Prometheus/Loki stay internal (only via Grafana proxy or SSH tunnel):
+#   ssh -L 9090:127.0.0.1:9090 -L 3100:127.0.0.1:3100 root@<vps>
+# after publishing those ports on loopback in compose (uncomment ports below).
+http:
+  routers:
+    obs-grafana:
+      rule: Host(`grafana.nikgretenok.online`)
+      service: obs-grafana
+      entryPoints: [web]
+      middlewares: [redirect-to-https]
+    obs-grafana-secure:
+      rule: Host(`grafana.nikgretenok.online`)
+      service: obs-grafana
+      entryPoints: [websecure]
+      tls:
+        certResolver: letsencrypt
+
+    obs-glitchtip:
+      rule: Host(`glitchtip.nikgretenok.online`)
+      service: obs-glitchtip
+      entryPoints: [web]
+      middlewares: [redirect-to-https]
+    obs-glitchtip-secure:
+      rule: Host(`glitchtip.nikgretenok.online`)
+      service: obs-glitchtip
+      entryPoints: [websecure]
+      tls:
+        certResolver: letsencrypt
+
+    # OTLP ingest must stay open: backends cannot do basic-auth.
+    obs-phoenix-otlp:
+      rule: Host(`phoenix.nikgretenok.online`) && PathPrefix(`/v1/`)
+      service: obs-phoenix
+      entryPoints: [websecure]
+      priority: 20
+      tls:
+        certResolver: letsencrypt
+    obs-phoenix-otlp-plain:
+      rule: Host(`phoenix.nikgretenok.online`) && PathPrefix(`/v1/`)
+      service: obs-phoenix
+      entryPoints: [web]
+      priority: 20
+      middlewares: [redirect-to-https]
+    # Everything else (UI, API, MCP) behind basic-auth: Phoenix has no login.
+    obs-phoenix-ui:
+      rule: Host(`phoenix.nikgretenok.online`)
+      service: obs-phoenix
+      entryPoints: [web]
+      priority: 10
+      middlewares: [redirect-to-https]
+    obs-phoenix-ui-secure:
+      rule: Host(`phoenix.nikgretenok.online`)
+      service: obs-phoenix
+      entryPoints: [websecure]
+      priority: 10
+      middlewares: [obs-phoenix-auth]
+      tls:
+        certResolver: letsencrypt
+
+  middlewares:
+    obs-phoenix-auth:
+      basicAuth:
+        # htpasswd -nb <user> <password> ; single bcrypt ($2y$) line below.
+        users:
+          - "REPLACE_WITH_HTPASSWD_LINE"
+
+  services:
+    obs-grafana:
+      loadBalancer:
+        servers:
+          - url: http://obs-grafana:3000
+        passHostHeader: true
+    obs-glitchtip:
+      loadBalancer:
+        servers:
+          - url: http://obs-glitchtip:8000
+        passHostHeader: true
+    obs-phoenix:
+      loadBalancer:
+        servers:
+          - url: http://obs-phoenix:6006
+        passHostHeader: true

@@ -2,12 +2,70 @@ name: CI
 
 on:
   pull_request:
-    branches: [dev]
+    branches: [main, dev]
   push:
-    branches: [dev]
+    branches: [main, dev]
+
+permissions:
+  contents: read
 
 jobs:
-  checks:
+  backend-lint-types:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: "backend/.python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+
+      - name: Sync environment
+        working-directory: backend
+        run: uv sync --frozen
+
+      - name: Lint
+        working-directory: backend
+        run: uv run ruff check .
+
+      - name: Format (new files only)
+        working-directory: backend
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ -z "$BASE_SHA" ]]; then
+            echo "Missing base SHA for format check" >&2
+            exit 1
+          elif [[ "$BASE_SHA" =~ ^0+$ ]]; then
+            BASE_SHA=$(git hash-object -w -t tree /dev/null)
+          elif ! git cat-file -e "${BASE_SHA}^{commit}"; then
+            git fetch origin "$BASE_SHA"
+          fi
+          file_list=$(mktemp)
+          trap 'rm -f "$file_list"' EXIT
+          git diff --name-only --diff-filter=A -z "$BASE_SHA" HEAD -- 'backend/*.py' > "$file_list"
+          files=()
+          while IFS= read -r -d '' file; do
+            files+=("${file#backend/}")
+          done < "$file_list"
+          if ((${#files[@]})); then
+            uv run ruff format --check "${files[@]}"
+          else
+            echo "No new Python files."
+          fi
+
+      - name: Type-check
+        working-directory: backend
+        run: uv run pyright
+
+  backend-tests:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -23,16 +81,13 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version-file: ".python-version"
+          python-version-file: "backend/.python-version"
 
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
@@ -43,25 +98,166 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-rus tesseract-ocr-eng
 
       - name: Sync environment
+        working-directory: backend
         run: uv sync --frozen
 
-      - name: Lint
-        run: uv run ruff check .
-
-      - name: Format (new files only)
-        run: |
-          files=$(git diff --name-only --diff-filter=A origin/${{ github.base_ref || 'dev' }}...HEAD -- '*.py')
-          if [ -n "$files" ]; then
-            # shellcheck disable=SC2086
-            uv run ruff format --check $files
-          else
-            echo "No new Python files."
-          fi
-
-      - name: Type-check
-        run: uv run pyright
+      - name: Install pinned normative data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/install-normative-data.py --dest .audit_cache/normative-ci
 
       - name: Tests
+        working-directory: backend
         run: uv run pytest
         env:
           TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@localhost:5432/smeta_test
+          NORMATIVE_KB_ROOT: ${{ github.workspace }}/.audit_cache/normative-ci/normative-handoff-20261030-092929/knowledge-base/electrical-norms
+          NORMATIVE_ROAD_KB_ROOT: ${{ github.workspace }}/.audit_cache/normative-ci/normative-handoff-20261030-092929/knowledge-base/road-norms
+
+  frontend-checks-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: "backend/.python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+
+      - name: Sync environment
+        working-directory: backend
+        run: uv sync --frozen
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4.1.0
+        with:
+          version: 11.25.0
+
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.0.0
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend
+        run: pnpm --dir frontend install --frozen-lockfile
+
+      - name: Frontend checks and build
+        working-directory: frontend
+        env:
+          PYTHON: ${{ github.workspace }}/backend/.venv/bin/python
+        run: pnpm run fmt:check && pnpm run lint && pnpm run typecheck && pnpm run test:unit && pnpm run api:check && pnpm run build
+
+  browser-e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: smeta_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: "backend/.python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+
+      - name: Install tesseract
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-rus tesseract-ocr-eng
+
+      - name: Sync environment
+        working-directory: backend
+        run: uv sync --frozen
+
+      - name: Install pinned normative data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/install-normative-data.py --dest .audit_cache/normative-ci
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4.1.0
+        with:
+          version: 11.25.0
+
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.0.0
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend
+        run: pnpm --dir frontend install --frozen-lockfile
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm run build
+
+      - name: Install browser
+        run: pnpm --dir frontend exec playwright install --with-deps chromium
+
+      - name: Start isolated workspace fixture
+        env:
+          TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@localhost:5432/smeta_test_ui
+          NORMATIVE_KB_ROOT: ${{ github.workspace }}/.audit_cache/normative-ci/normative-handoff-20261030-092929/knowledge-base/electrical-norms
+          NORMATIVE_ROAD_KB_ROOT: ${{ github.workspace }}/.audit_cache/normative-ci/normative-handoff-20261030-092929/knowledge-base/road-norms
+          NUXT_BACKEND_URL: http://127.0.0.1:8116
+          NUXT_BACKEND_TOKEN: synthetic-e2e-only
+          HOST: 127.0.0.1
+          PORT: 3016
+          # Synthetic credentials for the isolated loopback-only fixture, never deployment values.
+          WORKSPACE_AUTH_MODE: local
+          WORKSPACE_LOGIN: e2e-workspace
+          WORKSPACE_PASSWORD: synthetic-workspace-only
+        run: |
+          uv --project backend run python -c "import psycopg; psycopg.connect('postgresql://postgres:postgres@localhost:5432/postgres', autocommit=True).execute('CREATE DATABASE smeta_test_ui')"
+          mkdir -p .audit_cache
+          uv --project backend run python backend/tests/workspace_server.py --root .audit_cache/e2e-fixture --port 8116 > .audit_cache/e2e-api.log 2>&1 &
+          node frontend/.output/server/index.mjs > .audit_cache/e2e-frontend.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8116/healthz > /dev/null && curl -fsS http://127.0.0.1:3016/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Workspace browser tests
+        run: pnpm --dir frontend run test:e2e
+        env:
+          FRONTEND_URL: http://127.0.0.1:3016
+          E2E_FIXTURE_ROOT: ${{ github.workspace }}/.audit_cache/e2e-fixture
+          TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@localhost:5432/smeta_test_ui
+          E2E_PYTHON: ${{ github.workspace }}/backend/.venv/bin/python
+          WORKSPACE_AUTH_MODE: local
+          WORKSPACE_LOGIN: e2e-workspace
+          WORKSPACE_PASSWORD: synthetic-workspace-only
+
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        if: failure()
+        with:
+          name: workspace-diagnostics
+          include-hidden-files: true
+          path: |
+            .audit_cache/*.log
+            .audit_cache/e2e-results.jpg
+            frontend/test-results/

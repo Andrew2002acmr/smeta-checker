@@ -1,0 +1,115 @@
+"""Long-name/long-formula synthetic fixture; only a smeta_test_ui database."""
+import io
+import json
+import os
+from pathlib import Path
+from uuid import UUID
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from openpyxl import load_workbook
+from storage_blobs import FileBlobStore
+from storage_db import open_repository
+
+
+def seed(root, repo, blobs, *, road=False):
+    old = repo.load_run(UUID((root / "run-id.txt").read_text().strip()))
+    project_id = old["project_id"]
+    department_id = repo.version_department_id(old["vor_version_id"])
+    replacements = {}
+    if road:
+        project_id = repo.create_project("Синтетический дорожный проект").id
+        department_id = UUID(repo.list_departments(project_id)[0]["id"])
+        replacements[str(old["project_id"])] = str(project_id)
+        for version_id in old["config"]["pdf_versions"].values():
+            ref = repo.load_version(UUID(version_id))
+            copied = repo.add_document_version(
+                project_id, blobs.get(ref.blob_key), filename=ref.filename,
+                kind="pdf", new_document=True,
+                department_id=department_id,
+            )
+            replacements[version_id] = str(copied.id)
+
+    def remap(value):
+        encoded = json.dumps(value)
+        for before, after in replacements.items():
+            encoded = encoded.replace(before, after)
+        return json.loads(encoded)
+
+    original = remap(old["config"]["position_inputs"][0])
+    ref = repo.load_version(old["vor_version_id"])
+    book = load_workbook(io.BytesIO(blobs.get(ref.blob_key)))
+    name = "Устройство нижнего слоя основания из щебеночно-песчаной смеси с уплотнением и уточнением размеров " * 3
+    note = "Примечание к выбранной позиции: условия выполнения работ и расчёт расхода материала."
+    positions = []
+    for i in range(12):
+        row = i + 2
+        sheet = book.active
+        sheet.cell(row, 1, i + 1)
+        sheet.cell(row, 2, name)
+        sheet.cell(row, 3, 45)
+        sheet.cell(row, 4, "m")
+        sheet.cell(row, 5, "45*1+" * 20 + "0")
+        sheet.cell(row, 9, note)
+        sheet.cell(row, 10, "INTERNAL_ID")
+        sheet.cell(row, 11, "INTERNAL_TYPE")
+        p = json.loads(json.dumps(original))
+        p.update(index=i, number=str(i+1), work_name=name, comment=note)
+        p["position_source"].update(row=row, cells={f"B{row}": name, f"I{row}": note})
+        positions.append(p)
+    output = io.BytesIO()
+    book.save(output)
+    book.close()
+    project_uuid = project_id.id if hasattr(project_id, "id") else UUID(str(project_id))
+    version = repo.add_document_version(project_uuid, output.getvalue(), filename="layout.xlsx", kind="vor", new_document=True,
+                                        department_id=department_id)
+    config = {**remap(old["config"]), "position_inputs": positions, "prepare_seconds": 0.1}
+    run = repo.create_run(project_uuid, version.id, config,
+                          pdf_pins={k: UUID(v) for k, v in config["pdf_versions"].items()})
+    template = remap(old["indexed_results"][0]["result"])
+    payload = remap(repo.load_position_job(old["id"], 0).payload)
+    from audit_assessment import reduce_assessment
+
+    def resealed(index: int) -> dict:
+        if template.get("schema_version") != "evidence-assessment-v1":
+            return dict(template)
+        return reduce_assessment({
+            "run_id": str(run.id),
+            "position_index": index,
+            "execution_revision": int(template.get("execution_revision", 0)),
+            "fingerprint": template.get("fingerprint", {}),
+            "project": {"obligations": (template.get("project") or {}).get("obligations", [])},
+            "normative": {"obligations": (template.get("normative") or {}).get("obligations", [])},
+            "relationships": {"obligations": (template.get("relationships") or {}).get("obligations", [])},
+            "own_quantity": template.get("own_quantity", {}),
+            "facts": template.get("facts", []),
+            "sources": template.get("sources", []),
+            "execution_state": (template.get("execution") or {}).get("state", "complete"),
+            "http_attempts": (template.get("execution") or {}).get("http_attempts", 0),
+            "tool_executions": (template.get("execution") or {}).get("tool_executions", 0),
+            "stop_reason": (template.get("execution") or {}).get("stop_reason", ""),
+        }).model_dump(mode="json")
+
+    for i in range(12):
+        result = resealed(i)
+        repo.create_position_job(run.id, i, queue="llm", payload=payload)
+        repo.save_position_result(run.id, i, result)
+        repo.finish_position_job(run.id, i, "done", result=result)
+    repo.finish_run(run.id, "done")
+    filename = "road-run.json" if road else "table-run.json"
+    (root / filename).write_text(json.dumps(dict(run_id=str(run.id), project_id=str(project_id))), encoding="utf-8")
+
+
+def main():
+    root = Path(sys.argv[1])
+    url = os.environ["TEST_POSTGRES_URL"]
+    from sqlalchemy.engine import make_url
+    if make_url(url).database != "smeta_test_ui":
+        raise SystemExit("Only an isolated E2E database is allowed")
+    blobs = FileBlobStore(root / "blobs")
+    seed(root, open_repository(url, blobs), blobs)
+
+
+if __name__ == "__main__":
+    main()
