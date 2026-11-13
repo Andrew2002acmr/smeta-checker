@@ -52,6 +52,9 @@ const acknowledged = ref(false)
 const starting = ref(false)
 const startedRunId = ref('')
 const normativeProfile = ref<'roads' | 'electrical'>('roads')
+const auditMode = ref<'pipeline' | 'codex'>('pipeline')
+const codexSubagents = ref(true)
+const codexPositionLimit = ref<number | ''>('')
 let preflightEpoch = 0
 
 const pendingDelete = ref<RichVersion | null>(null)
@@ -474,6 +477,10 @@ async function checkAndStart() {
     bindingsError.value
   )
     return
+  if (auditMode.value === 'codex') {
+    await startAudit()
+    return
+  }
   // Повторный клик после подтверждения критических ошибок запускает проверку.
   if (preflight.value && (!preflight.value.has_critical_error || acknowledged.value)) {
     await startAudit()
@@ -509,8 +516,8 @@ async function startAudit() {
     !isVor.value ||
     starting.value ||
     locksMutations.value ||
-    !preflight.value ||
-    (preflight.value.has_critical_error && !acknowledged.value)
+    (auditMode.value === 'pipeline' &&
+      (!preflight.value || (preflight.value.has_critical_error && !acknowledged.value)))
   )
     return
   if (startedRunId.value) {
@@ -520,10 +527,22 @@ async function startAudit() {
   starting.value = true
   preflightError.value = ''
   try {
+    const limit = codexPositionLimit.value
+    if (auditMode.value === 'codex' && limit !== '' && (!Number.isInteger(limit) || limit < 1)) {
+      preflightError.value = 'Укажите целое число первых позиций ВОР.'
+      return
+    }
     const created = await backend.start({
       project_id: projectId.value,
       vor_version_id: revision.id,
       normative_profile: normativeProfile.value,
+      ...(auditMode.value === 'codex'
+        ? {
+            mode: 'codex',
+            codex_subagents: codexSubagents.value,
+            ...(limit !== '' ? { codex_position_limit: limit } : {}),
+          }
+        : {}),
     })
     if (!active) return
     startedRunId.value = created.run_id
@@ -539,6 +558,8 @@ function downloadRevision(version: RichVersion) {
   const url = `${backend.contentUrl(version.id)}?download=true`
   backend.download(url, version.filename).catch((e: unknown) => (error.value = readableError(e)))
 }
+
+watch([auditMode, codexSubagents, codexPositionLimit], resetPreflight)
 
 watch(requestedVersion, () => {
   resetPreflight()
@@ -909,6 +930,33 @@ onBeforeUnmount(() => {
               </span>
             </div>
             <div class="toolbar launch-actions">
+              <label class="profile-row">
+                Режим проверки
+                <select
+                  v-model="auditMode"
+                  :disabled="preflightBusy || starting"
+                  aria-label="Режим проверки"
+                >
+                  <option value="pipeline">Стандартный pipeline</option>
+                  <option value="codex">Codex Agent (Experimental)</option>
+                </select>
+              </label>
+              <label v-if="auditMode === 'codex'" class="ack-row">
+                <input v-model="codexSubagents" type="checkbox" :disabled="starting" />
+                С субагентами
+              </label>
+              <label v-if="auditMode === 'codex'" class="profile-row">
+                Первые позиции
+                <input
+                  v-model.number="codexPositionLimit"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="Вся ВОР"
+                  class="w-24"
+                  :disabled="starting"
+                />
+              </label>
               <label class="profile-row">
                 Нормативный профиль
                 <select v-model="normativeProfile" aria-label="Нормативный профиль">

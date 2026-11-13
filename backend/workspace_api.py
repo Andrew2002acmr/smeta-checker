@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import re
 from collections import Counter
+from hashlib import sha256
+from sqlite3 import Error as SQLiteError
 from urllib.parse import quote
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from fastapi import APIRouter, Depends, Query, Request, UploadFile
 from fastapi.responses import Response
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.exc import IntegrityError
 
+from codex_contract import DIRECTIONS, MAX_ADDITIONAL_FINDINGS
 from workspace_models import (
     DocumentDTO,
     DocumentPatch,
@@ -43,6 +49,57 @@ from workspace_service import (
     source_evidence,
 )
 from department_api import department_scope, register_department_routes
+
+
+class CodexCoefficientRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    basis: str = Field(min_length=4, max_length=2000)
+    include_related: bool = False
+
+
+class CodexCoefficientRun(BaseModel):
+    run_id: str
+    rows: list[int]
+
+
+class CodexClarificationRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    basis: str = Field(min_length=4, max_length=2000)
+    finding_index: int = Field(ge=0, le=len(DIRECTIONS) + MAX_ADDITIONAL_FINDINGS - 1)
+
+
+def _factor_positions(record, position_index, include_related):
+    config = record['config']
+    positions = config['position_inputs']
+    saved = {item['position_index']: item['result'] for item in record['indexed_results']}
+
+    def eligible(item):
+        dependencies = (item.get('calculation') or {}).get('dependencies', [])
+        return (item.get('position_type', '').casefold() == 'материал'
+            and re.search(r'\bкупл\s*[-:=]?\s*1[,.]26\b', item.get('comment', ''), re.I)
+            and any(str(d.get('value')).replace(',', '.') == '1.26' for d in dependencies))
+
+    current = next((p for p in positions if p['index'] == position_index and eligible(p)), None)
+    if current is None or position_index not in saved:
+        raise ValueError('Коэффициент 1,26 с расчётом в этой позиции не найден.')
+
+    def construction(index):
+        group = saved.get(index, {}).get('group') or ''
+        parts = [part.strip().casefold() for part in re.split(r'\s*→\s*|\s+/\s+', group)]
+        if len(parts) > 1 and re.fullmatch(
+            r'материал (?:(?:первого|второго) слоя|слоя\s+\d+)', parts[-1]
+        ):
+            return tuple(parts[:-1])
+        return tuple(parts) if group else ()
+
+    group = construction(position_index)
+    anchor = current['position_source']
+    return [p for p in positions if p is current or (include_related and group and eligible(p)
+        and p['position_source']['sheet'] == anchor['sheet']
+        and p['position_source'].get('sections', []) == anchor.get('sections', [])
+        and p['position_source'].get('scope_key') == anchor.get('scope_key')
+        and p['work_name'] == current['work_name']
+        and p['formula'] == current['formula'] and construction(p['index']) == group)]
 
 
 def workspace_router(get_context) -> APIRouter:
@@ -125,8 +182,14 @@ def workspace_router(get_context) -> APIRouter:
     def available(context, run_id):
         return _load_run_record(context, _parse_uuid(run_id, field="run_id"))
 
+    def pipeline_normative_run(context, run_id):
+        record = available(context, run_id)
+        if record["config"].get("mode") == "codex":
+            raise ApiError(409, "codex_normative_run", "Для проверки Codex откройте заключение и закреплённые источники в карточке позиции.")
+        return record
+
     from normative_api import register_normative_routes
-    register_normative_routes(router, guarded, available)
+    register_normative_routes(router, guarded, pipeline_normative_run)
     register_department_routes(router, guarded, project)
 
     @router.get("/api/v1/projects", response_model=list[ProjectDTO])
@@ -329,7 +392,11 @@ def workspace_router(get_context) -> APIRouter:
         record = context.repository.load_run(parsed)
         if str(record.get("status")) in {"done", "failed", "cancelled"}:
             raise ApiError(409, "audit_not_running", "Аудит уже завершён.")
-        context.repository.finish_run(parsed, "cancelled")
+        if record["config"].get("mode") == "codex":
+            if not context.repository.cancel_codex_run(parsed):
+                raise ApiError(409, "audit_not_running", "Аудит уже завершён.")
+        else:
+            context.repository.finish_run(parsed, "cancelled")
         records = context.repository.run_progress_records(run_id=parsed)
         if not records:
             raise ApiError(404, "run_not_found", "Запуск аудита не найден.")
@@ -352,6 +419,131 @@ def workspace_router(get_context) -> APIRouter:
             raise ApiError(409, "audit_resume_conflict", message) from exc
         records = context.repository.run_progress_records(run_id=parsed)
         return run_progress(context, records[0])
+
+    def codex_recheck_parent(context, run_id):
+        from codex_runtime import codex_audit_enabled
+
+        record = _load_run_record(context, _parse_uuid(run_id, field='run_id'))
+        if not codex_audit_enabled() or record['config'].get('mode') != 'codex' or record['status'] != 'done':
+            raise ApiError(409, 'codex_recheck_unavailable', 'Нужна завершённая проверка Codex.')
+        return record
+
+    def queue_codex_recheck(context, request, run_id, record, selected, field, clarification):
+        from urllib.parse import unquote
+
+        rows = [item['position_source']['row'] for item in selected]
+        actor = unquote(request.headers.get('x-workspace-user', 'api'))[:256]
+        clarification = {**clarification, 'actor': actor, 'rows': rows}
+        identity = (run_id, [item['index'] for item in selected], actor, clarification['basis'])
+        if field != 'codex_coefficient_clarification':
+            identity = (*identity, field, clarification['finding_index'])
+        key = uuid5(NAMESPACE_URL, repr(identity))
+        config = {name: record['config'][name] for name in (
+            'mode', 'engine', 'codex_normative', 'codex_subagents', 'pdf_versions', 'pdf_bindings',
+            'project', 'vor_filename', 'normative_profile') if name in record['config']}
+        config.update(position_inputs=selected, codex_stage='queued', codex_parent_run_id=run_id,
+            input_position_count=record['config'].get('input_position_count') or len(record['config']['position_inputs']),
+            selected_position_count=len(selected))
+        config[field] = clarification
+        pins = {name: UUID(version) for name, version in config['pdf_versions'].items()}
+        try:
+            context.repository.create_run(record['project_id'], record['vor_version_id'], config, pdf_pins=pins, run_id=key)
+        except IntegrityError:
+            existing = context.repository.load_run(key, include_results=False)
+            if existing['config'].get(field) != clarification:
+                raise
+        return CodexCoefficientRun(run_id=str(key), rows=rows)
+
+    @router.post('/api/v1/audits/{run_id}/positions/{position_index}/codex-coefficient', response_model=CodexCoefficientRun)
+    def clarify_codex_coefficient(run_id: str, position_index: int, payload: CodexCoefficientRequest,
+                                  request: Request, context=Depends(guarded)):
+        record = codex_recheck_parent(context, run_id)
+        try:
+            selected = _factor_positions(record, position_index, payload.include_related)
+        except ValueError as exc:
+            raise ApiError(400, 'codex_factor_unavailable', str(exc)) from exc
+        return queue_codex_recheck(context, request, run_id, record, selected,
+            'codex_coefficient_clarification', {'value': '1.26', 'basis': payload.basis})
+
+    @router.post('/api/v1/audits/{run_id}/positions/{position_index}/codex-clarification', response_model=CodexCoefficientRun)
+    def clarify_codex_finding(run_id: str, position_index: int, payload: CodexClarificationRequest,
+                             request: Request, context=Depends(guarded)):
+        from codex_contract import PositionConclusion
+
+        record = codex_recheck_parent(context, run_id)
+        position = next((item['result'] for item in record['indexed_results']
+                         if item['position_index'] == position_index), None)
+        selected = [item for item in record['config']['position_inputs'] if item['index'] == position_index]
+        if position is None or not selected:
+            raise ApiError(404, 'position_not_found', 'Позиция не найдена.')
+        findings = list(PositionConclusion.from_stored(position).findings())
+        if payload.finding_index >= len(findings):
+            raise ApiError(400, 'codex_finding_unavailable', 'Параметр проверки не найден.')
+        direction, finding = findings[payload.finding_index]
+        if finding.status != 'needs_facts' or finding.missing_facts is None:
+            raise ApiError(409, 'codex_finding_closed', 'По этому параметру нет запроса основания.')
+        return queue_codex_recheck(context, request, run_id, record, selected, 'codex_finding_clarification', {
+            'basis': payload.basis, 'finding_index': payload.finding_index, 'direction': direction,
+            'parameter': finding.parameter, 'requested_basis': finding.missing_facts.required,
+        })
+
+    @router.get("/api/v1/audits/{run_id}/codex-sources/{document_id}")
+    def codex_source(run_id: str, document_id: str, context=Depends(guarded)):
+        record = _load_run_record(context, _parse_uuid(run_id, field="run_id"))
+        manifest = record["config"].get("codex_normative") or {}
+        source = next((item for item in manifest.get("documents", []) if item["id"] == document_id), None)
+        if record["config"].get("mode") != "codex" or source is None:
+            raise ApiError(404, "codex_source_not_found", "Закреплённый нормативный документ не найден.")
+        try:
+            content = context.blob_store.get(source["blob_key"])
+        except FileNotFoundError as exc:
+            raise ApiError(404, "codex_source_not_found", "Оригинал нормативного документа недоступен.") from exc
+        if sha256(content).hexdigest() != source["sha256"]:
+            raise ApiError(409, "codex_source_changed", "Контрольная сумма нормативного документа изменилась.")
+        filename = quote(source["filename"], safe="")
+        return Response(content=content, media_type="application/pdf", headers={
+            "Content-Disposition": f"inline; filename*=UTF-8''{filename}",
+            "Cache-Control": "private",
+        })
+
+    @router.get("/api/v1/audits/{run_id}/codex-comparison")
+    def codex_comparison(run_id: str, other_run_id: str, context=Depends(guarded)):
+        from scripts.compare_codex_audits import compare_runs
+
+        first = _load_run_record(context, _parse_uuid(run_id, field="run_id"))
+        second = _load_run_record(context, _parse_uuid(other_run_id, field="other_run_id"))
+        if first["config"].get("mode") != "codex":
+            raise ApiError(400, "not_codex_run", "Первый запуск должен использовать Codex Agent.")
+        records = {}
+        for record in (first, second):
+            config = record["config"]
+            column = "existing"
+            if config.get("mode") == "codex":
+                column = "codex_multi" if config.get("codex_subagents") else "codex_single"
+            records[column] = record
+        try:
+            comparison = compare_runs(context.repository, records)
+        except (KeyError, OSError, SQLiteError) as exc:
+            raise ApiError(409, "codex_comparison_unavailable", "Закреплённые данные сравнения недоступны.") from exc
+        except ValueError as exc:
+            raise ApiError(409, "codex_comparison_unavailable", str(exc)) from exc
+        runs = []
+        for column, metrics in comparison["runs"].items():
+            config = records[column]["config"]
+            runs.append({
+                **metrics,
+                "mode": config.get("mode", "pipeline"),
+                "subagents": config.get("codex_subagents"),
+                "model": config.get("model"),
+                "needs_review": metrics["review"],
+                "verified_sample_quality": None,
+                "monetary_cost": metrics["cost"],
+            })
+        return {
+            "vor_version_id": comparison["vor_version_id"],
+            "normative_document_count": len(comparison["normative_pdf_sha256"]),
+            "runs": runs,
+        }
 
     @router.get("/api/v1/audits/{run_id}/summary", response_model=SummaryDTO)
     def summary(run_id: str, context=Depends(guarded)):
@@ -423,15 +615,14 @@ def workspace_router(get_context) -> APIRouter:
     )
     def workspace(run_id: str, position_index: int, context=Depends(guarded)):
         record = available(context, run_id)
+        positions = {position.index: position for position in inputs_for_run(context, record)}
         rows = {r.position_index: r for r in present_results(context, record, only=[position_index])}
         row = rows.get(position_index)
         if row is None:
-            if not any(p.index == position_index for p in inputs_for_run(context, record)):
+            if position_index not in positions:
                 raise ApiError(404, "position_not_found", "Позиция не найдена")
             raise ApiError(409, "position_not_ready", "Позиция ещё обрабатывается. Откройте готовую позицию.")
-        position = next(
-            p for p in inputs_for_run(context, record) if p.index == position_index
-        )
+        position = positions[position_index]
         vor = version(context, str(record["vor_version_id"]))
         return {
             "row": row,

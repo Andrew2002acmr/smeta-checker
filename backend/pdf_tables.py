@@ -1162,6 +1162,48 @@ def _write_ruled_checkpoint(path, record):
     temporary.replace(path)
 
 
+def _recover_ruled_decimals(page, record, rotation):
+    """Read the final rows first, where tables commonly put their totals."""
+    import pymupdf
+    from pdf_ruled_numbers import BUDGET_SECONDS, MAX_CELLS
+
+    candidates = sorted((cell for table in record['tables'] for cell in table['cells']
+        if not cell['text'].strip() and cell['recognition']['state'] in {'not_attempted', 'unreadable'}
+        and cell['rowspan'] == cell['colspan'] == 1),
+        key=lambda cell: (-cell['row'], cell['column']))[:MAX_CELLS]
+    if not candidates:
+        return
+    by_id = {cell['cell_id']: cell for cell in candidates}
+    with TemporaryDirectory(prefix='smeta-ruled-numbers-') as directory:
+        pdf, request, result = (Path(directory) / name for name in ('page.pdf', 'request.json', 'result.jsonl'))
+        with pymupdf.open() as document:
+            document.insert_pdf(page.parent, from_page=page.number, to_page=page.number,
+                annots=False, links=False)
+            document.save(pdf)
+        request.write_text(json.dumps(dict(pdf=str(pdf), rotation=rotation,
+            cells=[(cell['cell_id'], cell['bbox']) for cell in candidates])), encoding='utf-8')
+        try:
+            subprocess.run([sys.executable, '-m', 'pdf_ruled_numbers', str(request), str(result)],
+                check=True, capture_output=True, timeout=BUDGET_SECONDS)
+        except subprocess.TimeoutExpired:
+            record['errors'].append('ruled_decimal_deadline')
+        except subprocess.CalledProcessError:
+            record['errors'].append('ruled_decimal_worker_failed')
+        if not result.exists():
+            return
+        for line in result.read_text(encoding='utf-8').splitlines():
+            try:
+                cell_id, text, confidence, proof = json.loads(line)
+            except (ValueError, TypeError):
+                continue  # The worker may have been stopped during its last write.
+            cell = by_id[cell_id]
+            box = list(cell['bbox'])
+            cell.update(text=text, words=[dict(text=text, confidence=confidence, bbox=box)])
+            cell['recognition'].update(state='uncertain', confidence=confidence, numeric_consensus=proof)
+            cell['recognition']['readings'].append(dict(method='decimal_crop_consensus',
+                text=text, confidence=confidence, crop_bbox=box))
+
+
 def prepare_ruled_page(page, *, rotation=0, timeout=40.0, cache_dir=None, store_image=None):
     """Render once, isolate inference, and return observations in source PDF points."""
     import hashlib
@@ -1271,6 +1313,12 @@ def prepare_ruled_page(page, *, rotation=0, timeout=40.0, cache_dir=None, store_
                     word["bbox"] = mapped(word["bbox"])
     for word in record["words"]:
         word["bbox"] = mapped(word["bbox"])
+    if any(error.startswith('ruled_ocr_deadline') for error in record['errors']):
+        try:
+            _recover_ruled_decimals(page, record, rotation)
+        except (OSError, RuntimeError, ValueError) as exc:
+            record['errors'].append('ruled_decimal_failed:%s' % type(exc).__name__)
+        record = _ruled_record(record['tables'], record['words'], record['errors'])
     geometry = validate_tables(page, record["tables"])
     for table in record["tables"]:
         pending = [cell["cell_id"] for cell in table["cells"]

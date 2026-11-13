@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, StrictBool
 
 from audit_assessment import PositionAssessment
 from audit_models import AuditStatus, ReportStatus, VorPosition
+from codex_contract import PositionConclusion
 class DTO(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -557,6 +558,12 @@ class RunDTO(DTO):
     finished_at: datetime | None
     preparation_done: int = 0
     preparation_total: int | None = None
+    mode: Literal["pipeline", "codex"] = "pipeline"
+    codex_stage: str | None = None
+    codex_subagents: bool | None = None
+    codex_parent_run_id: str | None = None
+    codex_metrics: dict[str, Any] | None = None
+    codex_error: str | None = None
 
 class DocumentDTO(DTO):
     id: str
@@ -613,7 +620,8 @@ class ResultDTO(DTO):
     comment_confirmed: bool | None = None
     details: str
     assessment: PositionAssessment | None = None
-    result_origin: Literal["graph", "legacy"] = "legacy"
+    result_origin: Literal["graph", "legacy", "codex"] = "legacy"
+    codex_conclusion: PositionConclusion | None = None
 
 class RowsDTO(DTO):
     run_id: str

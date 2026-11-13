@@ -2,11 +2,31 @@
 import type { PDFDocumentProxy, PDFDocumentLoadingTask, RenderTask } from 'pdfjs-dist'
 import { clampPage } from '~/utils/presentation'
 
-const props = defineProps<{ sourceUrl: string; page: number }>()
+const props = defineProps<{ sourceUrl: string; page: number; highlight?: number[] | null }>()
 const emit = defineEmits<{ page: [page: number]; loaded: [count: number] }>()
 const canvas = ref<HTMLCanvasElement>()
 const textHost = ref<HTMLElement>()
 const scroll = ref<HTMLElement>()
+const marker = ref<HTMLElement>()
+const markerStyle = computed(() => {
+  const rect = props.highlight
+  if (!rect || rect.length !== 4 || !rect.every(Number.isFinite)) return undefined
+  const [x0 = 0, y0 = 0, x1 = 0, y1 = 0] = rect
+  return {
+    left: `${x0 * 100}%`,
+    top: `${y0 * 100}%`,
+    width: `${(x1 - x0) * 100}%`,
+    height: `${(y1 - y0) * 100}%`,
+  }
+})
+
+function revealHighlight() {
+  if (!scroll.value || !marker.value) return
+  const region = marker.value.getBoundingClientRect()
+  const container = scroll.value.getBoundingClientRect()
+  scroll.value.scrollTop += region.top - container.top - container.height / 3
+  scroll.value.scrollLeft += region.left - container.left - container.width / 3
+}
 const zoom = ref(1)
 const count = ref(0)
 const busy = ref(false)
@@ -58,7 +78,8 @@ async function render() {
     }).render()
     if (current !== epoch) return
     ready.value = true
-    scroll.value.scrollTop = 0
+    if (marker.value) revealHighlight()
+    else scroll.value.scrollTop = 0
   } catch (e) {
     if (current === epoch && !(e instanceof Error && e.name === 'RenderingCancelledException'))
       error.value = 'Не удалось открыть страницу PDF.'
@@ -107,6 +128,7 @@ function changePage(value: number) {
 
 watch(() => props.sourceUrl, open)
 watch(() => props.page, render)
+watch(() => props.highlight, revealHighlight, { flush: 'post' })
 watch(zoom, render)
 onMounted(() => {
   open()
@@ -201,12 +223,26 @@ defineExpose({ find })
       >
         <canvas ref="canvas" :style="{ width: width + 'px', height: height + 'px' }"></canvas>
         <div ref="textHost" class="textLayer"></div>
+        <div
+          v-if="markerStyle"
+          ref="marker"
+          class="pdf-source-highlight"
+          :style="markerStyle"
+          aria-hidden="true"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+.pdf-source-highlight {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  border: 2px solid #a05000;
+  background: rgb(255 183 49 / 23%);
+}
 .pdf-container {
   display: flex;
   flex-direction: column;
@@ -223,7 +259,7 @@ defineExpose({ find })
 }
 .pdf-scroll {
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   flex: 1;
   min-height: 100px;
   background: var(--ui-bg-muted);
@@ -233,7 +269,6 @@ defineExpose({ find })
   position: relative;
   box-sizing: content-box;
   margin: 0 auto;
-  max-width: 100%;
   overflow: hidden;
   background: var(--ui-bg);
   border: 1px solid var(--ui-border);

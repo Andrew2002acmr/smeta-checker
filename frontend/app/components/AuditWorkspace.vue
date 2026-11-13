@@ -29,6 +29,7 @@ const busy = ref(true)
 const error = ref('')
 const version = ref('')
 const page = ref(1)
+const sourceHighlight = ref<number[] | null>(null)
 const structure = ref<StructureDto | null>(null)
 const structureError = ref('')
 const selectedNode = ref('')
@@ -132,7 +133,14 @@ function selectNode(node: StructureNodeDto) {
   selectedNode.value = node.id
   outlineOpen.value = false
 }
+function openProjectSource(documentId: string, physicalPage: number, highlight?: number[] | null) {
+  version.value = documentId
+  changePage(physicalPage)
+  sourceHighlight.value = highlight ?? null
+  mobileTab.value = 'pdf'
+}
 function changePage(value: number) {
+  sourceHighlight.value = null
   page.value = value
   selectedNode.value = ''
 }
@@ -151,7 +159,13 @@ async function downloadSource() {
   }
 }
 watch(version, loadStructure)
-watch(() => props.positionIndex, loadPosition)
+watch(
+  () => props.positionIndex,
+  () => {
+    sourceHighlight.value = null
+    loadPosition()
+  },
+)
 watch(
   () => props.readyPositions,
   (ready) => {
@@ -324,6 +338,7 @@ onBeforeUnmount(() => {
                     :key="version"
                     :source-url="backend.contentUrl(version)"
                     :page="page"
+                    :highlight="sourceHighlight"
                     @page="changePage"
                   />
                   <p v-else class="empty">Для этого аудита PDF не выбран.</p>
@@ -341,6 +356,17 @@ onBeforeUnmount(() => {
                     </p>
                     <p v-if="extraDetails" class="aw-verdict-details">{{ extraDetails }}</p>
                   </section>
+                  <CodexPositionConclusion
+                    v-if="workspace.row.codex_conclusion"
+                    :run-id="runId"
+                    :result="workspace.row.codex_conclusion"
+                    :documents="documents"
+                    :coefficient-available="
+                      workspace.position.position_type === 'Материал' &&
+                      /купл\s*[-:=]?\s*1[,.]26\b/i.test(workspace.position.comment ?? '')
+                    "
+                    @project-source="openProjectSource"
+                  />
                   <section aria-label="Таблица ВОР" class="aw-vor">
                     <h2 class="aw-section-title aw-table-head">
                       <span

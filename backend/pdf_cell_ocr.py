@@ -247,7 +247,7 @@ def recovered_numeric_value(cell, proof):
     return str(value)
 
 
-def _recover_numeric(image, cell, proof, read, deadline):
+def _recover_numeric(image, cell, proof, read, deadline, *, initial_rapid=None):
     from copy import deepcopy
     from PIL import Image, ImageOps
     from ocr_engine import _to_png
@@ -264,7 +264,7 @@ def _recover_numeric(image, cell, proof, read, deadline):
     clean=clean_glyphs(image)
     if clean is None or time.monotonic()>=deadline:
         return
-    recovery['rapid_words']=_rapid_numeric(clean)
+    recovery['rapid_words'] = _rapid_numeric(clean) if initial_rapid is None else initial_rapid
     from pdf_numeric_variants import padded_rapid, italic_reads
     recovery['rapid_words'], recovery['rapid_attempts'] = padded_rapid(
         clean, recovery['rapid_words'], _rapid_numeric, deadline)

@@ -229,6 +229,22 @@ export type AssessmentSource = {
  */
 export type AuditCreateRequest = {
     /**
+     * Codex Position Indices
+     */
+    codex_position_indices?: Array<number> | null;
+    /**
+     * Codex Position Limit
+     */
+    codex_position_limit?: number | null;
+    /**
+     * Codex Subagents
+     */
+    codex_subagents?: boolean;
+    /**
+     * Mode
+     */
+    mode?: 'pipeline' | 'codex';
+    /**
      * Normative Profile
      */
     normative_profile?: 'roads' | 'electrical';
@@ -516,6 +532,114 @@ export type BodyWorkbenchVorCheckApiV1NormativeVorCheckPost = {
 };
 
 /**
+ * Calculation
+ */
+export type Calculation = {
+    /**
+     * Expression
+     *
+     * Arithmetic with decimal literals, + - * / and parentheses.
+     */
+    expression: string;
+    /**
+     * Operand Sources
+     *
+     * Zero-based citation index for each numeric literal in expression order.
+     */
+    operand_sources?: Array<number> | null;
+    /**
+     * Result
+     *
+     * Calculated decimal value in the reported unit.
+     */
+    result: string;
+};
+
+/**
+ * Citation
+ */
+export type Citation = {
+    /**
+     * Document Id
+     */
+    document_id: string;
+    /**
+     * Evidence Id
+     */
+    evidence_id?: string | null;
+    /**
+     * Highlight
+     */
+    highlight?: Array<number> | null;
+    /**
+     * Kind
+     */
+    kind: 'project' | 'normative' | 'vor';
+    /**
+     * Page
+     *
+     * Physical PDF page number, starting at 1.
+     */
+    page: number | null;
+    /**
+     * Quote
+     */
+    quote: string;
+    /**
+     * Row
+     */
+    row: number | null;
+    /**
+     * Sheet
+     *
+     * Workbook sheet, or an empty string for CSV.
+     */
+    sheet: string | null;
+};
+
+/**
+ * CodexClarificationRequest
+ */
+export type CodexClarificationRequest = {
+    /**
+     * Basis
+     */
+    basis: string;
+    /**
+     * Finding Index
+     */
+    finding_index: number;
+};
+
+/**
+ * CodexCoefficientRequest
+ */
+export type CodexCoefficientRequest = {
+    /**
+     * Basis
+     */
+    basis: string;
+    /**
+     * Include Related
+     */
+    include_related?: boolean;
+};
+
+/**
+ * CodexCoefficientRun
+ */
+export type CodexCoefficientRun = {
+    /**
+     * Rows
+     */
+    rows: Array<number>;
+    /**
+     * Run Id
+     */
+    run_id: string;
+};
+
+/**
  * ConfirmBasisRequest
  */
 export type ConfirmBasisRequest = {
@@ -593,6 +717,48 @@ export type DepartmentUpdate = {
      * Name
      */
     name: string;
+};
+
+/**
+ * DirectionConclusion
+ */
+export type DirectionConclusion = {
+    calculation: Calculation | null;
+    /**
+     * Conclusion
+     */
+    conclusion: string;
+    /**
+     * Deviation
+     *
+     * Source value minus VOR value when comparable.
+     */
+    deviation: string | null;
+    missing_facts: MissingFacts | null;
+    /**
+     * Parameter
+     */
+    parameter: string;
+    /**
+     * Source Value
+     */
+    source_value: string | null;
+    /**
+     * Sources
+     */
+    sources: Array<Citation>;
+    /**
+     * Status
+     */
+    status: 'confirmed' | 'mismatch' | 'needs_facts' | 'not_applicable' | 'not_checked';
+    /**
+     * Unit
+     */
+    unit: string | null;
+    /**
+     * Vor Value
+     */
+    vor_value: string | null;
 };
 
 /**
@@ -1029,6 +1195,24 @@ export type MetadataSourceDto = {
      * Sheet
      */
     sheet?: string;
+};
+
+/**
+ * MissingFacts
+ */
+export type MissingFacts = {
+    /**
+     * Established
+     */
+    established: string;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Required
+     */
+    required: string;
 };
 
 /**
@@ -2430,6 +2614,17 @@ export type OwnQuantity = {
 };
 
 /**
+ * ParameterFinding
+ */
+export type ParameterFinding = {
+    /**
+     * Direction
+     */
+    direction: 'project' | 'normative' | 'quantities';
+    finding: DirectionConclusion;
+};
+
+/**
  * PdfBindingsDTO
  */
 export type PdfBindingsDto = {
@@ -2546,6 +2741,39 @@ export type PositionAssessment = {
      * Sources
      */
     sources?: Array<AssessmentSource>;
+};
+
+/**
+ * PositionConclusion
+ */
+export type PositionConclusion = {
+    /**
+     * Group
+     */
+    group: string;
+    normative: DirectionConclusion;
+    /**
+     * Parameter Findings
+     */
+    parameter_findings?: Array<ParameterFinding>;
+    /**
+     * Position Index
+     */
+    position_index: number;
+    project: DirectionConclusion;
+    quantities: DirectionConclusion;
+    /**
+     * Row
+     */
+    row: number;
+    /**
+     * Sheet
+     */
+    sheet: string;
+    /**
+     * Work Name
+     */
+    work_name: string;
 };
 
 /**
@@ -2811,6 +3039,7 @@ export type ResultDto = {
     cells: {
         [key: string]: string;
     };
+    codex_conclusion?: PositionConclusion | null;
     /**
      * Comment Confirmed
      */
@@ -2873,7 +3102,7 @@ export type ResultDto = {
     /**
      * Result Origin
      */
-    result_origin?: 'graph' | 'legacy';
+    result_origin?: 'graph' | 'legacy' | 'codex';
     /**
      * Sheet
      */
@@ -3013,6 +3242,28 @@ export type RunCountDto = {
  */
 export type RunDto = {
     /**
+     * Codex Error
+     */
+    codex_error?: string | null;
+    /**
+     * Codex Metrics
+     */
+    codex_metrics?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Codex Parent Run Id
+     */
+    codex_parent_run_id?: string | null;
+    /**
+     * Codex Stage
+     */
+    codex_stage?: string | null;
+    /**
+     * Codex Subagents
+     */
+    codex_subagents?: boolean | null;
+    /**
      * Completion Counts
      */
     completion_counts?: {
@@ -3050,6 +3301,10 @@ export type RunDto = {
      * Input Position Count
      */
     input_position_count?: number | null;
+    /**
+     * Mode
+     */
+    mode?: 'pipeline' | 'codex';
     /**
      * Normative Counts
      */
@@ -3636,6 +3891,71 @@ export type CancelAuditApiV1AuditsRunIdCancelPostResponses = {
 
 export type CancelAuditApiV1AuditsRunIdCancelPostResponse = CancelAuditApiV1AuditsRunIdCancelPostResponses[keyof CancelAuditApiV1AuditsRunIdCancelPostResponses];
 
+export type CodexComparisonApiV1AuditsRunIdCodexComparisonGetData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query: {
+        /**
+         * Other Run Id
+         */
+        other_run_id: string;
+    };
+    url: '/api/v1/audits/{run_id}/codex-comparison';
+};
+
+export type CodexComparisonApiV1AuditsRunIdCodexComparisonGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CodexComparisonApiV1AuditsRunIdCodexComparisonGetError = CodexComparisonApiV1AuditsRunIdCodexComparisonGetErrors[keyof CodexComparisonApiV1AuditsRunIdCodexComparisonGetErrors];
+
+export type CodexComparisonApiV1AuditsRunIdCodexComparisonGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type CodexSourceApiV1AuditsRunIdCodexSourcesDocumentIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/codex-sources/{document_id}';
+};
+
+export type CodexSourceApiV1AuditsRunIdCodexSourcesDocumentIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CodexSourceApiV1AuditsRunIdCodexSourcesDocumentIdGetError = CodexSourceApiV1AuditsRunIdCodexSourcesDocumentIdGetErrors[keyof CodexSourceApiV1AuditsRunIdCodexSourcesDocumentIdGetErrors];
+
+export type CodexSourceApiV1AuditsRunIdCodexSourcesDocumentIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type AssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostData = {
     body: AssessmentActionRequest;
     path: {
@@ -3953,6 +4273,74 @@ export type HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDe
 };
 
 export type HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteResponse = HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteResponses[keyof HumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteResponses];
+
+export type ClarifyCodexFindingApiV1AuditsRunIdPositionsPositionIndexCodexClarificationPostData = {
+    body: CodexClarificationRequest;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/codex-clarification';
+};
+
+export type ClarifyCodexFindingApiV1AuditsRunIdPositionsPositionIndexCodexClarificationPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ClarifyCodexFindingApiV1AuditsRunIdPositionsPositionIndexCodexClarificationPostError = ClarifyCodexFindingApiV1AuditsRunIdPositionsPositionIndexCodexClarificationPostErrors[keyof ClarifyCodexFindingApiV1AuditsRunIdPositionsPositionIndexCodexClarificationPostErrors];
+
+export type ClarifyCodexFindingApiV1AuditsRunIdPositionsPositionIndexCodexClarificationPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: CodexCoefficientRun;
+};
+
+export type ClarifyCodexFindingApiV1AuditsRunIdPositionsPositionIndexCodexClarificationPostResponse = ClarifyCodexFindingApiV1AuditsRunIdPositionsPositionIndexCodexClarificationPostResponses[keyof ClarifyCodexFindingApiV1AuditsRunIdPositionsPositionIndexCodexClarificationPostResponses];
+
+export type ClarifyCodexCoefficientApiV1AuditsRunIdPositionsPositionIndexCodexCoefficientPostData = {
+    body: CodexCoefficientRequest;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Position Index
+         */
+        position_index: number;
+    };
+    query?: never;
+    url: '/api/v1/audits/{run_id}/positions/{position_index}/codex-coefficient';
+};
+
+export type ClarifyCodexCoefficientApiV1AuditsRunIdPositionsPositionIndexCodexCoefficientPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ClarifyCodexCoefficientApiV1AuditsRunIdPositionsPositionIndexCodexCoefficientPostError = ClarifyCodexCoefficientApiV1AuditsRunIdPositionsPositionIndexCodexCoefficientPostErrors[keyof ClarifyCodexCoefficientApiV1AuditsRunIdPositionsPositionIndexCodexCoefficientPostErrors];
+
+export type ClarifyCodexCoefficientApiV1AuditsRunIdPositionsPositionIndexCodexCoefficientPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: CodexCoefficientRun;
+};
+
+export type ClarifyCodexCoefficientApiV1AuditsRunIdPositionsPositionIndexCodexCoefficientPostResponse = ClarifyCodexCoefficientApiV1AuditsRunIdPositionsPositionIndexCodexCoefficientPostResponses[keyof ClarifyCodexCoefficientApiV1AuditsRunIdPositionsPositionIndexCodexCoefficientPostResponses];
 
 export type PreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetData = {
     body?: never;

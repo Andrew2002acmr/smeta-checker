@@ -416,6 +416,47 @@
       "AuditCreateRequest": {
         "additionalProperties": false,
         "properties": {
+          "codex_position_indices": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "minItems": 1,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codex Position Indices"
+          },
+          "codex_position_limit": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codex Position Limit"
+          },
+          "codex_subagents": {
+            "default": true,
+            "title": "Codex Subagents",
+            "type": "boolean"
+          },
+          "mode": {
+            "default": "pipeline",
+            "enum": [
+              "pipeline",
+              "codex"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
           "normative_profile": {
             "default": "roads",
             "enum": [
@@ -892,6 +933,210 @@
         "title": "Body_workbench_vor_check_api_v1_normative_vor_check_post",
         "type": "object"
       },
+      "Calculation": {
+        "additionalProperties": false,
+        "properties": {
+          "expression": {
+            "description": "Arithmetic with decimal literals, + - * / and parentheses.",
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Expression",
+            "type": "string"
+          },
+          "operand_sources": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Zero-based citation index for each numeric literal in expression order.",
+            "title": "Operand Sources"
+          },
+          "result": {
+            "description": "Calculated decimal value in the reported unit.",
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expression",
+          "result"
+        ],
+        "title": "Calculation",
+        "type": "object"
+      },
+      "Citation": {
+        "additionalProperties": false,
+        "properties": {
+          "document_id": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Document Id",
+            "type": "string"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "highlight": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highlight"
+          },
+          "kind": {
+            "enum": [
+              "project",
+              "normative",
+              "vor"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Physical PDF page number, starting at 1.",
+            "title": "Page"
+          },
+          "quote": {
+            "maxLength": 1500,
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "row": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row"
+          },
+          "sheet": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Workbook sheet, or an empty string for CSV.",
+            "title": "Sheet"
+          }
+        },
+        "required": [
+          "document_id",
+          "kind",
+          "page",
+          "sheet",
+          "row",
+          "quote"
+        ],
+        "title": "Citation",
+        "type": "object"
+      },
+      "CodexClarificationRequest": {
+        "properties": {
+          "basis": {
+            "maxLength": 2000,
+            "minLength": 4,
+            "title": "Basis",
+            "type": "string"
+          },
+          "finding_index": {
+            "maximum": 14.0,
+            "minimum": 0.0,
+            "title": "Finding Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "basis",
+          "finding_index"
+        ],
+        "title": "CodexClarificationRequest",
+        "type": "object"
+      },
+      "CodexCoefficientRequest": {
+        "properties": {
+          "basis": {
+            "maxLength": 2000,
+            "minLength": 4,
+            "title": "Basis",
+            "type": "string"
+          },
+          "include_related": {
+            "default": false,
+            "title": "Include Related",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "basis"
+        ],
+        "title": "CodexCoefficientRequest",
+        "type": "object"
+      },
+      "CodexCoefficientRun": {
+        "properties": {
+          "rows": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "rows"
+        ],
+        "title": "CodexCoefficientRun",
+        "type": "object"
+      },
       "ConfirmBasisRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1009,6 +1254,129 @@
           "name"
         ],
         "title": "DepartmentUpdate",
+        "type": "object"
+      },
+      "DirectionConclusion": {
+        "additionalProperties": false,
+        "properties": {
+          "calculation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Calculation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conclusion": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Conclusion",
+            "type": "string"
+          },
+          "deviation": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Source value minus VOR value when comparable.",
+            "title": "Deviation"
+          },
+          "missing_facts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MissingFacts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parameter": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Parameter",
+            "type": "string"
+          },
+          "source_value": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Value"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "maxItems": 20,
+            "title": "Sources",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "confirmed",
+              "mismatch",
+              "needs_facts",
+              "not_applicable",
+              "not_checked"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "vor_value": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vor Value"
+          }
+        },
+        "required": [
+          "status",
+          "parameter",
+          "vor_value",
+          "source_value",
+          "unit",
+          "calculation",
+          "deviation",
+          "conclusion",
+          "sources",
+          "missing_facts"
+        ],
+        "title": "DirectionConclusion",
         "type": "object"
       },
       "DocumentDTO": {
@@ -1714,6 +2082,36 @@
           }
         },
         "title": "MetadataSourceDTO",
+        "type": "object"
+      },
+      "MissingFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "established": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Established",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "required": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Required",
+            "type": "string"
+          }
+        },
+        "required": [
+          "required",
+          "reason",
+          "established"
+        ],
+        "title": "MissingFacts",
         "type": "object"
       },
       "NormativeCandidate": {
@@ -4139,6 +4537,29 @@
         "title": "OwnQuantity",
         "type": "object"
       },
+      "ParameterFinding": {
+        "additionalProperties": false,
+        "properties": {
+          "direction": {
+            "enum": [
+              "project",
+              "normative",
+              "quantities"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "finding": {
+            "$ref": "#/components/schemas/DirectionConclusion"
+          }
+        },
+        "required": [
+          "direction",
+          "finding"
+        ],
+        "title": "ParameterFinding",
+        "type": "object"
+      },
       "PdfBindingsDTO": {
         "additionalProperties": false,
         "properties": {
@@ -4329,6 +4750,67 @@
           "revision"
         ],
         "title": "PositionAssessment",
+        "type": "object"
+      },
+      "PositionConclusion": {
+        "additionalProperties": false,
+        "properties": {
+          "group": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Group",
+            "type": "string"
+          },
+          "normative": {
+            "$ref": "#/components/schemas/DirectionConclusion"
+          },
+          "parameter_findings": {
+            "items": {
+              "$ref": "#/components/schemas/ParameterFinding"
+            },
+            "maxItems": 12,
+            "title": "Parameter Findings",
+            "type": "array"
+          },
+          "position_index": {
+            "minimum": 0.0,
+            "title": "Position Index",
+            "type": "integer"
+          },
+          "project": {
+            "$ref": "#/components/schemas/DirectionConclusion"
+          },
+          "quantities": {
+            "$ref": "#/components/schemas/DirectionConclusion"
+          },
+          "row": {
+            "minimum": 1.0,
+            "title": "Row",
+            "type": "integer"
+          },
+          "sheet": {
+            "maxLength": 512,
+            "title": "Sheet",
+            "type": "string"
+          },
+          "work_name": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Work Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position_index",
+          "sheet",
+          "row",
+          "work_name",
+          "group",
+          "project",
+          "normative",
+          "quantities"
+        ],
+        "title": "PositionConclusion",
         "type": "object"
       },
       "PositionSource": {
@@ -4744,6 +5226,16 @@
             "title": "Cells",
             "type": "object"
           },
+          "codex_conclusion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PositionConclusion"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "comment_confirmed": {
             "anyOf": [
               {
@@ -4858,7 +5350,8 @@
             "default": "legacy",
             "enum": [
               "graph",
-              "legacy"
+              "legacy",
+              "codex"
             ],
             "title": "Result Origin",
             "type": "string"
@@ -5107,6 +5600,62 @@
       "RunDTO": {
         "additionalProperties": false,
         "properties": {
+          "codex_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codex Error"
+          },
+          "codex_metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codex Metrics"
+          },
+          "codex_parent_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codex Parent Run Id"
+          },
+          "codex_stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codex Stage"
+          },
+          "codex_subagents": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codex Subagents"
+          },
           "completion_counts": {
             "additionalProperties": {
               "type": "integer"
@@ -5177,6 +5726,15 @@
               }
             ],
             "title": "Input Position Count"
+          },
+          "mode": {
+            "default": "pipeline",
+            "enum": [
+              "pipeline",
+              "codex"
+            ],
+            "title": "Mode",
+            "type": "string"
           },
           "normative_counts": {
             "additionalProperties": {
@@ -6145,6 +6703,98 @@
         "summary": "Cancel Audit"
       }
     },
+    "/api/v1/audits/{run_id}/codex-comparison": {
+      "get": {
+        "operationId": "codex_comparison_api_v1_audits__run_id__codex_comparison_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "other_run_id",
+            "required": true,
+            "schema": {
+              "title": "Other Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Codex Comparison"
+      }
+    },
+    "/api/v1/audits/{run_id}/codex-sources/{document_id}": {
+      "get": {
+        "operationId": "codex_source_api_v1_audits__run_id__codex_sources__document_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Codex Source"
+      }
+    },
     "/api/v1/audits/{run_id}/positions/{position_index}/assessment/recheck": {
       "post": {
         "operationId": "assessment_recheck_api_v1_audits__run_id__positions__position_index__assessment_recheck_post",
@@ -6668,6 +7318,122 @@
           }
         },
         "summary": "Human Basis Revoke"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/codex-clarification": {
+      "post": {
+        "operationId": "clarify_codex_finding_api_v1_audits__run_id__positions__position_index__codex_clarification_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodexClarificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodexCoefficientRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clarify Codex Finding"
+      }
+    },
+    "/api/v1/audits/{run_id}/positions/{position_index}/codex-coefficient": {
+      "post": {
+        "operationId": "clarify_codex_coefficient_api_v1_audits__run_id__positions__position_index__codex_coefficient_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "position_index",
+            "required": true,
+            "schema": {
+              "title": "Position Index",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodexCoefficientRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodexCoefficientRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clarify Codex Coefficient"
       }
     },
     "/api/v1/audits/{run_id}/positions/{position_index}/extraction": {

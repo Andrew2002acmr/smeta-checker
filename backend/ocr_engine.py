@@ -135,7 +135,7 @@ def _bounded_clip_dpi(clip, dpi, max_pixels, max_side):
 
 
 def run_tsv(png_bytes, language="rus+eng", psm=OVERVIEW_PSM,
-            timeout:float=PASS_TIMEOUT_S, *, tessdata_dir=None, oem=None):
+            timeout:float=PASS_TIMEOUT_S, *, tessdata_dir=None, oem=None, whitelist=None):
     """Run one Tesseract TSV pass; timeouts and nonzero exits raise."""
     if shutil.which("tesseract") is None:
         raise RuntimeError("Tesseract недоступен: бинарь tesseract не найден в PATH")
@@ -145,6 +145,8 @@ def run_tsv(png_bytes, language="rus+eng", psm=OVERVIEW_PSM,
         cmd.extend(['--tessdata-dir',str(tessdata_dir)])
     if oem is not None:
         cmd.extend(['--oem',str(oem)])
+    if whitelist:
+        cmd.extend(['-c', f'tessedit_char_whitelist={whitelist}'])
     try:
         proc = subprocess.run(
             cmd, input=png_bytes, stdout=subprocess.PIPE,

@@ -3,6 +3,12 @@ import type { RunDto, SummaryDto, RowsDto } from '~/generated/types.gen'
 import type { TableColumn } from '@nuxt/ui'
 import type { SortingState } from '@tanstack/vue-table'
 import {
+  codexDirections,
+  codexDirectionStatus,
+  codexStageLabels,
+  codexStatuses,
+} from '~/utils/codexPresentation'
+import {
   formatFileName,
   queueColor,
   queueLabel,
@@ -50,6 +56,24 @@ const vorFileName = computed(() => formatFileName(run.value?.vor_filename || '')
 const auditHeading = computed(() => summary.value?.project.name || 'Проверка документов')
 const vorShortName = computed(() => truncateMiddle(vorFileName.value))
 const runStatus = computed(() => run.value?.status || '')
+const isCodex = computed(() => run.value?.mode === 'codex')
+const codexExports = [
+  { file: 'performance_report.md', label: 'Отчёт о производительности' },
+  { file: 'metrics.json', label: 'Метрики JSON' },
+  { file: 'audit_results.json', label: 'Заключения JSON' },
+  { file: 'execution_events.jsonl', label: 'События JSONL' },
+]
+async function downloadCodex(file: string) {
+  try {
+    await backend.download(
+      `${backend.audit(runId.value)}/reports/${encodeURIComponent(file)}`,
+      file,
+    )
+  } catch (cause) {
+    error.value = readableError(cause)
+  }
+}
+
 function queueCount(id: QueueId) {
   if (!summary.value) return 0
   if (id === 'all') return (summary.value.ready_positions ?? []).length
@@ -269,6 +293,20 @@ onBeforeUnmount(() => {
           <p v-if="vorFileName" class="muted audit-eyebrow" :title="vorFileName">
             {{ vorShortName }}
           </p>
+          <UBadge v-if="isCodex" variant="soft" color="neutral">
+            Codex Agent (Experimental) ·
+            {{ run?.codex_subagents === false ? 'без субагентов' : 'с субагентами' }}
+          </UBadge>
+          <span
+            v-if="
+              isCodex &&
+              run?.input_position_count &&
+              run.total &&
+              run.total < run.input_position_count
+            "
+            class="muted text-sm"
+            >{{ run.total }} из {{ run.input_position_count }} позиций ВОР</span
+          >
           <UBadge
             v-if="runStatus"
             :color="runStatusColor(runStatus)"
@@ -279,12 +317,21 @@ onBeforeUnmount(() => {
         </div>
         <div class="heading-actions">
           <UButton
+            v-if="run?.codex_parent_run_id"
+            :to="`/audits/${run.codex_parent_run_id}`"
+            color="neutral"
+            variant="link"
+            icon="i-lucide-arrow-left"
+            >Исходная проверка</UButton
+          >
+          <CodexRunComparison v-if="run?.mode === 'codex' && runStatus === 'done'" :run="run" />
+          <UButton
             v-if="runStatus === 'cancelled' || runStatus === 'failed'"
             icon="i-lucide-play"
             :loading="resuming"
             @click="resume"
           >
-            Продолжить обработку
+            {{ isCodex ? 'Повторить проверку' : 'Продолжить обработку' }}
           </UButton>
           <UButton
             data-testid="download-word"
@@ -295,12 +342,27 @@ onBeforeUnmount(() => {
           >
             Скачать Word
           </UButton>
+          <UDropdownMenu
+            v-if="isCodex && run?.codex_metrics && runStatus !== 'running'"
+            :items="
+              codexExports.map(({ file, label }) => ({
+                label,
+                onSelect: () => downloadCodex(file),
+              }))
+            "
+          >
+            <UButton label="Экспорт Codex" variant="outline" icon="i-lucide-download" />
+          </UDropdownMenu>
         </div>
       </div>
       <div v-if="error" class="error-box" role="alert">
         {{ error }} <UButton variant="link" @click="poll">Повторить</UButton>
       </div>
-      <p v-if="run && Object.keys(run.normative_counts ?? {}).length" role="status" class="muted">
+      <p
+        v-if="run && !isCodex && Object.keys(run.normative_counts ?? {}).length"
+        role="status"
+        class="muted"
+      >
         Нормативный слой: обработано {{ run.normative_counts?.done ?? 0 }}; выполняется
         {{ run.normative_counts?.running ?? 0 }}; ожидает
         {{ (run.normative_counts?.pending ?? 0) + (run.normative_counts?.dispatched ?? 0) }};
@@ -308,7 +370,8 @@ onBeforeUnmount(() => {
         Сопоставление и просмотр готовых позиций доступны независимо.
       </p>
       <section v-if="run?.status === 'running'" class="panel progress" role="status">
-        <h2>
+        <h2 v-if="isCodex">{{ codexStageLabels[run.codex_stage ?? ''] ?? 'Проверка Codex' }}</h2>
+        <h2 v-else>
           {{
             {
               preparing: 'Подготавливаем документы',
@@ -325,19 +388,27 @@ onBeforeUnmount(() => {
         </p>
         <UProgress
           :model-value="
-            run.stage === 'preparing'
-              ? run.preparation_total
-                ? Math.floor(((run.preparation_done ?? 0) / run.preparation_total) * 100)
-                : null
-              : run.stage === 'finalizing' || !run.total
-                ? null
-                : Math.floor(((run.done + run.failed) / run.total) * 100)
+            isCodex
+              ? null
+              : run.stage === 'preparing'
+                ? run.preparation_total
+                  ? Math.floor(((run.preparation_done ?? 0) / run.preparation_total) * 100)
+                  : null
+                : run.stage === 'finalizing' || !run.total
+                  ? null
+                  : Math.floor(((run.done + run.failed) / run.total) * 100)
           "
-          :status="run.stage === 'auditing' || !!run.preparation_total"
+          :status="!isCodex && (run.stage === 'auditing' || !!run.preparation_total)"
           aria-label="Прогресс проверки"
           class="progress-bar"
         />
-        <p v-if="run.stage === 'preparing'" class="muted">
+        <p v-if="isCodex" class="muted">
+          <span v-if="typeof run.codex_metrics?.tool_calls === 'number'">
+            Вызовов локальных инструментов: {{ run.codex_metrics.tool_calls }}.
+          </span>
+          Заключения появятся после проверки ссылок и сохранения результатов.
+        </p>
+        <p v-else-if="run.stage === 'preparing'" class="muted">
           Извлекаем текст и таблицы PDF.
           <span v-if="run.preparation_total"
             >Страниц текущего PDF: {{ run.preparation_done }} из {{ run.preparation_total }}.</span
@@ -366,15 +437,23 @@ onBeforeUnmount(() => {
         </div>
       </section>
       <p v-if="run?.status === 'failed'" class="error-box">
-        Запуск завершился с техническим сбоем. Сохранённые результаты доступны ниже; непроверенные
-        позиции не подтверждены.
+        <template v-if="run.codex_error">{{ run.codex_error }}</template>
+        <template v-else>
+          Запуск завершился с техническим сбоем. Сохранённые результаты доступны ниже; непроверенные
+          позиции не подтверждены.
+        </template>
       </p>
       <p v-if="run?.status === 'cancelled'" class="error-box">
         Проверка остановлена. Готовые результаты и сохранённые исправления доступны ниже.
       </p>
-      <p v-if="runStatus === 'cancelled' || runStatus === 'failed'" class="muted">
+      <p v-if="!isCodex && (runStatus === 'cancelled' || runStatus === 'failed')" class="muted">
         Продолжение обработает оставшиеся позиции. Готовые результаты и ваши основания сохранятся.
       </p>
+      <CodexPerformance
+        v-if="isCodex && run?.codex_metrics"
+        :metrics="run.codex_metrics"
+        :processed="run.done"
+      />
       <template v-if="summary">
         <div class="toolbar" aria-label="Готовые результаты">
           <p>
@@ -409,7 +488,7 @@ onBeforeUnmount(() => {
               <span>{{ item.label }}</span>
             </button>
           </div>
-          <div class="filters" role="group" aria-label="Направление проверки">
+          <div v-if="!isCodex" class="filters" role="group" aria-label="Направление проверки">
             <button
               v-for="item in directions"
               :key="item.id"
@@ -456,6 +535,14 @@ onBeforeUnmount(() => {
               >
                 {{ queueLabel(row.original.queue) }}
               </UBadge>
+              <ul v-if="row.original.codex_conclusion" class="mt-2 grid gap-1 text-xs">
+                <li v-for="{ key, shortLabel } in codexDirections" :key="key">
+                  <span class="muted">{{ shortLabel }} · </span>
+                  {{
+                    codexStatuses[codexDirectionStatus(row.original.codex_conclusion, key)].label
+                  }}
+                </li>
+              </ul>
             </template>
             <template #result-cell="{ row }">
               <p class="row-problem">{{ firstSentence(row.original.problem) }}</p>

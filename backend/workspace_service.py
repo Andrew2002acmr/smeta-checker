@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 from collections import Counter
+from decimal import Decimal, InvalidOperation
 from html.parser import HTMLParser
 from html import escape
 from uuid import UUID
@@ -12,7 +13,8 @@ from typing import Any, Literal
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 
-from audit_models import VorPosition
+from audit_models import ReportStatus, VorPosition
+from codex_contract import PositionConclusion, position_status
 from workspace_models import ResultDTO, RunDTO
 
 
@@ -43,6 +45,14 @@ def run_progress(context, record) -> RunDTO:
         )
     )
     config = record.get("config", {}) or {}
+    mode = "codex" if record.get("mode") == "codex" else "pipeline"
+    codex_metrics = record.get("codex_metrics")
+    codex_stage = record.get("codex_stage")
+    if mode == "codex" and status == "running":
+        if codex_stage == "running":
+            stage = "auditing"
+        elif codex_stage in {"validating", "persisting"}:
+            stage = "finalizing"
     completion_counts: Counter = Counter()
     direction_counts: dict[str, Counter] = {
         "project": Counter(),
@@ -57,6 +67,10 @@ def run_progress(context, record) -> RunDTO:
         for direction in direction_counts:
             state = (stored.get(direction) or {}).get("state", "pending")
             direction_counts[direction][str(state)] += 1
+    if mode == "codex" and codex_metrics:
+        completion_counts.update(codex_metrics.get("overall_statuses") or {})
+        for direction, values in (codex_metrics.get("direction_statuses") or {}).items():
+            direction_counts.setdefault(direction, Counter()).update(values)
     return RunDTO(
         run_id=str(record["id"]),
         project_id=str(record["project_id"]),
@@ -66,8 +80,8 @@ def run_progress(context, record) -> RunDTO:
         status=status,
         stage=stage,
         total=total,
-        input_position_count=config.get("input_position_count"),
-        selected_position_count=config.get("selected_position_count"),
+        input_position_count=config.get("input_position_count") or record.get("input_position_count"),
+        selected_position_count=config.get("selected_position_count") or record.get("selected_position_count"),
         done=counts["done"] if job_total else record["result_count"],
         failed=counts["failed"],
         running=counts["running"],
@@ -79,6 +93,12 @@ def run_progress(context, record) -> RunDTO:
         preparation_done=(record.get("pdf_preparation") or {}).get("done", 0),
         preparation_total=(record.get("pdf_preparation") or {}).get("total"),
         normative_counts=record.get("normative_counts") or {},
+        mode=mode,
+        codex_stage=codex_stage,
+        codex_subagents=record.get("codex_subagents"),
+        codex_parent_run_id=record.get("codex_parent_run_id"),
+        codex_metrics=codex_metrics,
+        codex_error=record.get("codex_error"),
     )
 
 
@@ -224,9 +244,66 @@ def _projected_graph_row(record, position, assessment, *, normative_review=None)
     )
 
 
+def _codex_position_row(record, position, stored) -> ResultDTO:
+    conclusion = PositionConclusion.from_stored(stored)
+    status = position_status(conclusion)
+    verdicts: dict[str, tuple[Literal["fix", "review", "missing", "ok"], ReportStatus]] = {
+        "mismatch": ("fix", ReportStatus.DISCREPANCY),
+        "needs_facts": ("review", ReportStatus.MANUAL),
+        "not_checked": ("missing", ReportStatus.NOT_CHECKED),
+        "confirmed": ("ok", ReportStatus.OK),
+        "not_applicable": ("missing", ReportStatus.NOT_CHECKED),
+    }
+    queue, report_status = verdicts[status]
+    direction = next(
+        (item for _, item in conclusion.findings() if item.status == status),
+        conclusion.project,
+    )
+    sheet, source_row, cells = _provenance(position)
+    from audit_measurements import canonical_unit, normalize_unit_text
+
+    requested_unit = canonical_unit(position.unit) or normalize_unit_text(position.unit)
+    project_quantity = None
+    project_unit = None
+    for key, candidate in conclusion.findings():
+        if key == 'normative':
+            continue
+        value = candidate.source_value
+        unit = candidate.unit
+        project_sources = candidate.sources
+        if candidate.calculation:
+            project_sources = [candidate.sources[index] for index in candidate.calculation.operand_sources or []
+                               if 0 <= index < len(candidate.sources)]
+        if (not value or not unit or not any(source.kind == 'project' for source in project_sources)
+                or (canonical_unit(unit) or normalize_unit_text(unit)) != requested_unit):
+            continue
+        try:
+            if Decimal(value.replace(",", ".")).is_finite():
+                project_quantity, project_unit = value, unit
+                break
+        except InvalidOperation:
+            continue
+    return ResultDTO(
+        id=f"{record['id']}:{position.index}", position_index=position.index,
+        number=position.number, name=position.work_name, unit=position.unit,
+        declared_quantity=position.volume, found_quantity=project_quantity,
+        found_unit=project_unit,
+        formula=position.formula, sheet=sheet, source_row=source_row, cells=cells,
+        report_status=report_status, queue=queue, problem=direction.conclusion,
+        action=direction.missing_facts.required if direction.missing_facts else "",
+        details=direction.conclusion, result_origin="codex", codex_conclusion=conclusion,
+    )
+
+
 def present_results(context, record, only=None) -> list[ResultDTO]:
     positions = {p.index: p for p in inputs_for_run(context, record)}
     wanted = set(only) if only is not None else None
+    if record["config"].get("mode") == "codex":
+        return [
+            _codex_position_row(record, positions[item["position_index"]], item["result"])
+            for item in record["indexed_results"]
+            if wanted is None or item["position_index"] in wanted
+        ]
     jobs = {
         j.position_index: j for j in context.repository.list_position_jobs(record["id"])
     }
@@ -415,11 +492,46 @@ def present_results(context, record, only=None) -> list[ResultDTO]:
     return sorted([*graph_rows, *rows], key=lambda row: row.position_index)
 
 
+def _codex_word_conclusion(record, conclusion):
+    config = record["config"]
+    filenames = {version_id: filename for filename, version_id in config.get("pdf_versions", {}).items()}
+    filenames.update({doc["id"]: doc["filename"] for doc in config.get("codex_normative", {}).get("documents", [])})
+    filenames[str(record["vor_version_id"])] = record["vor_filename"]
+    paragraphs = []
+    titles = {"project": "Проект", "normative": "Нормативы", "quantities": "Расчёты и связи"}
+    for key, direction in conclusion.findings():
+        title = titles[key]
+        status = {
+            "confirmed": "Подтверждено",
+            "mismatch": "Расхождение",
+            "needs_facts": "Не хватает оснований",
+            "not_checked": "Не проверено",
+            "not_applicable": "Неприменимо",
+        }[direction.status]
+        paragraphs.extend([f"{title} · {status}", f"{direction.parameter} — {direction.conclusion}"])
+        if direction.vor_value is not None or direction.source_value is not None:
+            unit = f" {direction.unit}" if direction.unit else ""
+            paragraphs.append(f"ВОР {direction.vor_value or '—'}{unit}, источник {direction.source_value or '—'}{unit}")
+        if direction.calculation:
+            paragraphs.append(f"{direction.calculation.expression} = {direction.calculation.result}")
+        if direction.deviation is not None:
+            paragraphs.append(f"Отклонение {direction.deviation}")
+        if direction.missing_facts:
+            paragraphs.extend((
+                direction.missing_facts.required, direction.missing_facts.reason, direction.missing_facts.established,
+            ))
+        for source in direction.sources:
+            location = f"стр. {source.page}" if source.page is not None else f"{source.sheet or 'ВОР'}, строка {source.row}"
+            paragraphs.append(f"{filenames.get(source.document_id, source.document_id)} · {location} · «{source.quote}»")
+    return "\n".join(paragraphs)
+
+
 def validated_word_report(context, record):
     """Export the same final verdict as the UI; never serve stale red conclusions."""
-    validation = context.repository.normative_validation_context(record["id"])
-    if not record["config"].get("normative_after_match") and not validation:
-        return None
+    if record["config"].get("mode") != "codex":
+        validation = context.repository.normative_validation_context(record["id"])
+        if not record["config"].get("normative_after_match") and not validation:
+            return None
     rows = present_results(context, record)
     if any(r.queue == "pending" for r in rows):
         raise ValueError(
@@ -432,7 +544,7 @@ def validated_word_report(context, record):
             "№": r.number,
             "Наименование работ": r.name,
             "Статус аудита": str(r.report_status),
-            "Что не так": r.problem,
+            "Что не так": _codex_word_conclusion(record, r.codex_conclusion) if r.codex_conclusion else r.problem,
             "Наименование файла": "Не указан",
             "Где проверить": r.action,
         }
@@ -709,6 +821,32 @@ def source_evidence(context, record, index, position):
     )
     versions = record["config"].get("pdf_versions") or {}
     result = []
+    if stored.get("schema_version") == "codex-conclusion-v1":
+        seen = set()
+        filenames = {}
+        conclusion = PositionConclusion.from_stored(stored)
+        for _, finding in conclusion.findings():
+            for citation in finding.sources:
+                if citation.kind != "project" or citation.document_id not in versions.values():
+                    continue
+                version_id = citation.document_id
+                key = version_id, citation.page, citation.quote, citation.evidence_id
+                if key in seen:
+                    continue
+                seen.add(key)
+                if version_id not in filenames:
+                    filenames[version_id] = context.repository.load_version(UUID(version_id)).filename
+                result.append({
+                    "version_id": version_id,
+                    "filename": filenames[version_id],
+                    "page": citation.page,
+                    "quote": citation.quote,
+                    "kind": "work",
+                    "region": None,
+                    "confirmed": True,
+                })
+        if result:
+            return result  # Exact Codex rectangles are already stored with its citations.
     entries = list(stored.get("evidence") or [])
     if stored.get("schema_version") == "evidence-assessment-v1":
         for source in stored.get("sources") or []:

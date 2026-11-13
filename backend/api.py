@@ -15,6 +15,7 @@ import hmac
 import mimetypes
 import threading
 from dataclasses import dataclass, field
+from time import monotonic_ns
 from typing import Any, Callable, Literal
 from uuid import UUID, uuid4
 
@@ -97,6 +98,10 @@ class AuditCreateRequest(BaseModel):
     vor_version_id: str = Field(min_length=1)
     pdf_version_ids: list[str] = Field(default_factory=list)
     normative_profile: Literal["roads", "electrical"] = "roads"
+    mode: Literal["pipeline", "codex"] = "pipeline"
+    codex_subagents: bool = True
+    codex_position_indices: list[int] | None = Field(default=None, min_length=1)
+    codex_position_limit: int | None = Field(default=None, ge=1)
 
 class AuditCreateResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -490,12 +495,16 @@ def _preflight_for_versions(
 
 
 def _run_record(run: dict[str, Any]) -> AuditStatusResponse:
+    config = dict(run.get("config") or {})
+    if config.get("mode") == "codex":
+        for key in ("codex_lease_token", "codex_lease_until", "codex_normative"):
+            config.pop(key, None)
     return AuditStatusResponse(
         run_id=str(run["id"]),
         status=str(run.get("status", "")),
         vor_filename=str(run.get("vor_filename", "")),
         position_count=len(run.get("results") or []),
-        config=dict(run.get("config") or {}),
+        config=config,
     )
 
 
@@ -898,10 +907,17 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
     ) -> AuditCreateResponse:
         from vor_parse import load_vor_positions
 
+        request_started = monotonic_ns()
         request_id = _request_id(request)
         _require_api_token(context, request)
         _require_configured(context)
-        _require_llm_credentials(context.settings)
+        if payload.mode == "codex":
+            from codex_runtime import codex_audit_enabled
+
+            if not codex_audit_enabled():
+                raise ApiError(503, "codex_disabled", "Режим Codex Agent отключён на сервере.")
+        else:
+            _require_llm_credentials(context.settings)
         stored_project = _project_for_payload(context, payload)
         project = stored_project.name
         vor_id = _parse_uuid(payload.vor_version_id, field="vor_version_id")
@@ -941,24 +957,68 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             pdf_files[key] = bytes(data)
             pdf_versions[key] = row
         bindings = _pdf_binding_keys(context, vor_id, pdf_ids)
-        preflight = _preflight_for_versions(context, vor_id, pdf_ids, bindings)
+        preflight = _preflight_for_versions(context, vor_id, pdf_ids, bindings) if payload.mode == "pipeline" else None
         positions, _ = load_vor_positions(vor_bytes, vor_filename)
-        llm = context.settings.llm_credentials()
+        input_position_count = len(positions)
+        if payload.codex_position_limit is not None:
+            if (
+                payload.mode != "codex"
+                or payload.codex_position_indices is not None
+                or payload.codex_position_limit > len(positions)
+            ):
+                raise ApiError(400, "codex_selection_invalid", "Укажите допустимое число первых позиций ВОР.")
+            positions = positions[:payload.codex_position_limit]
+        if payload.codex_position_indices is not None:
+            selected = set(payload.codex_position_indices)
+            if (
+                payload.mode != "codex"
+                or len(selected) != len(payload.codex_position_indices)
+                or not selected <= {position.index for position in positions}
+            ):
+                raise ApiError(400, "codex_selection_invalid", "Выберите существующие позиции ВОР для Codex.")
+            positions = [position for position in positions if position.index in selected]
         config = {
             "project": project,
-            "model": llm.model_name,
-            "provider": llm.provider,
             "pdf_versions": {key: str(row.id) for key, row in pdf_versions.items()},
             "pdf_bindings": bindings,
             "vor_filename": vor_filename,
-            "preflight": [row.model_dump() for row in preflight.rows],
-            "has_critical_error": preflight.has_critical_error,
             "request_id": request_id,
             "position_inputs": [p.model_dump(mode="json") for p in positions],
-            "engine": "langgraph-evidence-v1",
             "normative_profile": payload.normative_profile,
         }
-        dispatch = _celery_dispatch(context)
+        if payload.mode == "codex":
+            from codex_worker import NormativeSourceError, pin_normative_release
+
+            if not pdf_versions or not positions:
+                raise ApiError(400, "codex_inputs_missing", "Для проверки Codex нужны ПД и позиции ВОР.")
+            try:
+                normative = pin_normative_release(context.blob_store, payload.normative_profile)
+            except NormativeSourceError as exc:
+                raise ApiError(503, "codex_normative_unavailable", str(exc)[:240]) from exc
+            except (OSError, ValueError) as exc:
+                raise ApiError(503, "codex_normative_unavailable", "Недоступен закреплённый нормативный выпуск Codex.") from exc
+            config.update(
+                mode="codex",
+                engine="codex-agent-v1",
+                codex_subagents=payload.codex_subagents,
+                codex_normative=normative,
+                codex_stage="queued",
+                input_position_count=input_position_count,
+                selected_position_count=len(positions),
+                codex_submission_duration_ms=(monotonic_ns() - request_started) / 1_000_000,
+            )
+            dispatch = None
+        else:
+            assert preflight is not None
+            llm = context.settings.llm_credentials()
+            config.update(
+                model=llm.model_name,
+                provider=llm.provider,
+                preflight=[row.model_dump() for row in preflight.rows],
+                has_critical_error=preflight.has_critical_error,
+                engine="langgraph-evidence-v1",
+            )
+            dispatch = _celery_dispatch(context)
         try:
             run = context.repository.create_run(
                 stored_project.id, vor_id, config,
@@ -973,6 +1033,9 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
             raise ApiError(
                 500, "storage_error", f"Не удалось создать запуск: {exc}"
             ) from exc
+
+        if payload.mode == "codex":
+            return AuditCreateResponse(run_id=str(run.id), status="running")
 
         if dispatch is not None:
             try:
@@ -1047,11 +1110,30 @@ def create_app(context: ApiContext | None = None) -> FastAPI:
     ) -> Response:
         _require_api_token(context, request)
         _require_configured(context)
-        if kind != "word":
-            raise ApiError(400, "unknown_report", "Отчёт бывает только word.")
         record = _load_run_record(context, _parse_uuid(run_id, field="run_id"))
+        if kind != "word":
+            exports = {
+                "metrics.json": "application/json",
+                "performance_report.md": "text/markdown",
+                "audit_results.json": "application/json",
+                "execution_events.jsonl": "application/x-ndjson",
+                "codex_evidence.json": "application/json",
+            }
+            if record["config"].get("mode") != "codex" or kind not in exports:
+                raise ApiError(400, "unknown_report", "Этот формат отчёта недоступен для данного запуска.")
+            if record.get("status") == "running":
+                raise ApiError(409, "audit_not_finished", "Аудит ещё выполняется.")
+            try:
+                data = context.repository.load_run_report(record["id"], kind)
+            except (KeyError, FileNotFoundError) as exc:
+                raise ApiError(404, "report_not_found", "Отчёт не найден.") from exc
+            return Response(content=data, media_type=exports[kind], headers={
+                "Content-Disposition": f"attachment; filename={kind}",
+            })
         if str(record.get("status")) not in POSITION_DONE_STATUSES:
             raise ApiError(409, "audit_not_finished", "Аудит ещё выполняется.")
+        if record["config"].get("mode") == "codex" and record["status"] != "done":
+            raise ApiError(409, "codex_report_unavailable", "Итоговый отчёт доступен после успешной проверки Codex.")
         try:
             from workspace_service import validated_word_report
             payload = validated_word_report(context, record)

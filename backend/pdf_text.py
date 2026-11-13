@@ -670,6 +670,7 @@ class PDFTextSource:
         from pdf_cell_ocr import VERSION as CELL_VERSION, NUMERIC_RECOVERY_VERSION, BODY_PREPARATION_VERSION
         from pdf_table_checks import VERSION as CONSISTENCY_VERSION
         from pdf_ruled_recovery import VERSION as RULED_VERSION
+        from pdf_ruled_numbers import VERSION as RULED_DECIMAL_VERSION
 
         raw = _cache_payload(
             {
@@ -684,6 +685,7 @@ class PDFTextSource:
                     det_limit_side_len=960, det_limit_type="min",
                     renderer=dict(dpi=300, max_pixels=24_000_000, max_side=4960),
                     line_segmentation=dict(gap="round(dpi/100)", threshold=250, padding=4, max_lines=12),
+                    deadline_decimal_recovery=RULED_DECIMAL_VERSION,
                     reread_policy="one_targeted_original_crop_only_when_first_text_empty",
                     blank_proof=dict(empty="physical-empty-paper-v1", dash="physical-printed-dash-v1")),
                 "header_verification": HEADER_VERSION,
@@ -890,7 +892,7 @@ class PDFTextSource:
             / ("ruled-%05d.json" % idx)
         )
 
-    def _read_ruled_page(self, idx):
+    def _read_ruled_page(self, idx, *, allow_partial=False):
         from pdf_tables import is_primary_ruled_table, primary_observation_complete
         try:
             envelope = json.loads(self._ruled_tables_path(idx).read_bytes().decode("utf-8"))
@@ -905,15 +907,21 @@ class PDFTextSource:
         record = envelope.get("ruled_ocr_record")
         if not isinstance(record, dict) or not isinstance(record.get("tables"), list):
             return None
-        # Partial producer output may persist for debugging, but it is never a
-        # successful recognition cache: don't resolve the table views from it.
-        if not record["tables"] or any((not is_primary_ruled_table(table)
-                or not primary_observation_complete(table)) for table in record["tables"]):
+        if not record["tables"] or not all(map(is_primary_ruled_table, record["tables"])):
             return None
         if not isinstance(record.get("text"), str) or not isinstance(record.get("words"), list):
             return None
         if not isinstance(record.get("quality"), dict):
             return None
+        if not all(map(primary_observation_complete, record['tables'])):
+            from pdf_ruled_numbers import has_valid_recovery
+
+            try:
+                reusable = allow_partial and has_valid_recovery(record)
+            except (KeyError, TypeError, ValueError):
+                reusable = False
+            if not reusable:
+                return None
         return record
 
     def _write_ruled_page(self, idx, record):
@@ -1516,7 +1524,14 @@ class PDFTextSource:
             c['text'].strip() for table in native_tables for c in table['cells'] if c.get('role') == 'cell')
         if (idx in self._pending or idx in self._native_errors or raster_body
             or idx in self._table_errors or empty_grid):
-            self._ocr_one(idx, 1)
+            partial = self._read_ruled_page(idx, allow_partial=True) if idx not in self._ocr_pages else None
+            if partial is not None and partial['quality'].get('recognition_state') == 'incomplete':
+                self.cache_hits += 1
+                self._install_ruled_page(idx, partial)
+                self._table_errors[idx] = self._ocr_errors[idx] = '; '.join(partial['errors'])
+                self._pending.discard(idx)
+            else:
+                self._ocr_one(idx, 1)
         if idx in self._ocr_pages:
             self._scan_grid_for(idx)
             if native_tables and not empty_grid:

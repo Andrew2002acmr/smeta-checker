@@ -121,6 +121,10 @@ export const zAssessmentSource = z.object({
  * AuditCreateRequest
  */
 export const zAuditCreateRequest = z.object({
+    codex_position_indices: z.array(z.int()).min(1).nullish(),
+    codex_position_limit: z.int().gte(1).nullish(),
+    codex_subagents: z.boolean().optional().default(true),
+    mode: z.enum(['pipeline', 'codex']).optional().default('pipeline'),
     normative_profile: z.enum(['roads', 'electrical']).optional().default('roads'),
     pdf_version_ids: z.array(z.string()).optional(),
     project: z.string().max(256).optional().default(''),
@@ -230,6 +234,57 @@ export const zBodyUploadDocumentApiV1DocumentsPost = z.object({
 export const zBodyWorkbenchVorCheckApiV1NormativeVorCheckPost = z.object({
     file: z.string(),
     profile: z.string().regex(/^(electrical|roads)$/).optional().default('electrical')
+});
+
+/**
+ * Calculation
+ */
+export const zCalculation = z.object({
+    expression: z.string().min(1).max(512),
+    operand_sources: z.array(z.int()).nullish(),
+    result: z.string().min(1).max(512)
+});
+
+/**
+ * Citation
+ */
+export const zCitation = z.object({
+    document_id: z.string().min(1).max(512),
+    evidence_id: z.string().min(1).max(512).nullish(),
+    highlight: z.array(z.number()).nullish(),
+    kind: z.enum([
+        'project',
+        'normative',
+        'vor'
+    ]),
+    page: z.int().gte(1).nullable(),
+    quote: z.string().min(1).max(1500),
+    row: z.int().gte(1).nullable(),
+    sheet: z.string().max(512).nullable()
+});
+
+/**
+ * CodexClarificationRequest
+ */
+export const zCodexClarificationRequest = z.object({
+    basis: z.string().min(4).max(2000),
+    finding_index: z.int().gte(0).lte(14)
+});
+
+/**
+ * CodexCoefficientRequest
+ */
+export const zCodexCoefficientRequest = z.object({
+    basis: z.string().min(4).max(2000),
+    include_related: z.boolean().optional().default(false)
+});
+
+/**
+ * CodexCoefficientRun
+ */
+export const zCodexCoefficientRun = z.object({
+    rows: z.array(z.int()),
+    run_id: z.string()
 });
 
 /**
@@ -390,6 +445,37 @@ export const zDocumentMetadataDto = z.object({
     pd_reference: z.string().optional().default(''),
     raw_title: z.string().optional().default(''),
     sources: z.record(z.string(), zMetadataSourceDto).optional()
+});
+
+/**
+ * MissingFacts
+ */
+export const zMissingFacts = z.object({
+    established: z.string().min(1).max(4000),
+    reason: z.string().min(1).max(4000),
+    required: z.string().min(1).max(4000)
+});
+
+/**
+ * DirectionConclusion
+ */
+export const zDirectionConclusion = z.object({
+    calculation: zCalculation.nullable(),
+    conclusion: z.string().min(1).max(4000),
+    deviation: z.string().min(1).max(512).nullable(),
+    missing_facts: zMissingFacts.nullable(),
+    parameter: z.string().min(1).max(512),
+    source_value: z.string().min(1).max(512).nullable(),
+    sources: z.array(zCitation).max(20),
+    status: z.enum([
+        'confirmed',
+        'mismatch',
+        'needs_facts',
+        'not_applicable',
+        'not_checked'
+    ]),
+    unit: z.string().min(1).max(512).nullable(),
+    vor_value: z.string().min(1).max(512).nullable()
 });
 
 /**
@@ -910,6 +996,18 @@ export const zOwnQuantity = z.object({
 });
 
 /**
+ * ParameterFinding
+ */
+export const zParameterFinding = z.object({
+    direction: z.enum([
+        'project',
+        'normative',
+        'quantities'
+    ]),
+    finding: zDirectionConclusion
+});
+
+/**
  * PdfBindingsDTO
  */
 export const zPdfBindingsDto = z.object({
@@ -1048,6 +1146,21 @@ export const zPositionAssessment = z.object({
     schema_version: z.literal('evidence-assessment-v1').optional().default('evidence-assessment-v1'),
     source_registry_ref: z.string().max(128).optional().default(''),
     sources: z.array(zAssessmentSource).max(96).optional()
+});
+
+/**
+ * PositionConclusion
+ */
+export const zPositionConclusion = z.object({
+    group: z.string().min(1).max(512),
+    normative: zDirectionConclusion,
+    parameter_findings: z.array(zParameterFinding).max(12).optional(),
+    position_index: z.int().gte(0),
+    project: zDirectionConclusion,
+    quantities: zDirectionConclusion,
+    row: z.int().gte(1),
+    sheet: z.string().max(512),
+    work_name: z.string().min(1).max(4000)
 });
 
 /**
@@ -1244,6 +1357,7 @@ export const zResultDto = z.object({
     assessment: zPositionAssessment.nullish(),
     audit_status: zAuditStatus.nullish(),
     cells: z.record(z.string(), z.string()),
+    codex_conclusion: zPositionConclusion.nullish(),
     comment_confirmed: z.boolean().nullish(),
     declared_quantity: z.string(),
     details: z.string(),
@@ -1268,7 +1382,11 @@ export const zResultDto = z.object({
         zReportStatus,
         z.literal('Проверяется по нормативам')
     ]),
-    result_origin: z.enum(['graph', 'legacy']).optional().default('legacy'),
+    result_origin: z.enum([
+        'graph',
+        'legacy',
+        'codex'
+    ]).optional().default('legacy'),
     sheet: z.string(),
     source_row: z.int().nullable(),
     unit: z.string(),
@@ -1311,6 +1429,11 @@ export const zRunCountDto = z.object({
  * RunDTO
  */
 export const zRunDto = z.object({
+    codex_error: z.string().nullish(),
+    codex_metrics: z.record(z.string(), z.unknown()).nullish(),
+    codex_parent_run_id: z.string().nullish(),
+    codex_stage: z.string().nullish(),
+    codex_subagents: z.boolean().nullish(),
     completion_counts: z.record(z.string(), z.int()).optional(),
     created_at: z.iso.datetime().nullable(),
     department_id: z.string().nullish(),
@@ -1319,6 +1442,7 @@ export const zRunDto = z.object({
     failed: z.int(),
     finished_at: z.iso.datetime().nullable(),
     input_position_count: z.int().nullish(),
+    mode: z.enum(['pipeline', 'codex']).optional().default('pipeline'),
     normative_counts: z.record(z.string(), z.int()).optional(),
     preparation_done: z.int().optional().default(0),
     preparation_total: z.int().nullish(),
@@ -1624,6 +1748,19 @@ export const zCancelAuditApiV1AuditsRunIdCancelPostPath = z.object({
  */
 export const zCancelAuditApiV1AuditsRunIdCancelPostResponse = zRunDto;
 
+export const zCodexComparisonApiV1AuditsRunIdCodexComparisonGetPath = z.object({
+    run_id: z.string()
+});
+
+export const zCodexComparisonApiV1AuditsRunIdCodexComparisonGetQuery = z.object({
+    other_run_id: z.string()
+});
+
+export const zCodexSourceApiV1AuditsRunIdCodexSourcesDocumentIdGetPath = z.object({
+    run_id: z.string(),
+    document_id: z.string()
+});
+
 export const zAssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostBody = zAssessmentActionRequest;
 
 export const zAssessmentRecheckApiV1AuditsRunIdPositionsPositionIndexAssessmentRecheckPostPath = z.object({
@@ -1736,6 +1873,30 @@ export const zHumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisId
  * Successful Response
  */
 export const zHumanBasisRevokeApiV1AuditsRunIdPositionsPositionIndexBasisBasisIdDeleteResponse = z.array(zHumanBasisDto);
+
+export const zClarifyCodexFindingApiV1AuditsRunIdPositionsPositionIndexCodexClarificationPostBody = zCodexClarificationRequest;
+
+export const zClarifyCodexFindingApiV1AuditsRunIdPositionsPositionIndexCodexClarificationPostPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Successful Response
+ */
+export const zClarifyCodexFindingApiV1AuditsRunIdPositionsPositionIndexCodexClarificationPostResponse = zCodexCoefficientRun;
+
+export const zClarifyCodexCoefficientApiV1AuditsRunIdPositionsPositionIndexCodexCoefficientPostBody = zCodexCoefficientRequest;
+
+export const zClarifyCodexCoefficientApiV1AuditsRunIdPositionsPositionIndexCodexCoefficientPostPath = z.object({
+    run_id: z.string(),
+    position_index: z.int()
+});
+
+/**
+ * Successful Response
+ */
+export const zClarifyCodexCoefficientApiV1AuditsRunIdPositionsPositionIndexCodexCoefficientPostResponse = zCodexCoefficientRun;
 
 export const zPreparedPageApiV1AuditsRunIdPositionsPositionIndexExtractionGetPath = z.object({
     run_id: z.string(),

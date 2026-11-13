@@ -255,6 +255,7 @@ onBeforeUnmount(() => {
           :title="actionError"
           class="department-notice"
         />
+        <CodexProjectLaunch v-if="!project.archived" :key="projectId" :project-id="projectId" />
         <section :aria-busy="busy" aria-label="Список отделов">
           <div v-if="!filtered.length && !error" class="panel department-empty">
             <UIcon name="i-lucide-folder-open" class="size-8 text-muted" />

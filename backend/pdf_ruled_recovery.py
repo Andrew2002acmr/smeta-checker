@@ -37,7 +37,7 @@ def collect_words(tables, matrix):
     return list(found.values())
 
 
-def raster_grid(image):
+def raster_grid(image, *, minimum_rule_fraction=25):
     import cv2
     import numpy as np
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY) if image.ndim == 3 else image
@@ -45,9 +45,9 @@ def raster_grid(image):
         cv2.THRESH_BINARY_INV, 35, 2)
     height, width = gray.shape
     horizontal = cv2.morphologyEx(ink, cv2.MORPH_OPEN,
-        cv2.getStructuringElement(cv2.MORPH_RECT, (max(30, width//25), 1)))
+        cv2.getStructuringElement(cv2.MORPH_RECT, (max(30, width//minimum_rule_fraction), 1)))
     vertical = cv2.morphologyEx(ink, cv2.MORPH_OPEN,
-        cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(30, height//25))))
+        cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(30, height//minimum_rule_fraction))))
     grid=cv2.morphologyEx(cv2.bitwise_or(horizontal, vertical), cv2.MORPH_CLOSE,
         np.ones((5, 5), dtype=np.uint8))
     # CAD rows can stop just short of their enclosing vertical frame. Bridge
@@ -57,13 +57,13 @@ def raster_grid(image):
         np.ones((1,max(5,round(width*.006))),dtype=np.uint8))
 
 
-def geometry_from_boxes(boxes, *, tolerance=9):
+def geometry_from_boxes(boxes, *, tolerance=9, minimum_cells=4, minimum_rows=2):
     """Accept closed nonoverlapping cells, allowing an exterior stepped edge.
 
     A tall left header can leave an empty upper-right corner. Such exterior
     gaps are not data cells. Interior holes and overlapping slots are rejected.
     """
-    if not 4 <= len(boxes) <= 4000:
+    if not minimum_cells <= len(boxes) <= 4000:
         return None
 
     def edges(values):
@@ -77,7 +77,7 @@ def geometry_from_boxes(boxes, *, tolerance=9):
 
     xs = edges([box[i] for box in boxes for i in (0, 2)])
     ys = edges([box[i] for box in boxes for i in (1, 3)])
-    if min(len(xs), len(ys)) < 3 or (len(xs)-1)*(len(ys)-1) > 12000:
+    if len(xs) < 3 or len(ys) <= minimum_rows or (len(xs)-1)*(len(ys)-1) > 12000:
         return None
     snapped, logical, occupied = [], [], set()
     for box in sorted(boxes, key=lambda b: (b[1], b[0])):
@@ -104,7 +104,7 @@ def geometry_from_boxes(boxes, *, tolerance=9):
     return snapped, logical
 
 
-def closed_geometries(grid):
+def closed_geometries(grid, *, minimum_cells=4, minimum_rows=2, tolerance=9):
     """Recover each independent ruled component, including in a shared scan."""
     import cv2
     contours, hierarchy = cv2.findContours(grid, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -120,7 +120,8 @@ def closed_geometries(grid):
             by_parent.setdefault(parent, []).append([x, y, x+width, y+height])
     candidates = []
     for boxes in by_parent.values():
-        geometry = geometry_from_boxes(boxes)
+        geometry = geometry_from_boxes(boxes, tolerance=tolerance,
+                                       minimum_cells=minimum_cells, minimum_rows=minimum_rows)
         if geometry is not None:
             bounds = [min(b[0] for b in boxes), min(b[1] for b in boxes),
                 max(b[2] for b in boxes), max(b[3] for b in boxes)]

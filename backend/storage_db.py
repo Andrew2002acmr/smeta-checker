@@ -14,6 +14,7 @@ import os
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from time import monotonic_ns
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -854,7 +855,7 @@ class Repository(DepartmentRepositoryMixin):
 
     def create_run(
         self, project_id: UUID, vor_version_id: UUID, config: dict[str, Any],
-        pdf_pins: dict[str, UUID] | None = None, *, background: bool = False,
+        pdf_pins: dict[str, UUID] | None = None, *, background: bool = False, run_id: UUID | None = None,
     ) -> RunRow:
         with Session(self._engine) as session:
             vor = session.get(DocumentVersion, vor_version_id)
@@ -866,6 +867,7 @@ class Repository(DepartmentRepositoryMixin):
             if document.project_id != project_id:
                 raise ValueError("version belongs to another project")
             run = Run(
+                id=run_id or uuid4(),
                 project_id=project_id,
                 vor_version_id=vor_version_id,
                 config=dict(config),
@@ -997,6 +999,129 @@ class Repository(DepartmentRepositoryMixin):
                 raise KeyError(str(run_id))
             return str(status)
 
+    def claim_codex_run(self, *, lease_seconds: int) -> tuple[UUID, str, float] | None:
+        with Session(self._engine) as session:
+            now = session.scalar(select(func.now()))
+            run = session.scalar(
+                select(Run).where(
+                    Run.status == "running",
+                    Run.config["mode"].as_string() == "codex",
+                    or_(
+                        Run.config["codex_stage"].as_string() == "queued",
+                        Run.config["codex_lease_until"].as_float() <= now.timestamp(),
+                    ),
+                ).order_by(Run.created_at, Run.id).limit(1).with_for_update(skip_locked=True)
+            )
+            if run is None:
+                return None
+            config = dict(run.config)
+            if config.get("codex_stage") != "queued":
+                config.pop("codex_lease_token", None)
+                config.pop("codex_lease_until", None)
+                config.update(codex_stage="error", codex_error="Воркер потерял связь с заданием. Запустите проверку повторно.")
+                run.config, run.status, run.finished_at = config, "failed", now
+                session.commit()
+                return None
+            token = str(uuid4())
+            queued_at = config.get("codex_queued_at", run.created_at.timestamp())
+            config.update(
+                codex_stage="preparing", codex_lease_token=token,
+                codex_lease_until=now.timestamp() + lease_seconds,
+                codex_started_at=now.isoformat(),
+            )
+            run.config = config
+            queue_ms = max(0.0, (now.timestamp() - queued_at) * 1000)
+            run_id = run.id
+            session.commit()
+            return run_id, token, queue_ms
+
+    def heartbeat_codex_run(
+        self, run_id: UUID, token: str, *, lease_seconds: int, stage: str | None = None,
+        metrics: dict[str, Any] | None = None,
+    ) -> bool:
+        with Session(self._engine) as session:
+            run = session.scalar(select(Run).where(Run.id == run_id).with_for_update())
+            if run is None or run.status != "running":
+                return False
+            config = dict(run.config)
+            now = session.scalar(select(func.now())).timestamp()
+            if config.get("codex_lease_token") != token or config.get("codex_lease_until", 0) <= now:
+                return False
+            config["codex_lease_until"] = now + lease_seconds
+            if stage is not None:
+                config["codex_stage"] = stage
+            if metrics is not None:
+                config["codex_metrics"] = metrics
+            run.config = config
+            session.commit()
+            return True
+
+    def cancel_codex_run(self, run_id: UUID) -> bool:
+        with Session(self._engine) as session:
+            run = session.scalar(select(Run).where(Run.id == run_id).with_for_update())
+            if run is None or run.status != "running" or run.config.get("mode") != "codex":
+                return False
+            run.status, run.finished_at = "cancelled", func.now()
+            run.config = {**run.config, "codex_stage": "cancelled"}
+            session.commit()
+            return True
+
+    def complete_codex_run(
+        self, run_id: UUID, token: str, *, results: list[dict[str, Any]],
+        error: str | None, metadata: dict[str, Any], artifact_payloads,
+    ) -> bool:
+        """Publish the results and terminal status together under the worker lease."""
+        with Session(self._engine) as session:
+            run = session.scalar(select(Run).where(Run.id == run_id).with_for_update())
+            if run is None:
+                return False
+            config = dict(run.config)
+            now = session.scalar(select(func.now()))
+            if config.get("codex_lease_token") != token or config.get("codex_lease_until", 0) <= now.timestamp():
+                return False
+            config.pop("codex_lease_token")
+            config.pop("codex_lease_until")
+            if run.status == "cancelled":
+                results = []
+                terminal = "cancelled"
+            elif run.status != "running":
+                return False
+            elif error is not None:
+                results = []
+                terminal = "failed"
+            else:
+                terminal = "done"
+            persistence_start = monotonic_ns()
+            session.add_all(PositionResult(
+                run_id=run_id, position_index=result["position_index"],
+                result={**result, "schema_version": "codex-conclusion-v1"},
+            ) for result in results)
+            session.flush()
+            metrics = {**config.get("codex_metrics", {}), **metadata.get("metrics", {})}
+            metrics["persistence_duration_ms"] = (monotonic_ns() - persistence_start) / 1_000_000
+            metrics["persistence_duration_boundary"] = "position_rows_flushed"
+            for kind, data in artifact_payloads(metrics, results, terminal).items():
+                blob = self._blobs.put(data)
+                artifact = insert(RunArtifact).values(
+                    run_id=run_id, kind=kind, blob_key=blob.key, size=blob.size,
+                )
+                session.execute(artifact.on_conflict_do_update(
+                    index_elements=[RunArtifact.run_id, RunArtifact.kind],
+                    set_={"blob_key": blob.key, "size": blob.size},
+                ))
+            config.update(
+                codex_metrics=metrics, codex_stage="error" if terminal == "failed" else terminal,
+                codex_error=error if terminal == "failed" else None,
+            )
+            for key, value in (("codex_cli_version", metadata.get("cli_version")), ("model", metadata.get("model"))):
+                if isinstance(value, str):
+                    config[key] = value
+            run.config, run.status = config, terminal
+            if terminal != "cancelled":
+                run.finished_at = func.clock_timestamp()
+            session.commit()
+            return True
+
     def resume_run(self, run_id: UUID, *, allow_running: bool = True) -> None:
         """Explicitly resume an interrupted audit, preserving completed results.
 
@@ -1011,6 +1136,25 @@ class Repository(DepartmentRepositoryMixin):
             allowed = {"failed", "cancelled"} | ({"running"} if allow_running else set())
             if run.status not in allowed:
                 raise ValueError("Only interrupted audits can be resumed")
+            if run.config.get("mode") == "codex":
+                config = dict(run.config)
+                if config.get("codex_lease_until", 0) > now.timestamp():
+                    raise ValueError("An execution lease is still active")
+                config["codex_attempts"] = [
+                    *config.get("codex_attempts", []),
+                    {
+                        "status": run.status, "error": config.get("codex_error"),
+                        "started_at": config.get("codex_started_at"),
+                        "finished_at": run.finished_at.isoformat() if run.finished_at else None,
+                        "metrics": config.get("codex_metrics"),
+                    },
+                ]
+                for field in ("codex_started_at", "codex_error", "codex_metrics", "codex_lease_token", "codex_lease_until"):
+                    config.pop(field, None)
+                config.update(codex_stage="queued", codex_queued_at=now.timestamp())
+                run.config, run.status, run.finished_at = config, "running", None
+                session.commit()
+                return
             active = session.scalar(select(func.count()).select_from(TaskOutbox).where(
                 TaskOutbox.run_id == run_id, TaskOutbox.status.in_(["running", "dispatched"]),
                 TaskOutbox.lease_until > now,
@@ -1706,8 +1850,16 @@ class Repository(DepartmentRepositoryMixin):
             Run.id, Run.project_id, Run.vor_version_id, Run.status,
             Run.created_at, Run.finished_at,
             func.jsonb_array_length(Run.config["position_inputs"]).label("input_total"),
+            Run.config["input_position_count"].as_integer().label("input_position_count"),
+            Run.config["selected_position_count"].as_integer().label("selected_position_count"),
             Run.config["prepare_seconds"].as_float().label("prepare_seconds"),
             Run.config["pdf_preparation"].label("pdf_preparation"),
+            Run.config["mode"].as_string().label("mode"),
+            Run.config["codex_stage"].as_string().label("codex_stage"),
+            Run.config["codex_subagents"].as_boolean().label("codex_subagents"),
+            Run.config["codex_parent_run_id"].as_string().label("codex_parent_run_id"),
+            Run.config["codex_metrics"].label("codex_metrics"),
+            Run.config["codex_error"].as_string().label("codex_error"),
         )
         if project_id is not None:
             page = page.where(Run.project_id == project_id)
@@ -1739,7 +1891,9 @@ class Repository(DepartmentRepositoryMixin):
                 record = records.setdefault(row["id"], {
                     **{key: row[key] for key in (
                         "id", "project_id", "department_id", "vor_version_id", "status", "created_at", "finished_at",
-                        "input_total", "prepare_seconds", "pdf_preparation",
+                        "input_total", "input_position_count", "selected_position_count",
+                        "prepare_seconds", "pdf_preparation", "mode", "codex_stage",
+                        "codex_subagents", "codex_parent_run_id", "codex_metrics", "codex_error",
                     )},
                     "vor_filename": row["filename"], "result_count": row["result_count"] or 0,
                     "job_counts": {}, "pdf_jobs": 0,
